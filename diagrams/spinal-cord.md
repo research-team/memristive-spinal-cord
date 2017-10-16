@@ -2,20 +2,20 @@
 
 ![Spinal Cord Diagram][spinal-cord-diagram]
 
-Circles:
-Gray
-Brown
-Purple
+Circles:  
+Gray  
+Brown  
+Purple  
+   
+Diamonds:  
+Blue -- Extensor Motoneurons Group  
+Red -- Flexor Motoneurons Group  
 
-Diamonds:
-Blue -- Exnensor Motoneurons Group
-Red -- Flexor Motoneurons Group
-
-PC
-LR
-MR
-SCS
-Ia -- type Ia sensory fiber
-Ib -- type Ib sensory fiber
-R-E
-R-F
+PC  
+LR  
+MR  
+SCS  
+Ia -- type Ia sensory fiber  
+Ib -- type Ib sensory fiber  
+R-E  
+R-F  
