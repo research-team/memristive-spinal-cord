@@ -8,14 +8,14 @@ Brown
 Purple
 
 Diamonds:
-Blue
-Red
+Blue -- Exnensor Motoneurons Group
+Red -- Flexor Motoneurons Group
 
-PC 
+PC
 LR
-MR - 
+MR
 SCS
-Ib
-Ib
+Ia -- type Ia sensory fiber
+Ib -- type Ib sensory fiber
 R-E
 R-F
