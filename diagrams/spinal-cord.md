@@ -9,8 +9,8 @@
 [inhibition]: images/inhibition.png
 ![][spinal-cord-diagram]
 
-![][exitation] - Exitation
-![][inhibition] - Inhibition
+![][exitation] - Exitation  
+![][inhibition] - Inhibition  
 
 Interneurone populations:  
 ![][gray-circle] - Segmental interneurons, Proprioceptive interneurons, Commissural interneurons  
@@ -24,7 +24,7 @@ Motoneurone populatons:
 
 Abbreviations:  
 PC - Posterior Column (?)  
-LR - Late Response 
+LR - Late Response  
 MR - Middle Response  
 SCS - Spinal Cord Stimulation  
 Ia - type Ia sensory fiber  
