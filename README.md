@@ -1,5 +1,7 @@
 ### About
-Model of ES (Electric stimulation) of spinal cord. It should enhance walking cycle with correct parameters.
+Model of ES (Electric stimulation) of spinal cord. It should enhance walking cycle with correct parameters. A proposed scheme is below.
+
+<img src="/diagrams/spinal-cord-diagram/spinal-cord-diagram.png?raw=true 'Reflexes'" alt="Model diagram" height=500/>
 
 #### Some biology intro
 Muscle is innervated by motoneurons (efferents), sensory neurons (afferents). They can be classified.
