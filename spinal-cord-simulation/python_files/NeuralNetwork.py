@@ -3,10 +3,15 @@ import pylab
 import random
 import matplotlib.pyplot as plt
 import os
+import time
 from mpi4py import MPI
 from scipy import interpolate
 
 class NeuralNetwork:
+
+	starting_time_total = time.time()
+	iteration_start = starting_time_total
+	iteration_count = 0
 
 	from neuron import h
 
@@ -706,6 +711,12 @@ class NeuralNetwork:
 
 				print "\nThe amplitude of the early response is: " + "{:.2f}".format(ampResponse_Early[jj]*100) + "% "
 				print "The amplitude of the medium-late response is: " + "{:.2f}".format(ampResponse_MediumLate[jj]*100) + "% \n"
+
+				iteration_count += 1
+				print "\nIteration number: #" + iteration_count
+				print "Iteration time: " + time.strftime("%H:%M:%S", time.gmtime(time.time() - iteration_time))
+				print "Total simulation time: " + time.strftime("%H:%M:%S", time.gmtime(time.time() - starting_time_total))
+				iteration_time = time.time()
 
 
 		if(self.h.PcID==0) :
