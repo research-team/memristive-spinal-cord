@@ -9,13 +9,16 @@ from scipy import interpolate
 
 class NeuralNetwork:
 
-	starting_time_total = time.time()
-	iteration_start = starting_time_total
-	iteration_count = 0
-
 	from neuron import h
 
 	def __init__(self):
+
+		global starting_time_total
+		global iteration_count
+		global iteration_start
+		starting_time_total = time.time()
+		iteration_start = starting_time_total
+		iteration_count = 0
 
 		self.EES = 0
 		self.EES_freqeqncy = 0
@@ -712,7 +715,7 @@ class NeuralNetwork:
 				print "\nThe amplitude of the early response is: " + "{:.2f}".format(ampResponse_Early[jj]*100) + "% "
 				print "The amplitude of the medium-late response is: " + "{:.2f}".format(ampResponse_MediumLate[jj]*100) + "% \n"
 
-				iteration_count += 1
+				iteration_time += 1
 				print "\nIteration number: #" + iteration_count
 				print "Iteration time: " + time.strftime("%H:%M:%S", time.gmtime(time.time() - iteration_time))
 				print "Total simulation time: " + time.strftime("%H:%M:%S", time.gmtime(time.time() - starting_time_total))
