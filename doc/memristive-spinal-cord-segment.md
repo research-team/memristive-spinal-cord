@@ -1,3 +1,8 @@
 # Memristive spinal cord segment 
 
-![](../diagrams/spinal_cord.png)
+## Biological model
+
+![Memristive spinal cord biological model](../diagrams/spinal-cord-diagram/spinal-cord-diagram.png)
+
+## Electronic model 
+
