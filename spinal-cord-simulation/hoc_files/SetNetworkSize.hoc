@@ -1,0 +1,25 @@
+// All the numbers (except nIAf, nIIf and FromAll_IAf_ToOne_MN) are taken from Shuurmans 2007
+// Tot number of cells
+NetworkSize = 1
+
+nMN = int(169*NetworkSize)
+nIAf = int(60*NetworkSize) //Chin Cope & Pang 1962/Harrison 1981
+nIIf = int(60*NetworkSize)
+nIAint = int(196*NetworkSize)
+nEXIN = int(196*NetworkSize)
+
+// Tot number of synapses FromAll_CellA_ToOne_CellB
+
+FromAll_IAf_ToOne_MN = int(nIAf)
+FromAll_IAf_ToOne_IAint = int(62*NetworkSize)
+
+FromAll_IIf_ToOne_EXIN = int(62*NetworkSize)
+FromAll_IIf_ToOne_IAint = int(62*NetworkSize)
+
+FromAll_IAint_ToOne_IAint = int(100*NetworkSize)
+FromAll_IAint_ToOne_MN = int(232*NetworkSize)
+
+FromAll_EXIN_ToOne_MN = int(116*NetworkSize)
+
+// MotoNeuron dendrite number
+ndend = 12

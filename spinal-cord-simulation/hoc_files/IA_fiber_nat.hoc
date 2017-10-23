@@ -1,0 +1,21 @@
+public pp, connect2target, x, y, z, position, is_art
+objref pp, file
+
+proc init() {
+
+  pp = new NetStim()
+  pp.interval=0
+  pp.start=10-1
+  pp.noise=0.2
+  pp.number=1000000000
+}
+
+func is_art() { return 1 }
+
+obfunc connect2target() { localobj nc
+  nc = new NetCon(pp, $o1)
+  if (numarg() == 2) { $o2 = nc }
+  return nc
+}
+
+proc position(){x=$1  y=$2  z=$3}

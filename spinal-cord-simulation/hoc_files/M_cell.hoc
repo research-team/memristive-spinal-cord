@@ -1,0 +1,162 @@
+public is_art
+public init, topol, basic_shape, subsets, geom, biophys, geom_nseg, biophys_inhomo
+public synlist, x, y, z, position, connect2target, synapses
+public soma, dendrite, inseg, node, paranode
+public all
+
+//Loading network parameters
+{xopen("SetNetworkSize.hoc")}
+
+nnode=41
+
+{create soma[1.]}
+{create dendrite[ndend]}
+{create inseg[1.]}
+{create node[nnode]}
+{create paranode[nnode]}
+
+objref synlist
+objectvar stim
+
+proc init() {
+  //geom()
+  synlist = new List()
+  //synapses()
+  x = y = z = 0 // only change via position
+}
+
+
+objref all
+proc subsets() { local i
+  objref all
+  all = new SectionList()
+    soma all.append()
+    dendrite all.append()
+}
+
+
+objectvar D
+objectvar file
+objectvar Leq
+objref r
+
+proc geom() {
+     r=new Random($1)
+  xopen("MN_ballstick_axon.hoc")
+
+forsec "soma" {
+  cm=2
+  Ra=200
+  // insert motoneuron           // McIntyre
+  insert motoneuron_5ht          // MN with 5HT drug effect -- Booth et al 1997
+  }
+
+forsec "dendrite" {
+       Ra = 200
+       cm = 2
+       insert pas
+       g_pas = 7.7e-6 //FLESHMAN ET AL 1988 - cells 35/4
+       e_pas = -70.0
+       }
+
+for i=0, nnode-1 {
+  node[i]{
+       nseg=1
+       Ra = 70
+       cm = 2
+       insert axnode
+       gnapbar_axnode=0
+  }
+}
+forsec "paranode" {
+    nseg=5
+    Ra = 70
+    cm=0.1/(2*9.15*diam+2*30) //This is 0.1/2*nl where nl=9.15*D+30 is the number of myelin lamellae!!
+    insert pas
+    g_pas=0.001/(2*9.15*diam+2*30)
+    e_pas=-85
+}
+}
+obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
+  node[nnode-1] nc = new NetCon(&v(1), $o1) // last axon node
+  nc.threshold = -20
+  if (numarg() == 2) { $o2 = nc } // for backward compatibility
+  return nc
+}
+
+
+objref syn_
+objref r
+objref r1
+objref file
+
+proc synapses() {
+
+  //Loading network parameters
+  {xopen("SetNetworkSize.hoc")}
+
+  //SYNAPSES
+  r=new Random($1)
+  r1=new Random($1)
+
+
+  //EXCITATORY SYNAPSES
+  mean =0
+  for i=0,FromAll_IAf_ToOne_MN-1{
+      //POISSON LIKE SPATIAL DISTRUBUTION OF SYNAPTIC BOUTONS
+
+      // Since we have 5 synaptic bouton for fiber a is the mean of 5 random positioned synapses
+      temp=r.poisson(4)
+      for j=1,5{ // mean over 5 synapses
+        temp = r.repick()
+        a+=temp
+      }
+      a = int(a/5)-2
+      if (a<0) {a=0}
+      if (a>ndend) {a=ndend}
+
+      mean+=a
+      b=r1.uniform(0,1)
+
+
+      dendrite[a] syn_ = new ExpSyn(b)  synlist.append(syn_) /* E */
+      syn_.tau = 0.5
+	   syn_.e=0
+  }
+  mean/=FromAll_IAf_ToOne_MN
+
+  for i=0,FromAll_EXIN_ToOne_MN-1{
+      //POISSON RANDOM SYNAPTIC POSITIONING
+      a=r.poisson(4.2)
+      while(a<2 || a>ndend){
+              a=r.repick()
+          }
+      a=a-2  //SHIFTS FROM 0 TO NDEND
+      b=r1.uniform(0,1)
+
+      dendrite[int(a)] syn_ = new ExpSyn(b)  synlist.append(syn_) /* E */
+      syn_.tau = 0.5
+      syn_.e=0
+  }
+  //INHIBITORY SYNAPSES FROM IA (Int Fire)
+  for i=0,FromAll_IAint_ToOne_MN-1{
+    soma[0] syn_ = new Exp2Syn(0.5)  synlist.append(syn_)  /* I */
+    syn_.tau1 = 1.5
+    syn_.tau2 = 2
+    syn_.e = -75
+  }
+
+  //EES EFFECT
+  node[3] syn_ = new ExpSyn(0.5)  synlist.append(syn_)   /* E */
+  syn_.tau = 0.1
+  syn_.e= 50
+}
+
+func is_art() {
+ return 0 }
+
+proc position() {
+    soma for i = 0, n3d()-1 {
+        pt3dchange(i, $1+x3d(i), $2+y3d(i), $3+z3d(i), diam3d(i))
+    }
+}

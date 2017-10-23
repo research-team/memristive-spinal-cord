@@ -1,0 +1,31 @@
+Parallel Code organization
+
+Cells gid :
+	nCell = nIAf+nMN+nIAint
+	Flexors: (divided in all the nHost)
+		0							nMN-1								MotorNeurons (M_cell)
+		nMN							nIAf+nMN-1							IA_fibers (IntFire1)
+		nIAf+nMN					nIAf+nMN+nIAint-1 					IA_InterNeurons (IntFire4)
+		nIAf+nMN+nIAint    			nIAf+nMN+nIAint+nIIf-1 				II_fibers (IntFire1)
+		nIAf+nMN+nIAint+nIIf		nIAf+nMN+nIAint+nIIf+nEXIN-1 		Exic interneurons (IntFire4)
+	Extensors: (divided in all the nHost)
+		nCell						nCell+nMN-1							MotorNeurons (M_cell)
+		nCell+nMN					nCell+nIAf+nMN-1					IA_fibers (IntFire1)
+		nCell+nIAf+nMN				nCell+nIAf+nMN+nIAint-1 			IA_InterNeurons (IntFire4)
+		nCell+nIAf+nMN+nIAint   	nCell+nIAf+nMN+nIAint+nIIf-1 		II_fibers (IntFire1)
+		nCell+nIAf+nMN+nIAint+nIIf	nCell+nIAf+nMN+nIAint+nIIf+nEXIN-1 	Exic interneurons (IntFire4)
+
+	EES: (only on host 0)
+		nCell*2															EES (NetStim)
+	Flexor Stimumlation:
+		Ind_IaFibStimFlex 			Ind_IIFibStimFlex-1 				IA_fiber_stim (NetStim) [>40 - 40 - 30 - 20 Hz]
+		Ind_IIFibStimFlex 			Ind_IaFibStimExt-1 					II_fiber_stim (NetStim) [>40 - 40 - 30 - 20 Hz]
+	Extensor Stimumlation:
+		Ind_IaFibStimExt 			Ind_IIFibStimExt-1 					IA_fiber_stim (NetStim) [>40 - 40 - 30 - 20 Hz]
+		Ind_IIFibStimExt 			Ind_IIFibStimExt+4*nIAf-1 			II_fiber_stim (NetStim) [>40 - 40 - 30 - 20 Hz]
+
+Synapses of the motor neurons:
+		0																		FromAll_IAf_ToOne_MN-1 													IA_fibers (Excitatory)
+		FromAll_IAf_ToOne_MN 													FromAll_IAf_ToOne_MN+FromAll_EXIN_ToOne_MN-1							EXIN (excitatory)
+		FromAll_IAf_ToOne_MN+FromAll_EXIN_ToOne_MN 								FromAll_IAf_ToOne_MN+FromAll_EXIN_ToOne_MN+FromAll_IAint_ToOne_MN-1		IA_InterNeurons (Inhibitory)
+		FromAll_IAf_ToOne_MN+FromAll_EXIN_ToOne_MN+FromAll_IAint_ToOne_MN																				EES (Excitatory)

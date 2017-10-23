@@ -1,0 +1,84 @@
+
+// MUSCLE SPINDLE FEEDBACK CIRCUIT MODEL by 
+
+// Marco Capogrosso and Emanuele Formento
+
+// Published in:
+// Mechanisms Underlying the Neuromodulation of Spinal Circuits for Correcting Gait and Balance Deficits after Spinal Cord Injury.
+// Moraud EM, Capogrosso M, Formento E, Wenger N, DiGiovanna J, Courtine G, Micera S.
+// Neuron. 2016 Feb 17;89(4):814-28. doi: 10.1016/j.neuron.2016.01.009. Epub 2016 Feb 4.
+
+
+//GENERAL PARAMETERS
+{load_file("nrngui.hoc")}
+t0 = startsw() // timer
+
+// Parallel Network
+objref pc
+pc = new ParallelContext()
+PcID = pc.id // for python
+Nhost = pc.nhost // for python
+
+// Set the number of Cells and Synapses
+{xopen("SetNetworkSize.hoc")}
+
+//MCELL
+begintemplate M_Cell
+{xopen("M_cell.hoc")}
+endtemplate M_Cell
+//FINE M_CELL
+
+//IAINPUT
+begintemplate IA_fiber_stim
+{xopen("IA_fiber_nat.hoc")}
+endtemplate IA_fiber_stim
+//FINE IAINPUT
+
+//IAFIBER
+begintemplate IA_fiber
+{xopen("Int_Fiber.hoc")}
+endtemplate IA_fiber
+//IAFIBER
+
+////IAINT
+begintemplate IA_Int
+{xopen("Int_F.hoc")}
+endtemplate IA_Int
+////FINE IAINT
+
+//EXINT
+begintemplate EXIN_Cell
+{xopen("Int_F.hoc")}
+endtemplate EXIN_Cell
+//EXINT
+
+//IIINPUT
+begintemplate II_fiber_stim
+{xopen("II_fiber_nat.hoc")}
+endtemplate II_fiber_stim
+//FINE IIINPUT
+
+//IIFIBER
+begintemplate II_fiber
+{xopen("Int_Fiber.hoc")}
+endtemplate II_fiber
+//IIFIBER
+
+
+//EES
+begintemplate EES
+{xopen("EES.hoc")}
+endtemplate EES
+//EES
+
+//NETWORK SET UP
+{xopen("NetBuild.hoc")}
+//END NETWORK SET UP
+
+//SIMULATION PARAMETERS
+celsius=37
+dt=0.025
+v_init=-70
+t1 = startsw() // timer
+tstop=1000
+{printf("Starting process %d of %d\n", pc.id+1, pc.nhost)}

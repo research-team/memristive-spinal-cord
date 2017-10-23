@@ -1,0 +1,57 @@
+//SYNAPTIC CONNECTIONS EXTENSORS-FLEXORS - CONTROLATERAL
+
+objref r
+r = new Random()
+
+//SYNAPSES BETWEEN IAintExt AND IAintFLEX
+{r.uniform(0, nIAint-1)}
+for i=nMN+nIAf, nMN+nIAf+nIAint-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	for j=0, FromAll_IAint_ToOne_IAint-1{
+		//syn = target.pp
+		nc = pc.gid_connect(nCell+nMN+nIAf+int(r.repick()), target)
+		nc.weight = -lo
+    	nc.delay = tausyn
+        nclist_lo.append(nc)
+    }
+}
+
+//SYNAPSES BETWEEN IAintFlex AND IAintExt
+for i=nCell+nMN+nIAf, nCell+nMN+nIAf+nIAint-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	for j=0, FromAll_IAint_ToOne_IAint-1{
+		//syn = target.pp
+		nc = pc.gid_connect(nMN+nIAf+int(r.repick()), target)
+		nc.weight = -lo
+        nclist_lo.append(nc)
+    }
+}
+
+//SYNAPSES BETWEEN IAintExt AND MNFlex
+{r.uniform(0,nIAint-1)}
+for i=0, nMN-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+    for j=nIAf+FromAll_EXIN_ToOne_MN, nIAf+FromAll_EXIN_ToOne_MN+FromAll_IAint_ToOne_MN-1{
+    	syn = target.synlist.object(j)
+    	nc = pc.gid_connect(nCell+nMN+nIAf+int(r.repick()), syn)
+    	nc.weight = lom
+    	nc.delay = tausyn
+    	nclist_lom.append(nc)
+    }
+}
+
+//SYNAPSES BETWEEN IAintFlex AND MNExt
+for i=nCell, nMN+nCell-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+    for j=nIAf+FromAll_EXIN_ToOne_MN, nIAf+FromAll_EXIN_ToOne_MN+FromAll_IAint_ToOne_MN-1{
+    	syn = target.synlist.object(j)
+    	nc = pc.gid_connect(nMN+nIAf+int(r.repick()), syn)
+    	nc.weight = lom
+    	nc.delay = tausyn
+    	nclist_lom.append(nc)
+    }
+}

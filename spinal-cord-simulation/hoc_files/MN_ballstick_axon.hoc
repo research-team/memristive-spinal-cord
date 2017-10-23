@@ -1,0 +1,79 @@
+ndend=12
+nnode=41
+
+D = new Vector(ndend)
+Leq=new Vector(ndend)
+
+file=new File()
+{file.ropen("../Info/diamdend_rat")}
+for i=0, ndend-1 {
+    D.x[i]=file.scanvar()
+}
+{file.close()}
+
+file=new File()
+{file.ropen("../Info/lengthdend")}
+for i=0, ndend-1 {
+    Leq.x[i]=file.scanvar()
+}
+{file.close()}
+
+{create soma[1.]}
+{create dendrite[ndend]}
+{create inseg[1.]}
+{create node[nnode]}
+{create paranode[nnode]}
+
+inseg{
+	nseg=5
+	L=1000
+	diam=10
+	insert initial
+	gnap_initial=0
+	Ra = 200
+        cm = 2
+}
+
+
+soma[0]{
+	nseg=1
+	L=36
+	diam=36
+}
+
+for i=0, ndend-1 {
+dendrite[i]{
+	nseg=11
+	diam=D.x[i]
+	L=Leq.x[i]
+}
+}
+
+a=r.normal(8.74,2.25) // MOTORAXON DIAMTERS DISTRIBUTION Capogrosso 2013, Raspopovic 2011
+if (a<8){a=8}
+
+for i=0, nnode-1 {
+node[i]{
+	nseg=1
+	diam=0.32*a + 0.056
+	L=1
+}
+paranode[i]{
+	nseg=5
+	diam=a
+	L=100*a
+}
+}
+
+//Connections
+
+{soma[0.] connect inseg[0.](0), 0}
+{soma[0.] connect dendrite[0.](0), 1}
+for i=0,ndend-2{
+{dendrite[i] connect dendrite[i+1](0), 1}
+}
+for i=0, nnode-2 {
+    {node[i] connect paranode[i](0), 1}
+    {paranode[i] connect node[i+1](0), 1}
+    }
+{connect node[0](0), inseg[0](1)}

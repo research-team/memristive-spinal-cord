@@ -1,0 +1,78 @@
+//SYNAPTIC CONNECTIONS EXTENSORS - IPSILATERAL
+
+objref r
+r = new Random()
+//time tau random delay based on diameter variance (20%)
+objref taur
+taur =new Random()
+{taur.normal(0,0.03)}
+
+
+//SYNAPSES BETWEEN IAf AND MOTONEURONS
+//EACH MOTONEURON IS CONNECTED TO ALL Ia FIBERS
+{r.uniform(0, nIAf-1)}
+for i=nCell, nCell+nMN-1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)//target cell
+    for j=0, nIAf-1{
+        syn = target.synlist.object(j)
+        nc = pc.gid_connect(j+nMN+nCell, syn)
+        nc.weight = hi_motor_S
+        nc.delay = Ia+taur.normal(0,0.03)
+        nclist_hi_motor_S.append(nc)
+    }
+}
+
+//SYNAPSES BETWEEN IAf AND IAInt
+{r.uniform(0, nIAf-1)}
+for i=nMN+nIAf+nCell, nMN+nIAf+nIAint+nCell-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	for j=0, FromAll_IAf_ToOne_IAint-1{
+		nc = pc.gid_connect(nMN+nCell+int(r.repick()), target)
+		nc.weight = hi
+    	nc.delay = Ia+taur.normal(0,0.03)
+        nclist_hi.append(nc)
+    }
+}
+
+//SYNAPSES BETWEEN EXIN AND MOTONEURONS
+{r.uniform(0, nEXIN-1)}
+for i=nCell, nCell+nMN-1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)//target cell
+    for j=0, FromAll_EXIN_ToOne_MN-1{
+        syn = target.synlist.object(j+nIAf)
+        nc = pc.gid_connect(nCell+nIAf+nMN+nIAint+nIIf+int(r.repick()), syn)
+        nc.weight = hi_motor_Ex
+        nc.delay = tausyn
+        nclist_hi_motor_Ex.append(nc)
+    }
+}
+
+//CONNESSIONE TRA  IIf AND EXIN
+{r.uniform(0, nIIf-1)}
+for i=nCell+nIAf+nMN+nIAint+nIIf, nCell+nIAf+nMN+nIAint+nIIf+nEXIN-1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)//target cell
+    for j=0, FromAll_IIf_ToOne_EXIN-1{
+        nc = pc.gid_connect(nCell+nIAf+nMN+nIAint+int(r.repick()), target)
+        nc.weight = hi
+        nc.delay = II+taur.normal(0,0.03)
+        nclist_hi.append(nc)
+    }
+}
+
+//CONNESSIONE TRA  IIf AND IAint
+{r.uniform(0, nIIf-1)}
+for i=nCell+nMN+nIAf, nCell+nMN+nIAf+nIAint-1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)//target cell
+    for j=0, FromAll_IIf_ToOne_IAint-1{
+        nc = pc.gid_connect(nCell+nIAf+nMN+nIAint+int(r.repick()), target)
+        nc.weight = hi
+        nc.delay = II+taur.normal(0,0.03)
+        nclist_hi.append(nc)
+    }
+}
+

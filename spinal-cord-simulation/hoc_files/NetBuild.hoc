@@ -1,0 +1,248 @@
+//DEFINITION OF LIST VARIABLES
+objref cells, nclist, netcon, stim, nc, nil
+{cells = new List()  nclist = new List() stim= new List()}
+
+func cell_append() {cells.append($o1)  $o1.position($2,$3,$4)
+	return cells.count - 1
+}
+
+//Compute indexes in the different hosts
+func computeInd() { // nCells
+  StimInd_0 = int($1/pc.nhost)
+  if (pc.id < $1%pc.nhost){StimInd_0+=1}
+  return  StimInd_0
+}
+
+nFiber=nIAf+nIIf
+nNeurons=nMN+nIAint+nEXIN // all the types of cells
+nStim=1 + 2*nIAf //1 EES + IAnat
+nCell=nNeurons+nFiber
+
+objectvar AP_MN_Flex[computeInd(nMN)]
+objectvar AP_IA_Flex[computeInd(nIAf)]
+objectvar AP_IAInt_Flex[computeInd(nIAint)]
+objectvar AP_II_Flex[computeInd(nIIf)]
+objectvar AP_EXIN_Flex[computeInd(nEXIN)]
+
+objectvar AP_MN_Ext[computeInd(nMN)]
+objectvar AP_IA_Ext[computeInd(nIAf)]
+objectvar AP_IAInt_Ext[computeInd(nIAint)]
+objectvar AP_II_Ext[computeInd(nIIf)]
+objectvar AP_EXIN_Ext[computeInd(nEXIN)]
+
+//CELLS DEFINITIONS
+//Flexors
+//MOTORNEURONS
+// each host gets every nhost'th cell, starting from the id of the host
+// and continuing until all cells have been dealt out
+count=0
+for (i=pc.id; i < nMN; i += pc.nhost) {
+    {cell_append(new M_Cell(),200+i*10, 200, 200)}
+    {cells.object(cells.count()-1).geom(i)}
+    {cells.object(cells.count()-1).synapses(i)}
+    pc.set_gid2node(i, pc.id) // associate gid i with this host
+    nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell - nil doesn't have to be a real target
+    AP_MN_Flex[count]= new Vector()
+    nc.record(AP_MN_Flex[count])
+    pc.cell(i, nc) // associate gid i with spike detector
+    count+=1
+}
+
+//IA_fiber
+count=0
+for (i=pc.id+nMN; i < nIAf+nMN; i += pc.nhost) {
+  {cell_append(new IA_fiber(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_IA_Flex[count]= new Vector()
+  nc.record(AP_IA_Flex[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//IA_Int
+count=0
+for (i=pc.id+nIAf+nMN; i < nIAint+nIAf+nMN; i += pc.nhost) {
+  {cell_append(new IA_Int(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_IAInt_Flex[count]= new Vector()
+  nc.record(AP_IAInt_Flex[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//II_fiber
+count=0
+for (i=pc.id+nIAf+nMN+nIAint; i < nIAint+nIAf+nMN+nIIf; i += pc.nhost) {
+  {cell_append(new II_fiber(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_II_Flex[count]= new Vector()
+  nc.record(AP_II_Flex[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//EXINT
+count=0
+for (i=pc.id+nIAint+nIAf+nMN+nIIf; i < nIAint+nIAf+nMN+nIIf+nEXIN; i += pc.nhost) {
+  {cell_append(new IA_Int(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_EXIN_Flex[count]= new Vector()
+  nc.record(AP_EXIN_Flex[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+//END FLEXORs
+
+
+//EXTENSORS
+//MOTORNEURONS
+// each host gets every nhost'th cell, starting from the id of the host
+// and continuing until all cells have been dealt out
+count = 0
+for (i=pc.id+nCell; i < nMN+nCell; i += pc.nhost) {
+    {cell_append(new M_Cell(),200+i*10, 200, 200)}
+    {cells.object(cells.count()-1).geom(i-nCell)}
+    {cells.object(cells.count()-1).synapses(i-nCell)}
+    {pc.set_gid2node(i, pc.id)} // associate gid i with this host
+    {nc = cells.object(cells.count()-1).connect2target(nil)}// attach spike detector to cell
+    {AP_MN_Ext[count]= new Vector()}
+    {nc.record(AP_MN_Ext[count])}
+    {pc.cell(i, nc)} // associate gid i with spike detector
+    {count+=1}
+}
+
+//IA_fiber
+count = 0
+for (i=pc.id+nMN+nCell; i < nIAf+nMN+nCell; i += pc.nhost) {
+  {cell_append(new IA_fiber(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_IA_Ext[count]= new Vector()
+  nc.record(AP_IA_Ext[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//IA_Int
+count = 0
+for (i=pc.id+nIAf+nMN+nCell; i < nIAint+nIAf+nMN+nCell; i += pc.nhost) {
+  {cell_append(new IA_Int(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_IAInt_Ext[count]= new Vector()
+  nc.record(AP_IAInt_Ext[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//II_fiber
+count = 0
+for (i=pc.id+nIAint+nIAf+nMN+nCell; i < nIAint+nIAf+nMN+nCell+nIIf; i += pc.nhost) {
+  {cell_append(new II_fiber(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_II_Ext[count]= new Vector()
+  nc.record(AP_II_Ext[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//EXINT
+count = 0
+for (i=pc.id+nIAint+nIAf+nMN+nCell+nIIf; i < nIAint+nIAf+nMN+nCell+nIIf+nEXIN; i += pc.nhost) {
+  {cell_append(new IA_Int(),0,0,0)}
+  pc.set_gid2node(i, pc.id) // associate gid i with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  AP_EXIN_Ext[count]= new Vector()
+  nc.record(AP_EXIN_Ext[count])
+  pc.cell(i, nc) // associate gid i with spike detector
+  count+=1
+}
+
+//END EXTENSORS
+//END CELLS DEFINITION
+
+
+//EES
+// create EES only in the first host
+if (pc.id == 0) {
+  {cell_append(new EES(),0,0,0)}
+  pc.set_gid2node(nCell*2, pc.id) // associate gid nCell*2 with this host
+  nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+  pc.cell(nCell*2, nc)
+}
+
+//FLEXORS STIM
+//IA_nat
+Ind_IaFibStimFlex = nCell*2+1
+count = 0
+for (freq=50; freq>=20; freq-=10){  // >40 - 40 - 30 - 20 Hz with simulation step (changeParam in runSimulation method of the network class in python) of 20 ms
+  for (i=pc.id; i < nIAf; i += pc.nhost) {
+    {cell_append(new  IA_fiber_stim(),0,0,0)}
+    pc.set_gid2node(Ind_IaFibStimFlex+nIAf*count+i, pc.id) // associate gid i with this host
+    nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+    pc.cell(Ind_IaFibStimFlex+nIAf*count+i, nc) // associate gid i with spike detector
+    cells.object(cells.count()-1).pp.interval = 1000/freq
+  }
+  count+=1
+}
+
+//II_nat
+Ind_IIFibStimFlex = Ind_IaFibStimFlex + 4*nIAf
+count = 0
+for (freq=50; freq>=20; freq-=10){  // >40 - 40 - 30 - 20 Hz with simulation step of 20 ms
+  for (i=pc.id; i < nIIf; i += pc.nhost) {
+    {cell_append(new  II_fiber_stim(),0,0,0)}
+    pc.set_gid2node(Ind_IIFibStimFlex+nIIf*count+i, pc.id) // associate gid i with this host
+    nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+    pc.cell(Ind_IIFibStimFlex+nIIf*count+i, nc) // associate gid i with spike detector
+    cells.object(cells.count()-1).pp.interval = 1000/freq
+  }
+  count+=1
+}
+
+
+//EXTENSORS STIM
+//IA_nat
+Ind_IaFibStimExt = Ind_IIFibStimFlex + 4*nIIf
+count = 0
+for (freq=50; freq>=20; freq-=10){  // >40 - 40 - 30 - 20 Hz with simulation step of 20 ms
+  for (i=pc.id; i < nIAf; i += pc.nhost) {
+    {cell_append(new  IA_fiber_stim(),0,0,0)}
+    pc.set_gid2node(Ind_IaFibStimExt+nIAf*count+i, pc.id) // associate gid i with this host
+    nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+    pc.cell(Ind_IaFibStimExt+nIAf*count+i, nc) // associate gid i with spike detector
+    cells.object(cells.count()-1).pp.interval = 1000/freq
+  }
+  count+=1
+}
+
+//II_nat
+Ind_IIFibStimExt = Ind_IaFibStimExt + 4*nIAf
+count = 0
+for (freq=50; freq>=20; freq-=10){  // >40 - 40 - 30 - 20 Hz with simulation step of 20 ms
+  for (i=pc.id; i < nIAf; i += pc.nhost) {
+    {cell_append(new  II_fiber_stim(),0,0,0)}
+    pc.set_gid2node(Ind_IIFibStimExt+nIIf*count+i, pc.id) // associate gid i with this host
+    nc = cells.object(cells.count()-1).connect2target(nil) // attach spike detector to cell
+    pc.cell(Ind_IIFibStimExt+nIIf*count+i, nc) // associate gid i with spike detector
+    cells.object(cells.count()-1).pp.interval = 1000/freq
+  }
+  count+=1
+}
+
+
+//SYNAPTIC CONNECTIONS
+//FLEXORS
+{xopen("SynFlexFlex.hoc")}
+//EXTENSORS
+{xopen("SynExtExt.hoc")}
+//Crossing
+{xopen("SynExtFlex.hoc")}
+//Stimulations
+{xopen("Stim.hoc")}
+//END SYNAPTIC CONNECTIONS

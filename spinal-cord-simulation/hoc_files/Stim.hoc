@@ -1,0 +1,158 @@
+//STIM
+objref stimMn_Flex, stimIafEES_Flex, stimIIfEES_Flex
+objref stimMn_Ext, stimIafEES_Ext, stimIIfEES_Ext
+
+{stimMn_Flex = new List()  stimIafEES_Flex= new List() stimIIfEES_Flex = new List()}
+{stimMn_Ext = new List()   stimIafEES_Ext= new List() stimIIfEES_Ext = new List()}
+
+// FIBERS CORRESPONDING TO DIFFERENT FIRING RATES RANGES ARE DEFINED TO BE ABLE TO SWITCH BETWEEN DIFFERENT FIRING RATES FOR FR <=50
+// THIS IS BECAUSE PARAMETER CHANGE OF RATES LOWER THAN 50 HZ REQUIRES A SIMULATION TIME > 1000/FR (e.g. t>20 ms for 50 Hz) 
+
+
+objref stimIafNat_Flex_50, stimIafNat_Flex_40, stimIafNat_Flex_30, stimIafNat_Flex_20
+objref stimIIfNat_Flex_50, stimIIfNat_Flex_40, stimIIfNat_Flex_30, stimIIfNat_Flex_20
+objref stimIafNat_Ext_50, stimIafNat_Ext_40, stimIafNat_Ext_30, stimIafNat_Ext_20
+objref stimIIfNat_Ext_50, stimIIfNat_Ext_40, stimIIfNat_Ext_30, stimIIfNat_Ext_20
+
+{stimIafNat_Flex_50 = new List()  stimIafNat_Flex_40= new List() stimIafNat_Flex_30 = new List() stimIafNat_Flex_20 = new List()}
+{stimIafNat_Ext_50 = new List()  stimIafNat_Ext_40= new List() stimIafNat_Ext_30 = new List() stimIafNat_Ext_20 = new List()}
+{stimIIfNat_Flex_50 = new List()  stimIIfNat_Flex_40= new List() stimIIfNat_Flex_30 = new List() stimIIfNat_Flex_20 = new List()}
+{stimIIfNat_Ext_50 = new List()  stimIIfNat_Ext_40= new List() stimIIfNat_Ext_30 = new List() stimIIfNat_Ext_20 = new List()}
+
+
+//FLEXORS
+//STIMULATION
+//Motor neurons
+for i=0, nMN-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	syn = target.synlist.object(nIAf+FromAll_IAint_ToOne_MN+FromAll_EXIN_ToOne_MN)
+    nc = pc.gid_connect(2*nCell, syn)
+    nc.weight = 0
+    nc.delay =1
+    stimMn_Flex.append(nc)
+}
+
+//Ia fibers nat
+count = 0
+for (freq=50; freq>=20; freq-=10){
+	for i=0, nIAf-1{
+		if (!pc.gid_exists(i+nMN)) { continue }
+		target = pc.gid2cell(i+nMN)//target cell
+		nc = pc.gid_connect(Ind_IaFibStimFlex+nIAf*count+i, target)
+		nc.weight = 0
+	    nc.delay = 1
+
+	    if (freq==50){stimIafNat_Flex_50.append(nc)}
+	    if (freq==40){stimIafNat_Flex_40.append(nc)}
+	    if (freq==30){stimIafNat_Flex_30.append(nc)}
+	    if (freq==20){stimIafNat_Flex_20.append(nc)}
+	}
+  count+=1
+}
+
+//Ia fibers EES
+for i=nMN, nMN+nIAf-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	nc = pc.gid_connect(2*nCell, target)
+	nc.weight = 0
+    nc.delay = 1
+    stimIafEES_Flex.append(nc)
+}
+
+
+//II fibers nat
+count = 0
+for (freq=50; freq>=20; freq-=10){
+	for i=0, nIIf-1{
+		if (!pc.gid_exists(i+nIAf+nMN+nIAint)) { continue }
+		target = pc.gid2cell(i+nIAf+nMN+nIAint)//target cell
+		nc = pc.gid_connect(Ind_IIFibStimFlex+nIIf*count+i, target)
+		nc.weight = 0
+	    nc.delay = 1
+	   	if (freq==50){stimIIfNat_Flex_50.append(nc)}
+	    if (freq==40){stimIIfNat_Flex_40.append(nc)}
+	    if (freq==30){stimIIfNat_Flex_30.append(nc)}
+	    if (freq==20){stimIIfNat_Flex_20.append(nc)}
+	}
+  	count+=1
+}
+
+//II fibers EES
+for i=nIAf+nMN+nIAint, nIAf+nMN+nIAint+nIIf-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	nc = pc.gid_connect(2*nCell, target)
+	nc.weight = 0
+    nc.delay = 1
+    stimIIfEES_Flex.append(nc)
+}
+
+//EXTENSORS
+//Stimulation
+//Motor neurons
+for i=nCell, nCell+nMN-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	syn = target.synlist.object(nIAf+FromAll_IAint_ToOne_MN+FromAll_EXIN_ToOne_MN)
+    nc = pc.gid_connect(2*nCell, syn)
+    nc.weight = 0
+    nc.delay = 1
+    stimMn_Ext.append(nc)
+}
+
+
+//Ia fibers nat
+count = 0
+for (freq=50; freq>=20; freq-=10){
+	for i=0, nIAf-1{
+		if (!pc.gid_exists(i+nMN+nCell)) { continue }
+		target = pc.gid2cell(i+nMN+nCell)//target cell
+		nc = pc.gid_connect(Ind_IaFibStimExt+nIAf*count+i, target)
+		nc.weight = 0
+	    nc.delay = 1
+	    if (freq==50){stimIafNat_Ext_50.append(nc)}
+	    if (freq==40){stimIafNat_Ext_40.append(nc)}
+	    if (freq==30){stimIafNat_Ext_30.append(nc)}
+	    if (freq==20){stimIafNat_Ext_20.append(nc)}
+	}
+	count+=1
+}
+
+//Ia fibers EES
+for i=nMN+nCell, nMN+nIAf+nCell-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	nc = pc.gid_connect(2*nCell, target)
+	nc.weight = 0
+    nc.delay = 1
+    stimIafEES_Ext.append(nc)
+}
+
+//II fibers nat
+count = 0
+for (freq=50; freq>=20; freq-=10){
+	for i=0, nIIf-1{
+		if (!pc.gid_exists(i+nIAf+nMN+nIAint+nCell)) { continue }
+		target = pc.gid2cell(i+nIAf+nMN+nIAint+nCell)//target cell
+		nc = pc.gid_connect(Ind_IIFibStimExt+nIIf*count+i, target)
+		nc.weight = 0
+	    nc.delay = 1
+	    if (freq==50){stimIIfNat_Ext_50.append(nc)}
+	    if (freq==40){stimIIfNat_Ext_40.append(nc)}
+	    if (freq==30){stimIIfNat_Ext_30.append(nc)}
+	    if (freq==20){stimIIfNat_Ext_20.append(nc)}
+	}
+	count+=1
+}
+
+//II fibers EES
+for i=nIAf+nMN+nIAint+nCell, nIAf+nMN+nIAint+nIIf+nCell-1{
+	if (!pc.gid_exists(i)) { continue }
+	target = pc.gid2cell(i)//target cell
+	nc = pc.gid_connect(2*nCell, target)
+	nc.weight = 0
+    nc.delay = 1
+    stimIIfEES_Ext.append(nc)
+}
