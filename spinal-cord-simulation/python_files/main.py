@@ -22,7 +22,12 @@ rank = comm.Get_rank()
 
 def main():
 
-    logging.basicConfig(filename='neuronSimulation.log', level=logging.INFO)
+    logger = logging.getLogger('neuron')
+    logger.setLevel(logging.INFO)
+
+    fh = logging.FileHandler('simulation.log')
+
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 
     simulationType = None
     if rank == 0:
