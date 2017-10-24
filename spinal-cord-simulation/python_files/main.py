@@ -9,7 +9,7 @@
 
 
 import sys
-import logging
+import NeuralNetwork
 
 sys.path.append('../python_files')
 from NeuralNetwork import *
@@ -23,13 +23,15 @@ rank = comm.Get_rank()
 def main():
 
     # Start logger configuration
-    logger = logging.getLogger('main')
+    logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
-    fh = logging.FileHandler('simulation.log')
-    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(message)s'))
+    handler = logging.FileHandler('simulation.log')
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+    handler.setFormatter(formatter)
 
-    logger.addHandler(fh)
+    logger.addHandler(handler)
     # End logger configuration
 
     simulationType = None
