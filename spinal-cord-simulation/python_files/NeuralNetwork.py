@@ -595,7 +595,7 @@ class NeuralNetwork:
                 print "{:.2f}".format(percFibersIa * 100) + "%  of the population of Ia fibers"
                 print "{:.2f}".format(percFibersII * 100) + "%  of the population of II fibers"
                 print "{:.2f}".format(percMn * 100) + "%  of the population of Mn cells\n"
-                logger.info(
+                logging.info(
                     "\nComputing the response on the " + network + "s MNs due to:\n"
                     "{:.2f}".format(percFibersIa * 100) + "%  of the population of Ia fibers\n"
                     "{:.2f}".format(percFibersII * 100) + "%  of the population of II fibers\n"
@@ -635,7 +635,7 @@ class NeuralNetwork:
 
             if (self.h.PcID == 0):
                 print "Initialization completed...\n "
-                logger.info('Initialization completed...')
+                logging.info('Initialization completed...')
                 time = np.zeros(int(40 / dt))
 
             count = 0
@@ -726,7 +726,7 @@ class NeuralNetwork:
                 print "\nThe amplitude of the early response is: " + "{:.2f}".format(ampResponse_Early[jj] * 100) + "% "
                 print "The amplitude of the medium-late response is: " + "{:.2f}".format(
                     ampResponse_MediumLate[jj] * 100) + "% \n"
-                logger.info(
+                logging.info(
                     "\nThe amplitude of the early response is: " + "{:.2f}".format(ampResponse_Early[jj] * 100) + "% "
                     "The amplitude of the medium-late response is: " + "{:.2f}".format(
                         ampResponse_MediumLate[jj] * 100) + "% \n"

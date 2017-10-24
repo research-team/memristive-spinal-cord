@@ -23,15 +23,9 @@ rank = comm.Get_rank()
 def main():
 
     # Start logger configuration
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
-    handler = logging.FileHandler('simulation.log')
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
+    logging.basicConfig(filename='simulation.log',
+                        level=logging.INFO,
+                        format='%(asctime)s - %(message)s')
     # End logger configuration
 
     simulationType = None
