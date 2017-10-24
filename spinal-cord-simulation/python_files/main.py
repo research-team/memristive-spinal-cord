@@ -23,11 +23,11 @@ rank = comm.Get_rank()
 def main():
 
     # Start logger configuration
-    logger = logging.getLogger('neuron')
+    logger = logging.getLogger('main')
     logger.setLevel(logging.INFO)
 
     fh = logging.FileHandler('simulation.log')
-    fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(message)s'))
 
     logger.addHandler(fh)
     # End logger configuration
