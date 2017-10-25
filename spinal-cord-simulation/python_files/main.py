@@ -62,7 +62,8 @@ def main():
         frequency = None
         if rank == 0:
             ans = raw_input(
-                "Do you want to modify the predefined parameters of stimulation (40Hz EES and optimal amplitude) (y/n)?\n")
+                "Do you want to modify the predefined parameters of stimulation "
+                "(40Hz EES and optimal amplitude) (y/n)?\n")
             if ans == "y":
                 frequency = input("Please insert the frequency of stimulation (0-200):\t")
                 if frequency >= 0 and frequency <= 200:
@@ -95,9 +96,8 @@ def main():
         sim.computeRecruitCurve(network)
     elif simulationType == 2:
         sim.runSimulation(frequency, "", amplitude)
-
-    del sim
     logging.info('Done!')
+    del sim
 
 
 if __name__ == '__main__':
