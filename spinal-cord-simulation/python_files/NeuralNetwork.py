@@ -326,6 +326,8 @@ class NeuralNetwork:
     # Run simulation
     def runSimulation(self, frequency=40, name="", amplitude="optimal"):
 
+        logging.info('The simulation ran')
+
         # Initializing
         self.h('{t=pc.set_maxstep(0.5)}')
         self.h.finitialize(0)
@@ -392,10 +394,12 @@ class NeuralNetwork:
                 print "\t{:.2f}".format(self.percFibersIa_TA * 100) + "% of TA Ia fibers, " + "{:.2f}".format(
                     self.percFibersII_TA * 100) + "% of TA II fibers and " + "{:.2f}".format(
                     self.percMn_TA * 100) + "% of TA Mn receive EES "
+            logging.info('The EES frequency set')
 
         """
         MAIN RUNNING LOOP
         """
+        logging.info('The main running loop started')
         t_old = self.h.t
         j = 0
         while (self.h.t < self.h.tstop and j < nTIME):
@@ -407,14 +411,17 @@ class NeuralNetwork:
                 t_old = self.h.t
                 if (self.h.PcID == 0):
                     print "\t{:.1f}".format(self.h.t * 100 / self.h.tstop) + "%"
+                    logging.info('The main running loop:' + '{:.1f}'.format(self.h.t * 100 / self.h.tstop) + '%')
 
             self.h.pc.psolve(self.h.t + dt)
 
         """
         EXTRACT EMG
         """
+        logging.info('Extracting EMG')
         if self.rank == 0:
             print "\nExctracting cells firings..."
+            logging.info('Extracting cells firings')
         AP_Flex = self.apListToMatrix(self.h.nMN, self.h.AP_MN_Flex)
         AP_Ext = self.apListToMatrix(self.h.nMN, self.h.AP_MN_Ext)
         if self.rank == 0:
@@ -422,10 +429,14 @@ class NeuralNetwork:
             firings_Ext = self.extract_firings(AP_Ext, self.h.tstop / 1000)
 
             print "\nComputing EMG signals..."
+            logging.info('Computing EMG signals')
             EMG_Flex = self.synth_EMG(firings_Flex, self.h.tstop / 1000)
             EMG_Ext = self.synth_EMG(firings_Ext, self.h.tstop / 1000)
 
             # plotting
+
+            logging.info('Plotting')
+
             f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
             ax_1[0].plot(EMG_Flex, '-', label='Flexor EMG')
             ax_1[1].plot(EMG_Ext, '-', label='Extensor EMG')
@@ -443,7 +454,6 @@ class NeuralNetwork:
                 amplitude) + '.txt', EMG_Flex, delimiter='')
             np.savetxt("../Results/DynamicSimulation_EMG_Ext_EES_fr_" + str(int(frequency)) + "Hz_amp_" + str(
                 amplitude) + '.txt', EMG_Ext, delimiter='')
-
             plt.show()
 
     # ghater and transform the vector of vector of AP into a matrix in process 0

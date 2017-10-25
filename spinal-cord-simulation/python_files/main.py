@@ -85,18 +85,17 @@ def main():
                 amplitude = "optimal"
                 frequency = 40
             print "Starting dynamic simulation..."
+            logging.info('Starting dynamic simulation')
         comm.Barrier()
         amplitude = comm.bcast(amplitude, root=0)
         frequency = comm.bcast(frequency, root=0)
 
     # Starting simulations
-    logging.info('Simulation started')
     sim = NeuralNetwork()
     if simulationType == 1:
         sim.computeRecruitCurve(network)
     elif simulationType == 2:
         sim.runSimulation(frequency, "", amplitude)
-    logging.info('Done!')
     del sim
 
 
