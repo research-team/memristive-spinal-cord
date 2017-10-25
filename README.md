@@ -19,3 +19,15 @@ Muscle is innervated by motoneurons (efferents), sensory neurons (afferents). Th
 <img src="/diagrams/biology-intro/reflexes.jpg?raw=true 'Reflexes'" alt="Reflexes" height=300/>
 
 <img src="/diagrams/biology-intro/innervation.jpg?raw=true 'Muscle innervation'" alt="Muscle innervation" height=300/>
+
+#### About computational model of Moraud and Marco 2016
+They research the influence of Group 1a, Group 2 afferents only. Their simple model is presented at the figure 1A. We can use their validation:
+- Serotonin-mediated modulation of motoneurons is conveyed by reducing the conductance of potassium-calcium gated ion channels.
+- Variation of single ES intensity as on the Figure 1E.
+- During locomotion. Increase of ES frequency led to linear increase in the mean firing rate of Ia and II afferents comparable to the increase of single ES. Temporal profiles of afferent firing rates were preserved. The linear increase in afferents led to a linear increase of motoneurons during their active phase. Increase of ES amplitude led to direct recruitment of motoneurons and disruption of alternation between flexor and extensor. See Figure 2A, 2B.
+- During locomotion. Protocols of ES: 40 hz + 1.2 motor threshold amplitude, 80 hz + 1.2 motor threshold amplitude, 40 hz + 1.4 motor threshold amplitude, - must behave as Figure 2C.
+- During locomotion. The duration of gait cycle must be sync with the step speed as on Figure 2D. How did they simulate the step speed with afferents of Group 1a and 2 in the computational model?
+
+General questions:
+- Temporal profile in firing rate?
+- Frequency harmonics?
