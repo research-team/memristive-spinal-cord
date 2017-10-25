@@ -2,8 +2,11 @@ import pylab
 import nest
 
 print ("Creating neuron.")
-neuron = nest.Create("iaf_psc_alpha")
-neuron2 = nest.Create("iaf_neuron")
+
+#hh_psc_alpha, hh_psc_alpha_gap
+
+neuron = nest.Create("hh_psc_alpha")
+neuron2 = nest.Create("hh_psc_alpha_gap")
 
 print("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
