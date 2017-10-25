@@ -25,7 +25,7 @@ def main():
     # Start logger configuration
     logging.basicConfig(filename='simulation.log',
                         level=logging.INFO,
-                        format='%(asctime)s:\n %(message)s',
+                        format='%(asctime)s - %(message)s',
                         filemode='w')
     # End logger configuration
 
