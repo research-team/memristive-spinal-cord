@@ -1,15 +1,18 @@
 import pylab
 import nest
-
-print ("Creating neuron.")
+import logging
+#logging.basicConfig(filename='example.log',level=logging.DEBUG)
 
 #hh_psc_alpha, hh_psc_alpha_gap
 
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
 
-print("Setting parameters of neurons")
+logging.debug("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
+
+
+logging.debug("Creating devices")
 multimeter = nest.Create("multimeter")
 nest.SetStatus(multimeter, {"withtime":True, "record_from":["V_m"]})
 spikedetector = nest.Create("spike_detector",
