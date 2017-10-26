@@ -2,6 +2,7 @@ import pylab
 import nest
 import logging
 import logging.config
+from func import *
 
 logging.config.fileConfig('logging.conf')
 # create logger
@@ -14,6 +15,10 @@ logger.info("START")
 logger.debug("Creating neurons")
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
+
+logger.debug("Creating synapses")
+nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
+nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
 logging.debug("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
@@ -44,7 +49,7 @@ dSD = nest.GetStatus(spikedetector, keys="events")[0]
 evs = dSD["senders"]
 ts = dSD["times"]
 pylab.figure(2)
-pylab.plot(evs, Vms)
+#pylab.plot(evs, Vms)
 
 pylab.figure(3)
 Vms1 = dmm["events"]["V_m"][::2] # start at index 0: till the end: each second entry
