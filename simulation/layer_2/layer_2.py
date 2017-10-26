@@ -4,6 +4,12 @@ import logging
 import logging.config
 from func import *
 
+def generate_neurons(neurons_per_nucleus, n_of_projections, n_of_layers):
+    for part in all_parts:
+        part[k_IDs] = nest.Create(part[k_model], part[k_NN])
+        logger.debug("{0} [{1}, {2}] {3} neurons".format(part[k_name], part[k_IDs][0], part[k_IDs][-1:][0], part[k_NN]))
+
+
 logging.config.fileConfig('logging.conf')
 # create logger
 logger = logging.getLogger('layer_2_logger')
@@ -20,25 +26,25 @@ logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
 nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
-logging.debug("Setting parameters of neurons")
+logger.debug("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
 
-logging.debug("Creating devices")
+logger.debug("Creating devices")
 multimeter = nest.Create("multimeter")
 nest.SetStatus(multimeter, {"withtime":True, "record_from":["V_m"]})
 spikedetector = nest.Create("spike_detector", params={"withgid": True, "withtime": True})
 
-logging.debug("Connecting")
+logger.debug("Connecting")
 nest.Connect(neuron, neuron2)
 nest.Connect(multimeter, neuron)
 nest.Connect(neuron, spikedetector)
 nest.Connect(multimeter, neuron2)
 
-logging.debug ("Started simulation")
+logger.debug ("Started simulation")
 
 nest.Simulate(1000.0)
 
-logging.debug("Graphs")
+logger.debug("Graphs")
 dmm = nest.GetStatus(multimeter)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
@@ -61,5 +67,4 @@ pylab.plot(ts2, Vms2)
 
 pylab.show()
 
-
-logging.info("Simulation done.")
+logger.info("Simulation done.")
