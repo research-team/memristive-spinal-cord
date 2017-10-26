@@ -461,7 +461,7 @@ class NeuralNetwork:
 
         nCellxHost = self.computeInd(cellType)
         tot_nCellxHost = []
-        logging.info('nCellxHost: ' + nCellxHost)
+        logging.info('nCellxHost: ' + str(nCellxHost))
         self.comm.gather(nCellxHost, tot_nCellxHost, root=0)
         tot_nCellxHost = self.comm.bcast(tot_nCellxHost, root=0)
         hostsWithMoreCells = [i for i, x in enumerate(tot_nCellxHost) if x == max(tot_nCellxHost)]
