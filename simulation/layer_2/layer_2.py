@@ -4,10 +4,14 @@ import logging
 import logging.config
 from func import *
 
+neuron_model = "hh_psc_alpha_gap"
+
 def generate_neurons(neurons_per_nucleus, n_of_projections, n_of_layers):
-    for part in all_parts:
-        part[k_IDs] = nest.Create(part[k_model], part[k_NN])
-        logger.debug("{0} [{1}, {2}] {3} neurons".format(part[k_name], part[k_IDs][0], part[k_IDs][-1:][0], part[k_NN]))
+    part = [n_of_layers]
+    for part_id in range(0, n_of_layers):
+        part[part_id] = nest.Create(neuron_model, neurons_per_nucleus)
+        logger.debug("{0} [{1}] neurons".format(part[part_id], neurons_per_nucleus))
+    return part
 
 
 logging.config.fileConfig('logging.conf')
@@ -21,6 +25,9 @@ logger.info("START")
 logger.debug("Creating neurons")
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
+
+neurons = generate_neurons(20, 200, 1)
+logger.debug("neurons", neurons)
 
 logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
