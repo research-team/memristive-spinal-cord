@@ -462,8 +462,7 @@ class NeuralNetwork:
         nCellxHost = self.computeInd(cellType)
         tot_nCellxHost = []
         logging.info('nCellxHost: ' + str(nCellxHost))
-        # self.comm.gather(nCellxHost, tot_nCellxHost, root=0)
-        self.comm.gather(nCellxHost, tot_nCellxHost)
+        self.comm.gather(nCellxHost, tot_nCellxHost, root=0)
         tot_nCellxHost = self.comm.bcast(tot_nCellxHost, root=0)
         hostsWithMoreCells = [i for i, x in enumerate(tot_nCellxHost) if x == max(tot_nCellxHost)]
 
@@ -547,7 +546,7 @@ class NeuralNetwork:
     # srecruitment curve
     def computeRecruitCurve(self, network="extensor"):
 
-        logger = logging.getLogger('NeuralNetwork.computeRecruitCurve')
+        logging.info('computeRecruitCurve')
 
         if network == "extensor":
             # loading the number of IA and II fibers activated at a given current from the FEM model results
