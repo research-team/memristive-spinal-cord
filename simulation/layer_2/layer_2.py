@@ -22,23 +22,36 @@ def generate_nucleus(neuron_model, neurons_per_nucleus):
     return res
 
 
-def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_layers):
+def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_layers, weight_ex, weight_in):
     """
     Generate neuronal layers with specified topology, see https://github.com/research-team/memristive-spinal-cord
     :param neuron_model: the neuron model to use
     :param neurons_per_nucleus: the number of neurons per nucleus to be generated
     :param n_of_projections: the number of connections from one nucleus to another according to topology
     :param n_of_layers: the number of layers
+    :param weight_ex: the excitatory weight
+    :param weight_in: the inhibitory weight
     :return: the list of list of connected neurons
     """
     layers = []
     for i in range(0, n_of_layers):
         logger.debug("Generating %s layer", i)
+        # creating nuclei
         nucleus_left = generate_nucleus(neuron_model, neurons_per_nucleus)
         nucleus_right = generate_nucleus(neuron_model, neurons_per_nucleus)
-        nucleus_inhibitory = generate_nucleus(neuron_model, neurons_per_nucleus)
+        # connecting nuclei
+        connect(nucleus_left, nucleus_right, syn_type=Glu, weight_coef=weight_ex)
+        connect(nucleus_left, nucleus_right, syn_type=Glu, weight_coef=weight_in)
+
+        #todo: add connection to previous layer
+        if (i>0):
+            nucleus_inhibitory = generate_nucleus(neuron_model, neurons_per_nucleus)
+            connect(nucleus_right, nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
+            connect(nucleus_inhibitory, layers[i-1][1])
+            layers.append([nucleus_left, nucleus_right, nucleus_inhibitory])
+        else:
+            layers.append([nucleus_left, nucleus_right])
         logger.debug("Packing %s layer in list", i)
-        layers.append([nucleus_left, nucleus_right, nucleus_inhibitory])
     return layers
 
 # create logger
