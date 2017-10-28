@@ -3,7 +3,10 @@ Model of ES (Electric stimulation) of spinal cord. It should enhance walking cyc
 
 <img src="/diagrams/spinal-cord-diagram/spinal-cord-diagram.png?raw=true 'Reflexes'" alt="Model diagram" height=500/>
 
-#### Some biology intro
+#### Problem intro
+During SCI(Spinal Cord Injury) a rat loses its ability to move hind limbs. It restores its ability to walk with ES(Epidural Stimulation) only after 5 weeks. This restoration of walking happens in sync with the appearance of LR(Late Response) in the EMG of muscles. MR(Middle Response) appears during the 2nd week. Injection of 5-HT enhances the same effect of walking restoration almost immediately when applied directly to the spinal cord. This allows us to derive that during first two weeks the monosynaptic circuit or the first level restores and it brings MR to the EMG. During five weeks the polysynaptic circuit restores and brings LR to the EMG.
+
+#### Some biology details
 Muscle is innervated by motoneurons (efferents), sensory neurons (afferents). They can be classified.
 
 **Motoneurons**
