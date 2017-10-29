@@ -5,6 +5,7 @@ import nest
 import logging
 import logging.config
 from func import *
+import property
 
 neuron_model = "hh_psc_alpha_gap"
 
@@ -65,12 +66,13 @@ logger.debug("Creating neurons")
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
 
-layers = generate_layers(neuron_model, 20, 200, 6)
-logger.debug("Layers created %s", len(layers))
-
 logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
 nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
+
+layers = generate_layers(neuron_model, 20, 200, 6, 0.2, 0.3 )
+logger.debug("Layers created %s", len(layers))
+
 
 logger.debug("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
