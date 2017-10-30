@@ -9,8 +9,20 @@ class Nucleus:
     The class of neuronal nucleus
     """
 
+    # logger
     logging.config.fileConfig('logging.conf')
     logger = logging.getLogger('Nucleus_logger')
+    # defaults
+    pg_delay = 5.
+    min_neurons = 10
+    max_synapses = 99999
+    min_synapses = 10
+    """ Devices """
+    # Neurons number for spike detector
+    N_detect = 100
+
+    # Neurons number for multimeter
+    N_volt = 3
 
     name = ""
     number_of_neurons = 0
@@ -104,3 +116,81 @@ class Nucleus:
         nest.Connect(self.neurons[:number], self.spike_detectors)
         # Show data of new detector
         logger.debug("Detector => {0}. Tracing {1} neurons".format(name, number))
+
+    def connect_Poisson_generator(self, start=1, stop=50, rate=250, prob=1., weight=0):
+        """
+        The poisson_generator simulates a neuron that is firing with Poisson statistics, i.e. exponentially
+        distributed interspike intervals. It will generate a _unique_ spike train for each of it's targets.
+
+        :param start: double the time of the simulation when the generator starts working with respect to origin in ms
+        :type stop: double
+        :param stop: the simulation time when the device stops working with respect to origin in ms
+        :type stop: double
+        :param rate: mean firing rate in Hz
+        :type rate: double
+        :param prob: the connection probability
+        :type prob: double
+        :param weight: the strength of a signal in nS
+        :type weight: double
+        :return: the generator
+        """
+
+        outdegree = int(self.number_of_neurons * prob)
+        generator = nest.Create('poisson_generator', 1, {'rate': float(rate),
+                                                              'start': float(start),
+                                                              'stop': float(stop)})
+        conn_spec = {'rule': 'fixed_outdegree',
+                     'outdegree': outdegree}
+        syn_spec = {
+            'weight': float(weight),
+            'delay': float(self.pg_delay)}
+        nest.Connect(generator, self.neurons, conn_spec=conn_spec, syn_spec=syn_spec)
+        logger.info("(ID:{0}) to {1} ({2}/{3}). Interval: {4}-{5}ms".format(
+            generator[0],
+            self.name,
+            outdegree,
+            self.number_of_neurons,
+            start,
+            stop
+        ))
+        return generator
+
+    def connect_spike_detector(self, neurons_connected_to_detector = N_detect):
+        """
+        Connects spike detector to the  neuron of the nucleus
+
+        :param neurons_connected_to_detector: the number of neurons to be connected to the detector
+        :type neurons_connected_to_detector: int
+        :return: detector
+        """
+
+        name = self.name
+        detector_param = {'label': name,
+                          'withgid': True,
+                          'to_file': True,
+                          'to_memory': False}  # withweight true
+
+        number = self.number_of_neurons if self.number_of_neurons < neurons_connected_to_detector else neurons_connected_to_detector
+        tracing_ids = self.neurons[:number]
+        detector = nest.Create('spike_detector', params=detector_param)
+        nest.Connect(tracing_ids, detector)
+        logger.info("(ID:{0}) to {1} ({2}/{3})".format(detector[0], name, len(tracing_ids), self.number_of_neurons))
+
+    def connect_multimeter(self):
+        """
+        Connects
+        :return: multimeter
+        """
+        name = self.name
+        multimeter_param = {'label': name,
+                            'withgid': True,
+                            'withtime': True,
+                            'to_file': True,
+                            'to_memory': False,
+                            'interval': 0.1,
+                            'record_from': ['V_m']}
+        tracing_ids = self.neurons[:N_volt]
+        multimeter = nest.Create('multimeter', params=multimeter_param)  # ToDo add count of multimeters
+        nest.Connect(multimeter, tracing_ids)
+        logger.info("(ID:{0}) to {1} ({2}/{3})".format(multimeter[0], name, len(tracing_ids), self.number_of_neurons))
+        return multimeter

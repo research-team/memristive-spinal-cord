@@ -31,8 +31,6 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_la
         # connecting nuclei
         nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
         nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_in)
-
-        #todo: add connection to previous layer
         if (i>0):
             nucleus_inhibitory = Nucleus("inhibitory", neuron_model, neurons_per_nucleus)
             nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
@@ -66,6 +64,9 @@ nest.SetStatus(multimeter, {"withtime":True, "record_from":["V_m"]})
 spikedetector = nest.Create("spike_detector", params={"withgid": True, "withtime": True})
 
 logger.debug("Connecting")
+# generators
+layers[0]["right"].connect_Poisson_generator()
+
 # out of layer 0
 layers[0]["left"].connect_multimeter()
 layers[1]["left"].connect_multimeter()
