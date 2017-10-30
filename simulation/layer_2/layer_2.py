@@ -9,7 +9,10 @@ import property
 
 neuron_model = "hh_psc_alpha_gap"
 
-class nucleus:
+class Nucleus:
+    """
+    The class of neuronal nucleus
+    """
     name = ""
     number_of_neurons = 0
     neurons = []
@@ -23,9 +26,9 @@ class nucleus:
         self.name = name
         self.neuron_model = neuron_model
         self.number_of_neurons = number_of_neurons
-        self.neurons =
+        self.neurons = self.generate_nucleus(self.neuron_model, self.number_of_neurons)
 
-    def generate_nucleus(neuron_model, neurons_per_nucleus):
+    def generate_nucleus(self, neuron_model, neurons_per_nucleus):
         """
         Generates the nucleus of neurons with specified neuronal model and number of neurons.
         :param neuron_model: the neuronal modal to use
@@ -37,6 +40,45 @@ class nucleus:
         logger.debug(res)
         return res
 
+    def connect(pre_synaptic_nucleus, post_synaptic_nucleus, syn_type=GABA, weight_coef=1):
+        """
+        :param pre_synaptic_nucleus: the presynaptic nucleus
+        :type pre_synaptic_nucleus: Nucleus
+        :param post_synaptic_nucleus: the postsynaptic nucleus
+        :param pre_synaptic_nucleus: Nucleus
+        :param syn_type: int type of synapses from the synapses dictionary see property.py
+        :param weight_coef: float weight of synapses
+        :return:
+        """
+        # Set new weight value (weight_coef * basic weight)
+        nest.SetDefaults(synapses[syn_type][model], {'weight': weight_coef * synapses[syn_type][basic_weight]})
+        # Create dictionary of connection rules
+        conn_dict = {'rule': 'fixed_outdegree',
+                     'outdegree': MaxSynapses if post_synaptic_nucleus.number_of_neurons > MaxSynapses
+                     else post_synaptic_nucleus.number_of_neurons,
+                     'multapses': False}
+        # Connect PRE IDs neurons with POST IDs neurons, add Connection and Synapse specification
+        nest.Connect(pre_synaptic_nucleus.neurons, post_synaptic_nucleus.neurons, conn_spec=conn_dict, syn_spec=synapses[syn_type][model])
+        # Show data of new connection
+        pre_synaptic_nucleus.log_connection(post_synaptic_nucleus, synapses[syn_type][model], nest.GetDefaults(synapses[syn_type][model])['weight'])
+
+    def log_connection(self, post, syn_type, weight):
+        """
+        Logging the synaptic connection
+        :param self: presynaptic nuleus
+        :param post: postsynaptic nucleus
+        :type past: Nucleus
+        :param syn_type: string the type of synapse
+        :param weight: float the synaptic weight of connection
+        :return:
+        """
+        global SYNAPSES
+        connections = self.number_of_neurons * post.number_of_neurons if post.number_of_neurons < MaxSynapses else self.number_of_neurons * MaxSynapses
+        SYNAPSES += connections
+        logger.debug("{0} -> {1} ({2}) w[{3}] // "
+                     "{4}x{5}={6} synapses".format(self.name, post.name, syn_type[:-8], weight, self.number_of_neurons,
+                                                   MaxSynapses if post.number_of_neurons > MaxSynapses else post.number_of_neurons,
+                                                   connections))
 
 def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_layers, weight_ex, weight_in):
     """
@@ -53,17 +95,18 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_la
     for i in range(0, n_of_layers):
         logger.debug("Generating %s layer", i)
         # creating nuclei
-        nucleus_left = generate_nucleus(neuron_model, neurons_per_nucleus)
-        nucleus_right = generate_nucleus(neuron_model, neurons_per_nucleus)
+
+        nucleus_left = Nucleus("left", neuron_model, neurons_per_nucleus)
+        nucleus_right = Nucleus("right", neuron_model, neurons_per_nucleus)
         # connecting nuclei
-        connect(nucleus_left, nucleus_right, syn_type=Glu, weight_coef=weight_ex)
-        connect(nucleus_left, nucleus_right, syn_type=Glu, weight_coef=weight_in)
+        nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
+        nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_in)
 
         #todo: add connection to previous layer
         if (i>0):
-            nucleus_inhibitory = generate_nucleus(neuron_model, neurons_per_nucleus)
-            connect(nucleus_right, nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
-            connect(nucleus_inhibitory, layers[i-1][1])
+            nucleus_inhibitory = Nucleus("inhibitory", neuron_model, neurons_per_nucleus)
+            nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
+            nucleus_inhibitory.connect(layers[i-1]["right"])
             layers.append({"left": nucleus_left, "right": nucleus_right, "inh": nucleus_inhibitory})
         else:
             layers.append({"left": nucleus_left, "right": nucleus_right})
@@ -81,15 +124,7 @@ logger.debug("Creating neurons")
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
 
-layer1 = ({k_name: 'Layer 1 [Glu0]', k_NN: 20},
-         {k_name: 'Layer 1 [Glu1]', k_NN: 20},
-         {k_name: "Layer 1 [GABA]", k_NN: 20})
-left, right, inhibitory = range(3)
-
-layer1[left][k_NN]  = 20
-
-
-
+layer1 = ({k_name: 'Layer 1 [Glu0]', k_NN: 20},{k_name: 'Layer 1 [Glu1]', k_NN: 20}, {k_name: "Layer 1 [GABA]", k_NN: 20})
 
 logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
@@ -97,7 +132,6 @@ nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
 layers = generate_layers(neuron_model, 20, 200, 6, 0.2, 0.3 )
 logger.debug("Layers created %s", len(layers))
-
 
 logger.debug("Setting parameters of neurons")
 nest.SetStatus(neuron2 , {"I_e": 370.0})
