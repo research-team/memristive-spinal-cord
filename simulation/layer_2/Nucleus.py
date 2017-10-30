@@ -96,16 +96,6 @@ class Nucleus:
                                                    MaxSynapses if post.number_of_neurons > MaxSynapses else post.number_of_neurons,
                                                    connections))
 
-    def connect_multimeter(self):
-        """
-        Creates multimeter and connects to all neurons of the nucleus
-        :return:
-        """
-        name = self.name
-        self.multimeters = nest.Create('multimeter', params=multimeter_param)  #todo: add count of multimeters
-        nest.Connect(self.multimeters, (self.neurons[:N_volt]))
-        logger.debug("Multimeter => {0}. On {1}".format(name, self.neurons[:N_volt]))
-
     def connect_detector(self):
         name = self.name
         # Init number of neurons which will be under detector watching
