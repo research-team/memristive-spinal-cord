@@ -66,20 +66,34 @@ nest.SetStatus(multimeter, {"withtime":True, "record_from":["V_m"]})
 spikedetector = nest.Create("spike_detector", params={"withgid": True, "withtime": True})
 
 logger.debug("Connecting")
+# out of layer 0
 layers[0]["left"].connect_multimeter()
-logger.debug("multimeter %s", layers[0]["left"])
+layers[1]["left"].connect_multimeter()
+layers[2]["left"].connect_multimeter()
 #nest.Connect(neuron, spikedetector)
 
 logger.debug("Started simulation")
-
 nest.Simulate(1000.0)
-
+logger.debug("Simulation done.")
 logger.debug("Graphs")
-dmm = nest.GetStatus(layers[0]["left"].multimeter)[0]
+dmm = nest.GetStatus(layers[0]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
 pylab.figure(1)
 pylab.plot(ts, Vms)
+
+dmm = nest.GetStatus(layers[1]["left"].multimeters)[0]
+Vms = dmm["events"]["V_m"]
+ts = dmm["events"]["times"]
+pylab.figure(2)
+pylab.plot(ts, Vms)
+
+dmm = nest.GetStatus(layers[2]["left"].multimeters)[0]
+Vms = dmm["events"]["V_m"]
+ts = dmm["events"]["times"]
+pylab.figure(3)
+pylab.plot(ts, Vms)
+
 
 #dSD = nest.GetStatus(spikedetector, keys="events")[0]
 #evs = dSD["senders"]
@@ -97,4 +111,4 @@ pylab.plot(ts, Vms)
 #
 pylab.show()
 
-logger.info("Simulation DONE.")
+logger.info("DONE.")

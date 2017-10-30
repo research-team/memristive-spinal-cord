@@ -18,6 +18,7 @@ class Nucleus:
     neuron_model =""
     synapse_model = ""
     multimeters = []
+    spike_detectors = []
 
     def __init__(self, name):
         self.name = name
@@ -92,3 +93,14 @@ class Nucleus:
         self.multimeters = nest.Create('multimeter', params=multimeter_param)  #todo: add count of multimeters
         nest.Connect(self.multimeters, (self.neurons[:N_volt]))
         logger.debug("Multimeter => {0}. On {1}".format(name, self.neurons[:N_volt]))
+
+    def connect_detector(self):
+        name = self.name
+        # Init number of neurons which will be under detector watching
+        number = self.number_of_neurons if self.number_of_neurons < N_detect else N_detect
+        # Add to spikeDetectors a new detector
+        self.spike_detectors = nest.Create('spike_detector', params=detector_param)
+        # Connect N first neurons ID of part with detector
+        nest.Connect(self.neurons[:number], self.spike_detectors)
+        # Show data of new detector
+        logger.debug("Detector => {0}. Tracing {1} neurons".format(name, number))
