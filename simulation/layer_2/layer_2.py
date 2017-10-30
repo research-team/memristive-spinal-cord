@@ -9,18 +9,33 @@ import property
 
 neuron_model = "hh_psc_alpha_gap"
 
+class nucleus:
+    name = ""
+    number_of_neurons = 0
+    neurons = []
+    neuron_model =""
+    synapse_model = ""
 
-def generate_nucleus(neuron_model, neurons_per_nucleus):
-    """
-    Generates the nucleus of neurons with specified neuronal model and number of neurons.
-    :param neuron_model: the neuronal modal to use
-    :param neurons_per_nucleus: the number of neurons to generate
-    :return: the list of neurons generated
-    """
-    logger.debug("Generating %s cells", neurons_per_nucleus)
-    res = nest.Create(neuron_model, neurons_per_nucleus)
-    logger.debug(res)
-    return res
+    def __init__(self, name):
+        self.name = name
+
+    def __init__(self, name, neuron_model, number_of_neurons):
+        self.name = name
+        self.neuron_model = neuron_model
+        self.number_of_neurons = number_of_neurons
+        self.neurons =
+
+    def generate_nucleus(neuron_model, neurons_per_nucleus):
+        """
+        Generates the nucleus of neurons with specified neuronal model and number of neurons.
+        :param neuron_model: the neuronal modal to use
+        :param neurons_per_nucleus: the number of neurons to generate
+        :return: the list of neurons generated
+        """
+        logger.debug("Generating %s cells", neurons_per_nucleus)
+        res = nest.Create(neuron_model, neurons_per_nucleus)
+        logger.debug(res)
+        return res
 
 
 def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_layers, weight_ex, weight_in):
@@ -49,9 +64,9 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_la
             nucleus_inhibitory = generate_nucleus(neuron_model, neurons_per_nucleus)
             connect(nucleus_right, nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
             connect(nucleus_inhibitory, layers[i-1][1])
-            layers.append([nucleus_left, nucleus_right, nucleus_inhibitory])
+            layers.append({"left": nucleus_left, "right": nucleus_right, "inh": nucleus_inhibitory})
         else:
-            layers.append([nucleus_left, nucleus_right])
+            layers.append({"left": nucleus_left, "right": nucleus_right})
         logger.debug("Packing %s layer in list", i)
     return layers
 
@@ -65,6 +80,16 @@ logger.debug("Creating neurons")
 #test neurons
 neuron = nest.Create("hh_psc_alpha")
 neuron2 = nest.Create("hh_psc_alpha_gap")
+
+layer1 = ({k_name: 'Layer 1 [Glu0]', k_NN: 20},
+         {k_name: 'Layer 1 [Glu1]', k_NN: 20},
+         {k_name: "Layer 1 [GABA]", k_NN: 20})
+left, right, inhibitory = range(3)
+
+layer1[left][k_NN]  = 20
+
+
+
 
 logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
