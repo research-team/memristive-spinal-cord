@@ -11,6 +11,10 @@ from Nucleus import Nucleus
 neuron_model = "hh_psc_alpha_gap"
 number_of_layers = 6
 
+#Kernel setup
+nest.ResetKernel()
+nest.SetKernelStatus({'local_num_threads': 8})
+
 def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, weight_in):
     """
     Generate neuronal layers with specified topology, see https://github.com/research-team/memristive-spinal-cord
@@ -78,6 +82,7 @@ for i in range(0, number_of_layers):
 #nest.Connect(neuron, spikedetector)
 
 logger.debug("Started simulation")
+
 nest.Simulate(1000.0)
 logger.debug("Simulation done.")
 
