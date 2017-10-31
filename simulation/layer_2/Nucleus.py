@@ -31,6 +31,7 @@ class Nucleus:
     synapse_model = ""
     multimeters = []
     spike_detectors = []
+    generator = []
 
     def __init__(self, name):
         self.name = name
@@ -112,7 +113,7 @@ class Nucleus:
         logger.debug("Detector => {0}. Tracing {1} neurons".format(name, number))
         return self.spike_detectors
 
-    def connect_Poisson_generator(self, start=1, stop=50, rate=250, prob=1., weight=0):
+    def connect_Poisson_generator(self, start=1, stop=50, rate=250, prob=1., weight=1000):
         """
         The poisson_generator simulates a neuron that is firing with Poisson statistics, i.e. exponentially
         distributed interspike intervals. It will generate a _unique_ spike train for each of it's targets.
@@ -174,15 +175,15 @@ class Nucleus:
 
     def connect_multimeter(self):
         """
-        Creates multimeters and connects them to every neuron of the nucleus.R
+        Creates multimeters and connects them to every neuron of the nucleus.
         :return: multimeter
         """
         name = self.name
         multimeter_param = {'label': name,
                             'withgid': True,
                             'withtime': True,
-                            'to_file': True,
-                            'to_memory': False,
+                            'to_file': False,
+                            'to_memory': True,
                             'interval': 0.1,
                             'record_from': ['V_m']}
         tracing_ids = self.neurons[:N_volt]
