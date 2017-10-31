@@ -436,6 +436,7 @@ class NeuralNetwork:
             # plotting
 
             logging.info('Plotting')
+            print('Plotting')
 
             f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
             ax_1[0].plot(EMG_Flex, '-', label='Flexor EMG')
@@ -462,7 +463,7 @@ class NeuralNetwork:
         nCellxHost = self.computeInd(cellType)
         tot_nCellxHost = []
         logging.info('nCellxHost: ' + str(nCellxHost))
-        self.comm.gather(tot_nCellxHost, root=0)
+        self.comm.gather(nCellxHost, tot_nCellxHost, root=0)
         tot_nCellxHost = self.comm.bcast(tot_nCellxHost, root=0)
         hostsWithMoreCells = [i for i, x in enumerate(tot_nCellxHost) if x == max(tot_nCellxHost)]
 
