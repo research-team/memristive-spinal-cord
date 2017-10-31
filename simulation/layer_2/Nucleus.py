@@ -97,6 +97,10 @@ class Nucleus:
                                                    connections))
 
     def connect_detector(self):
+        """
+        Creates spike detectors and connects them to all neurons of the nucleus
+        :return: spike detectors
+        """
         name = self.name
         # Init number of neurons which will be under detector watching
         number = self.number_of_neurons if self.number_of_neurons < N_detect else N_detect
@@ -106,6 +110,7 @@ class Nucleus:
         nest.Connect(self.neurons[:number], self.spike_detectors)
         # Show data of new detector
         logger.debug("Detector => {0}. Tracing {1} neurons".format(name, number))
+        return self.spike_detectors
 
     def connect_Poisson_generator(self, start=1, stop=50, rate=250, prob=1., weight=0):
         """
@@ -126,7 +131,7 @@ class Nucleus:
         """
 
         outdegree = int(self.number_of_neurons * prob)
-        generator = nest.Create('poisson_generator', 1, {'rate': float(rate),
+        self.generator = nest.Create('poisson_generator', 1, {'rate': float(rate),
                                                               'start': float(start),
                                                               'stop': float(stop)})
         conn_spec = {'rule': 'fixed_outdegree',
@@ -134,16 +139,16 @@ class Nucleus:
         syn_spec = {
             'weight': float(weight),
             'delay': float(self.pg_delay)}
-        nest.Connect(generator, self.neurons, conn_spec=conn_spec, syn_spec=syn_spec)
+        nest.Connect(self.generator, self.neurons, conn_spec=conn_spec, syn_spec=syn_spec)
         logger.info("(ID:{0}) to {1} ({2}/{3}). Interval: {4}-{5}ms".format(
-            generator[0],
+            self.generator[0],
             self.name,
             outdegree,
             self.number_of_neurons,
             start,
             stop
         ))
-        return generator
+        return self.generator
 
     def connect_spike_detector(self, neurons_connected_to_detector = N_detect):
         """
@@ -162,13 +167,14 @@ class Nucleus:
 
         number = self.number_of_neurons if self.number_of_neurons < neurons_connected_to_detector else neurons_connected_to_detector
         tracing_ids = self.neurons[:number]
-        detector = nest.Create('spike_detector', params=detector_param)
-        nest.Connect(tracing_ids, detector)
-        logger.info("(ID:{0}) to {1} ({2}/{3})".format(detector[0], name, len(tracing_ids), self.number_of_neurons))
+        self.spike_detectors = nest.Create('spike_detector', params=detector_param)
+        nest.Connect(tracing_ids, self.spike_detectors)
+        logger.info("(ID:{0}) to {1} ({2}/{3})".format(self.spike_detectors[0], name, len(tracing_ids), self.number_of_neurons))
+        return self.spike_detectors
 
     def connect_multimeter(self):
         """
-        Connects
+        Creates multimeters and connects them to every neuron of the nucleus.R
         :return: multimeter
         """
         name = self.name
@@ -180,7 +186,7 @@ class Nucleus:
                             'interval': 0.1,
                             'record_from': ['V_m']}
         tracing_ids = self.neurons[:N_volt]
-        multimeter = nest.Create('multimeter', params=multimeter_param)  # ToDo add count of multimeters
-        nest.Connect(multimeter, tracing_ids)
-        logger.info("(ID:{0}) to {1} ({2}/{3})".format(multimeter[0], name, len(tracing_ids), self.number_of_neurons))
-        return multimeter
+        self.multimeters = nest.Create('multimeter', params=multimeter_param)  # ToDo add count of multimeters
+        nest.Connect(self.multimeters, tracing_ids)
+        logger.info("(ID:{0}) to {1} ({2}/{3})".format(self.multimeters[0], name, len(tracing_ids), self.number_of_neurons))
+        return self.multimeters

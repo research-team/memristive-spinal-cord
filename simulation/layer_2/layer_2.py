@@ -9,13 +9,13 @@ import property
 from Nucleus import Nucleus
 
 neuron_model = "hh_psc_alpha_gap"
+number_of_layers = 6
 
-def generate_layers(neuron_model, neurons_per_nucleus, n_of_projections, n_of_layers, weight_ex, weight_in):
+def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, weight_in):
     """
     Generate neuronal layers with specified topology, see https://github.com/research-team/memristive-spinal-cord
     :param neuron_model: the neuron model to use
     :param neurons_per_nucleus: the number of neurons per nucleus to be generated
-    :param n_of_projections: the number of connections from one nucleus to another according to topology
     :param n_of_layers: the number of layers
     :param weight_ex: the excitatory weight
     :param weight_in: the inhibitory weight
@@ -54,7 +54,7 @@ logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
 nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
-layers = generate_layers(neuron_model, 20, 200, 6, 0.2, 0.3 )
+layers = generate_layers(neuron_model, 20, number_of_layers, 0.2, 0.3)
 logger.debug("Layers created %s", len(layers))
 
 
@@ -66,33 +66,45 @@ spikedetector = nest.Create("spike_detector", params={"withgid": True, "withtime
 logger.debug("Connecting")
 # generators
 layers[0]["right"].connect_Poisson_generator()
+in_multimeter = layers[0]["right"].connect_multimeter()
 
-# out of layer 0
-layers[0]["left"].connect_multimeter()
-layers[1]["left"].connect_multimeter()
-layers[2]["left"].connect_multimeter()
+
+# out of layers
+for i in range(0, number_of_layers):
+    layers[i]["left"].connect_multimeter()
+    layers[i]["left"].connect_detector()
+
+
 #nest.Connect(neuron, spikedetector)
 
 logger.debug("Started simulation")
 nest.Simulate(1000.0)
 logger.debug("Simulation done.")
+
 logger.debug("Graphs")
+
+dmm = nest.GetStatus(layers[0]["right"].multimeters)[0]
+Vms = dmm["events"]["V_m"]
+ts = dmm["events"]["times"]
+pylab.figure("layer 1 left in")
+pylab.plot(ts, Vms)
+
 dmm = nest.GetStatus(layers[0]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure(1)
+pylab.figure("layer 1 left out")
 pylab.plot(ts, Vms)
 
 dmm = nest.GetStatus(layers[1]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure(2)
+pylab.figure("layer 2 left out")
 pylab.plot(ts, Vms)
 
 dmm = nest.GetStatus(layers[2]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure(3)
+pylab.figure("layer 3 left out")
 pylab.plot(ts, Vms)
 
 
