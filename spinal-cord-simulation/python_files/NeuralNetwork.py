@@ -442,24 +442,24 @@ class NeuralNetwork:
             logging.info('Plotting')
             print('Plotting')
 
-            f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
-            ax_1[0].plot(EMG_Flex, '-', label='Flexor EMG')
-            ax_1[1].plot(EMG_Ext, '-', label='Extensor EMG')
-
-            ax_1[0].legend(loc='upper left')
-            ax_1[1].legend(loc='upper left')
-            ax_1[0].set_title(
-                "Estimated EMG - EES frequency: " + str(frequency) + "Hz - EES amplitude: " + str(amplitude))
+            # f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
+            # ax_1[0].plot(EMG_Flex, '-', label='Flexor EMG')
+            # ax_1[1].plot(EMG_Ext, '-', label='Extensor EMG')
+            #
+            # ax_1[0].legend(loc='upper left')
+            # ax_1[1].legend(loc='upper left')
+            # ax_1[0].set_title(
+            #     "Estimated EMG - EES frequency: " + str(frequency) + "Hz - EES amplitude: " + str(amplitude))
 
             if not os.path.exists('../Results/'):
                 os.makedirs('../Results/')
-            f1.savefig(
-                "../Results/DynamicSimulation_EMG_EES_fr_" + str(int(frequency)) + "Hz_amp_" + str(amplitude) + ".pdf")
+            # f1.savefig(
+            #     "../Results/DynamicSimulation_EMG_EES_fr_" + str(int(frequency)) + "Hz_amp_" + str(amplitude) + ".pdf")
             np.savetxt("../Results/DynamicSimulation_EMG_Flex_EES_fr_" + str(int(frequency)) + "Hz_amp_" + str(
                 amplitude) + '.txt', EMG_Flex, delimiter='')
             np.savetxt("../Results/DynamicSimulation_EMG_Ext_EES_fr_" + str(int(frequency)) + "Hz_amp_" + str(
                 amplitude) + '.txt', EMG_Ext, delimiter='')
-            plt.show()
+            # plt.show()
 
     # ghater and transform the vector of vector of AP into a matrix in process 0
     def apListToMatrix(self, cellType, apList):
@@ -771,47 +771,47 @@ class NeuralNetwork:
             firings = self.extract_firings(IndexMn_Early_high * dt, 0.04)
             EMG_E_high = self.synth_EMG(firings, 0.04)
 
-            f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
-            ax_1[0].plot(EMG_E_low + EMG_ML_low, '-',
-                         label='EMG response - ' + "{:.1f}".format(low_curr_thr) + 'x motor thr')
-            ax_1[0].plot([EESpulseTime_low * 5, EESpulseTime_low * 5], [0, 50], 'k', label='Stimulation pulse',
-                         linewidth=3.0)
-            ax_1[0].axvspan(EESpulseTime_low * 5, (EESpulseTime_low + 3.5) * 5, color='r', alpha=0.25, lw=0,
-                            label='Early response')
-            ax_1[0].axvspan((EESpulseTime_low + 3.5) * 5, 200, color='g', alpha=0.25, lw=0,
-                            label='Medium-late response')
-
-            ax_1[1].plot(EMG_E_high + EMG_ML_high, '-',
-                         label='EMG response - ' + "{:.1f}".format(high_curr_thr) + 'x motor thr')
-            ax_1[1].plot([EESpulseTime_high * 5, EESpulseTime_high * 5], [0, 50], 'k', label='Stimulation pulse',
-                         linewidth=3.0)
-            ax_1[1].axvspan(EESpulseTime_high * 5, (EESpulseTime_high + 3.5) * 5, color='r', alpha=0.25, lw=0,
-                            label='Early response')
-            ax_1[1].axvspan((EESpulseTime_high + 3.5) * 5, 200, color='g', alpha=0.25, lw=0,
-                            label='Medium-late response')
-
-            ax_1[0].legend(loc='upper left')
-            ax_1[1].legend(loc='upper left')
-            ax_1[0].set_title("EMG responses - " + network + " network")
-
-            f2 = plt.figure()
-            ax_2 = f2.add_subplot(1, 1, 1)
-            ax_2.plot(curr_thresholds, ampResponse_MediumLate, label='Medium-late response')
-            ax_2.plot(curr_thresholds, ampResponse_Early, label='Early response')
-            ax_2.legend(loc='upper left')
-            ax_2.set_title("Recruitment curve - " + network + " network")
-            ax_2.set_xlabel("Stimulation amp (x motor thr)")
-            ax_2.set_ylabel("Response amplitude")
-            ax_2.grid(True)
+            # f1, ax_1 = plt.subplots(2, figsize=(20, 9), dpi=80, facecolor='w', edgecolor='k', sharex=True, sharey=True)
+            # ax_1[0].plot(EMG_E_low + EMG_ML_low, '-',
+            #              label='EMG response - ' + "{:.1f}".format(low_curr_thr) + 'x motor thr')
+            # ax_1[0].plot([EESpulseTime_low * 5, EESpulseTime_low * 5], [0, 50], 'k', label='Stimulation pulse',
+            #              linewidth=3.0)
+            # ax_1[0].axvspan(EESpulseTime_low * 5, (EESpulseTime_low + 3.5) * 5, color='r', alpha=0.25, lw=0,
+            #                 label='Early response')
+            # ax_1[0].axvspan((EESpulseTime_low + 3.5) * 5, 200, color='g', alpha=0.25, lw=0,
+            #                 label='Medium-late response')
+            #
+            # ax_1[1].plot(EMG_E_high + EMG_ML_high, '-',
+            #              label='EMG response - ' + "{:.1f}".format(high_curr_thr) + 'x motor thr')
+            # ax_1[1].plot([EESpulseTime_high * 5, EESpulseTime_high * 5], [0, 50], 'k', label='Stimulation pulse',
+            #              linewidth=3.0)
+            # ax_1[1].axvspan(EESpulseTime_high * 5, (EESpulseTime_high + 3.5) * 5, color='r', alpha=0.25, lw=0,
+            #                 label='Early response')
+            # ax_1[1].axvspan((EESpulseTime_high + 3.5) * 5, 200, color='g', alpha=0.25, lw=0,
+            #                 label='Medium-late response')
+            #
+            # ax_1[0].legend(loc='upper left')
+            # ax_1[1].legend(loc='upper left')
+            # ax_1[0].set_title("EMG responses - " + network + " network")
+            #
+            # f2 = plt.figure()
+            # ax_2 = f2.add_subplot(1, 1, 1)
+            # ax_2.plot(curr_thresholds, ampResponse_MediumLate, label='Medium-late response')
+            # ax_2.plot(curr_thresholds, ampResponse_Early, label='Early response')
+            # ax_2.legend(loc='upper left')
+            # ax_2.set_title("Recruitment curve - " + network + " network")
+            # ax_2.set_xlabel("Stimulation amp (x motor thr)")
+            # ax_2.set_ylabel("Response amplitude")
+            # ax_2.grid(True)
 
             if not os.path.exists('../Results/'):
                 os.makedirs('../Results/')
 
-            f1.savefig("../Results/EMG_responses" + network + ".pdf")
-            f2.savefig("../Results/Recruitment_curve" + network + ".pdf")
+            # f1.savefig("../Results/EMG_responses" + network + ".pdf")
+            # f2.savefig("../Results/Recruitment_curve" + network + ".pdf")
 
             np.savetxt('../Results/current.txt', current, delimiter='')
             np.savetxt('../Results/ampResponse_ER_' + network + '.txt', ampResponse_Early, delimiter='')
             np.savetxt('../Results/ampResponse_MLR_' + network + '.txt', ampResponse_MediumLate, delimiter='')
 
-            plt.show()
+            # plt.show()
