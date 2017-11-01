@@ -2,13 +2,17 @@ import numpy as np
 import pylab
 import random
 import matplotlib.pyplot as plt
+import matplotlib
 import os
 import logging
 from mpi4py import MPI
 from scipy import interpolate
 
+matplotlib.use('Agg')
+
 
 class NeuralNetwork:
+
     from neuron import h
 
     def __init__(self):
