@@ -36,9 +36,16 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, w
         nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
         nucleus_right.connect(nucleus_left, syn_type=Glu, weight_coef=weight_in)
         if (i>0):
+            prev_layer = layers[i-1]
+            # inhibitory nucleus
             nucleus_inhibitory = Nucleus("inhibitory", neuron_model, neurons_per_nucleus)
             nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
-            nucleus_inhibitory.connect(layers[i-1]["right"])
+            nucleus_inhibitory.connect(prev_layer["right"])
+            # from right nucleus of previous layer to the current layer
+            nucleus_right.connect(prev_layer["right"], syn_type=Glu, weight_coef=weight_ex)
+            # from left nucleus of the previous to the left nucleus of the current layer
+            prev_layer["left"].connect(nucleus_left, syn_type=Glu, weight_coef=weight_ex)
+
             layers.append({"left": nucleus_left, "right": nucleus_right, "inh": nucleus_inhibitory})
         else:
             layers.append({"left": nucleus_left, "right": nucleus_right})
@@ -91,25 +98,25 @@ logger.debug("Graphs")
 dmm = nest.GetStatus(layers[0]["right"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure("layer 1 left in")
+pylab.figure("layer 1 right")
 pylab.plot(ts, Vms)
 
 dmm = nest.GetStatus(layers[0]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure("layer 1 left out")
+pylab.figure("layer 1 left")
 pylab.plot(ts, Vms)
 
 dmm = nest.GetStatus(layers[1]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure("layer 2 left out")
+pylab.figure("layer 2 left")
 pylab.plot(ts, Vms)
 
 dmm = nest.GetStatus(layers[2]["left"].multimeters)[0]
 Vms = dmm["events"]["V_m"]
 ts = dmm["events"]["times"]
-pylab.figure("layer 3 left out")
+pylab.figure("layer 3 left")
 pylab.plot(ts, Vms)
 
 
