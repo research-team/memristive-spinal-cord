@@ -163,8 +163,8 @@ class Nucleus:
         name = self.name
         detector_param = {'label': name,
                           'withgid': True,
-                          'to_file': True,
-                          'to_memory': False}  # withweight true
+                          'to_file': False,
+                          'to_memory': True}  # withweight true
 
         number = self.number_of_neurons if self.number_of_neurons < neurons_connected_to_detector else neurons_connected_to_detector
         tracing_ids = self.neurons[:number]

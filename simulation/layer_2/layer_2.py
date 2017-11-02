@@ -34,7 +34,7 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, w
         nucleus_right = Nucleus("right", neuron_model, neurons_per_nucleus)
         # connecting nuclei
         nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
-        nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_in)
+        nucleus_right.connect(nucleus_left, syn_type=Glu, weight_coef=weight_in)
         if (i>0):
             nucleus_inhibitory = Nucleus("inhibitory", neuron_model, neurons_per_nucleus)
             nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
