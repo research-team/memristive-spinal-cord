@@ -13,7 +13,7 @@ number_of_layers = 6
 
 #Kernel setup
 nest.ResetKernel()
-nest.SetKernelStatus({'local_num_threads': 8})
+nest.SetKernelStatus({'local_num_threads': 4})
 
 def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, weight_in):
     """
@@ -34,12 +34,12 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, w
         nucleus_right = Nucleus("right", neuron_model, neurons_per_nucleus)
         # connecting nuclei
         nucleus_left.connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
-        nucleus_right.connect(nucleus_left, syn_type=Glu, weight_coef=weight_in)
+        nucleus_right.connect(nucleus_left, syn_type=Glu, weight_coef=weight_ex)
         if (i>0):
             prev_layer = layers[i-1]
             # inhibitory nucleus
             nucleus_inhibitory = Nucleus("inhibitory", neuron_model, neurons_per_nucleus)
-            nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_ex)
+            nucleus_right.connect(nucleus_inhibitory, syn_type=GABA, weight_coef=weight_in)
             nucleus_inhibitory.connect(prev_layer["right"])
             # from right nucleus of previous layer to the current layer
             prev_layer["right"].connect(nucleus_right, syn_type=Glu, weight_coef=weight_ex)
@@ -65,7 +65,7 @@ logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
 nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
-layers = generate_layers(neuron_model, 20, number_of_layers, 0.2, 0.3)
+layers = generate_layers(neuron_model, 20, number_of_layers, 50, 80)
 logger.debug("Layers created %s", len(layers))
 
 
@@ -78,9 +78,7 @@ logger.debug("Connecting")
 # generators
 layers[0]["right"].connect_Poisson_generator()
 
-
-
-# out of layers
+# multimeters and detectors
 for i in range(0, number_of_layers):
     layers[i]["left"].connect_multimeter()
     layers[i]["left"].connect_detector()
@@ -91,7 +89,7 @@ for i in range(0, number_of_layers):
 
 logger.debug("Started simulation")
 
-nest.Simulate(1000.0)
+nest.Simulate(100.0)
 logger.debug("Simulation done.")
 
 logger.debug("Graphs")
