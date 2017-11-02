@@ -65,7 +65,7 @@ logger.debug("Creating synapses")
 nest.CopyModel('stdp_synapse', glu_synapse, STDP_synparams_Glu)
 nest.CopyModel('stdp_synapse', gaba_synapse, STDP_synparams_GABA)
 
-layers = generate_layers(neuron_model, 20, number_of_layers, 50, 80)
+layers = generate_layers(neuron_model, 20, number_of_layers, 40, 50)
 logger.debug("Layers created %s", len(layers))
 
 
@@ -94,35 +94,20 @@ logger.debug("Simulation done.")
 
 logger.debug("Graphs")
 
-dmm = nest.GetStatus(layers[0]["right"].multimeters)[0]
-Vms = dmm["events"]["V_m"]
-ts = dmm["events"]["times"]
-pylab.figure("layer 1 right")
-pylab.plot(ts, Vms)
+for i in range(0, number_of_layers):
+    dmm = nest.GetStatus(layers[i]["right"].multimeters)[0]
+    Vms = dmm["events"]["V_m"]
+    ts = dmm["events"]["times"]
+    pylab.figure("layer {0} flexor".format(i))
+    pylab.plot(ts, Vms)
 
-dmm = nest.GetStatus(layers[0]["left"].multimeters)[0]
-Vms = dmm["events"]["V_m"]
-ts = dmm["events"]["times"]
-pylab.figure("layer 1 left")
-pylab.plot(ts, Vms)
+    dmm = nest.GetStatus(layers[i]["left"].multimeters)[0]
+    Vms = dmm["events"]["V_m"]
+    ts = dmm["events"]["times"]
+    pylab.figure("layer {0} extensor".format(i))
+    pylab.plot(ts, Vms)
 
-dmm = nest.GetStatus(layers[1]["right"].multimeters)[0]
-Vms = dmm["events"]["V_m"]
-ts = dmm["events"]["times"]
-pylab.figure("layer 2 right")
-pylab.plot(ts, Vms)
 
-dmm = nest.GetStatus(layers[1]["left"].multimeters)[0]
-Vms = dmm["events"]["V_m"]
-ts = dmm["events"]["times"]
-pylab.figure("layer 2 left")
-pylab.plot(ts, Vms)
-
-dmm = nest.GetStatus(layers[2]["left"].multimeters)[0]
-Vms = dmm["events"]["V_m"]
-ts = dmm["events"]["times"]
-pylab.figure("layer 3 left")
-pylab.plot(ts, Vms)
 
 
 #dSD = nest.GetStatus(spikedetector, keys="events")[0]
