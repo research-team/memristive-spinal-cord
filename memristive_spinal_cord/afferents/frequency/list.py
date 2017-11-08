@@ -28,7 +28,7 @@ class FrequencyList:
         time = 0.0
         for frequency in self.list:
             spikes_at_interval = int(self.interval / 1000 * frequency)
-            if spikes_at_interval < 1 and self.interval / 1000 * frequency > random.random():
+            if self.interval / 1000 * frequency - spikes_at_interval > random.random():
                 spikes_at_interval = spikes_at_interval + 1
             if spikes_at_interval > 0:
                 spikes_at_interval = int(spikes_at_interval)
