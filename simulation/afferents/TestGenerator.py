@@ -1,35 +1,49 @@
 from FrequencyListGenerator import FrequencyListGenerator
-from math import *
+from FrequencyList import FrequencyList
+import math
+
 
 class TestGenerator(FrequencyListGenerator):
     def generate(self, time, interval):
-        raise NotImplementedError("generate() is not implemented.")
+        numberOfIntervals = time * 1000 // testInterval
+        frequencyList = []
+        for i in range(numberOfIntervals):
+            frequencyList.append(frequencies[i % len(frequencies)])
+        print('Frequency list: ' + str(frequencyList))
+        return FrequencyList(
+            interval=interval,
+            list=frequencyList,
+        )
+        # raise NotImplementedError("generate() is not implemented.")
 
 
+frequencies = [55, 120]
 testTime = 1
 testInterval = 100
 testGenerator = TestGenerator()
 frequencyList = testGenerator.generate(testTime, testInterval)
-spikeList = frequencyList.generateSpikes()
+spikeList = frequencyList.generate_spikes()
 
-numberOfIntervals = testTime * 1000 / testInterval
+numberOfIntervals = testTime * 1000 // testInterval
 assert numberOfIntervals == len(frequencyList), 'frequency list size must be equal to the number of intervals'
 
 # storage for number of spikes per interval
-spikesPerInterval = []
-for i in xrange(numberOfIntervals):
-    spikesPerInterval[i] = 0
+spikesPerInterval = [0] * numberOfIntervals
 
 # collecting number of spikes per interval
-for spikeTime in xrange(spikeList):
-    spikeIndex = spikeTime / testInterval
+for spikeTime in spikeList:
+    spikeIndex = int(spikeTime / testInterval) if not spikeTime % testInterval == 0 \
+        else int(spikeTime / testInterval) - 1
     spikesPerInterval[spikeIndex] += 1
+print('Spikes per interval: ' + str(spikesPerInterval))
 
 # assert that number of spikes corresponds to their frequency
 acceptableErrorNumberOfSpikes = 2
-for i in xrange(numberOfIntervals):
-    intervalFrequency = frequencyList[i] / numberOfIntervals
+for i in range(numberOfIntervals):
+    intervalFrequency = frequencyList.list[i] / numberOfIntervals
     assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
-        'number of spikes corresponds to their frequency'
+        'number of spikes corresponds to their frequency: ' \
+        + str(math.fabs(intervalFrequency - spikesPerInterval[i])) \
+        + ' ' + str(acceptableErrorNumberOfSpikes)
 
 
