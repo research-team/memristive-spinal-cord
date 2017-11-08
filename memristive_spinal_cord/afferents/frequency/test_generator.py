@@ -1,4 +1,4 @@
-from FrequencyListGenerator import FrequencyListGenerator
+from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
 from math import *
 
 class TestGenerator(FrequencyListGenerator):
