@@ -46,7 +46,7 @@ def generate_layers(neuron_model, neurons_per_nucleus, n_of_layers, weight_ex, w
             # from left nucleus of the current layer to the left nucleus of the previous layer
             nucleus_left.connect(prev_layer["left"], syn_type=Glu, weight_coef=weight_ex)
 
-            layers.append({"left": nucleus_left, "right": nucleus_right, "inh": nucleus_inhibitory})
+            layers.append({"left": nucleus_left, "right": nucleus_right, "inhibitory": nucleus_inhibitory})
         else:
             layers.append({"left": nucleus_left, "right": nucleus_right})
         logger.debug("Packing %s layer in list", i)
@@ -79,11 +79,20 @@ logger.debug("Connecting")
 layers[0]["right"].connect_Poisson_generator()
 
 # multimeters and detectors
-for i in range(0, number_of_layers):
+
+i=0
+layers[i]["left"].connect_multimeter()
+layers[i]["left"].connect_detector()
+layers[i]["right"].connect_multimeter()
+layers[i]["right"].connect_detector()
+
+for i in range(1, number_of_layers):
     layers[i]["left"].connect_multimeter()
     layers[i]["left"].connect_detector()
     layers[i]["right"].connect_multimeter()
     layers[i]["right"].connect_detector()
+    layers[i]["inhibitory"].connect_multimeter()
+    layers[i]["inhibitory"].connect_detector()
 
 #nest.Connect(neuron, spikedetector)
 
@@ -98,15 +107,21 @@ for i in range(0, number_of_layers):
     dmm = nest.GetStatus(layers[i]["right"].multimeters)[0]
     Vms = dmm["events"]["V_m"]
     ts = dmm["events"]["times"]
-    pylab.figure("layer {0} flexor".format(i))
+    pylab.figure("layer {0} right".format(i))
     pylab.plot(ts, Vms)
 
     dmm = nest.GetStatus(layers[i]["left"].multimeters)[0]
     Vms = dmm["events"]["V_m"]
     ts = dmm["events"]["times"]
-    pylab.figure("layer {0} extensor".format(i))
+    pylab.figure("layer {0} left".format(i))
     pylab.plot(ts, Vms)
 
+    if i>0:
+        dmm = nest.GetStatus(layers[i]["inhibitory"].multimeters)[0]
+        Vms = dmm["events"]["V_m"]
+        ts = dmm["events"]["times"]
+        pylab.figure("layer {0} inhibitory".format(i))
+        pylab.plot(ts, Vms)
 
 
 
