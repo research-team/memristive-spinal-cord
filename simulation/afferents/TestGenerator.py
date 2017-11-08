@@ -17,8 +17,8 @@ class TestGenerator(FrequencyListGenerator):
         # raise NotImplementedError("generate() is not implemented.")
 
 
-frequencies = [55, 120]
-testTime = 1
+frequencies = [5, 15, 50]
+testTime = 10
 testInterval = 100
 testGenerator = TestGenerator()
 frequencyList = testGenerator.generate(testTime, testInterval)
@@ -40,10 +40,12 @@ print('Spikes per interval: ' + str(spikesPerInterval))
 # assert that number of spikes corresponds to their frequency
 acceptableErrorNumberOfSpikes = 2
 for i in range(numberOfIntervals):
-    intervalFrequency = frequencyList.list[i] / numberOfIntervals
+    intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
     assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
         'number of spikes corresponds to their frequency: ' \
         + str(math.fabs(intervalFrequency - spikesPerInterval[i])) \
-        + ' ' + str(acceptableErrorNumberOfSpikes)
+        + ' ' + str(numberOfIntervals) \
+        + ' ' + str(intervalFrequency) \
+        + ' ' + str(spikesPerInterval[i])
 
 
