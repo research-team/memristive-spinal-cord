@@ -1,9 +1,11 @@
-from FrequencyListGenerator import FrequencyListGenerator
-from FrequencyList import FrequencyList
 import math
+from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
+from memristive_spinal_cord.afferents.frequency.list import FrequencyList
 
 
 class TestGenerator(FrequencyListGenerator):
+
+    # this method uses a frequencies list from the global scope at the moment
     def generate(self, time, interval):
         numberOfIntervals = time * 1000 // testInterval
         frequencyList = []
@@ -14,9 +16,9 @@ class TestGenerator(FrequencyListGenerator):
             interval=interval,
             list=frequencyList,
         )
-        # raise NotImplementedError("generate() is not implemented.")
 
 
+# this frequencies is used one by one while the frequency list is filling
 frequencies = [5, 15, 50]
 testTime = 10
 testInterval = 100
@@ -32,8 +34,7 @@ spikesPerInterval = [0] * numberOfIntervals
 
 # collecting number of spikes per interval
 for spikeTime in spikeList:
-    spikeIndex = int(spikeTime / testInterval) if not spikeTime % testInterval == 0 \
-        else int(spikeTime / testInterval) - 1
+    spikeIndex = int(spikeTime / testInterval)
     spikesPerInterval[spikeIndex] += 1
 print('Spikes per interval: ' + str(spikesPerInterval))
 
@@ -42,10 +43,6 @@ acceptableErrorNumberOfSpikes = 2
 for i in range(numberOfIntervals):
     intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
     assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
-        'number of spikes corresponds to their frequency: ' \
-        + str(math.fabs(intervalFrequency - spikesPerInterval[i])) \
-        + ' ' + str(numberOfIntervals) \
-        + ' ' + str(intervalFrequency) \
-        + ' ' + str(spikesPerInterval[i])
+        'number of spikes corresponds to their frequency: '
 
 
