@@ -5,21 +5,12 @@ from memristive_spinal_cord.afferents.frequency.list import FrequencyList
 
 class TestGenerator(FrequencyListGenerator):
 
-    # this method uses a frequencies list from the global scope at the moment
-    def generate(self, time, interval):
-        numberOfIntervals = time * 1000 // testInterval
-        frequencyList = []
-        for i in range(numberOfIntervals):
-            frequencyList.append(frequencies[i % len(frequencies)])
-        print('Frequency list: ' + str(frequencyList))
-        return FrequencyList(
-            interval=interval,
-            list=frequencyList,
-        )
+    def __init__(self):
+        super().__init__()
+        # this frequencies is used one by one while the frequency list is filling
+        self.frequencies = [5, 15, 50]
 
 
-# this frequencies is used one by one while the frequency list is filling
-frequencies = [5, 15, 50]
 testTime = 10
 testInterval = 100
 testGenerator = TestGenerator()

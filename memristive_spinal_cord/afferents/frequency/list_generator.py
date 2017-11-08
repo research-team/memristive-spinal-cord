@@ -1,5 +1,10 @@
+from memristive_spinal_cord.afferents.frequency.list import FrequencyList
+
+
 class FrequencyListGenerator:
     """Represents a single rule (formula) for generating frequencies over some time period"""
+    def __init__(self):
+        self.frequencies = [50]
 
     def generate(self, time, interval):
         """
@@ -11,4 +16,12 @@ class FrequencyListGenerator:
         :return: instance of FrequencyList
         :rtype: FrequencyList
         """
-        raise NotImplementedError("generate() is not implemented.")
+        number_of_intervals = time * 1000 // interval
+        frequency_list = []
+        for i in range(number_of_intervals):
+            frequency_list.append(self.frequencies[i % len(self.frequencies)])
+        print('Frequency list: ' + str(frequency_list))
+        return FrequencyList(
+            interval=interval,
+            list=frequency_list,
+        )
