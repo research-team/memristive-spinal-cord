@@ -33,8 +33,10 @@ class FrequencyList:
             if spikes_at_interval > 0:
                 spikes_at_interval = int(spikes_at_interval)
                 time_between_spikes = self.interval / spikes_at_interval
+                time -= time_between_spikes / 2
                 spike_times.extend(
                     [time + time_between_spikes * (n + 1) for n in range(spikes_at_interval)])
+                time += time_between_spikes / 2
             time += self.interval
         print('Spike times: ' + str(spike_times))
         return spike_times
