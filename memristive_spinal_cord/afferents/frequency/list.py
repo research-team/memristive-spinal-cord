@@ -32,7 +32,7 @@ class FrequencyList:
 
             # fraction used as a probability of the additional spike
             if self.interval / 1000 * frequency - spikes_at_interval > random.random():
-                spikes_at_interval = spikes_at_interval + 1
+                spikes_at_interval += 1
 
             if spikes_at_interval > 0:
                 time_between_spikes = self.interval / spikes_at_interval
