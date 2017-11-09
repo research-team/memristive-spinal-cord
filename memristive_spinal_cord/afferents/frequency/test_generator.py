@@ -1,6 +1,8 @@
 import math
+import sys
+import os
+sys.path.insert(0, '/'.join(os.getcwd().split('/')[:-3]))
 from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
-from memristive_spinal_cord.afferents.frequency.list import FrequencyList
 
 
 class TestGenerator(FrequencyListGenerator):
@@ -11,8 +13,14 @@ class TestGenerator(FrequencyListGenerator):
         self.frequencies = [5, 15, 50]
 
 
-testTime = 10
-testInterval = 100
+if __name__ == '__main__':
+    assert len(sys.argv) == 3, '2 arguments needed simulation time and interval'
+    testTime = int(sys.argv[1])
+    testInterval = int(sys.argv[2])
+else:
+    testTime = 1
+    testInterval = 20
+
 testGenerator = TestGenerator()
 frequencyList = testGenerator.generate(testTime, testInterval)
 spikeList = frequencyList.generate_spikes()
@@ -34,6 +42,6 @@ acceptableErrorNumberOfSpikes = 2
 for i in range(numberOfIntervals):
     intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
     assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
-        'number of spikes corresponds to their frequency: '
+        'number of spikes corresponds to their frequency'
 
 
