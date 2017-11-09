@@ -1,4 +1,4 @@
-import random
+import random, os
 
 
 class FrequencyList:
@@ -43,3 +43,29 @@ class FrequencyList:
             time += self.interval
         print('Spike times: ' + str(spike_times))
         return spike_times
+
+
+class FrequencyListFile(FrequencyList):
+    """
+    List of frequencies at given time interval.
+    Receives data from a specific file
+
+    Attributes:
+        interval (int): In milliseconds. Time interval between frequencies.
+        afferent_index (int): Actually the number of the required line in a file with data, starts with 1
+        filename (str): The name of the file with frequency data
+        name (str, optional): Name of the list.
+    """
+
+    def __init__(self, interval, afferent_index, filename, name=''):
+
+        f = open('frequency_data/' + filename, mode='r')
+
+        frequency_list = []
+        for index, line in enumerate(f):
+            if index == afferent_index - 1:
+                frequency_list = [float(value) for value in line.split()]
+
+        f.close()
+
+        super().__init__(interval=interval, list=frequency_list, name=name)
