@@ -4,9 +4,9 @@ import time
 import logging
 import datetime
 import numpy as np
-from data import *
+from memristive_spinal_cord.layer_2.data import *
 from time import clock
-from parameters import *
+from memristive_spinal_cord.layer_2.parameters import *
 from collections import defaultdict
 
 spike_generators = {}   # dict name_part : spikegenerator
