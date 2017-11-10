@@ -14,10 +14,8 @@ class FrequencyList:
     """
 
     def __init__(self, interval, list, name=''):
-        logging.getLogger(__name__).addHandler(logging.NullHandler())
-        fileConfig('../../logging_config.ini')
+        fileConfig('../../logging_config.ini', disable_existing_loggers=False)
         self.logger = logging.getLogger('FrequencyList')
-        self.logger.info('Initialization')
         self.interval = interval
         self.list = list
         self.name = name
@@ -68,7 +66,7 @@ class FrequencyListFile(FrequencyList):
     """
 
     def __init__(self, interval, afferent_index, filename, name=''):
-        fileConfig('../../logging_config.ini')
+        fileConfig('../../logging_config.ini', disable_existing_loggers=False)
         self.logger = logging.getLogger('FrequencyListFile')
         f = open('frequency_data/' + filename, mode='r')
         self.logger.info('File opened')

@@ -7,7 +7,7 @@ class FrequencyListGenerator:
     """Represents a single rule (formula) for generating frequencies over some time period"""
     def __init__(self):
         self.frequencies = [50]
-        fileConfig('../../logging_config.ini')
+        fileConfig(fname='../../logging_config.ini', disable_existing_loggers=False)
         self.logger = logging.getLogger('FrequencyListGenerator')
 
     def generate(self, time, interval):

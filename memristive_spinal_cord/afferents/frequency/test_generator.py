@@ -10,23 +10,24 @@ from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyL
 class TestGenerator(FrequencyListGenerator):
 
     def __init__(self):
-        fileConfig('../../logging_config.ini')
-        self.logger = logging.getLogger('TestGenerator')
         super().__init__()
         # this frequencies is used one by one while the frequency list is filling
-        self.frequencies = [5, 15, 50]
+        fileConfig(fname='../../logging_config.ini', disable_existing_loggers=False)
+        self.logger = logging.getLogger('TestGenerator')
+        self.frequencies = [2, 4, 6]
         self.logger.debug('Using frequencies: ' + str(self.frequencies))
 
 
 if __name__ == '__main__':
-    fileConfig('../../logging_config.ini')
-    logger = logging.getLogger('TestGenerator_main')
+    fileConfig('../../logging_config.ini', disable_existing_loggers=False)
+    main_logger = logging.getLogger('main')
     assert len(sys.argv) == 3, '2 arguments needed simulation time and interval'
     testTime = int(sys.argv[1])
     testInterval = int(sys.argv[2])
-    logger.info('Parameters (time, interval):' + str(testTime) + ' ' + str(testInterval))
+    main_logger.info('Parameters (time, interval): ' + str(testTime) + ' ' + str(testInterval))
 
     testGenerator = TestGenerator()
+    main_logger.debug('TestGenerator constructed')
     frequencyList = testGenerator.generate(testTime, testInterval)
     spikeList = frequencyList.generate_spikes()
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     for spikeTime in spikeList:
         spikeIndex = int(spikeTime / testInterval)
         spikesPerInterval[spikeIndex] += 1
-    logger.info('Spikes per interval: ' + str(spikesPerInterval))
+    main_logger.info('Spikes per interval: ' + str(spikesPerInterval))
 
     # assert that number of spikes corresponds to their frequency
     acceptableErrorNumberOfSpikes = 2
@@ -48,3 +49,4 @@ if __name__ == '__main__':
         intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
         assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
             'number of spikes corresponds to their frequency'
+
