@@ -1,7 +1,7 @@
 __author__ = "max talanov"
 
 import logging.config
-from func import *
+from memristive_spinal_cord.layer_2.func import *
 
 
 class Nucleus:
