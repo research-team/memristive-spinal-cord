@@ -35,3 +35,22 @@ They research the influence of Group 1a, Group 2 afferents only. Their simple mo
 General questions:
 - Temporal profile in firing rate?
 - Frequency harmonics?
+
+#### Network parameters
+
+##### Neurons
+**Motoneurons**
+- Number 169
+- Type: HH model with: sodium, potassium, calcium, and potassium-calcium. For the start we would use only: sodium, potassium. 
+
+**1A**
+- Number 60
+- Type: IAF
+
+**2**
+- Number 60
+- Type: IAF
+
+
+##### Connections
+- **1A - Motoneurons** all-to-all. 
