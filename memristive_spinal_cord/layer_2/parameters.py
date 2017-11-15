@@ -1,4 +1,4 @@
-from property import *
+from memristive_spinal_cord.layer_2.property import *
 import nest
 import numpy.random as random
 # Neuron parameters
