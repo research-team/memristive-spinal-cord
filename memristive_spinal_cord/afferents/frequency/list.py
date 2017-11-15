@@ -74,4 +74,5 @@ class FrequencyListFile(FrequencyList):
         f = open(filename, mode='r')
         interval = int(re.search('interval(?P<interval>[\d]+)', filename, flags=re.IGNORECASE).group('interval'))
         frequency_list = [float(value) for value in f.readline().split()]
+        f.close()
         super().__init__(interval=interval, list=frequency_list, name=name)
