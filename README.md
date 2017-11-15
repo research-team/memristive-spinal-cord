@@ -35,3 +35,33 @@ They research the influence of Group 1a, Group 2 afferents only. Their simple mo
 General questions:
 - Temporal profile in firing rate?
 - Frequency harmonics?
+
+#### Network parameters
+
+##### Neurons
+Numbers below are per muscle e.g. for example the flexor. For the antagonist muscle numbers are the same.
+
+**Motoneurons**
+- Number 169
+- Type: HH model with: sodium, potassium, calcium, and potassium-calcium. For the start we would use only: sodium, potassium. 
+
+**1A**
+- Number 60
+- Type: Spike Generators
+
+**1B**
+- ?
+
+**2**
+- Number 60
+- Type: Spike Generators
+
+**Cutaneous**
+- ?
+
+##### Connections
+Data is taken from *SynFlexFlex.hoc* or *Computational Model Realistic Neural Network* of Moraud2016. 
+**1A - Motoneurons**
+- type: all-to-all.
+- delay: Normal(2ms, 0.3ms || 0.03ms). In the paper 0.3 but in src 0.03.
+- weight: `hi_motor_S = 0.0411 + 0.0411 * 0.28`. 

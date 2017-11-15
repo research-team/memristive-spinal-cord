@@ -4,9 +4,9 @@ import time
 import logging
 import datetime
 import numpy as np
-from data import *
+from memristive_spinal_cord.layer_2.data import *
 from time import clock
-from parameters import *
+from memristive_spinal_cord.layer_2.parameters import *
 from collections import defaultdict
 
 spike_generators = {}   # dict name_part : spikegenerator
@@ -16,7 +16,7 @@ startsimulate = 0
 endsimulate = 0
 txt_result_path = ""    # path for txt results
 all_parts = tuple()     # tuple of all parts
-MaxSynapses = 10000      # max synapses
+MaxSynapses = 50000      # max synapses
 SYNAPSES = 0            # synapse number
 NEURONS = 0             # neurons number
 times = []              # store time simulation
