@@ -40,5 +40,3 @@ if __name__ == '__main__':
         intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
         assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
             'number of spikes corresponds to their frequency'
-
-
