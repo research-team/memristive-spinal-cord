@@ -9,7 +9,8 @@ sudo apt-get install cmake build-essential --assume-yes
 # installing GNU Scientific Lib
 sudo apt-get install libgsl2 libgsl0-dev --assume-yes
 # installing MPI
-sudo apt-get install libcr-dev mpich mpich-doc --assume-yes
+#sudo apt-get install libcr-dev mpich mpich-doc --assume-yes
+sudo apt-get install openmpi-bin libopenmpi-dev --assume-yes
 # installing LTDL
 sudo apt-get install libtool --assume-yes
 # installing Doxygen
@@ -25,7 +26,7 @@ sudo apt-get install python3-tk --assume-yes
 
 pip3 install scipy nose matplotlib cython
 
-NEST_VERSION="2.12.0"
+NEST_VERSION="2.14.0"
 NEST_NAME="nest-$NEST_VERSION"
 NEST_PATH=/opt/nest
 wget -c https://github.com/nest/nest-simulator/releases/download/v"$NEST_VERSION"/"$NEST_NAME".tar.gz -O $TMP_FOLDER/"$NEST_NAME".tar.gz
