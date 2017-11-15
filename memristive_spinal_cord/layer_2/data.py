@@ -1,4 +1,4 @@
-from property import *
+from memristive_spinal_cord.layer_2.property import *
 """
 Primal/initial dictionary of parts
 It contains:

@@ -1,7 +1,7 @@
 __author__ = "max talanov"
 
 import logging.config
-from func import *
+from memristive_spinal_cord.layer_2.func import *
 
 
 class Nucleus:
@@ -73,7 +73,8 @@ class Nucleus:
         conn_dict = {'rule': 'fixed_outdegree',
                      'outdegree': MaxSynapses if post_synaptic_nucleus.number_of_neurons > MaxSynapses
                      else post_synaptic_nucleus.number_of_neurons,
-                     'multapses': False}
+                     'multapses': True,
+                     'autapses': False}
         # Connect PRE IDs neurons with POST IDs neurons, add Connection and Synapse specification
         nest.Connect(pre_synaptic_nucleus.neurons, post_synaptic_nucleus.neurons, conn_spec=conn_dict, syn_spec=synapses[syn_type][model])
         # Show data of new connection
