@@ -5,7 +5,7 @@
 sudo apt-get update
 
 # installing python and python libs
-sudo apt-het install python-all-dev python-numpy python-scipy python-matplotlib python-nose ipython cython --assume-yes
+sudo apt-get install python-all-dev python-numpy python-scipy python-matplotlib python-nose ipython cython --assume-yes
 # installing cmake
 sudo apt-get install cmake build-essential autoconf automake libncurses5-dev --assume-yes
 # installing GNU Scientific Lib
