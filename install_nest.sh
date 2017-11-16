@@ -2,6 +2,9 @@
 
 # PLEASE SET CORRECT PATHS before running
 
+# This script tested on the clean installed Ubuntu Server 16.04.3
+# To install the NEST just run install_nest.sh without sudo (to avoid mpi warnings which will interrupt a testing phase)
+
 sudo apt-get update
 
 # installing python and python libs
