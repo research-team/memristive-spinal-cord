@@ -13,6 +13,8 @@ class FrequencyList:
     """
 
     def __init__(self, interval, list, name=''):
+        fileConfig('../../logging_config.ini', disable_existing_loggers=False)
+        self.logger = logging.getLogger('FrequencyList')
         self.interval = interval
         self.list = list
         self.name = name
@@ -25,6 +27,8 @@ class FrequencyList:
         Generates a list of spikes by given frequencies.
         :return: the list of spike times
         """
+        self.logger.info('Spike generation started')
+        self.logger.debug('Using frequency list: ' + str(self.list))
         spike_times = []
         # initial time
         time = 0.0
@@ -42,7 +46,9 @@ class FrequencyList:
                     [time + time_between_spikes * (n + 1) for n in range(spikes_at_interval)])
                 time += time_between_spikes / 2  # shifting back
             time += self.interval
-        print('Spike times: ' + str(spike_times))
+        self.logger.info('Spike generation finished')
+        self.logger.debug('Spike times: ' + str(spike_times))
+        self.logger.debug('Total spikes generated: ' + str(len(spike_times)))
         return spike_times
 
 
@@ -68,4 +74,3 @@ class FrequencyListFile(FrequencyList):
         interval = int(re.search('interval(?P<interval>[\d]+)', filename, flags=re.IGNORECASE).group('interval'))
         frequency_list = [float(value) for value in f.readline().split()]
         super().__init__(interval=interval, list=frequency_list, name=name)
-
