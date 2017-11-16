@@ -4,15 +4,17 @@
 
 sudo apt-get update
 
+# installing python and python libs
+sudo apt-het install python-all-dev python-numpy python-scipy python-matplotlib python-nose ipython cython --assume-yes
 # installing cmake
-sudo apt-get install cmake build-essential --assume-yes
+sudo apt-get install cmake build-essential autoconf automake libncurses5-dev --assume-yes
 # installing GNU Scientific Lib
-sudo apt-get install libgsl2 libgsl0-dev --assume-yes
+sudo apt-get install gsl-bin libgsl2 libgsl0-dev libgsl0-dbg --assume-yes
 # installing MPI
-#sudo apt-get install libcr-dev mpich mpich-doc --assume-yes
+# sudo apt-get install libcr-dev mpich mpich-doc --assume-yes
 sudo apt-get install openmpi-bin libopenmpi-dev --assume-yes
 # installing LTDL
-sudo apt-get install libtool --assume-yes
+sudo apt-get install libtool libltdl7-dev --assume-yes
 # installing Doxygen
 sudo apt-get install doxygen --assume-yes
 # installing pip3
