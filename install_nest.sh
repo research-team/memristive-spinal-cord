@@ -5,6 +5,47 @@
 # This script tested on the clean installed Ubuntu Server 16.04.3
 # To install the NEST just run install_nest.sh without sudo (to avoid mpi warnings which will interrupt a testing phase)
 
+echo "Hello! This scipt will install NEST Simulator (2.12.0 or 2.14.0) with Python (2 or 3)"
+echo "Which version of NEST do you want to install? (default 2.12.0):"
+CORRECT=false
+while ! $CORRECT ; do
+  read NEST_VERSION
+  if test "$NEST_VERSION" = "2.12.0" || test "$NEST_VERSION" = "2.14.0" ; then
+    CORRECT=true
+  elif test "$NEST_VERSION" = "" || test "$NEST_VERSION" = "12" ; then
+    NEST_VERSION="2.12.0"
+    CORRECT=true
+  elif test "$NEST_VERSION" = "14" ; then
+    NEST_VERSION="2.12.0"
+    CORRECT=true
+  else
+    echo "Please, choose 2.12.0, or 2.14.0, or just press ENTER to install 2.12.0"
+  fi
+done
+echo "$NEST_VERSION was chosen"
+echo ""
+echo "Which directory will be user to install NEST? (default /opt/nest):"
+read NEST_PATH
+if test "$NEST_PATH" = "" ; then
+  NEST_PATH="/opt/nest"
+fi
+echo "NEST will be installed in $NEST_PATH"
+
+echo ""
+echo "Which Python version (2 or 3) will be used? (default 3):"
+read PYTHON_VERSION
+CORRECT = false
+while ! $CORRECT ; do
+  if test "$PYTHON_VERSION" = "2" || test "$PYTHON_VERSION" = "3" ; then
+    CORRECT = false
+  else
+    echo "Please, choose 2, or 3, or just press ENTER to use Python 3"
+  fi
+done
+
+PYTHON_EXECUTABLE=`which python$PYTHON_VERSION`
+echo 'Python $PYTHON_VERSION executable: $PYTHON_EXECUTABLE'
+
 sudo apt-get update
 
 # installing python and python libs
@@ -31,9 +72,9 @@ sudo apt-get install python3-tk --assume-yes
 sudo -H pip3 install --upgrade pip
 sudo -H pip3 install scipy nose matplotlib cython
 
-NEST_VERSION="2.12.0"
+# NEST_VERSION="2.12.0"
 NEST_NAME="nest-$NEST_VERSION"
-NEST_PATH=/opt/nest
+# NEST_PATH=/opt/nest
 sudo wget -c https://github.com/nest/nest-simulator/releases/download/v"$NEST_VERSION"/"$NEST_NAME".tar.gz -O $TMP_FOLDER/"$NEST_NAME".tar.gz
 sudo mkdir -p $NEST_PATH
 sudo chown -R "$USER" $NEST_PATH
@@ -41,7 +82,7 @@ mkdir -p $NEST_PATH/src
 mkdir -p $NEST_PATH/build/$NEST_NAME
 tar -xvzf $TMP_FOLDER/"$NEST_NAME".tar.gz -C $NEST_PATH/src
 cd $NEST_PATH/build/$NEST_NAME
-cmake -DCMAKE_INSTALL_PREFIX:PATH=$NEST_PATH/$NEST_NAME $NEST_PATH/src/$NEST_NAME -DPYTHON=3 -Dwith-mpi=ON -Dwith-python=3 -DPYTHON_EXECUTABLE=/usr/bin/python3.5 -DPYTHON_LIBRARY=/usr/lib/python3.5
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$NEST_PATH/$NEST_NAME $NEST_PATH/src/$NEST_NAME -Dwith-mpi=ON -Dwith-python=$PYTHON_VERSION -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE # -DPYTHON_LIBRARY=/usr/lib/python3.5
 make
 make install
 
