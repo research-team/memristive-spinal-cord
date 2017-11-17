@@ -22,7 +22,7 @@ while ! $CORRECT ; do
     echo "Please, choose 2.12.0, or 2.14.0, or just press ENTER to install 2.12.0"
   fi
 done
-echo "$NEST_VERSION was chosen"
+echo "$NEST_VERSION has been chosen"
 echo ""
 echo "Which directory will be user to install NEST? (default /opt/nest):"
 read NEST_PATH
@@ -45,9 +45,11 @@ while ! $CORRECT ; do
     echo "Please, choose 2, or 3, or just press ENTER to use Python 3"
   fi
 done
-
+echo "Python$PYTHON_VERSION has been chosen"
 PYTHON_EXECUTABLE=`which python$PYTHON_VERSION`
-echo 'Python $PYTHON_VERSION executable: $PYTHON_EXECUTABLE'
+echo "Python $PYTHON_VERSION executable: $PYTHON_EXECUTABLE"
+echo "Press ENTER to install NEST $NEST_VERSION with Python$PYTHON_VERSION into $NEST_PATH"
+read WAITING
 
 sudo apt-get update
 
