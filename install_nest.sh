@@ -34,10 +34,13 @@ echo "NEST will be installed in $NEST_PATH"
 echo ""
 echo "Which Python version (2 or 3) will be used? (default 3):"
 read PYTHON_VERSION
-CORRECT = false
+CORRECT=false
 while ! $CORRECT ; do
   if test "$PYTHON_VERSION" = "2" || test "$PYTHON_VERSION" = "3" ; then
-    CORRECT = false
+    CORRECT=true
+  elif test "$PYTHON_VERSION" = "" ; then
+    PYTHON_VERSION="3"
+    CORRECT=true
   else
     echo "Please, choose 2, or 3, or just press ENTER to use Python 3"
   fi
