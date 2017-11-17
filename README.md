@@ -6,6 +6,18 @@ Model of ES (Electric stimulation) of spinal cord. It should enhance walking cyc
 
 <img src="/diagrams/spinal-cord-diagram/spinal-cord-diagram.png?raw=true 'Reflexes'" alt="Model diagram" height=500/>
 
+### Install
+
+The project is compatible with python3 so when you start working on it you better have a *python3 virtualenv*. What is a virtualenv and how to work with it? Please read [here](http://www.simononsoftware.com/virtualenv-tutorial-part-2/). After you have got a *virtualenv* tool.
+```
+mkvirtualenv python3.5 -p /usr/bin/python3.5
+```
+
+After that you need to go the project's root and execute the below. Those are project's dependencies. For more information please read [this](https://caremad.io/posts/2013/07/setup-vs-requirement/).
+```
+pip install -r requirements.txt 
+```
+
 #### Problem intro
 During SCI(Spinal Cord Injury) a rat loses its ability to move hind limbs. It restores its ability to walk with ES(Epidural Stimulation) only after 5 weeks. This restoration of walking happens in sync with the appearance of LR(Late Response) in the EMG of muscles. MR(Middle Response) appears during the 2nd week. Injection of 5-HT enhances the same effect of walking restoration almost immediately when applied directly to the spinal cord. This allows us to derive that during first two weeks the monosynaptic circuit or the first level restores and it brings MR to the EMG. During five weeks the polysynaptic circuit restores and brings LR to the EMG.
 
