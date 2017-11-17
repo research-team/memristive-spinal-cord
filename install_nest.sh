@@ -31,7 +31,7 @@ sudo apt-get install python3-tk --assume-yes
 sudo -H pip3 install --upgrade pip
 sudo -H pip3 install scipy nose matplotlib cython
 
-NEST_VERSION="2.14.0"
+NEST_VERSION="2.12.0"
 NEST_NAME="nest-$NEST_VERSION"
 NEST_PATH=/opt/nest
 sudo wget -c https://github.com/nest/nest-simulator/releases/download/v"$NEST_VERSION"/"$NEST_NAME".tar.gz -O $TMP_FOLDER/"$NEST_NAME".tar.gz
@@ -44,6 +44,14 @@ cd $NEST_PATH/build/$NEST_NAME
 cmake -DCMAKE_INSTALL_PREFIX:PATH=$NEST_PATH/$NEST_NAME $NEST_PATH/src/$NEST_NAME -DPYTHON=3 -Dwith-mpi=ON -Dwith-python=3 -DPYTHON_EXECUTABLE=/usr/bin/python3.5 -DPYTHON_LIBRARY=/usr/lib/python3.5
 make
 make install
+
+# the test_quantal_stp_synapse.py uses old numpy library, so NEST 2.12.0 fails the test
+# by this reason these t_plot and t_tot values have to be int, not float
+if test "$NEST_VERSION" == "2.12.0" ; then
+  TEST_PATH=$NEST_PATH/$NEST_NAME/lib/python3.5/site-packages/nest/tests/test_quantal_stp_synapse.py
+  sudo sed -ie 's/t_plot = 1000./t_plot = 1000/' $TEST_PATH
+  sudo sed -ie 's/t_tot = 1500./t_tot = 1500/' $TEST_PATH
+fi
 make installcheck
 NEST_VARS=$NEST_PATH/$NEST_NAME/bin/nest_vars.sh
 $NEST_VARS
