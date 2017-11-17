@@ -2,12 +2,39 @@
 
 # PLEASE SET CORRECT PATHS before running
 
-pip3 install scipy nose matplotlib
+# This script tested on the clean installed Ubuntu Server 16.04.3
+# To install the NEST just run install_nest.sh without sudo (to avoid mpi warnings which will interrupt a testing phase)
+
+sudo apt-get update
+
+# installing python and python libs
+sudo apt-get install python-all-dev python-numpy python-scipy python-matplotlib python-nose ipython cython --assume-yes
+# installing cmake
+sudo apt-get install cmake build-essential autoconf automake libncurses5-dev --assume-yes
+# installing GNU Scientific Lib
+sudo apt-get install gsl-bin libgsl2 libgsl0-dev libgsl0-dbg --assume-yes
+# installing MPI
+sudo apt-get install openmpi-bin libopenmpi-dev --assume-yes
+# installing LTDL
+sudo apt-get install libtool libltdl7-dev --assume-yes
+# installing Doxygen
+sudo apt-get install doxygen --assume-yes
+# installing pip3
+sudo apt-get install python3-pip --assume-yes
+# installing Readline
+sudo apt-get install libreadline6 libreadline6-dev --assume-yes
+# installing pkg-config
+sudo apt-get install pkg-config cmake-data --assume-yes
+# installing tkinter module
+sudo apt-get install python3-tk --assume-yes
+
+sudo -H pip3 install --upgrade pip
+sudo -H pip3 install scipy nose matplotlib cython
 
 NEST_VERSION="2.14.0"
 NEST_NAME="nest-$NEST_VERSION"
 NEST_PATH=/opt/nest
-wget -c https://github.com/nest/nest-simulator/releases/download/v"$NEST_VERSION"/"$NEST_NAME".tar.gz -O $TMP_FOLDER/"$NEST_NAME".tar.gz
+sudo wget -c https://github.com/nest/nest-simulator/releases/download/v"$NEST_VERSION"/"$NEST_NAME".tar.gz -O $TMP_FOLDER/"$NEST_NAME".tar.gz
 sudo mkdir -p $NEST_PATH
 sudo chown -R "$USER" $NEST_PATH
 mkdir -p $NEST_PATH/src
@@ -19,7 +46,8 @@ make
 make install
 make installcheck
 NEST_VARS=$NEST_PATH/$NEST_NAME/bin/nest_vars.sh
-source $NEST_VARS
+$NEST_VARS
+bash $NEST_VARS
 if ! grep -q -F "source '$NEST_VARS'" ~/.profile ; then
   echo '# NEST env\n[ -f '$NEST_VARS' ] && source '$NEST_VARS >> ~/.profile
 fi
