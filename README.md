@@ -1,5 +1,5 @@
 
-<img src="/images/spinal-cord-logo.png?raw=true 'Logo'" alt="Logo" height=200/>
+<img src="/images/logo/spinal-cord-logo.png?raw=true 'Logo'" alt="Logo" height=200/>
 
 
 ### About
