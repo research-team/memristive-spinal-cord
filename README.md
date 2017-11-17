@@ -1,5 +1,6 @@
 
-![Logo](spinal-cord-logo.png)
+<img src="/images/spinal-cord-logo.png?raw=true 'Logo'" alt="Logo" height=200/>
+
 
 ### About
 Model of ES (Electric stimulation) of spinal cord. It should enhance walking cycle with correct parameters. A proposed scheme is below.
