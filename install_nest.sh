@@ -77,7 +77,7 @@ sudo apt-get install libtool libltdl7-dev --assume-yes
 sudo apt-get install doxygen --assume-yes
 # installing pip and others with pip
 if test "$PYTHON_VERSION" = "2" ; then
-  sudo apt-get install pip --assume-yes
+  sudo apt-get install python-pip --assume-yes
   sudo -H pip install --upgrade pip
   sudo -H pip install scipy nose matplotlib cython
 elif test "$PYTHON_VERSION" = "3" ; then
