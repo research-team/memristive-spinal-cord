@@ -45,7 +45,17 @@ while ! $CORRECT ; do
     echo "Please, choose 2, or 3, or just press ENTER to use Python 3"
   fi
 done
-echo "Python$PYTHON_VERSION has been chosen"
+echo "Python $PYTHON_VERSION has been chosen"
+
+if test "`which python$PYTHON_VERSION`" = "" ; then
+  echo "Python $PYTHON_VERSION is not found and will be installed"
+  read WAITING
+  if test "$PYTHON_VERSION" = "2" ; then
+    sudo apt-get install python-minimal --assume-yes
+  elif test "$PYTHON_VERSION" = "3" ; then
+    sudo apt-get install python3-minimal --assume-yes
+  fi
+fi
 PYTHON_EXECUTABLE=`which python$PYTHON_VERSION`
 echo "Python $PYTHON_VERSION executable: $PYTHON_EXECUTABLE"
 echo "Press ENTER to install NEST $NEST_VERSION with Python$PYTHON_VERSION into $NEST_PATH"
@@ -65,17 +75,22 @@ sudo apt-get install openmpi-bin libopenmpi-dev --assume-yes
 sudo apt-get install libtool libltdl7-dev --assume-yes
 # installing Doxygen
 sudo apt-get install doxygen --assume-yes
-# installing pip3
-sudo apt-get install python3-pip --assume-yes
+# installing pip and others with pip
+if test "$PYTHON_VERSION" = "2" ; then
+  sudo apt-get install pip --assume-yes
+  sudo -H pip install --upgrade pip
+  sudo -H pip install scipy nose matplotlib cython
+elif test "$PYTHON_VERSION" = "3" ; then
+  sudo apt-get install python3-pip --assume-yes
+  sudo -H pip3 install --upgrade pip
+  sudo -H pip3 install scipy nose matplotlib cython
+fi
 # installing Readline
 sudo apt-get install libreadline6 libreadline6-dev --assume-yes
 # installing pkg-config
 sudo apt-get install pkg-config cmake-data --assume-yes
 # installing tkinter module
 sudo apt-get install python3-tk --assume-yes
-
-sudo -H pip3 install --upgrade pip
-sudo -H pip3 install scipy nose matplotlib cython
 
 # NEST_VERSION="2.12.0"
 NEST_NAME="nest-$NEST_VERSION"
