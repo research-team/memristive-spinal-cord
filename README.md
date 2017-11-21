@@ -55,29 +55,44 @@ General questions:
 #### Network parameters
 
 ##### Neurons
-Numbers below are per muscle e.g. for example the flexor. For the antagonist muscle numbers are the same.
+Numbers below are per muscle e.g. for example the flexor. For the antagonist muscle numbers are the same. Initial numbers were taken from [Moraud 2016](https://senselab.med.yale.edu/ModelDB/ShowModel.cshtml?model=189786).
 
 **Motoneurons**
-- Number 169
+- Number: 169
 - Type: HH model with: sodium, potassium, calcium, and potassium-calcium. For the start we would use only: sodium, potassium. 
 
-**1A**
-- Number 60
-- Type: Spike Generators
+**1A fibers**
+- Number: 60
+- Type: Spike Generators according to `Ia firing rate = 50 + 2*stretch + 4.3*sign(strVelocity)*|strVelocity|^0.6 + 50*EMG`
 
-**1B**
+**1B fibers**
 - ?
 
-**2**
+**2 fibers**
 - Number 60
-- Type: Spike Generators
+- Type: Spike Generators according to `II firing rate = 80 + 13.5*stretch + 20*EMG`
 
-**Cutaneous**
+**Cutaneous fibers**
 - ?
+
+**1A Inhibitory InterNeurons**
+- Number: 196
+- Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`
+
+**2 Excitatory InterNeurons**
+- Number: 196
+- Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`  
 
 ##### Connections
-Data is taken from *SynFlexFlex.hoc* or *Computational Model Realistic Neural Network* of Moraud2016. 
-**1A - Motoneurons**
+ 
+**1A fibers - Motoneurons**
 - type: all-to-all.
 - delay: Normal(2ms, 0.3ms || 0.03ms). In the paper 0.3 but in src 0.03.
-- weight: `hi_motor_S = 0.0411 + 0.0411 * 0.28`. 
+- weight: 0.052608, `hi_motor_S = 0.0411 + 0.0411 * 0.28`.
+
+**1A Inhibitory InterNeurons - agonist Motoneurons**
+- type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.
+- every motoneuron connected 232 times randomly to the pool of interneurons. There is a very small possibility that it will connect 232 times to the same interneuron.  
+- delay: 1ms.
+- weight: 0.0023, `lom=0.0023`.
+  
