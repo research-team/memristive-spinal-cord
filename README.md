@@ -25,7 +25,7 @@ During SCI(Spinal Cord Injury) a rat loses its ability to move hind limbs. It re
 #### Some biology details
 Muscle is innervated by motoneurons (efferents), sensory neurons (afferents). They can be classified.
 
-**Motoneurons**
+**MotoNeurons**
 - Alpha motoneurons. Innervate muscles. Convey signals to contraction/stretch.
 - Gamma motoneurons. Innervate muscle spindles. Convey signals to contraction/stretch.
 
@@ -57,7 +57,7 @@ General questions:
 ##### Neurons
 Numbers below are per muscle e.g. for example the flexor. For the antagonist muscle numbers are the same. Initial numbers were taken from [Moraud 2016](https://senselab.med.yale.edu/ModelDB/ShowModel.cshtml?model=189786).
 
-**Motoneurons**
+**MotoNeurons**
 - Number: 169
 - Type: HH model with: sodium, potassium, calcium, and potassium-calcium. For the start we would use only: sodium, potassium. 
 
@@ -85,14 +85,50 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 
 ##### Connections
  
-**1A fibers - Motoneurons**
-- type: all-to-all.
-- delay: Normal(2ms, 0.3ms || 0.03ms). In the paper 0.3 but in src 0.03.
+**1A-fibers - ipsilateral MotoNeurons**
+
+Each motoneuron connected to all 1A fibers without any tricks and randomness.
+- from *SynFlexFlex.hoc:53-66*, *M_Cell.hoc:105-125*
+- nest connection type: all-to-all.
+- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.
+- delay: 2 + Normal(0, 0.3 || 0.03) ms. In the paper 0.3 but in src 0.03. `Ia+taur.normal(0,0.03)`.
 - weight: 0.052608, `hi_motor_S = 0.0411 + 0.0411 * 0.28`.
 
-**1A Inhibitory InterNeurons - agonist Motoneurons**
-- type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.
-- every motoneuron connected 232 times randomly to the pool of interneurons. There is a very small possibility that it will connect 232 times to the same interneuron.  
-- delay: 1ms.
-- weight: 0.0023, `lom=0.0023`.
-  
+**1A-fibers - ipsilateral 1A-Inhibitory InterNeurons**
+
+Connect each interneuron 62 times with all fibers randomly picking the fiber each connection.
+- from *SynFlexFlex.hoc:68-78*
+- nest connection type: fixed-outdegree 62 `FromAll_IAf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
+- delay: 2 + Normal(0, 0.03) ms. `Ia+taur.normal(0,0.03)`
+- weight: 0.0175, `hi= 0.0175`
+
+**1A-Inhibitory InterNeurons - ipsilateral MotoNeurons**
+
+Every motoneuron connected 232 times randomly to the pool of interneurons. There is a very small possibility that it will connect 232 times to the same interneuron.
+- from *SynExtFlex.hoc:32-44*, *M_Cell.hoc:141-147*
+- nest connection type: fixed-outdegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.   
+- delay: 1ms, `tausyn=1`
+- weight: 0.0023, `lom=0.0023`
+
+**2-Excitatory InterNeurons - ipsilateral MotoNeurons**
+
+- from *SynFlexFlex.hoc:81-92*, *M_Cell.hoc:128-140*
+- nest connection type: fixed-outdegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.   
+- delay: 1ms, `tausyn=1`
+- weight: 0.00907, `hi_motor_Ex= (hi_motor_S*FromAll_IAf_ToOne_MN/FromAll_EXIN_ToOne_MN)/3`
+
+**2-Fibers - ipsilateral 2-Excitatory InterNeurons**
+
+- from *SynFlexFlex.hoc:95-106*
+- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_EXIN`. InterNeurons are 'out'. Uniform.
+- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
+- weight: 0.0175, `hi= 0.0175`
+
+**2-Fibers - ipsilateral 1A-Inhibitory InterNeurons**
+
+- from *SynFlexFlex.hoc:108-119*
+- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
+- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
+- weight: 0.0175, `hi= 0.0175`
