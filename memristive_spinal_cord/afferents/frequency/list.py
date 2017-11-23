@@ -1,6 +1,5 @@
 import random
 import logging
-from logging.config import fileConfig
 import re
 
 
@@ -16,7 +15,6 @@ class FrequencyList:
     """
 
     def __init__(self, interval, list, name=''):
-        fileConfig('../../logging_config.ini', disable_existing_loggers=False)
         self.logger = logging.getLogger('FrequencyList')
         self.interval = interval
         self.list = list
