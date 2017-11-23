@@ -85,7 +85,7 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 
 ##### Connections
  
-**1A-fibers - ipsilateral MotoNeurons**
+**flexor 1A-fibers - flexor MotoNeurons**
 
 Each motoneuron connected to all 1A fibers without any tricks and randomness.
 - from *SynFlexFlex.hoc:53-66*, *M_Cell.hoc:105-125*
@@ -94,7 +94,7 @@ Each motoneuron connected to all 1A fibers without any tricks and randomness.
 - delay: 2 + Normal(0, 0.3 || 0.03) ms. In the paper 0.3 but in src 0.03. `Ia+taur.normal(0,0.03)`.
 - weight: 0.052608, `hi_motor_S = 0.0411 + 0.0411 * 0.28`.
 
-**1A-fibers - ipsilateral 1A-Inhibitory InterNeurons**
+**flexor 1A-fibers - flexor 1A-Inhibitory InterNeurons**
 
 Connect each interneuron 62 times with all fibers randomly picking the fiber each connection.
 - from *SynFlexFlex.hoc:68-78*
@@ -102,7 +102,43 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 - delay: 2 + Normal(0, 0.03) ms. `Ia+taur.normal(0,0.03)`
 - weight: 0.0175, `hi= 0.0175`
 
-**1A-Inhibitory InterNeurons - ipsilateral MotoNeurons**
+**flexor 2-Excitatory InterNeurons - flexor MotoNeurons**
+
+- from *SynFlexFlex.hoc:81-92*, *M_Cell.hoc:128-140*
+- nest connection type: fixed-outdegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.   
+- delay: 1ms, `tausyn=1`
+- weight: 0.00907, `hi_motor_Ex= (hi_motor_S*FromAll_IAf_ToOne_MN/FromAll_EXIN_ToOne_MN)/3`
+
+**flexor 2-Fibers - flexor 2-Excitatory InterNeurons**
+
+- from *SynFlexFlex.hoc:95-106*
+- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_EXIN`. InterNeurons are 'out'. Uniform.
+- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
+- weight: 0.0175, `hi= 0.0175`
+
+**flexor 2-Fibers - flexor 1A-Inhibitory InterNeurons**
+
+- from *SynFlexFlex.hoc:108-119*
+- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
+- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
+- weight: 0.0175, `hi= 0.0175`
+
+**extensor 1A-Inhibitory InterNeurons - flexor 1A-Inhibitory InterNeurons**
+
+- from *SynExtFlex.hoc:6-18*
+- nest connection type: fixed-outdegree 100 `FromAll_IAint_ToOne_IAint`. Flexor InterNeurons are 'out'. Uniform.
+- delay: 1ms, `tausyn=1`
+- weight: -0.007, `-(lo=0.007)`
+
+**flexor 1A-Inhibitory InterNeurons - extensor 1A-Inhibitory InterNeurons**
+
+- from *SynExtFlex.hoc:20-30*
+- nest connection type: fixed-outdegree 100 `FromAll_IAint_ToOne_IAint`. Extensor InterNeurons are 'out'. Uniform.
+- delay: 1ms, `tausyn=1`. **Warning, in the sources this delay is missing**
+- weight: -0.007, `-(lo=0.007)`
+
+**extensor 1A-Inhibitory InterNeurons - flexor MotoNeurons**
 
 Every motoneuron connected 232 times randomly to the pool of interneurons. There is a very small possibility that it will connect 232 times to the same interneuron.
 - from *SynExtFlex.hoc:32-44*, *M_Cell.hoc:141-147*
@@ -111,24 +147,11 @@ Every motoneuron connected 232 times randomly to the pool of interneurons. There
 - delay: 1ms, `tausyn=1`
 - weight: 0.0023, `lom=0.0023`
 
-**2-Excitatory InterNeurons - ipsilateral MotoNeurons**
+**flexor 1A-Inhibitory InterNeurons - extensor MotoNeurons**
 
-- from *SynFlexFlex.hoc:81-92*, *M_Cell.hoc:128-140*
-- nest connection type: fixed-outdegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'out'. Uniform.
-- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.   
+- from *SynExtFlex.hoc:46-57*, *M_Cell.hoc:141-147*
+- nest connection type: fixed-outdegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.   
 - delay: 1ms, `tausyn=1`
-- weight: 0.00907, `hi_motor_Ex= (hi_motor_S*FromAll_IAf_ToOne_MN/FromAll_EXIN_ToOne_MN)/3`
+- weight: 0.0023, `lom=0.0023`
 
-**2-Fibers - ipsilateral 2-Excitatory InterNeurons**
-
-- from *SynFlexFlex.hoc:95-106*
-- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_EXIN`. InterNeurons are 'out'. Uniform.
-- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
-- weight: 0.0175, `hi= 0.0175`
-
-**2-Fibers - ipsilateral 1A-Inhibitory InterNeurons**
-
-- from *SynFlexFlex.hoc:108-119*
-- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
-- delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
-- weight: 0.0175, `hi= 0.0175`
