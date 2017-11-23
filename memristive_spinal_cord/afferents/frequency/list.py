@@ -9,9 +9,10 @@ class FrequencyList:
     List of frequencies at given time interval.
 
     Attributes:
-        :param interval (int): In milliseconds. Time interval between frequencies.
-        :param list (:obj:`list` of :obj:`int`): list of frequencies.
-        :param name (str, optional): Name of the list.
+        interval (int): In milliseconds. Time interval between frequencies.
+        list (:obj:`list` of :obj:`int`): list of frequencies.
+        name (str, optional): Name of the list.
+
     """
 
     def __init__(self, interval, list, name=''):
@@ -26,9 +27,13 @@ class FrequencyList:
 
     def generate_spikes(self):
         """
-        Generates a list of spikes by given frequencies.
-        :return: the list of spike times
+        Generates a list of spikes by using its own frequency list.
+
+        Returns:
+            list: the list of spike times
+
         """
+
         self.logger.info('Spike generation started')
         self.logger.debug('Using frequency list: ' + str(self.list))
         spike_times = []
@@ -65,8 +70,9 @@ class FrequencyListFile(FrequencyList):
     If there are several lines in the file then the first one will be read
 
     Attributes:
-        :param filename (str): The name of the file with frequency data
-        :param name (str, optional): Name of the list.
+        filename (str): The name of the file with frequency data
+        name (str, optional): Name of the list.
+
     """
 
     def __init__(self, filename, name=''):

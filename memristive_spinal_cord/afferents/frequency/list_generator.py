@@ -13,13 +13,17 @@ class FrequencyListGenerator:
     def generate(self, time, interval):
         """
         Generates a list of frequencies.
-        :param time: In seconds. How long should we generator for. Example: 60 => the generated list covers 1 minute time
-        period.
-        :param interval: In milliseconds. Interval between times when frequencies have to be updated. Example: 10ms means that every 10ms
-        we need to add a new frequency value to the generated list.
-        :return: instance of FrequencyList
-        :rtype: FrequencyList
+
+        Args:
+            time (int): In seconds. How long should we generator for. Example: 60 => the generated list covers 1 minute time period.
+            interval (int): In milliseconds. Interval between times when frequencies have to be updated. Example: 10ms means that every 10ms
+            we need to add a new frequency value to the generated list.
+
+        Returns:
+            FrequencyList: an instance of the FrequencyList which contain a list of frequencies
+
         """
+
         self.logger.info('Generation started')
         number_of_intervals = time * 1000 // interval
         self.logger.debug('Total intervals: ' + str(number_of_intervals))

@@ -3,7 +3,6 @@ import sys
 import os
 import logging
 from logging.config import fileConfig
-sys.path.insert(0, '/'.join(os.getcwd().split('/')[:-3]))
 from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
 
 
