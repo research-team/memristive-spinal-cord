@@ -63,14 +63,16 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 
 **1A fibers**
 - Number: 60
-- Type: Spike Generators according to `Ia firing rate = 50 + 2*stretch + 4.3*sign(strVelocity)*|strVelocity|^0.6 + 50*EMG`
+- Type: [IntFire1](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire1) with `tau=0.5, refrac=1`
+- Firing rate: `Ia firing rate = 50 + 2*stretch + 4.3*sign(strVelocity)*|strVelocity|^0.6 + 50*EMG`
 
 **1B fibers**
 - ?
 
 **2 fibers**
 - Number 60
-- Type: Spike Generators according to `II firing rate = 80 + 13.5*stretch + 20*EMG`
+- Type: - Type: [IntFire1](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire1) with `tau=0.5, refrac=1`
+- Firing rate: `II firing rate = 80 + 13.5*stretch + 20*EMG`
 
 **Cutaneous fibers**
 - ?
