@@ -74,7 +74,6 @@ sudo apt-get autoremove --assume-yes
 NEST_NAME="nest-2.12.0"
 TMP_FOLDER=${NEST_PATH}/tmp
 sudo mkdir -p ${TMP_FOLDER}
-echo 'Downloading NEST'
 sudo wget -c https://github.com/research-team/neucogar-nest/archive/master.zip -O ${TMP_FOLDER}/"$NEST_NAME".zip
 sudo mkdir -p ${NEST_PATH}
 sudo chown -R "$USER" ${NEST_PATH}
@@ -82,11 +81,11 @@ sudo mkdir -p ${NEST_PATH}/src
 sudo mkdir -p ${NEST_PATH}/build/${NEST_NAME}
 sudo unzip -o ${TMP_FOLDER}/"$NEST_NAME".zip -d ${NEST_PATH}/src
 cd ${NEST_PATH}/build/${NEST_NAME}
-sudo mv ${NEST_PATH}/src/`ls ${NEST_PATH}/src` ${NEST_NAME}
+sudo mv -f ${NEST_PATH}/src/`ls ${NEST_PATH}/src` ${NEST_PATH}/src/${NEST_NAME}
 cmake -DCMAKE_INSTALL_PREFIX:PATH=${NEST_PATH}/${NEST_NAME} ${NEST_PATH}/src/${NEST_NAME} -Dwith-mpi=ON -Dwith-python=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE # -DPYTHON_LIBRARY=/usr/lib/python3.5
 make
 make install
-make installcheck
+# make installcheck
 NEST_VARS=${NEST_PATH}/${NEST_NAME}/bin/nest_vars.sh
 ${NEST_VARS}
 bash ${NEST_VARS}
