@@ -2,15 +2,15 @@
 
 # This script will install The NeuCogAr NEST 2.12.0
 
-echo "Hello! This script will install NeuCogAr NEST Simulator 2.12.0 with Python (2 or 3)"
-echo "Which directory will be user to install NeuCogAr NEST? (default /opt/neucogar-nest):"
+printf "Hello! This script will install NeuCogAr NEST Simulator 2.12.0 with Python (2 or 3)"
+printf "\nWhich directory will be user to install NeuCogAr NEST? (default /opt/neucogar-nest):"
+NEST_VERSION='2.12.0'
 read NEST_PATH
 if test "$NEST_PATH" = "" ; then
   NEST_PATH="/opt/neucogar-nest"
 fi
-echo "NEST will be installed in $NEST_PATH"
-echo ""
-echo "Which Python version (2 or 3) will be used? (default 3):"
+printf "NEST will be installed in $NEST_PATH"
+printf "\nWhich Python version (2 or 3) will be used? (default 3):"
 read PYTHON_VERSION
 CORRECT=false
 while ! ${CORRECT} ; do
@@ -20,13 +20,13 @@ while ! ${CORRECT} ; do
     PYTHON_VERSION="3"
     CORRECT=true
   else
-    echo "Please, choose 2, or 3, or just press ENTER to use Python 3"
+    printf "\nPlease, choose 2, or 3, or just press ENTER to use Python 3"
   fi
 done
-echo "Python $PYTHON_VERSION has been chosen"
+printf "Python $PYTHON_VERSION has been chosen"
 
 if test "`which python$PYTHON_VERSION`" = "" ; then
-  echo "Python $PYTHON_VERSION is not found and will be installed"
+  printf "\nPython $PYTHON_VERSION is not found and will be installed"
   read WAITING
   if test "$PYTHON_VERSION" = "2" ; then
     sudo apt-get install python-minimal --assume-yes
@@ -35,8 +35,8 @@ if test "`which python$PYTHON_VERSION`" = "" ; then
   fi
 fi
 PYTHON_EXECUTABLE=`which python${PYTHON_VERSION}`
-echo "Python $PYTHON_VERSION executable: $PYTHON_EXECUTABLE"
-echo "Press ENTER to install NeuCogAr NEST with Python$PYTHON_VERSION into $NEST_PATH"
+printf "\nPython $PYTHON_VERSION executable: $PYTHON_EXECUTABLE"
+printf "\nPress ENTER to install NeuCogAr NEST ${NEST_VERSION} with Python$PYTHON_VERSION into $NEST_PATH"
 read WAITING
 
 sudo apt-get update
@@ -71,7 +71,7 @@ sudo apt-get install pkg-config cmake-data --assume-yes
 sudo apt-get install python3-tk --assume-yes
 sudo apt-get autoremove --assume-yes
 
-NEST_NAME="nest-2.12.0"
+NEST_NAME="nest-${NEST_VERSION}"
 TMP_FOLDER=${NEST_PATH}/tmp
 sudo mkdir -p ${TMP_FOLDER}
 sudo wget -c https://github.com/research-team/neucogar-nest/archive/master.zip -O ${TMP_FOLDER}/"$NEST_NAME".zip
