@@ -77,11 +77,11 @@ sudo mkdir -p ${TMP_FOLDER}
 sudo wget -c https://github.com/research-team/neucogar-nest/archive/master.zip -O ${TMP_FOLDER}/"$NEST_NAME".zip
 sudo mkdir -p ${NEST_PATH}
 sudo chown -R "$USER" ${NEST_PATH}
-sudo mkdir -p ${NEST_PATH}/src
-sudo mkdir -p ${NEST_PATH}/build/${NEST_NAME}
-sudo unzip -o ${TMP_FOLDER}/"$NEST_NAME".zip -d ${NEST_PATH}/src
+mkdir -p ${NEST_PATH}/src
+mkdir -p ${NEST_PATH}/build/${NEST_NAME}
+unzip -o ${TMP_FOLDER}/"$NEST_NAME".zip -d ${NEST_PATH}/src
 cd ${NEST_PATH}/build/${NEST_NAME}
-sudo mv -f ${NEST_PATH}/src/`ls ${NEST_PATH}/src` ${NEST_PATH}/src/${NEST_NAME}
+mv -f ${NEST_PATH}/src/`ls ${NEST_PATH}/src` ${NEST_PATH}/src/${NEST_NAME}
 cmake -DCMAKE_INSTALL_PREFIX:PATH=${NEST_PATH}/${NEST_NAME} ${NEST_PATH}/src/${NEST_NAME} -Dwith-mpi=ON -Dwith-python=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE # -DPYTHON_LIBRARY=/usr/lib/python3.5
 make
 make install
