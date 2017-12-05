@@ -1,7 +1,7 @@
 import neucogar.namespaces as NEST_NAMESPACE
 from neucogar.SynapseModel import SynapseModel
-
-import memristive_spinal_cord.layer1.rybak.params.neucogar as layer1_params
+from memristive_spinal_cord.layer1.rybak.params.neucogar import *
+from memristive_spinal_cord.layer1.rybak.neuron_groups import *
 
 # synapses
 Glutamatergic = SynapseModel(
