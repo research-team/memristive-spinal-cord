@@ -1,5 +1,5 @@
 import neucogar.namespaces as NEST_NAMESPACE
-from memristive_spinal_cord.layer1.params.neuron_group_params import NeuronGroupParams
+from memristive_spinal_cord.layer1.neuron_group_params import NeuronGroupParams
 
 neuron_number_in_group = 20
 
