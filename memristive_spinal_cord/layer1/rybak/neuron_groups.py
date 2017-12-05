@@ -1,35 +1,19 @@
-from neucogar.Nucleus import Nucleus
 from neucogar.api_kernel import CreateNetwork
-
+from memristive_spinal_cord.layer1.neuron_group_network import NeuronGroupNetwork
 import memristive_spinal_cord.layer1.rybak.params.neucogar as layer1_params
 
+network = NeuronGroupNetwork()
 
-def create_neuron_group(group_name, group_params):
-    """
-    Function for building spike diagrams
+r_motor = network.create_neuron_group("R Motoneurons", layer1_params.r_motor_params)
+l_motor = network.create_neuron_group("L Motoneurons", layer1_params.l_motor_params)
 
-    Args:
-        group_name (str)
-        group_params (NeuronGroupParameters)
-    """
+r_renshaw = network.create_neuron_group("R Renshaw", layer1_params.r_renshaw_params)
+l_renshaw = network.create_neuron_group("L Renshaw", layer1_params.l_renshaw_params)
 
-    neuron_group = Nucleus(group_name)
-    neuron_group.addSubNucleus(group_params.get_type(),
-                               params=group_params.get_model(),
-                               number=group_params.get_number())
-    return neuron_group
+r_inter_1a = network.create_neuron_group("R 1A Interneurons", layer1_params.r_inter_1a_params)
+l_inter_1a = network.create_neuron_group("L 1A Interneurons", layer1_params.l_inter_1a_params)
 
+r_inter_1b = network.create_neuron_group("R 1B Interneurons", layer1_params.r_inter_1b_params)
+l_inter_1b = network.create_neuron_group("L 1B Interneurons", layer1_params.l_inter_1b_params)
 
-r_motor = create_neuron_group("R Motoneurons", layer1_params.motor_neurons)
-l_motor = create_neuron_group("L Motoneurons", layer1_params.motor_neurons)
-
-r_renshaw = create_neuron_group("R Renshaw", layer1_params.renshaw_neurons)
-l_renshaw = create_neuron_group("L Renshaw", layer1_params.renshaw_neurons)
-
-r_inter_1a = create_neuron_group("R 1A Interneurons", layer1_params.inter_neurons_1a)
-l_inter_1a = create_neuron_group("L 1A Interneurons", layer1_params.inter_neurons_1a)
-
-r_inter_1b = create_neuron_group("R 1B Interneurons", layer1_params.inter_neurons_1b)
-l_inter_1b = create_neuron_group("L 1B Interneurons", layer1_params.inter_neurons_1b)
-
-CreateNetwork(10000)
+CreateNetwork(network.get_neuron_number())
