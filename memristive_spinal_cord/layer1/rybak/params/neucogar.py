@@ -1,3 +1,4 @@
+from enum import Enum
 import neucogar.namespaces as NEST_NAMESPACE
 from memristive_spinal_cord.layer1.neuron_group_params import NeuronGroupParams
 
@@ -30,15 +31,53 @@ stdp_gaba = {'delay': 1.25,  # Synaptic delay
              'mu_plus': 0.005  # STDP potential step
              }
 
-r_motor_params = l_motor_params = NeuronGroupParams(
-    NEST_NAMESPACE.Glu, general_neuron_model, neuron_number_in_group
-)
-r_renshaw_params = l_renshaw_params = NeuronGroupParams(
-    NEST_NAMESPACE.GABA, general_neuron_model, neuron_number_in_group
-)
-r_inter_1a_params = l_inter_1a_params = NeuronGroupParams(
-    NEST_NAMESPACE.GABA, general_neuron_model, neuron_number_in_group
-)
-r_inter_1b_params = l_inter_1b_params = NeuronGroupParams(
-    NEST_NAMESPACE.GABA, general_neuron_model, neuron_number_in_group
-)
+
+class Layer1Groups(Enum):
+    R_MOTOR = NeuronGroupParams(
+        display_name="R Motoneurons",
+        type=NEST_NAMESPACE.Glu,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    L_MOTOR = NeuronGroupParams(
+        display_name="L Motoneurons",
+        type=NEST_NAMESPACE.Glu,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    R_RENSHAW = NeuronGroupParams(
+        display_name="R Renshaw",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    L_RENSHAW = NeuronGroupParams(
+        display_name="L Renshaw",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    R_INTER_1A = NeuronGroupParams(
+        display_name="R 1A Interneurons",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    L_INTER_1A = NeuronGroupParams(
+        display_name="L 1A Interneurons",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    R_INTER_1B = NeuronGroupParams(
+        display_name="R 1B Interneurons",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )
+    L_INTER_1B = NeuronGroupParams(
+        display_name="L 1B Interneurons",
+        type=NEST_NAMESPACE.GABA,
+        model=general_neuron_model,
+        number=neuron_number_in_group
+    )

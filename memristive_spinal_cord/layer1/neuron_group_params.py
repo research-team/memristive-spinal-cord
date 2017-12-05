@@ -1,8 +1,16 @@
 class NeuronGroupParams:
-    def __init__(self, type, model, number):
+    def __init__(self, display_name, type, model, number):
+        self._display_name = display_name
         self._type = type
         self._model = model
         self._number = number
+
+    def get_display_name(self):
+        """
+        Returns:
+            String
+        """
+        return self._display_name
 
     def get_type(self):
         """
