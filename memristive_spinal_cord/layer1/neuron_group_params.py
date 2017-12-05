@@ -1,9 +1,9 @@
 class NeuronGroupParams:
-    def __init__(self, display_name, type, model, number):
+    def __init__(self, display_name, type, number=None, model=None):
         self._display_name = display_name
         self._type = type
-        self._model = model
         self._number = number
+        self._model = model
 
     def get_display_name(self):
         """
@@ -26,9 +26,23 @@ class NeuronGroupParams:
         """
         return self._number
 
+    def set_number(self, number):
+        """
+        Args:
+            number (Int)
+        """
+        self._number = number
+
     def get_model(self):
         """
         Returns:
             Dictionary
         """
         return self._model
+
+    def set_model(self, model):
+        """
+        Args:
+            model (dict)
+        """
+        self._model = model
