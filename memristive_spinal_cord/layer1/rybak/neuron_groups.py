@@ -1,6 +1,7 @@
 from neucogar.Nucleus import Nucleus
 from neucogar.api_kernel import CreateNetwork
-import memristive_spinal_cord.layer1.params.neucogar as layer1_params
+
+import memristive_spinal_cord.layer1.rybak.params.neucogar as layer1_params
 
 
 def create_neuron_group(group_name, group_params):
