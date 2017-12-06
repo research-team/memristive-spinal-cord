@@ -1,4 +1,6 @@
-from memristive_spinal_cord.layer1.rybak.params.neuron_groups import *
+import neucogar.namespaces as NEST_NAMESPACE
+from memristive_spinal_cord.layer1.neuron_group_params import NeuronGroupParams
+from memristive_spinal_cord.layer1.rybak.neuron_group_names import Layer1NeuronGroupNames
 
 general_neuron_model = {
     't_ref': [2.5, 4.0],  # Refractory period
@@ -15,6 +17,52 @@ general_neuron_model = {
 
 neuron_number_in_group = 20
 
-for group in Layer1Groups:
-    group.set_model(general_neuron_model)
-    group.set_number(neuron_number_in_group)
+layer1_neuron_group_params = dict()
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.R_MOTOR] = NeuronGroupParams(
+    type=NEST_NAMESPACE.Glu,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.L_MOTOR] = NeuronGroupParams(
+    type=NEST_NAMESPACE.Glu,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.R_RENSHAW] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.L_RENSHAW] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.R_INTER_1A] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.L_INTER_1A] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.R_INTER_1B] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
+
+layer1_neuron_group_params[Layer1NeuronGroupNames.L_INTER_1B] = NeuronGroupParams(
+    type=NEST_NAMESPACE.GABA,
+    model=general_neuron_model,
+    number=neuron_number_in_group,
+)
