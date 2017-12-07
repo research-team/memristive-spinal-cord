@@ -26,8 +26,8 @@ class NeuronNetwork:
             Int
         """
         neuron_number = 0
-        for group_name, group in self._groups:
-            neuron_number += group.getNeuronNumber()
+        for group_name, group in self._groups.items():
+            neuron_number += self.get_neuron_group_nuclei(group_name).getNeuronNumber()
         return neuron_number
 
     def get_neuron_group(self, group_name):
