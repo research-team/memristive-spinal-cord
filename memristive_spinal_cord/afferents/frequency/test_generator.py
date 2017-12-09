@@ -1,9 +1,7 @@
 import math
 import sys
-import os
 import logging
-from logging.config import fileConfig
-sys.path.insert(0, '/'.join(os.getcwd().split('/')[:-3]))
+from memristive_spinal_cord.afferents.frequency.logging_manager import LoggingManager
 from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
 
 
@@ -12,14 +10,13 @@ class TestGenerator(FrequencyListGenerator):
     def __init__(self):
         super().__init__()
         # this frequencies is used one by one while the frequency list is filling
-        fileConfig(fname='../../logging_config.ini', disable_existing_loggers=False)
         self.logger = logging.getLogger('TestGenerator')
         self.frequencies = [50, 100]
         self.logger.debug('Using frequencies: ' + str(self.frequencies))
 
 
 if __name__ == '__main__':
-    fileConfig('../../logging_config.ini', disable_existing_loggers=False)
+    lm = LoggingManager()
     main_logger = logging.getLogger('main')
     assert len(sys.argv) == 3, '2 arguments needed simulation time and interval'
     testTime = int(sys.argv[1])

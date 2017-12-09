@@ -4,9 +4,9 @@ import pylab
 import nest
 import logging
 import logging.config
-from func import *
-import property
-from Nucleus import Nucleus
+from memristive_spinal_cord.layer_2.func import *
+from memristive_spinal_cord.layer_2 import property
+from memristive_spinal_cord.layer_2.Nucleus import Nucleus
 
 neuron_model = "hh_psc_alpha_gap"
 number_of_layers = 6
