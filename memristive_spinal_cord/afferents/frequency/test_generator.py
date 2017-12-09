@@ -11,7 +11,7 @@ class TestGenerator(FrequencyListGenerator):
         super().__init__()
         # this frequencies is used one by one while the frequency list is filling
         self.logger = logging.getLogger('TestGenerator')
-        self.frequencies = [2, 4, 6]
+        self.frequencies = [50, 100]
         self.logger.debug('Using frequencies: ' + str(self.frequencies))
 
 
@@ -46,3 +46,10 @@ if __name__ == '__main__':
         intervalFrequency = frequencyList.list[i] / numberOfIntervals * testTime
         assert math.fabs(intervalFrequency - spikesPerInterval[i]) < acceptableErrorNumberOfSpikes,\
             'number of spikes corresponds to their frequency'
+
+    # assert that total number of spike corresponds to average frequency
+    average_frequency = sum(frequencyList.list) / len(frequencyList)
+    main_logger.debug('Expected number of spikes: ' + str(average_frequency * testTime))
+    main_logger.debug('Actual number of spikes: ' + str(len(spikeList)))
+    assert math.fabs(average_frequency * testTime - len(spikeList)) < acceptableErrorNumberOfSpikes,\
+        'too much difference between expected and actual numbers of spikes'

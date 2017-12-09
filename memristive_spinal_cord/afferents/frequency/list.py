@@ -1,4 +1,3 @@
-import random
 import logging
 import re
 
@@ -37,11 +36,13 @@ class FrequencyList:
         spike_times = []
         # initial time
         time = 0.0
+        charge = 0.0
         for frequency in self.list:
             spikes_at_interval = int(self.interval / 1000 * frequency)
 
-            # fraction used as a probability of the additional spike
-            if self.interval / 1000 * frequency - spikes_at_interval > random.random():
+            charge += self.interval / 1000 * frequency - spikes_at_interval
+            if charge > 1:
+                charge -= 1
                 spikes_at_interval += 1
 
             if spikes_at_interval > 0:
