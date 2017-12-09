@@ -1,8 +1,8 @@
 import math
 import sys
 import logging
-from memristive_spinal_cord.afferents.frequency.logging_manager import LoggingManager
-from memristive_spinal_cord.afferents.frequency.list_generator import FrequencyListGenerator
+from memristive_spinal_cord.frequency_generators.logging_manager import LoggingManager
+from memristive_spinal_cord.frequency_generators.list_generator import FrequencyListGenerator
 
 
 class TestGenerator(FrequencyListGenerator):

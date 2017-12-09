@@ -1,5 +1,5 @@
 import logging
-from memristive_spinal_cord.afferents.frequency.list import FrequencyList
+from memristive_spinal_cord.frequency_generators.list import FrequencyList
 
 
 class FrequencyListGenerator:
