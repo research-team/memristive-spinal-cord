@@ -1,10 +1,11 @@
 from neucogar.Nucleus import Nucleus
-from memristive_spinal_cord.layer1.rybak.params.neucogar.neuron_groups import layer1_neuron_group_params
+import neucogar.api_kernel as neucogar_api
 
 
 class NeuronNetwork:
-    def __init__(self):
+    def __init__(self, neuron_group_params):
         self._groups = dict()
+        self._groups_params = neuron_group_params
 
     def create_neuron_group(self, group_name, group_params):
         """
@@ -19,6 +20,17 @@ class NeuronNetwork:
                                    number=group_params.get_number())
         self._groups[group_name] = neuron_group
         return neuron_group
+
+    def create_generator(self, model, number, params):
+        """
+        Args:
+            model (str)
+            number (number)
+            params (Array)
+        Return:
+            Int[]
+        """
+        return neucogar_api.NEST.Create(model, number, params)
 
     def get_neuron_number(self):
         """
@@ -47,7 +59,7 @@ class NeuronNetwork:
             Nucleus
         """
         group = self.get_neuron_group(group_name)
-        return group.nuclei(layer1_neuron_group_params[group_name].get_type())
+        return group.nuclei(self._groups_params[group_name].get_type())
 
     def connect(self, source, target, synapse, weight):
         """
