@@ -49,7 +49,7 @@ class Afferents:
 class AfferentsFile(Afferents):
     def _get_data_filename(self, type, muscle):
         # example: fr_Ia_GM_speed15_interval20.txt
-        return "fr_" + type.value + "_" + muscle.value + "_speed" + str(self._speed.value) + "_interval" + str(
+        return type.value + "_" + muscle.value + "_speed" + str(self._speed.value) + "_int" + str(
             self._interval.value) + ".txt"
 
     def _get_data(self, type, muscle):
@@ -75,7 +75,7 @@ class Test:
         super().__init__()
         data_filepath = pkg_resources.resource_filename(
             "memristive_spinal_cord",
-            "/layer1/moraud/afferents/data/fr_Ia_GM_speed15_interval20.txt"
+            "/layer1/moraud/afferents/data/Ia_GM_speed15_int20.txt"
         )
         number = 3
         with open(data_filepath, "r") as data_file:
