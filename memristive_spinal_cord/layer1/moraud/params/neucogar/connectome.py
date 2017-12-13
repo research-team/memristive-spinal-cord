@@ -93,11 +93,10 @@ def connect_afferents(neuron_network):
         neuron_network (NeuronNetwork)
     """
     number = neuron_groups_params.neuron_number_in_group
-    afferent_params = afferents.create(
+    afferent_params = afferents.AfferentsFile(
         afferents.Speed.FIFTEEN,
         afferents.Interval.TWENTY,
         number,
-        from_file=True
     )
 
     l_onea_params = afferent_params.create_generator_params(

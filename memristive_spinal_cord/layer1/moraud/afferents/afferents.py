@@ -23,13 +23,6 @@ class Speed(Enum):
     FIFTEEN = 15
 
 
-def create(speed, interval, number, from_file):
-    if (from_file):
-        return AfferentsFile(speed, interval, number)
-    else:
-        raise ValueError("from_file=False Afferents are not implemented yet")
-
-
 class Afferents:
     def __init__(self, speed, interval, number):
         self._speed = speed
