@@ -34,113 +34,113 @@ weight_GABA = -70
 
 
 def connect(neuron_network):
-    # source is R_MOTOR
+    # source is FLEX_MOTOR
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_MOTOR,
-        target=Layer1NeuronGroupNames.R_RENSHAW,
+        source=Layer1NeuronGroupNames.FLEX_MOTOR,
+        target=Layer1NeuronGroupNames.FLEX_RENSHAW,
         synapse=Glutamatergic,
         weight=weight_Glu
     )
-    # source is L_MOTOR
+    # source is EXTENS_MOTOR
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_MOTOR,
-        target=Layer1NeuronGroupNames.L_RENSHAW,
+        source=Layer1NeuronGroupNames.EXTENS_MOTOR,
+        target=Layer1NeuronGroupNames.EXTENS_RENSHAW,
         synapse=Glutamatergic,
         weight=weight_Glu
     )
 
-    # source is R_RENSHAW
+    # source is FLEX_RENSHAW
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_RENSHAW,
-        target=Layer1NeuronGroupNames.R_MOTOR,
+        source=Layer1NeuronGroupNames.FLEX_RENSHAW,
+        target=Layer1NeuronGroupNames.FLEX_MOTOR,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_RENSHAW,
-        target=Layer1NeuronGroupNames.L_RENSHAW,
+        source=Layer1NeuronGroupNames.FLEX_RENSHAW,
+        target=Layer1NeuronGroupNames.EXTENS_RENSHAW,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_RENSHAW,
-        target=Layer1NeuronGroupNames.R_INTER_1A,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-
-    # source is L_RENSHAW
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_RENSHAW,
-        target=Layer1NeuronGroupNames.L_MOTOR,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_RENSHAW,
-        target=Layer1NeuronGroupNames.R_RENSHAW,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_RENSHAW,
-        target=Layer1NeuronGroupNames.L_INTER_1A,
+        source=Layer1NeuronGroupNames.FLEX_RENSHAW,
+        target=Layer1NeuronGroupNames.FLEX_INTER_1A,
         synapse=GABAergic,
         weight=weight_GABA
     )
 
-    # source is R_INTER_1A
+    # source is EXTENS_RENSHAW
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1A,
-        target=Layer1NeuronGroupNames.L_MOTOR,
+        source=Layer1NeuronGroupNames.EXTENS_RENSHAW,
+        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1A,
-        target=Layer1NeuronGroupNames.L_INTER_1A,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-
-    # source is L_INTER_1A
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1A,
-        target=Layer1NeuronGroupNames.R_MOTOR,
+        source=Layer1NeuronGroupNames.EXTENS_RENSHAW,
+        target=Layer1NeuronGroupNames.FLEX_RENSHAW,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1A,
-        target=Layer1NeuronGroupNames.R_INTER_1A,
+        source=Layer1NeuronGroupNames.EXTENS_RENSHAW,
+        target=Layer1NeuronGroupNames.EXTENS_INTER_1A,
         synapse=GABAergic,
         weight=weight_GABA
     )
 
-    # source is R_INTER_1B
+    # source is FLEX_INTER_1A
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1B,
-        target=Layer1NeuronGroupNames.R_MOTOR,
+        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1B,
-        target=Layer1NeuronGroupNames.L_INTER_1B,
+        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        target=Layer1NeuronGroupNames.EXTENS_INTER_1A,
         synapse=GABAergic,
         weight=weight_GABA
     )
 
-    # source is L_INTER_1B
+    # source is EXTENS_INTER_1A
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1B,
-        target=Layer1NeuronGroupNames.L_MOTOR,
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
+        target=Layer1NeuronGroupNames.FLEX_MOTOR,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1B,
-        target=Layer1NeuronGroupNames.R_INTER_1B,
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
+        target=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+
+    # source is FLEX_INTER_1B
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.FLEX_INTER_1B,
+        target=Layer1NeuronGroupNames.FLEX_MOTOR,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.FLEX_INTER_1B,
+        target=Layer1NeuronGroupNames.EXTENS_INTER_1B,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+
+    # source is EXTENS_INTER_1B
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1B,
+        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1B,
+        target=Layer1NeuronGroupNames.FLEX_INTER_1B,
         synapse=GABAergic,
         weight=weight_GABA
     )

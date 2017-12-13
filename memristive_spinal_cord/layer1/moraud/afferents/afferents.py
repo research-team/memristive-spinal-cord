@@ -9,10 +9,8 @@ class Types(Enum):
 
 
 class Muscles(Enum):
-    # flexor
-    L = "TA"
-    # extensor
-    R = "GM"
+    FLEX = "TA"
+    EXTENS = "GM"
 
 
 class Interval(Enum):

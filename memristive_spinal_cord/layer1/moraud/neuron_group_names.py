@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class Layer1NeuronGroupNames(Enum):
-    R_MOTOR = "R Motoneurons"
-    L_MOTOR = "L Motoneurons"
-    R_INTER_1A = "R 1A Interneurons"
-    L_INTER_1A = "L 1A Interneurons"
-    R_INTER_2 = "R 2 Interneurons"
-    L_INTER_2 = "L 2 Interneurons"
+    FLEX_MOTOR = "Flexor Motoneurons"
+    EXTENS_MOTOR = "Extensor Motoneurons"
+    FLEX_INTER_1A = "Flexor 1A Interneurons"
+    EXTENS_INTER_1A = "Extensor 1A Interneurons"
+    FLEX_INTER_2 = "Flexor 2 Interneurons"
+    EXTENS_INTER_2 = "Extensor 2 Interneurons"

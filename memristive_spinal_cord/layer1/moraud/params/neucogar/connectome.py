@@ -40,46 +40,46 @@ def connect(neuron_network):
     Args:
         neuron_network (NeuronNetwork)
     """
-    # source is R_INTER_1A
+    # source is FLEX_INTER_1A
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1A,
-        target=Layer1NeuronGroupNames.L_MOTOR,
+        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
         synapse=GABAergic,
         weight=weight_GABA
     )
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_1A,
-        target=Layer1NeuronGroupNames.L_INTER_1A,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-
-    # source is L_INTER_1A
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1A,
-        target=Layer1NeuronGroupNames.R_MOTOR,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_1A,
-        target=Layer1NeuronGroupNames.R_INTER_1A,
+        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        target=Layer1NeuronGroupNames.EXTENS_INTER_1A,
         synapse=GABAergic,
         weight=weight_GABA
     )
 
-    # source is R_INTER_2
+    # source is EXTENS_INTER_1A
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.R_INTER_2,
-        target=Layer1NeuronGroupNames.R_MOTOR,
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
+        target=Layer1NeuronGroupNames.FLEX_MOTOR,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
+        target=Layer1NeuronGroupNames.FLEX_INTER_1A,
+        synapse=GABAergic,
+        weight=weight_GABA
+    )
+
+    # source is FLEX_INTER_2
+    neuron_network.connect(
+        source=Layer1NeuronGroupNames.FLEX_INTER_2,
+        target=Layer1NeuronGroupNames.FLEX_MOTOR,
         synapse=Glutamatergic,
         weight=weight_Glu
     )
 
-    # source is L_INTER_2
+    # source is EXTENS_INTER_2
     neuron_network.connect(
-        source=Layer1NeuronGroupNames.L_INTER_2,
-        target=Layer1NeuronGroupNames.L_MOTOR,
+        source=Layer1NeuronGroupNames.EXTENS_INTER_2,
+        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
         synapse=Glutamatergic,
         weight=weight_Glu
     )
@@ -101,31 +101,31 @@ def connect_afferents(neuron_network):
 
     l_onea_params = afferent_params.create_generator_params(
         afferents.Types.ONE_A,
-        afferents.Muscles.L,
+        afferents.Muscles.FLEX,
     )
     r_onea_params = afferent_params.create_generator_params(
         afferents.Types.ONE_A,
-        afferents.Muscles.R,
+        afferents.Muscles.EXTENS,
     )
     l_two_params = afferent_params.create_generator_params(
         afferents.Types.TWO,
-        afferents.Muscles.L,
+        afferents.Muscles.FLEX,
     )
     r_two_params = afferent_params.create_generator_params(
         afferents.Types.TWO,
-        afferents.Muscles.R,
+        afferents.Muscles.EXTENS,
     )
     l_onea_generators = neuron_network.create_generator(**l_onea_params)
     r_onea_generators = neuron_network.create_generator(**r_onea_params)
     l_two_generators = neuron_network.create_generator(**l_two_params)
     r_two_generators = neuron_network.create_generator(**r_two_params)
 
-    l_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.L_MOTOR)
-    r_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.R_MOTOR)
-    l_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.L_INTER_1A)
-    r_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.R_INTER_1A)
-    l_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.L_INTER_2)
-    r_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.R_INTER_2)
+    l_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_MOTOR)
+    r_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_MOTOR)
+    l_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_INTER_1A)
+    r_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_INTER_1A)
+    l_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_INTER_2)
+    r_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_INTER_2)
 
     r_onea_motor_spec = l_onea_motor_spec = dict(
         synapse=dict(

@@ -19,37 +19,37 @@ neuron_number_in_group = 20
 
 layer1_neuron_group_params = dict()
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.R_MOTOR] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.FLEX_MOTOR] = NeuronGroupParams(
     type=NEST_NAMESPACE.Glu,
     model=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.L_MOTOR] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.EXTENS_MOTOR] = NeuronGroupParams(
     type=NEST_NAMESPACE.Glu,
     model=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.R_INTER_1A] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.FLEX_INTER_1A] = NeuronGroupParams(
     type=NEST_NAMESPACE.GABA,
     model=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.L_INTER_1A] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.EXTENS_INTER_1A] = NeuronGroupParams(
     type=NEST_NAMESPACE.GABA,
     model=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.R_INTER_2] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.FLEX_INTER_2] = NeuronGroupParams(
     type=NEST_NAMESPACE.Glu,
     model=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-layer1_neuron_group_params[Layer1NeuronGroupNames.L_INTER_2] = NeuronGroupParams(
+layer1_neuron_group_params[Layer1NeuronGroupNames.EXTENS_INTER_2] = NeuronGroupParams(
     type=NEST_NAMESPACE.Glu,
     model=general_neuron_model,
     number=neuron_number_in_group,
