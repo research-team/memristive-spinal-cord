@@ -1,205 +1,189 @@
 import neucogar.namespaces as NEST_NAMESPACE
-from neucogar.SynapseModel import SynapseModel
-from memristive_spinal_cord.layer1.moraud.neuron_group_names import Layer1NeuronGroupNames
-import memristive_spinal_cord.layer1.moraud.params.neucogar.neuron_groups as neuron_groups_params
-import memristive_spinal_cord.layer1.moraud.afferents.afferents as afferents
-
-stdp_glu = {'delay': 2.5,  # Synaptic delay
-            'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
-            'lambda': 0.0005,  # Time interval for STDP
-            'Wmax': 300,  # Maximum possible weight
-            'mu_minus': 0.005,  # STDP depression step
-            'mu_plus': 0.005  # STDP potential step
-            }
-stdp_gaba = {'delay': 1.25,  # Synaptic delay
-             'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
-             'lambda': 0.0075,  # Time interval for STDP
-             'Wmax': -300.0,  # Maximum possible weight
-             'mu_minus': 0.005,  # STDP depression step
-             'mu_plus': 0.005  # STDP potential step
-             }
-
-# synapses
-Glutamatergic = SynapseModel(
-    "Glutamatergic",
-    nest_model=NEST_NAMESPACE.STDP_SYNAPSE,
-    params=stdp_glu
-)
-GABAergic = SynapseModel(
-    "GABAergic",
-    nest_model=NEST_NAMESPACE.STDP_SYNAPSE,
-    params=stdp_gaba
-)
+from memristive_spinal_cord.layer1.moraud.entities import Layer1Entities
+from memristive_spinal_cord.layer1.params.connection_params import ConnectionParams
+from memristive_spinal_cord.layer1.params.connection_params_storage import ConnectionParamsStorage
 
 weight_Glu = 185
 weight_GABA = -70
 
+syn_stdp_glu = {
+    'model': NEST_NAMESPACE.STDP_SYNAPSE,
+    'delay': 2.5,  # Synaptic delay
+    'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
+    'lambda': 0.0005,  # Time interval for STDP
+    'Wmax': 300,  # Maximum possible weight
+    'mu_minus': 0.005,  # STDP depression step
+    'mu_plus': 0.005,  # STDP potential step
+    'weight': weight_Glu
+}
 
-def connect(neuron_network):
-    """
-    Args:
-        neuron_network (NeuronNetwork)
-    """
-    # source is FLEX_INTER_1A
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
-        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.FLEX_INTER_1A,
-        target=Layer1NeuronGroupNames.EXTENS_INTER_1A,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
+syn_stdp_gaba = {
+    'model': NEST_NAMESPACE.STDP_SYNAPSE,
+    'delay': 1.25,  # Synaptic delay
+    'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
+    'lambda': 0.0075,  # Time interval for STDP
+    'Wmax': -300.0,  # Maximum possible weight
+    'mu_minus': 0.005,  # STDP depression step
+    'mu_plus': 0.005,  # STDP potential step
+    'weight': weight_GABA
+}
 
-    # source is EXTENS_INTER_1A
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
-        target=Layer1NeuronGroupNames.FLEX_MOTOR,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.EXTENS_INTER_1A,
-        target=Layer1NeuronGroupNames.FLEX_INTER_1A,
-        synapse=GABAergic,
-        weight=weight_GABA
-    )
+conn_one_to_one = {
+    'rule': 'one_to_one'
+}
+conn_all_to_all = {
+    'rule': 'all_to_all'
+}
 
-    # source is FLEX_INTER_2
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.FLEX_INTER_2,
-        target=Layer1NeuronGroupNames.FLEX_MOTOR,
-        synapse=Glutamatergic,
-        weight=weight_Glu
-    )
+params_storage = ConnectionParamsStorage()
 
-    # source is EXTENS_INTER_2
-    neuron_network.connect(
-        source=Layer1NeuronGroupNames.EXTENS_INTER_2,
-        target=Layer1NeuronGroupNames.EXTENS_MOTOR,
-        synapse=Glutamatergic,
-        weight=weight_Glu
+# source is FLEX_INTER_1A
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_INTER_1A,
+        post=Layer1Entities.EXTENS_MOTOR,
+        syn_spec=syn_stdp_gaba,
+        conn_spec=conn_one_to_one,
     )
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_INTER_1A,
+        post=Layer1Entities.EXTENS_INTER_1A,
+        syn_spec=syn_stdp_gaba,
+        conn_spec=conn_one_to_one,
+    )
+)
 
-    connect_afferents(neuron_network)
+# source is EXTENS_INTER_1A
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_INTER_1A,
+        post=Layer1Entities.FLEX_MOTOR,
+        syn_spec=syn_stdp_gaba,
+        conn_spec=conn_one_to_one,
+    )
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_INTER_1A,
+        post=Layer1Entities.FLEX_INTER_1A,
+        syn_spec=syn_stdp_gaba,
+        conn_spec=conn_one_to_one,
+    )
+)
 
+# source is FLEX_INTER_2
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_INTER_2,
+        post=Layer1Entities.FLEX_MOTOR,
+        syn_spec=syn_stdp_glu,
+        conn_spec=conn_one_to_one,
+    )
+)
 
-def connect_afferents(neuron_network):
-    """
-    Args:
-        neuron_network (NeuronNetwork)
-    """
-    number = neuron_groups_params.neuron_number_in_group
-    afferent_params = afferents.AfferentsFile(
-        afferents.Speed.FIFTEEN,
-        afferents.Interval.TWENTY,
-        number,
+# source is EXTENS_INTER_2
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_INTER_2,
+        post=Layer1Entities.EXTENS_MOTOR,
+        syn_spec=syn_stdp_glu,
+        conn_spec=conn_one_to_one,
     )
+)
 
-    l_onea_params = afferent_params.create_generator_params(
-        afferents.Types.ONE_A,
-        afferents.Muscles.FLEX,
-    )
-    r_onea_params = afferent_params.create_generator_params(
-        afferents.Types.ONE_A,
-        afferents.Muscles.EXTENS,
-    )
-    l_two_params = afferent_params.create_generator_params(
-        afferents.Types.TWO,
-        afferents.Muscles.FLEX,
-    )
-    r_two_params = afferent_params.create_generator_params(
-        afferents.Types.TWO,
-        afferents.Muscles.EXTENS,
-    )
-    l_onea_generators = neuron_network.create_generator(**l_onea_params)
-    r_onea_generators = neuron_network.create_generator(**r_onea_params)
-    l_two_generators = neuron_network.create_generator(**l_two_params)
-    r_two_generators = neuron_network.create_generator(**r_two_params)
+######## Afferents ##########
 
-    l_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_MOTOR)
-    r_motor_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_MOTOR)
-    l_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_INTER_1A)
-    r_inter1a_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_INTER_1A)
-    l_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.EXTENS_INTER_2)
-    r_inter2_nuclei = neuron_network.get_neuron_group_nuclei(Layer1NeuronGroupNames.FLEX_INTER_2)
+generator_1a_motor_syn_spec = dict(
+    model='static_synapse',
+    weight=0.052608,
+    delay={'distribution': 'normal', 'mu': 2., 'sigma': 0.03},
+)
+generator_1a_inter1a_syn_spec = dict(
+    model='static_synapse',
+    weight=0.0175,
+    delay={'distribution': 'normal', 'mu': 2., 'sigma': 0.03},
+)
+generator_2_inter1a_syn_spec = dict(
+    model='static_synapse',
+    weight=0.0175,
+    delay={'distribution': 'normal', 'mu': 3., 'sigma': 0.03},
+)
+generator_2_inter2_syn_spec = dict(
+    model='static_synapse',
+    weight=0.0175,
+    delay={'distribution': 'normal', 'mu': 3., 'sigma': 0.03},
+)
 
-    r_onea_motor_spec = l_onea_motor_spec = dict(
-        synapse=dict(
-            model='static_synapse',
-            weight=0.052608,
-            delay={'distribution': 'normal', 'mu': 2., 'sigma': 0.03},
-        ),
-        connection=dict(rule='all_to_all')
+# source is FLEX_AFFERENT_1A
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_AFFERENT_1A,
+        post=Layer1Entities.FLEX_MOTOR,
+        syn_spec=generator_1a_motor_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    l_motor_nuclei.ConnectGenerator(
-        l_onea_generators,
-        l_onea_motor_spec["synapse"],
-        l_onea_motor_spec["connection"]
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_AFFERENT_1A,
+        post=Layer1Entities.FLEX_INTER_1A,
+        syn_spec=generator_1a_inter1a_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    r_motor_nuclei.ConnectGenerator(
-        r_onea_generators,
-        r_onea_motor_spec["synapse"],
-        r_onea_motor_spec["connection"]
-    )
+)
 
-    r_onea_inter1a_spec = l_onea_inter1a_spec = dict(
-        synapse=dict(
-            model='static_synapse',
-            weight=0.0175,
-            delay={'distribution': 'normal', 'mu': 2., 'sigma': 0.03},
-        ),
-        connection=dict(rule='all_to_all')
+# source is EXTENS_AFFERENT_1A
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_AFFERENT_1A,
+        post=Layer1Entities.EXTENS_MOTOR,
+        syn_spec=generator_1a_motor_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    l_inter1a_nuclei.ConnectGenerator(
-        l_onea_generators,
-        l_onea_inter1a_spec["synapse"],
-        l_onea_inter1a_spec["connection"]
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_AFFERENT_1A,
+        post=Layer1Entities.EXTENS_INTER_1A,
+        syn_spec=generator_1a_inter1a_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    r_inter1a_nuclei.ConnectGenerator(
-        r_onea_generators,
-        r_onea_inter1a_spec["synapse"],
-        r_onea_inter1a_spec["connection"]
-    )
+)
 
-    r_two_inter1a_spec = l_two_inter1a_spec = dict(
-        synapse=dict(
-            model='static_synapse',
-            weight=0.0175,
-            delay={'distribution': 'normal', 'mu': 3., 'sigma': 0.03},
-        ),
-        connection=dict(rule='all_to_all')
+# source is FLEX_AFFERENT_2
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_AFFERENT_2,
+        post=Layer1Entities.FLEX_INTER_1A,
+        syn_spec=generator_2_inter1a_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    l_inter1a_nuclei.ConnectGenerator(
-        l_two_generators,
-        l_two_inter1a_spec["synapse"],
-        l_two_inter1a_spec["connection"]
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.FLEX_AFFERENT_2,
+        post=Layer1Entities.FLEX_INTER_2,
+        syn_spec=generator_2_inter2_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    r_inter1a_nuclei.ConnectGenerator(
-        r_two_generators,
-        r_two_inter1a_spec["synapse"],
-        r_two_inter1a_spec["connection"]
-    )
+)
 
-    r_two_inter2_spec = l_two_inter2_spec = dict(
-        synapse=dict(
-            model='static_synapse',
-            weight=0.0175,
-            delay={'distribution': 'normal', 'mu': 3., 'sigma': 0.03},
-        ),
-        connection=dict(rule='all_to_all')
+# source is EXTENS_AFFERENT_2
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_AFFERENT_2,
+        post=Layer1Entities.EXTENS_INTER_1A,
+        syn_spec=generator_2_inter1a_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    l_inter2_nuclei.ConnectGenerator(
-        l_two_generators,
-        l_two_inter2_spec["synapse"],
-        l_two_inter2_spec["connection"]
+)
+params_storage.add(
+    ConnectionParams(
+        pre=Layer1Entities.EXTENS_AFFERENT_2,
+        post=Layer1Entities.EXTENS_INTER_2,
+        syn_spec=generator_2_inter2_syn_spec,
+        conn_spec=conn_one_to_one,
     )
-    r_inter2_nuclei.ConnectGenerator(
-        r_two_generators,
-        r_two_inter2_spec["synapse"],
-        r_two_inter2_spec["connection"]
-    )
-
+)
