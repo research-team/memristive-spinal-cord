@@ -1,62 +1,46 @@
-from neucogar.Nucleus import Nucleus
-from memristive_spinal_cord.layer1.rybak.params.neucogar.neuron_groups import layer1_neuron_group_params
+import nest
+from memristive_spinal_cord.layer1.moraud.entities import Layer1Entities
 
 
 class NeuronNetwork:
-    def __init__(self):
-        self._groups = dict()
+    def __init__(self, entity_params_storage, connection_params_storage):
+        self._entitites = dict()
+        self._entities_params_storage = entity_params_storage
 
-    def create_neuron_group(self, group_name, group_params):
+        self._populate()
+        self._connectome(connection_params_storage)
+
+    def _populate(self):
+        for entity_name in Layer1Entities:
+            self.create_entity(entity_name)
+
+    def create_entity(self, entity_name):
+        entity_params = self._entities_params_storage[entity_name]
+        self._entitites[entity_name] = nest.Create(**entity_params.to_nest_params())
+
+    def get_entity(self, entity_name):
         """
         Args:
-            group_name (Layer1NeuronGroupNames)
-            group_params (NeuronGroupParameters)
-        """
-
-        neuron_group = Nucleus(group_name.value)
-        neuron_group.addSubNucleus(group_params.get_type(),
-                                   params=group_params.get_model(),
-                                   number=group_params.get_number())
-        self._groups[group_name] = neuron_group
-        return neuron_group
-
-    def get_neuron_number(self):
-        """
+            entity_name (Layer1Entities)
         Return:
-            Int
+            Nest
         """
-        neuron_number = 0
-        for group_name, group in self._groups.items():
-            neuron_number += self.get_neuron_group_nuclei(group_name).getNeuronNumber()
-        return neuron_number
+        return self._entitites[entity_name]
 
-    def get_neuron_group(self, group_name):
+    def connect_by_params(self, connection_params):
         """
         Args:
-            group_name (Layer1NeuronGroupNames)
-        Return:
-            Nucleus
+            connection_params (ConnectionParams)
         """
-        return self._groups[group_name]
+        nest_params = connection_params.to_nest_params()
+        nest_params['pre'] = self.get_entity(nest_params['pre'])
+        nest_params['post'] = self.get_entity(nest_params['post'])
+        nest.Connect(**nest_params)
 
-    def get_neuron_group_nuclei(self, group_name):
+    def _connectome(self, params_storage):
         """
         Args:
-            group_name (Layer1NeuronGroupNames)
-        Return:
-            Nucleus
+            params_storage (ConnectionParamsStorage)
         """
-        group = self.get_neuron_group(group_name)
-        return group.nuclei(layer1_neuron_group_params[group_name].get_type())
-
-    def connect(self, source, target, synapse, weight):
-        """
-        Args:
-            source (Layer1NeuronGroupNames)
-            target (Layer1NeuronGroupNames)
-            synapse (SynapseModel)
-            weight (double)
-        """
-        source_nuclei = self.get_neuron_group_nuclei(source)
-        target_nuclei = self.get_neuron_group_nuclei(target)
-        source_nuclei.connect(nucleus=target_nuclei, synapse=synapse, weight=weight)
+        for connection_params in params_storage.items():
+            self.connect_by_params(connection_params)
