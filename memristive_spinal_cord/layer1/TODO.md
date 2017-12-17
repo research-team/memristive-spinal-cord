@@ -1,0 +1,2 @@
+- AfferentsParams => AfferentParams
+- Layer1Neurons => Layer1NeuronGroup
