@@ -6,7 +6,7 @@ setup(
     description='a putative spinal cord neural network',
     url='https://github.com/research-team/memristive-spinal-cord/',
     license='MIT',
-    package_data={'memristive_spinal_cord': ['layer1/moraud/afferents/data']},
+    package_data={'memristive_spinal_cord': ['layer1/moraud/afferents_data']},
     install_requires=[
         "neucogar"
     ]
