@@ -1,4 +1,5 @@
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Entities
+from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
+from memristive_spinal_cord.layer1.moraud.afferents import Layer1Afferents
 from memristive_spinal_cord.layer1.params.neuron_group_params import NeuronGroupParams
 import memristive_spinal_cord.layer1.params.afferents_params as afferents
 
@@ -22,45 +23,45 @@ params_storage = dict()
 
 nest_neuron_model = "hh_cond_exp_traub"
 
-params_storage[Layer1Entities.FLEX_MOTOR] = NeuronGroupParams(
+params_storage[Layer1Neurons.FLEX_MOTOR] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-params_storage[Layer1Entities.EXTENS_MOTOR] = NeuronGroupParams(
+params_storage[Layer1Neurons.EXTENS_MOTOR] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-params_storage[Layer1Entities.FLEX_INTER_1A] = NeuronGroupParams(
+params_storage[Layer1Neurons.FLEX_INTER_1A] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-params_storage[Layer1Entities.EXTENS_INTER_1A] = NeuronGroupParams(
+params_storage[Layer1Neurons.EXTENS_INTER_1A] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-params_storage[Layer1Entities.FLEX_INTER_2] = NeuronGroupParams(
+params_storage[Layer1Neurons.FLEX_INTER_2] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-params_storage[Layer1Entities.EXTENS_INTER_2] = NeuronGroupParams(
+params_storage[Layer1Neurons.EXTENS_INTER_2] = NeuronGroupParams(
     model=nest_neuron_model,
     params=general_neuron_model,
     number=neuron_number_in_group,
 )
 
-afferents_filepath = "/layer1/moraud/afferents/data/"
+afferents_filepath = "/layer1/moraud/afferents_data/"
 generator_number_1a = 20
-params_storage[Layer1Entities.FLEX_AFFERENT_1A] = afferents.AfferentsParamsFile(
+params_storage[Layer1Afferents.FLEX_1A] = afferents.AfferentsParamsFile(
     filepath=afferents_filepath,
     speed=afferents.Speed.FIFTEEN,
     interval=afferents.Interval.TWENTY,
@@ -68,7 +69,7 @@ params_storage[Layer1Entities.FLEX_AFFERENT_1A] = afferents.AfferentsParamsFile(
     muscle=afferents.Muscles.FLEX,
     number=generator_number_1a,
 )
-params_storage[Layer1Entities.EXTENS_AFFERENT_1A] = afferents.AfferentsParamsFile(
+params_storage[Layer1Afferents.EXTENS_1A] = afferents.AfferentsParamsFile(
     filepath=afferents_filepath,
     speed=afferents.Speed.FIFTEEN,
     interval=afferents.Interval.TWENTY,
@@ -78,7 +79,7 @@ params_storage[Layer1Entities.EXTENS_AFFERENT_1A] = afferents.AfferentsParamsFil
 )
 
 generator_number_2 = 20
-params_storage[Layer1Entities.FLEX_AFFERENT_2] = afferents.AfferentsParamsFile(
+params_storage[Layer1Afferents.FLEX_2] = afferents.AfferentsParamsFile(
     filepath=afferents_filepath,
     speed=afferents.Speed.FIFTEEN,
     interval=afferents.Interval.TWENTY,
@@ -86,7 +87,7 @@ params_storage[Layer1Entities.FLEX_AFFERENT_2] = afferents.AfferentsParamsFile(
     muscle=afferents.Muscles.FLEX,
     number=generator_number_2,
 )
-params_storage[Layer1Entities.EXTENS_AFFERENT_2] = afferents.AfferentsParamsFile(
+params_storage[Layer1Afferents.EXTENS_2] = afferents.AfferentsParamsFile(
     filepath=afferents_filepath,
     speed=afferents.Speed.FIFTEEN,
     interval=afferents.Interval.TWENTY,

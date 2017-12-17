@@ -1,5 +1,6 @@
 import neucogar.namespaces as NEST_NAMESPACE
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Entities
+from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
+from memristive_spinal_cord.layer1.moraud.afferents import Layer1Afferents
 from memristive_spinal_cord.layer1.params.connection_params import ConnectionParams
 from memristive_spinal_cord.layer1.params.connection_params_storage import ConnectionParamsStorage
 
@@ -40,16 +41,16 @@ params_storage = ConnectionParamsStorage()
 # source is FLEX_INTER_1A
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_INTER_1A,
-        post=Layer1Entities.EXTENS_MOTOR,
+        pre=Layer1Neurons.FLEX_INTER_1A,
+        post=Layer1Neurons.EXTENS_MOTOR,
         syn_spec=syn_stdp_gaba,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_INTER_1A,
-        post=Layer1Entities.EXTENS_INTER_1A,
+        pre=Layer1Neurons.FLEX_INTER_1A,
+        post=Layer1Neurons.EXTENS_INTER_1A,
         syn_spec=syn_stdp_gaba,
         conn_spec=conn_one_to_one,
     )
@@ -58,16 +59,16 @@ params_storage.add(
 # source is EXTENS_INTER_1A
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_INTER_1A,
-        post=Layer1Entities.FLEX_MOTOR,
+        pre=Layer1Neurons.EXTENS_INTER_1A,
+        post=Layer1Neurons.FLEX_MOTOR,
         syn_spec=syn_stdp_gaba,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_INTER_1A,
-        post=Layer1Entities.FLEX_INTER_1A,
+        pre=Layer1Neurons.EXTENS_INTER_1A,
+        post=Layer1Neurons.FLEX_INTER_1A,
         syn_spec=syn_stdp_gaba,
         conn_spec=conn_one_to_one,
     )
@@ -76,8 +77,8 @@ params_storage.add(
 # source is FLEX_INTER_2
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_INTER_2,
-        post=Layer1Entities.FLEX_MOTOR,
+        pre=Layer1Neurons.FLEX_INTER_2,
+        post=Layer1Neurons.FLEX_MOTOR,
         syn_spec=syn_stdp_glu,
         conn_spec=conn_one_to_one,
     )
@@ -86,8 +87,8 @@ params_storage.add(
 # source is EXTENS_INTER_2
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_INTER_2,
-        post=Layer1Entities.EXTENS_MOTOR,
+        pre=Layer1Neurons.EXTENS_INTER_2,
+        post=Layer1Neurons.EXTENS_MOTOR,
         syn_spec=syn_stdp_glu,
         conn_spec=conn_one_to_one,
     )
@@ -116,73 +117,73 @@ generator_2_inter2_syn_spec = dict(
     delay={'distribution': 'normal', 'mu': 3., 'sigma': 0.03},
 )
 
-# source is FLEX_AFFERENT_1A
+# source is FLEX_1A
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_AFFERENT_1A,
-        post=Layer1Entities.FLEX_MOTOR,
+        pre=Layer1Afferents.FLEX_1A,
+        post=Layer1Neurons.FLEX_MOTOR,
         syn_spec=generator_1a_motor_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_AFFERENT_1A,
-        post=Layer1Entities.FLEX_INTER_1A,
+        pre=Layer1Afferents.FLEX_1A,
+        post=Layer1Neurons.FLEX_INTER_1A,
         syn_spec=generator_1a_inter1a_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 
-# source is EXTENS_AFFERENT_1A
+# source is EXTENS_1A
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_AFFERENT_1A,
-        post=Layer1Entities.EXTENS_MOTOR,
+        pre=Layer1Afferents.EXTENS_1A,
+        post=Layer1Neurons.EXTENS_MOTOR,
         syn_spec=generator_1a_motor_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_AFFERENT_1A,
-        post=Layer1Entities.EXTENS_INTER_1A,
+        pre=Layer1Afferents.EXTENS_1A,
+        post=Layer1Neurons.EXTENS_INTER_1A,
         syn_spec=generator_1a_inter1a_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 
-# source is FLEX_AFFERENT_2
+# source is FLEX_2
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_AFFERENT_2,
-        post=Layer1Entities.FLEX_INTER_1A,
+        pre=Layer1Afferents.FLEX_2,
+        post=Layer1Neurons.FLEX_INTER_1A,
         syn_spec=generator_2_inter1a_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.FLEX_AFFERENT_2,
-        post=Layer1Entities.FLEX_INTER_2,
+        pre=Layer1Afferents.FLEX_2,
+        post=Layer1Neurons.FLEX_INTER_2,
         syn_spec=generator_2_inter2_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 
-# source is EXTENS_AFFERENT_2
+# source is EXTENS_2
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_AFFERENT_2,
-        post=Layer1Entities.EXTENS_INTER_1A,
+        pre=Layer1Afferents.EXTENS_2,
+        post=Layer1Neurons.EXTENS_INTER_1A,
         syn_spec=generator_2_inter1a_syn_spec,
         conn_spec=conn_one_to_one,
     )
 )
 params_storage.add(
     ConnectionParams(
-        pre=Layer1Entities.EXTENS_AFFERENT_2,
-        post=Layer1Entities.EXTENS_INTER_2,
+        pre=Layer1Afferents.EXTENS_2,
+        post=Layer1Neurons.EXTENS_INTER_2,
         syn_spec=generator_2_inter2_syn_spec,
         conn_spec=conn_one_to_one,
     )

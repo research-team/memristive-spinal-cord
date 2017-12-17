@@ -1,5 +1,4 @@
 import nest
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Entities
 
 
 class NeuronNetwork:
@@ -11,11 +10,10 @@ class NeuronNetwork:
         self._connectome(connection_params_storage)
 
     def _populate(self):
-        for entity_name in Layer1Entities:
-            self.create_entity(entity_name)
+        for entity_name, entity_params in self._entities_params_storage.items():
+            self.create_entity(entity_name, entity_params)
 
-    def create_entity(self, entity_name):
-        entity_params = self._entities_params_storage[entity_name]
+    def create_entity(self, entity_name, entity_params):
         self._entitites[entity_name] = nest.Create(**entity_params.to_nest_params())
 
     def get_entity(self, entity_name):
