@@ -79,11 +79,15 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 
 **1A Inhibitory InterNeurons**
 - Number: 196
-- Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`
+- Neuron Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`
+- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#intfire-to-iaf-psc-alpha) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
 
 **2 Excitatory InterNeurons**
 - Number: 196
-- Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`  
+- Neuron Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`  
+- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#intfire-to-iaf-psc-alpha) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
+
+<p id="intfire-to-iaf-psc-alpha">Neuron's IntFire4 does not have a counterpart in Nest. We use Nest's `iaf_psc_alpha` which uses an alpha function instead of a dual exponential for inhibitory tau. That is why `taui2=10` isn't used.</p>
 
 ##### Connections
  
