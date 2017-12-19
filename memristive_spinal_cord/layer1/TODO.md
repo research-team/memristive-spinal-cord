@@ -1,2 +1,3 @@
 - AfferentsParams => AfferentParams
 - Layer1Neurons => Layer1NeuronGroup
+- afferents to afferents_params in entities
