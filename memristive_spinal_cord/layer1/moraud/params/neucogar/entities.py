@@ -1,7 +1,10 @@
+import definitions
 from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
 from memristive_spinal_cord.layer1.moraud.afferents import Layer1Afferents
+from memristive_spinal_cord.layer1.moraud.devices import Layer1Devices
 from memristive_spinal_cord.layer1.params.neuron_group_params import NeuronGroupParams
 import memristive_spinal_cord.layer1.params.afferents_params as afferents
+import memristive_spinal_cord.layer1.params.device_params as device_params
 
 general_neuron_model = {
     # 't_ref': [2.5, 4.0],  # Refractory period
@@ -94,4 +97,13 @@ params_storage[Layer1Afferents.EXTENS_2] = afferents.AfferentsParamsFile(
     type=afferents.Types.TWO,
     muscle=afferents.Muscles.EXTENS,
     number=generator_number_2,
+)
+
+params_storage[Layer1Devices.FLEX_INTER_1A_MULTIMETER] = device_params.MultimeterParams(
+    name=Layer1Devices.FLEX_INTER_1A_MULTIMETER.value,
+    storage_dir=definitions.RESULTS_DIR,
+)
+params_storage[Layer1Devices.FLEX_INTER_1A_DETECTOR] = device_params.DetectorParams(
+    name=Layer1Devices.FLEX_INTER_1A_DETECTOR.value,
+    storage_dir=definitions.RESULTS_DIR,
 )
