@@ -4,7 +4,9 @@ from memristive_spinal_cord.layer1.params.neuron_group_params import NeuronGroup
 params_storage = dict()
 
 inter_model_params = {
-    'V_m': -70.0,
+    'V_m': 0.0,
+    'V_reset': 0.0,
+    'V_th': 1.0,
     'tau_m': 30.0,
     'tau_syn_ex': 0.5,
     'tau_syn_in': 5.0
