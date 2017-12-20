@@ -20,6 +20,7 @@ class Interval(Enum):
 
 class Speed(Enum):
     FIFTEEN = 15
+    DEFAULT = ''
 
 
 class AfferentsParams(EntityParams):
@@ -38,7 +39,6 @@ class AfferentsParams(EntityParams):
 
 
 class AfferentsParamsFile(AfferentsParams):
-
     def __init__(self, filepath, speed, interval, number, type, muscle):
         super().__init__(speed, interval, number, type, muscle)
         self.filepath = filepath
@@ -66,14 +66,11 @@ class AfferentsParamsFile(AfferentsParams):
         return self._create_generator_params(spike_times_list)
 
 
-class Test:
-    def __init__(self) -> None:
-        super().__init__()
-        data_filepath = pkg_resources.resource_filename(
-            "memristive_spinal_cord",
-            "/layer1/moraud/afferents/data/Ia_GM_speed15_int20.txt"
-        )
-        number = 3
+def test():
+
+    def spikes_list_from_file(filepath):
+        data_filepath = pkg_resources.resource_filename('memristive_spinal_cord', filepath)
+        number = 1
         with open(data_filepath, "r") as data_file:
             frequencies_list = []
             for line in data_file:
@@ -82,8 +79,21 @@ class Test:
                 if len(frequencies_list) >= number:
                     break
 
-        spikes_list = [frequency_list.generate_spikes() for frequency_list in frequencies_list]
-        print("@@@", len(spikes_list))
-        print("###", spikes_list[0])
+        return [frequency_list.generate_spikes() for frequency_list in frequencies_list]
 
-# Test()
+
+    gm_spikes_list = spikes_list_from_file('/layer1/moraud/afferents_data/Ia_GM_speed_int20.txt')
+    ta_spikes_list = spikes_list_from_file('/layer1/moraud/afferents_data/Ia_TA_speed_int20.txt')
+
+    # print("@@@", len(gm_spikes_list))
+    # print("###", spikes_list[0])
+    import pylab
+    pylab.figure()
+    gm_spikes = gm_spikes_list[0]
+    ta_spikes = ta_spikes_list[0]
+    pylab.plot(gm_spikes, [1] * len(gm_spikes), ".")
+    pylab.plot(ta_spikes, [1.1] * len(ta_spikes), ".")
+    pylab.show()
+
+
+test()
