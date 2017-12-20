@@ -80,14 +80,12 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 **1A Inhibitory InterNeurons**
 - Number: 196
 - Neuron Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`
-- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#intfire-to-iaf-psc-alpha) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
+- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#neuron-to-nest) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
 
 **2 Excitatory InterNeurons**
 - Number: 196
 - Neuron Type: [IntFire4](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#IntFire4) with `taue=0.5, taui1=5, taui2=10, taum=30`  
-- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#intfire-to-iaf-psc-alpha) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
-
-<p id="intfire-to-iaf-psc-alpha">Neuron's IntFire4 does not have a counterpart in Nest. We use Nest's `iaf_psc_alpha` which uses an alpha function instead of a dual exponential for inhibitory tau. That is why `taui2=10` isn't used.</p>
+- Nest Type: [iaf_psc_alpha](https://github.com/nest/nest-simulator/blob/master/models/iaf_psc_alpha.h) [*](#neuron-to-nest) with `tau_syn_ex=0.5, tau_syn_in=5, tau_m=30`  
 
 ##### Connections
  
@@ -96,7 +94,8 @@ Numbers below are per muscle e.g. for example the flexor. For the antagonist mus
 Each motoneuron connected to all 1A fibers without any tricks and randomness.
 - from *SynFlexFlex.hoc:53-66*, *M_Cell.hoc:105-125*
 - nest connection type: all-to-all.
-- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.
+- Neuron type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.
+- Nest type: none specific. Please see [below](#neuron-to-nest). 
 - delay: 2 + Normal(0, 0.3 || 0.03) ms. In the paper 0.3 but in src 0.03. `Ia+taur.normal(0,0.03)`.
 - weight: 0.052608, `hi_motor_S = 0.0411 + 0.0411 * 0.28`.
 
@@ -112,7 +111,8 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 
 - from *SynFlexFlex.hoc:81-92*, *M_Cell.hoc:128-140*
 - nest connection type: fixed-outdegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'out'. Uniform.
-- type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.   
+- Neuron type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.
+- Nest type: none specific. Please see [below](#neuron-to-nest).   
 - delay: 1ms, `tausyn=1`
 - weight: 0.00907, `hi_motor_Ex= (hi_motor_S*FromAll_IAf_ToOne_MN/FromAll_EXIN_ToOne_MN)/3`
 
@@ -149,7 +149,8 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 Every motoneuron connected 232 times randomly to the pool of interneurons. There is a very small possibility that it will connect 232 times to the same interneuron.
 - from *SynExtFlex.hoc:32-44*, *M_Cell.hoc:141-147*
 - nest connection type: fixed-outdegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'out'. Uniform.
-- type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.   
+- Neuron type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.
+- Nest type: none specific. Please see [below](#neuron-to-nest).   
 - delay: 1ms, `tausyn=1`
 - weight: 0.0023, `lom=0.0023`
 
@@ -158,6 +159,26 @@ Every motoneuron connected 232 times randomly to the pool of interneurons. There
 - from *SynExtFlex.hoc:46-57*, *M_Cell.hoc:141-147*
 - nest connection type: fixed-outdegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'out'. Uniform.
 - type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.   
+- Nest type: none specific. Please see [below](#neuron-to-nest).
 - delay: 1ms, `tausyn=1`
 - weight: 0.0023, `lom=0.0023`
 
+### Neuron to Nest
+
+In general the main problem is that Nest models do not have dual exponential as time constants. Only aplha functions.
+
+**IntFire4** does not have a counterpart in Nest. We use Nest's `iaf_psc_alpha` which uses an alpha function instead of a dual exponential for inhibitory tau. That is why `taui2=10` isn't used.
+**ExpSyn** does not have a counterpart in Nest. Example how can we achieve it. Lets take an HH neuron with an `ExpSyn` on it `e=0, tau=0.8`. In Nest it would be:
+```python
+neurons = nest.Create("hh_psc_alpha")
+nest.CopyModel("static_synapse","excitatory",{"weight":1.,  "delay":1.5})
+nest.Connect(neurons, ispikes, syn_spec="excitatory")
+```
+According to this [article](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5517781/). 
+
+**Exp2Syn** The same as above. Lets take an HH neuron with an `Exp2Syn` on it `e=-75.0, tau1=0.99, tau2=1.0`. In Nest it would be:
+```python
+neurons = nest.Create("hh_psc_alpha", {'tau_syn_in':1.})
+nest.CopyModel("static_synapse","inhibitory",{"weight":200., "delay":3.0})
+nest.Connect(neurons, ispikes, syn_spec="inhibitory")
+```
