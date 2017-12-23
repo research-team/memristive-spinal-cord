@@ -15,3 +15,8 @@ class NeuronModels(Enum):
     HH_PSC_ALPHA = 'hh_psc_alpha'
     HH_COND_EXP_TRAUB = 'hh_cond_exp_traub'
     IZHIKEVICH = 'izhikevich'
+
+
+class Neurotransmitters(Enum):
+    GLU = 'Glu'
+    GABA = 'GABA'
