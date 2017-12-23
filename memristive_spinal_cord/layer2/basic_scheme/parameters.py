@@ -93,7 +93,6 @@ class Weights(Enum):
 
 
 class Constants(Enum):
-
     NEURONS_IN_GROUP = 20
 
     REFRACTORY_PERIOD = [1.8, 2.2]
@@ -105,3 +104,11 @@ class Constants(Enum):
 
     SYNAPTIC_DELAY_EX = [1.1, 1.3]
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
+
+    RESOLUTION = 0.1
+    LOCAL_NUM_THREADS = 2
+
+
+class Paths(Enum):
+    RESULTS_DIR = '/tmp/msc/results/'
+    DATA_DIR_NAME = 'raw_data'
