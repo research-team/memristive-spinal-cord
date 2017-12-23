@@ -95,6 +95,7 @@ class Weights(Enum):
 
     SG = 0.
 
+
 class Constants(Enum):
     NEURONS_IN_GROUP = 20
 
