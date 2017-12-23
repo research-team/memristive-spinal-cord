@@ -2,7 +2,7 @@ from enum import Enum
 from memristive_spinal_cord.layer2.basic_scheme.parameters import Constants
 
 
-class NeuronModels(Enum):
+class Neurons(Enum):
 
     NEUCOGAR = {
         't_ref': Constants.REFRACTORY_PERIOD.value,
