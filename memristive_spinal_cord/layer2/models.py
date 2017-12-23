@@ -20,3 +20,8 @@ class NeuronModels(Enum):
 class Neurotransmitters(Enum):
     GLU = 'Glu'
     GABA = 'GABA'
+
+
+class ConnectionTypes(Enum):
+    ONE_TO_ONE = 'one_to_one'
+    ALL_TO_ALL = 'all_to_all'
