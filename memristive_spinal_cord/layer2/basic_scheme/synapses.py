@@ -1,6 +1,6 @@
 from neucogar.SynapseModel import SynapseModel
-from memristive_spinal_cord.layer2.parameters import Constants
-from memristive_spinal_cord.layer2.parameters import SynapseModels
+from memristive_spinal_cord.layer2.basic_scheme.parameters import Constants
+from memristive_spinal_cord.layer2.models import SynapseModels
 from enum import Enum
 
 
