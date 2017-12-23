@@ -13,7 +13,7 @@ class ToolKit():
             pass
 
     def plot_left_column(self):
-        pass
+        pass # TODO implement plot_left_column()
 
     def plot_interneuronal_pool(self):
-        pass
+        pass # TODO implement plot_interneuronal_pool()
