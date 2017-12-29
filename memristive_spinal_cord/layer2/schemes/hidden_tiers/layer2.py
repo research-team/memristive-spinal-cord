@@ -39,6 +39,10 @@ class Layer2:
                 weight=weight,
                 conn_type=ConnectionTypes.ALL_TO_ALL.value
             )
+        for tier in self.polysynaptic_circuit.get_tiers():
+            tier.set_connections()
+        for hidden_tier in self.polysynaptic_circuit.get_hidden_tiers():
+            hidden_tier.set_connections()
 
     def connect_multimeters(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
