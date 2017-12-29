@@ -1,10 +1,12 @@
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.polysynaptic_circuit import PolysynapticCircuit
 from neucogar.Nucleus import Nucleus
+from neucogar.api_kernel import CreateNetwork
 from memristive_spinal_cord.layer2.models import Neurotransmitters
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.neurons import Neurons
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.synapses import Synapses
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Weights
 from memristive_spinal_cord.layer2.models import ConnectionTypes
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
 
 
 class Layer2:
@@ -24,6 +26,8 @@ class Layer2:
             number=1,
             params=Neurons.NEUCOGAR.value
         )
+
+        CreateNetwork(simulation_neuron_number=Constants.TOTAL_NEURONS.value)
 
     def set_connections(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).connect(
