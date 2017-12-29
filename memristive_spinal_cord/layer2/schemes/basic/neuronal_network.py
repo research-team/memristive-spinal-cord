@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer2.schemes.basic import Layer2
+from memristive_spinal_cord.layer2.schemes.basic.layer2 import Layer2
 from neucogar.Nucleus import Nucleus
 from memristive_spinal_cord.layer2.models import Neurotransmitters
 from memristive_spinal_cord.layer2.components.neurons import Neurons
