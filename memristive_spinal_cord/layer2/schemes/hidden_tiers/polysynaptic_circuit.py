@@ -16,3 +16,7 @@ class PolysynapticCircuit:
     def get_input(self): return self.tiers[0].get_right_group()
 
     def get_output(self): return [tier.get_left_group() for tier in self.tiers]
+
+    def get_tiers(self): return self.tiers
+
+    def get_hidden_tiers(self): return self.hidden_tiers
