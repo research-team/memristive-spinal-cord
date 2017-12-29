@@ -186,7 +186,7 @@ class Constants(Enum):
 
     SIMULATION_TIME = 100.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
-    SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES.value]
+    SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
     SYNAPTIC_DELAY_EX = [1.1, 1.3]
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
