@@ -1,9 +1,9 @@
 from neucogar.Nucleus import Nucleus
 from memristive_spinal_cord.layer2.models import Neurotransmitters
-from memristive_spinal_cord.layer2.basic_scheme.parameters import Constants
-from memristive_spinal_cord.layer2.basic_scheme.neurons import Neurons
-from memristive_spinal_cord.layer2.basic_scheme.synapses import Synapses
-from memristive_spinal_cord.layer2.basic_scheme.parameters import Weights
+from memristive_spinal_cord.layer2.components.parameters import Constants
+from memristive_spinal_cord.layer2.components.neurons import Neurons
+from memristive_spinal_cord.layer2.components.synapses import Synapses
+from memristive_spinal_cord.layer2.components.parameters import Weights
 from memristive_spinal_cord.layer2.models import ConnectionTypes
 
 
