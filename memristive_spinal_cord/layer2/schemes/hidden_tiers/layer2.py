@@ -6,6 +6,8 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.neurons impor
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.synapses import Synapses
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Weights
 from memristive_spinal_cord.layer2.models import ConnectionTypes
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
+import neucogar.api_kernel as api_kernel
 
 
 class Layer2:
@@ -56,4 +58,14 @@ class Layer2:
             tier.connect_multimeters()
         for hidden_tier in self.polysynaptic_circuit.get_hidden_tiers():
             hidden_tier.connect_multimeters()
+
+    def connect_spike_generator(self):
+        spike_generator = api_kernel.NEST.Create('spike_generator', 1, {
+            'spike_times': Constants.SPIKE_GENERATOR_TIMES.value,
+            'spike_weights': Constants.SPIKE_GENERATOR_WEIGHTS
+        })
+
+        api_kernel.NEST.Connect(
+            spike_generator,
+            self.mediator.nuclei(Neurotransmitters.GLU.value).getNeurons())
 
