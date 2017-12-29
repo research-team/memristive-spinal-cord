@@ -58,7 +58,7 @@ class Tier:
         self.right_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.RL.value.reverse()[self.get_index()-1],
+            weight=Weights.RL.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -66,7 +66,7 @@ class Tier:
         self.left_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.LR.value.reverse()[self.get_index()-1],
+            weight=Weights.LR.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -74,7 +74,7 @@ class Tier:
         self.inhibitory_group.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=Weights.IR.value.reverse()[self.get_index()-1],
+            weight=Weights.IR.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -82,7 +82,7 @@ class Tier:
         self.right_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.inhibitory_group.nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.RI.value.reverse()[self.get_index()-1],
+            weight=Weights.RI.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -101,14 +101,14 @@ class Tier:
             self.left_group.nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=tier.get_left_group().nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.LL.value.reverse()[tier.get_index()-1],
+                weight=Weights.LL.value[::-1][tier.get_index()-1],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
             tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.RR.value.reverse()[tier.get_index()-2],
+                weight=Weights.RR.value[::-1][tier.get_index()-2],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 

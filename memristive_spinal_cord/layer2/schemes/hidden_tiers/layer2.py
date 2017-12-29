@@ -39,7 +39,7 @@ class Layer2:
             weight=Weights.MR.value,
             conn_type=ConnectionTypes.ALL_TO_ALL.value
         )
-        for tier, weight in zip(self.polysynaptic_circuit.get_output(), Weights.LIP.value.reverse()):
+        for tier, weight in zip(self.polysynaptic_circuit.get_output(), Weights.LIP.value[::-1]):
             tier.nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.interneuronal_pool.nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,

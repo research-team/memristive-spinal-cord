@@ -61,25 +61,25 @@ class HiddenTier:
         self.left_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=HiddenWeights.LR.value.reverse()[self.index-1],
+            weight=HiddenWeights.LR.value[::-1][self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.right_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=HiddenWeights.RL.value.reverse()[self.index-1],
+            weight=HiddenWeights.RL.value[::-1][self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.right_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_inhibitory.nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.RI.value.reverse()[self.index - 1],
+            weight=HiddenWeights.RI.value[::-1][self.index - 1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.left_inhibitory.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.IR.value.reverse()[self.index-1],
+            weight=HiddenWeights.IR.value[::-1][self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -94,27 +94,27 @@ class HiddenTier:
         self.get_right_excitatory().nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=upper_tier.get_right_group().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=HiddenWeights.RRU.value.reverse()[self.get_index()-1],
+            weight=HiddenWeights.RRU.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
         self.get_right_inhibitory().nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=lower_tier.get_right_group().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.IRD.value.reverse()[self.get_index()-1],
+            weight=HiddenWeights.IRD.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
         upper_tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.get_right_inhibitory().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=HiddenWeights.RID.value.reverse()[self.get_index()-1],
+            weight=HiddenWeights.RID.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
         lower_tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.get_right_excitatory().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=HiddenWeights.RDR.value.reverse()[self.get_index()-1],
+            weight=HiddenWeights.RDR.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
