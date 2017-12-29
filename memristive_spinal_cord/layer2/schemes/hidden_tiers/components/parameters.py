@@ -96,6 +96,65 @@ class Weights(Enum):
     SG = 0.
 
 
+class HiddenWeights(Enum):
+
+    # Left hidden group to Right hidden group
+    LR = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # Right hidden group to Left hidden group
+    RL = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # Right hidden group to Left hidden Inhibitory group
+    RI = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # Left hidden Inhibitory group to Right group
+    IR = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # Right hidden Inhibitory group to Right group Down to lower tier
+    IRD = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # From upper tier Right group to Right hidden Inhibitory group
+    RID = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+
 class Constants(Enum):
     NEURONS_IN_GROUP = 20
 
