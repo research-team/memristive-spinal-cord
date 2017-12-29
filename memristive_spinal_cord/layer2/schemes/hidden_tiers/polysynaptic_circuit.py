@@ -2,7 +2,7 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.hidden_tier import Hidde
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.tier import Tier
 
 
-class NeuronalNetwork:
+class PolysynapticCircuit:
     def __init__(self):
         self.tiers = [Tier(i+1) for i in range(6)]
         self.hidden_tiers = [HiddenTier(i+1) for i in range(5)]
