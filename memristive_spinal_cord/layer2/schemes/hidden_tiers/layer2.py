@@ -6,7 +6,6 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.neurons impor
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.synapses import Synapses
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Weights
 from memristive_spinal_cord.layer2.models import ConnectionTypes
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
 
 
 class Layer2:
@@ -27,7 +26,9 @@ class Layer2:
             params=Neurons.NEUCOGAR.value
         )
 
-        CreateNetwork(simulation_neuron_number=Constants.TOTAL_NEURONS.value)
+        CreateNetwork(simulation_neuron_number=PolysynapticCircuit.get_number_of_neurons() + 2)
+        self.set_connections()
+        self.connect_multimeters()
 
     def set_connections(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).connect(

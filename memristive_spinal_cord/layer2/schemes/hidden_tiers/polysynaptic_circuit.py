@@ -20,3 +20,7 @@ class PolysynapticCircuit:
     def get_tiers(self): return self.tiers
 
     def get_hidden_tiers(self): return self.hidden_tiers
+
+    @staticmethod
+    def get_number_of_neurons():
+        return Tier.get_number_of_neurons() + HiddenTier.get_number_of_neurons()

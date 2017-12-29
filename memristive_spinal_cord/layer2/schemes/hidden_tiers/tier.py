@@ -8,6 +8,16 @@ from memristive_spinal_cord.layer2.models import ConnectionTypes
 
 
 class Tier:
+    __number_of_neurons = 0
+
+    @classmethod
+    def add_neurons(cls, number:int):
+        cls.__number_of_neurons += number
+
+    @classmethod
+    def get_number_of_neurons(cls):
+        return cls.__number_of_neurons
+
     def __init__(self, index:int):
         """
         Args:
@@ -35,6 +45,8 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+
+        self.add_neurons(Constants.NEURONS_IN_GROUP.value * 3)
 
     def connect_multimeters(self):
         self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
