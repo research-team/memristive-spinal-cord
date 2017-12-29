@@ -60,6 +60,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
+        0.,
         0.
     ]
 
