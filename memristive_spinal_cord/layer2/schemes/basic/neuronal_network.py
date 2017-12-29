@@ -1,9 +1,9 @@
 from memristive_spinal_cord.layer2.schemes.basic.layer2 import Layer2
 from neucogar.Nucleus import Nucleus
 from memristive_spinal_cord.layer2.models import Neurotransmitters
-from memristive_spinal_cord.layer2.components.neurons import Neurons
+from memristive_spinal_cord.layer2.schemes.basic.neurons import Neurons
 from neucogar import api_kernel
-from memristive_spinal_cord.layer2.components.parameters import Constants
+from memristive_spinal_cord.layer2.schemes.basic.parameters import Constants
 
 
 def connect_spike_generator(target: Nucleus):
