@@ -6,7 +6,8 @@ class PolysynapticCircuit:
     def __init__(self):
         self.tiers = [Tier(i+1) for i in range(6)]
         self.hidden_tiers = [HiddenTier(i+1) for i in range(5)]
-        
+
+    def set_connections(self):
         for upper_tier, lower_tier, hidden_tier in zip(
                 self.tiers[1:], self.tiers[:-1], self.hidden_tiers):
             upper_tier.connect(tier=lower_tier)

@@ -40,11 +40,13 @@ class HiddenTier:
             params=Neurons.NEUCOGAR.value
         )
 
+    def connect_multimeters(self):
         self.left_excitatory.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.right_excitatory.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.left_inhibitory.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
         self.right_inhibitory.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
 
+    def set_connections(self):
         self.left_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,

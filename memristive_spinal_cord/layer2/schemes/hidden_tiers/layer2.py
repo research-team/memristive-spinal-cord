@@ -9,37 +9,38 @@ from memristive_spinal_cord.layer2.models import ConnectionTypes
 
 class Layer2:
     def __init__(self):
-        polysynaptic_circuit = PolysynapticCircuit()
-        mediator = Nucleus('Mediator')
-        interneuronal_pool = Nucleus('InterneuronalPool')
+        self.polysynaptic_circuit = PolysynapticCircuit()
+        self.mediator = Nucleus('Mediator')
+        self.interneuronal_pool = Nucleus('InterneuronalPool')
 
-        mediator.addSubNucleus(
+        self.mediator.addSubNucleus(
             neurotransmitter=Neurotransmitters.GLU.value,
             number=1,
             params=Neurons.NEUCOGAR.value
         )
 
-        interneuronal_pool.addSubNucleus(
+        self.interneuronal_pool.addSubNucleus(
             neurotransmitter=Neurotransmitters.GLU.value,
             number=1,
             params=Neurons.NEUCOGAR.value
         )
 
-        mediator.nuclei(Neurotransmitters.GLU.value).connect(
-            nucleus=polysynaptic_circuit.get_input().nuclei(Neurotransmitters.GLU.value),
+    def set_connections(self):
+        self.mediator.nuclei(Neurotransmitters.GLU.value).connect(
+            nucleus=self.polysynaptic_circuit.get_input().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
             weight=Weights.MR.value,
             conn_type=ConnectionTypes.ALL_TO_ALL.value
         )
-
-        for tier, weight in zip(polysynaptic_circuit.get_output(), Weights.LIP.value.reverse()):
+        for tier, weight in zip(self.polysynaptic_circuit.get_output(), Weights.LIP.value.reverse()):
             tier.nuclei(Neurotransmitters.GLU.value).connect(
-                nucleus=interneuronal_pool.nuclei(Neurotransmitters.GLU.value),
+                nucleus=self.interneuronal_pool.nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
                 weight=weight,
                 conn_type=ConnectionTypes.ALL_TO_ALL.value
             )
 
-        mediator.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
-        interneuronal_pool.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+    def connect_multimeters(self):
+        self.mediator.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+        self.interneuronal_pool.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 

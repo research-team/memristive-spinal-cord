@@ -10,8 +10,6 @@ from memristive_spinal_cord.layer2.models import ConnectionTypes
 class Tier:
     def __init__(self, index:int):
         """
-        The index in current scheme is three groups of neurons: excitatory left and right,
-        and one inhibitory group
         Args:
             index: a number of the index in order
         """
@@ -23,7 +21,6 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
-        self.left_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
         self.right_group = Nucleus(nucleus_name='Tier{}Right'.format(index))
         self.right_group.addSubNucleus(
@@ -31,7 +28,6 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
-        self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
         self.inhibitory_group = Nucleus(nucleus_name='Tier{}Inhibitory'.format(index))
         self.inhibitory_group.addSubNucleus(
@@ -39,13 +35,18 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+
+    def connect_multimeters(self):
+        self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+        self.left_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.inhibitory_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
+    def set_connections(self):
         # connect right group to left group
         self.right_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.RL.value.reverse()[index-1],
+            weight=Weights.RL.value.reverse()[self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -53,7 +54,7 @@ class Tier:
         self.left_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.LR.value.reverse()[index-1],
+            weight=Weights.LR.value.reverse()[self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -61,7 +62,7 @@ class Tier:
         self.inhibitory_group.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=Weights.IR.value.reverse()[index-1],
+            weight=Weights.IR.value.reverse()[self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -69,7 +70,7 @@ class Tier:
         self.right_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.inhibitory_group.nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.RI.value.reverse()[index-1],
+            weight=Weights.RI.value.reverse()[self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
