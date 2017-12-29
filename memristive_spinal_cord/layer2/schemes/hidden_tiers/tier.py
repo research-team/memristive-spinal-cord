@@ -70,30 +70,29 @@ class Tier:
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
-    def connect_to_tier(self, index):
+    def connect(self, tier):
         """
-        Connects this index to a lower index
+        Connects this tier to a lower tier
         Args:
-            index (Tier): a lower index
-
+            tier (Tier): a lower tier
         Returns:
             bool
 
         """
 
-        if self.index - index.get_index() == 1:
+        if self.index - tier.get_index() == 1:
 
             self.left_group.nuclei(Neurotransmitters.GLU.value).connect(
-                nucleus=index.get_left_group().nuclei(Neurotransmitters.GLU.value),
+                nucleus=tier.get_left_group().nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.LL.value.reverse()[index.get_index()-1],
+                weight=Weights.LL.value.reverse()[tier.get_index()-1],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
-            index.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
+            tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.RR.value.reverse()[index.get_index()-2],
+                weight=Weights.RR.value.reverse()[tier.get_index()-2],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
@@ -107,4 +106,4 @@ class Tier:
 
     def get_right_group(self): return self.right_group
 
-    def get_inhibitory_group(self): return self.inhibitory_group if self.inhibitory_group else None
+    def get_inhibitory_group(self): return self.inhibitory_group
