@@ -1,9 +1,9 @@
 from neucogar.Nucleus import Nucleus
 from memristive_spinal_cord.layer2.models import Neurotransmitters
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.parameters import Constants
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.neurons import Neurons
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.synapses import Synapses
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.parameters import Weights
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.neurons import Neurons
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.synapses import Synapses
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Weights
 from memristive_spinal_cord.layer2.models import ConnectionTypes
 
 

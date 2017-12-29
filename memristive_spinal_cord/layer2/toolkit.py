@@ -1,5 +1,5 @@
 import shutil
-from memristive_spinal_cord.layer2.schemes.basic.parameters import Paths
+from memristive_spinal_cord.layer2.schemes.basic.components.parameters import Paths
 
 
 class ToolKit():

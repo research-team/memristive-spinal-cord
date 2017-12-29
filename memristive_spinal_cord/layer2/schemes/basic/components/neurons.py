@@ -1,5 +1,5 @@
 from enum import Enum
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.parameters import Constants
+from memristive_spinal_cord.layer2.schemes.basic.components.parameters import Constants
 
 
 class Neurons(Enum):
