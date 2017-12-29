@@ -136,6 +136,28 @@ class HiddenWeights(Enum):
         0.
     ]
 
+    # Right to Right Up
+
+    RRU = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
+    # Right Down to Right
+
+    RDR = [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
+    ]
+
     # Right hidden Inhibitory group to Right group Down to lower tier
     IRD = [
         0.,
