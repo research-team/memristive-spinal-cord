@@ -24,24 +24,26 @@ class HiddenTier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
-
         self.right_excitatory.addSubNucleus(
             neurotransmitter=Neurotransmitters.GLU.value,
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
-
         self.left_inhibitory.addSubNucleus(
             neurotransmitter=Neurotransmitters.GABA.value,
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
-
         self.right_inhibitory.addSubNucleus(
             neurotransmitter=Neurotransmitters.GABA.value,
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+
+        self.left_excitatory.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+        self.right_excitatory.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+        self.left_inhibitory.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
+        self.right_inhibitory.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
 
         self.left_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
@@ -49,21 +51,18 @@ class HiddenTier:
             weight=HiddenWeights.LR.value.reverse()[self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
-
         self.right_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
             weight=HiddenWeights.RL.value.reverse()[self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
-
         self.right_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.left_inhibitory.nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GABAERGIC.value,
             weight=HiddenWeights.RI.value.reverse()[self.index - 1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
-
         self.left_inhibitory.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,

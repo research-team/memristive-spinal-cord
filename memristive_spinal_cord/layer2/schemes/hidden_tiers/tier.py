@@ -23,6 +23,7 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+        self.left_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
         self.right_group = Nucleus(nucleus_name='Tier{}Right'.format(index))
         self.right_group.addSubNucleus(
@@ -30,6 +31,7 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+        self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
         self.inhibitory_group = Nucleus(nucleus_name='Tier{}Inhibitory'.format(index))
         self.inhibitory_group.addSubNucleus(
@@ -37,6 +39,7 @@ class Tier:
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
+        self.inhibitory_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
         # connect right group to left group
         self.right_group.nuclei(Neurotransmitters.GLU.value).connect(
