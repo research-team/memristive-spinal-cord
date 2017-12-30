@@ -7,7 +7,6 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters im
 toolkit = HiddenTiersToolKit(
     os.path.abspath(os.path.dirname(__file__)), Paths.DATA_DIR_NAME.value
 )
-toolkit.clear_results()
 
 api_kernel.SetKernelStatus(
     local_num_threads=Constants.LOCAL_NUM_THREADS.value,
@@ -21,3 +20,4 @@ layer2 = Layer2()
 api_kernel.Simulate(Constants.SIMULATION_TIME.value)
 
 toolkit.plot_interneuronal_pool()
+toolkit.plot_column()

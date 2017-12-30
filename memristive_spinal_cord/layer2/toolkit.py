@@ -8,6 +8,8 @@ class ToolKit():
     def __init__(self, path, dirname):
         self.path = path
         self.dirname = dirname
+        self.clear_results(dirname)
+        self.clear_results('images')
 
     def clear_results(self, dirname=None):
         if not dirname: dirname = self.dirname
@@ -17,8 +19,22 @@ class ToolKit():
         except FileNotFoundError:
             pass
 
-    def plot_left_column(self):
-        pass # TODO implement plot_left_column()
+    def plot_column(self, show_results: bool=False, column: str='left'):
+        for tier in range(6, 0, -1):
+            filename = os.path.join(self.dirname, 'Tier{}{} [Glu].dat'.format(str(tier), column))
+            with open(filename) as data:
+                voltage = []
+                time = []
+                for line in data.readlines():
+                    time.append(line.split()[1])
+                    voltage.append(line.split()[2])
+
+            pylab.subplot(6, 1, 7 - tier)
+            pylab.plot(time, voltage)
+            title = 'Tier{}{}'.format(str(tier), column)
+            pylab.title(title)
+        if show_results: pylab.show()
+        pylab.savefig(fname=os.path.join(self.path, 'images/{}_column.png'.format(column)))
 
     def plot_interneuronal_pool(self, show_results: bool=False):
         __pool_slices = {}
@@ -56,6 +72,4 @@ class ToolKit():
             pylab.title('Slice{}'.format(str(i)))
 
         if show_results: pylab.show()
-        self.clear_results('images')
-        os.mkdir(os.path.join(self.path, 'images/pool'))
-        pylab.savefig(fname=os.path.join(self.path, 'images/pool/pool.png'))
+        pylab.savefig(fname=os.path.join(self.path, 'images/pool.png'))
