@@ -23,10 +23,10 @@ class HiddenTier:
 
         self.index = index
 
-        self.left_excitatory = Nucleus(nucleus_name='Tier{}LeftExcitatory'.format(self.index))
-        self.right_excitatory = Nucleus(nucleus_name='Tier{}RightExcitatory'.format(self.index))
-        self.right_inhibitory = Nucleus(nucleus_name='Tier{}RightInhibitory'.format(self.index))
-        self.left_inhibitory = Nucleus(nucleus_name='Tier{}LeftInhibitory'.format(self.index))
+        self.left_excitatory = Nucleus(nucleus_name='HiddenTier{}LeftExcitatory'.format(self.index))
+        self.right_excitatory = Nucleus(nucleus_name='HiddenTier{}RightExcitatory'.format(self.index))
+        self.right_inhibitory = Nucleus(nucleus_name='HiddenTier{}RightInhibitory'.format(self.index))
+        self.left_inhibitory = Nucleus(nucleus_name='HiddenTier{}LeftInhibitory'.format(self.index))
 
         self.left_excitatory.addSubNucleus(
             neurotransmitter=Neurotransmitters.GLU.value,
