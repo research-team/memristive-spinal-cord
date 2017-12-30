@@ -1,6 +1,5 @@
 import neucogar.api_kernel as api_kernel
 import os
-import shutil
 from memristive_spinal_cord.layer2.toolkit import ToolKit
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Paths
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
