@@ -5,7 +5,9 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters im
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
 
 toolkit = HiddenTiersToolKit(
-    os.path.abspath(os.path.dirname(__file__)), Paths.DATA_DIR_NAME.value
+    os.path.abspath(os.path.dirname(__file__)),
+    Paths.DATA_DIR_NAME.value,
+    Paths.FIGURES_DIR_NAME.value
 )
 
 api_kernel.SetKernelStatus(

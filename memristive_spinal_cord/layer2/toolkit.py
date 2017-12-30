@@ -5,14 +5,16 @@ import pylab
 
 class ToolKit():
 
-    def __init__(self, path, dirname):
+    def __init__(self, path, raw_data_dirname, figures_dirname):
         self.path = path
-        self.dirname = dirname
-        self.clear_results(dirname)
-        self.clear_results('images')
+        self.raw_data_dirname = raw_data_dirname
+        self.figures_dirname = figures_dirname
+
+        self.clear_results(raw_data_dirname)
+        self.clear_results(figures_dirname)
 
     def clear_results(self, dirname=None):
-        if not dirname: dirname = self.dirname
+        if not dirname: dirname = self.raw_data_dirname
         try:
             shutil.rmtree(path=os.path.join(self.path, dirname))
             os.mkdir(path=os.path.join(self.path, dirname))
@@ -21,7 +23,7 @@ class ToolKit():
 
     def plot_column(self, show_results: bool=False, column: str='left'):
         for tier in range(6, 0, -1):
-            filename = os.path.join(self.dirname, 'Tier{}{} [Glu].dat'.format(str(tier), column))
+            filename = os.path.join(self.raw_data_dirname, 'Tier{}{} [Glu].dat'.format(str(tier), column))
             with open(filename) as data:
                 voltage = []
                 time = []
@@ -34,7 +36,7 @@ class ToolKit():
             title = 'Tier{}{}'.format(str(tier), column)
             pylab.title(title)
         if show_results: pylab.show()
-        pylab.savefig(fname=os.path.join(self.path, 'images/{}_column.png'.format(column)))
+        pylab.savefig(fname=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
 
     def plot_interneuronal_pool(self, show_results: bool=False):
         __pool_slices = {}
@@ -44,8 +46,8 @@ class ToolKit():
         stimuli_times = 'stimuli_times'
         stimuli_voltages = 'stimuli_voltages'
 
-        pool = open('{}/{}'.format(os.path.join(self.path, self.dirname), 'InterneuronalPool [Glu].dat'))
-        stimuli = open('{}/{}'.format(os.path.join(self.path, self.dirname), 'Mediator [Glu].dat'))
+        pool = open('{}/{}'.format(os.path.join(self.path, self.raw_data_dirname), 'InterneuronalPool [Glu].dat'))
+        stimuli = open('{}/{}'.format(os.path.join(self.path, self.raw_data_dirname), 'Mediator [Glu].dat'))
 
         for line in pool.readlines():
             time, voltage = [float(value) for value in line.split()][1:]
@@ -72,4 +74,4 @@ class ToolKit():
             pylab.title('Slice{}'.format(str(i)))
 
         if show_results: pylab.show()
-        pylab.savefig(fname=os.path.join(self.path, 'images/pool.png'))
+        pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))

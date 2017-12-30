@@ -199,3 +199,4 @@ class Constants(Enum):
 
 class Paths(Enum):
     DATA_DIR_NAME = 'raw_data'
+    FIGURES_DIR_NAME = 'images'
