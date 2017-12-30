@@ -31,6 +31,7 @@ class Layer2:
         CreateNetwork(simulation_neuron_number=PolysynapticCircuit.get_number_of_neurons() + 2)
         self.set_connections()
         self.connect_multimeters()
+        self.connect_spike_generator()
 
     def set_connections(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).connect(
@@ -62,7 +63,7 @@ class Layer2:
     def connect_spike_generator(self):
         spike_generator = api_kernel.NEST.Create('spike_generator', 1, {
             'spike_times': Constants.SPIKE_GENERATOR_TIMES.value,
-            'spike_weights': Constants.SPIKE_GENERATOR_WEIGHTS
+            'spike_weights': Constants.SPIKE_GENERATOR_WEIGHTS.value
         })
 
         api_kernel.NEST.Connect(

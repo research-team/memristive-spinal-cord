@@ -95,7 +95,7 @@ class Weights(Enum):
 
     # Spike generator weight
 
-    SG = 0.
+    SG = 200.
 
 
 class HiddenWeights(Enum):
