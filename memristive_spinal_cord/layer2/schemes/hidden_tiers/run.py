@@ -5,7 +5,7 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters im
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
 
 
-path = os.path.join(Paths.RESULTS_DIR.value, Paths.DATA_DIR_NAME.value)
+path = os.path.join(os.path.abspath(os.path.dirname(__file__)), Paths.DATA_DIR_NAME.value)
 try:
     shutil.rmtree(path)
 except FileNotFoundError:

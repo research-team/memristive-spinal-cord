@@ -194,9 +194,8 @@ class Constants(Enum):
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
 
     RESOLUTION = 0.1
-    LOCAL_NUM_THREADS = 2
+    LOCAL_NUM_THREADS = 4
 
 
 class Paths(Enum):
-    RESULTS_DIR = '/tmp/msc/results/'
     DATA_DIR_NAME = 'raw_data'
