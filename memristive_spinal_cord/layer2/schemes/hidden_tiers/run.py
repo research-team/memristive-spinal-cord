@@ -1,13 +1,13 @@
 import neucogar.api_kernel as api_kernel
 import os
-from memristive_spinal_cord.layer2.toolkit import ToolKit
+from memristive_spinal_cord.layer2.schemes.hidden_tiers.toolkit import HiddenTiersToolKit
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Paths
 from memristive_spinal_cord.layer2.schemes.hidden_tiers.components.parameters import Constants
 
-
-ToolKit.clear_results(
-    os.path.join(os.path.abspath(os.path.dirname(__file__)), Paths.DATA_DIR_NAME.value)
+toolkit = HiddenTiersToolKit(
+    os.path.abspath(os.path.dirname(__file__)), Paths.DATA_DIR_NAME.value
 )
+toolkit.clear_results()
 
 api_kernel.SetKernelStatus(
     local_num_threads=Constants.LOCAL_NUM_THREADS.value,
