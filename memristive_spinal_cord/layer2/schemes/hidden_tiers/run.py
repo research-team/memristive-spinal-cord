@@ -19,3 +19,5 @@ from memristive_spinal_cord.layer2.schemes.hidden_tiers.layer2 import Layer2
 layer2 = Layer2()
 
 api_kernel.Simulate(Constants.SIMULATION_TIME.value)
+
+toolkit.plot_interneuronal_pool()
