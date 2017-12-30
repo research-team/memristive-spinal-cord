@@ -1,12 +1,10 @@
 import shutil
-from memristive_spinal_cord.layer2.schemes.basic.components.parameters import Paths
 
 
 class ToolKit():
 
-    def clear_results(self):
-        path = Paths.RESULTS_DIR.value
-
+    @staticmethod
+    def clear_results(path):
         try:
             shutil.rmtree(path=path)
         except FileNotFoundError:
