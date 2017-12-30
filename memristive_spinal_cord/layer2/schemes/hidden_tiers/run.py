@@ -21,5 +21,6 @@ layer2 = Layer2()
 
 api_kernel.Simulate(Constants.SIMULATION_TIME.value)
 
-toolkit.plot_interneuronal_pool()
-toolkit.plot_column()
+# toolkit.plot_interneuronal_pool(show_results=True)
+toolkit.plot_column(show_results=True, column='Right')
+# toolkit.plot_hidden_layers(show_results=True)

@@ -10,7 +10,7 @@ class ToolKit():
         self.raw_data_dirname = raw_data_dirname
         self.figures_dirname = figures_dirname
 
-        self.clear_results(raw_data_dirname)
+        self.clear_results()
         self.clear_results(figures_dirname)
 
     def clear_results(self, dirname=None):
@@ -21,22 +21,24 @@ class ToolKit():
         except FileNotFoundError:
             pass
 
-    def plot_column(self, show_results: bool=False, column: str='left'):
+    def plot_column(self, show_results: bool=False, column: str='Left'):
         for tier in range(6, 0, -1):
             filename = os.path.join(self.raw_data_dirname, 'Tier{}{} [Glu].dat'.format(str(tier), column))
             with open(filename) as data:
                 voltage = []
                 time = []
                 for line in data.readlines():
-                    time.append(line.split()[1])
-                    voltage.append(line.split()[2])
-
+                    time.append(float(line.split()[1]))
+                    voltage.append(float(line.split()[2]))
             pylab.subplot(6, 1, 7 - tier)
             pylab.plot(time, voltage)
             title = 'Tier{}{}'.format(str(tier), column)
             pylab.title(title)
-        if show_results: pylab.show()
-        pylab.savefig(fname=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
+        if show_results:
+            pylab.show()
+        else:
+            pylab.savefig(fname=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
+        pylab.close('all')
 
     def plot_interneuronal_pool(self, show_results: bool=False):
         __pool_slices = {}
@@ -73,5 +75,8 @@ class ToolKit():
             pylab.plot(__stimuli_slices[i][stimuli_times], __stimuli_slices[i][stimuli_voltages])
             pylab.title('Slice{}'.format(str(i)))
 
-        if show_results: pylab.show()
-        pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
+        if show_results:
+            pylab.show()
+        else:
+            pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
+        pylab.close('all')

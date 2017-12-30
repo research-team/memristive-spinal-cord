@@ -91,7 +91,7 @@ class Weights(Enum):
     # Mediator neuron to Right group connection weights
     # MR means (M)ediator to (R)ight group of Tier1
 
-    MR = 0.
+    MR = 150.
 
     # Spike generator weight
 
