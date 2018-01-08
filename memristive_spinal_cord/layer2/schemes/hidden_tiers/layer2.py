@@ -52,6 +52,8 @@ class Layer2:
         for hidden_tier in self.polysynaptic_circuit.get_hidden_tiers():
             hidden_tier.set_connections()
 
+        self.polysynaptic_circuit.set_connections()
+
     def connect_multimeters(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.interneuronal_pool.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
