@@ -106,7 +106,7 @@ class HiddenTier:
         )
 
         upper_tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
-            nucleus=self.get_right_inhibitory().nuclei(Neurotransmitters.GLU.value),
+            nucleus=self.get_right_inhibitory().nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GLUTAMATERGIC.value,
             weight=HiddenWeights.RID.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
