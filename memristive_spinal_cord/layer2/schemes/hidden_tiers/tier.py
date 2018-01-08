@@ -108,7 +108,7 @@ class Tier:
             tier.get_right_group().nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.right_group.nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.RR.value[::-1][tier.get_index()-2],
+                weight=Weights.RR.value[::-1][tier.get_index()-1],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
