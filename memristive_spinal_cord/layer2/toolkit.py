@@ -33,11 +33,18 @@ class ToolKit():
             pylab.subplot(6, 1, 7 - tier)
             pylab.plot(time, voltage)
             title = 'Tier{}{}'.format(str(tier), column)
-            pylab.title(title)
+            pylab.title(title, fontsize=10)
+            pylab.subplots_adjust(
+                left=0.07,
+                bottom=0.07,
+                right=0.97,
+                top=0.95,
+                hspace=0.70
+            )
         if show_results:
             pylab.show()
         else:
-            pylab.savefig(fname=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
+            pylab.savefig(filename=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
         pylab.close('all')
 
     def plot_interneuronal_pool(self, show_results: bool=False):
