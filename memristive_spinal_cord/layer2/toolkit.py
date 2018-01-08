@@ -15,11 +15,9 @@ class ToolKit():
 
     def clear_results(self, dirname=None):
         if not dirname: dirname = self.raw_data_dirname
-        try:
+        if os.path.isdir(os.path.join(self.path, dirname)):
             shutil.rmtree(path=os.path.join(self.path, dirname))
-            os.mkdir(path=os.path.join(self.path, dirname))
-        except FileNotFoundError:
-            pass
+        os.mkdir(path=os.path.join(self.path, dirname))
 
     def plot_column(self, show_results: bool=False, column: str='Left'):
         for tier in range(6, 0, -1):
