@@ -31,10 +31,10 @@ class HiddenTiersToolKit(ToolKit):
                     pylab.title('HiddenTier{}{}{}'.format(str(hidden_tier), side, type))
                     pylab.subplots_adjust(
                         left=0.07,
-                        right=0.99,
-                        bottom=0.03,
-                        top=0.97,
-                        hspace=0.30
+                        right=0.97,
+                        bottom=0.07,
+                        top=0.95,
+                        hspace=0.66
                     )
             if show_results:
                 pylab.show()
@@ -46,5 +46,5 @@ class HiddenTiersToolKit(ToolKit):
                 path = os.path.join(path, figures_dirname)
                 if not os.path.isdir(path):
                     os.mkdir(path=path)
-                pylab.savefig(fname=os.path.join(path, 'HiddenTier{}'.format(str(hidden_tier))))
+                pylab.savefig(filename=os.path.join(path, 'HiddenTier{}'.format(str(hidden_tier))))
             pylab.close('all')
