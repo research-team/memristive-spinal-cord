@@ -74,6 +74,13 @@ class ToolKit():
             pylab.plot(__pool_slices[i][pool_times], __pool_slices[i][pool_voltages])
             pylab.plot(__stimuli_slices[i][stimuli_times], __stimuli_slices[i][stimuli_voltages])
             pylab.title('Slice{}'.format(str(i)))
+            pylab.subplots_adjust(
+                left=0.05,
+                bottom=0.04,
+                right=0.99,
+                top=0.97,
+                hspace=0.35
+            )
 
         if show_results:
             pylab.show()
