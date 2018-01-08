@@ -79,7 +79,7 @@ class HiddenTier:
         self.left_inhibitory.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.right_excitatory.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.IR.value[::-1][self.index-1],
+            weight=-HiddenWeights.IR.value[::-1][self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -101,7 +101,7 @@ class HiddenTier:
         self.get_right_inhibitory().nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=lower_tier.get_right_group().nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.IRD.value[::-1][self.get_index()-1],
+            weight=-HiddenWeights.IRD.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
