@@ -184,7 +184,7 @@ class Constants(Enum):
 
     REFRACTORY_PERIOD = [1.8, 2.2]
     ACTION_TIME_EX = 0.5
-    ACTION_TIME_INH = 0.5
+    ACTION_TIME_INH = 5.
 
     SIMULATION_TIME = 100.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
