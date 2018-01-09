@@ -103,7 +103,7 @@ Each motoneuron connected to all 1A fibers without any tricks and randomness.
 
 Connect each interneuron 62 times with all fibers randomly picking the fiber each connection.
 - from *SynFlexFlex.hoc:68-78*
-- nest connection type: fixed-outdegree 62 `FromAll_IAf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 62 `FromAll_IAf_ToOne_IAint`. InterNeurons are 'in'. Uniform.
 - delay: 2 + Normal(0, 0.03) ms. `Ia+taur.normal(0,0.03)`
 - weight: 0.0175, `hi= 0.0175`
 
@@ -119,14 +119,14 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 **flexor 2-Fibers - flexor 2-Excitatory InterNeurons**
 
 - from *SynFlexFlex.hoc:95-106*
-- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_EXIN`. InterNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 62 `FromAll_IIf_ToOne_EXIN`. InterNeurons are 'in'. Uniform.
 - delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
 - weight: 0.0175, `hi= 0.0175`
 
 **flexor 2-Fibers - flexor 1A-Inhibitory InterNeurons**
 
 - from *SynFlexFlex.hoc:108-119*
-- nest connection type: fixed-outdegree 62 `FromAll_IIf_ToOne_IAint`. InterNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 62 `FromAll_IIf_ToOne_IAint`. InterNeurons are 'in'. Uniform.
 - delay: 3 + Normal(0, 0.03) ms, `II+taur.normal(0,0.03)`
 - weight: 0.0175, `hi= 0.0175`
 
