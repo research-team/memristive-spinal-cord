@@ -110,7 +110,7 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 **flexor 2-Excitatory InterNeurons - flexor MotoNeurons**
 
 - from *SynFlexFlex.hoc:81-92*, *M_Cell.hoc:128-140*
-- nest connection type: fixed-outdegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 116 `FromAll_EXIN_ToOne_MN`. MotoNeurons are 'in'. Uniform.
 - Neuron type: [ExpSyn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#ExpSyn) with `e=0, tau=0.5`.
 - Nest type: none specific. Please see [below](#neuron-to-nest).   
 - delay: 1ms, `tausyn=1`
@@ -133,14 +133,14 @@ Connect each interneuron 62 times with all fibers randomly picking the fiber eac
 **extensor 1A-Inhibitory InterNeurons - flexor 1A-Inhibitory InterNeurons**
 
 - from *SynExtFlex.hoc:6-18*
-- nest connection type: fixed-outdegree 100 `FromAll_IAint_ToOne_IAint`. Flexor InterNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 100 `FromAll_IAint_ToOne_IAint`. Flexor InterNeurons are 'in'. Uniform.
 - delay: 1ms, `tausyn=1`
 - weight: -0.007, `-(lo=0.007)`
 
 **flexor 1A-Inhibitory InterNeurons - extensor 1A-Inhibitory InterNeurons**
 
 - from *SynExtFlex.hoc:20-30*
-- nest connection type: fixed-outdegree 100 `FromAll_IAint_ToOne_IAint`. Extensor InterNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 100 `FromAll_IAint_ToOne_IAint`. Extensor InterNeurons are 'in'. Uniform.
 - delay: 1ms, `tausyn=1`. **Warning, in the sources this delay is missing**
 - weight: -0.007, `-(lo=0.007)`
 
@@ -157,7 +157,7 @@ Every motoneuron connected 232 times randomly to the pool of interneurons. There
 **flexor 1A-Inhibitory InterNeurons - extensor MotoNeurons**
 
 - from *SynExtFlex.hoc:46-57*, *M_Cell.hoc:141-147*
-- nest connection type: fixed-outdegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'out'. Uniform.
+- nest connection type: fixed-indegree 232 `FromAll_IAint_ToOne_MN`. MotoNeurons are 'in'. Uniform.
 - type: [Exp2Syn](https://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/mech.html#Exp2Syn) with `e=-75, tau1=1.5, tau2=2`.   
 - Nest type: none specific. Please see [below](#neuron-to-nest).
 - delay: 1ms, `tausyn=1`

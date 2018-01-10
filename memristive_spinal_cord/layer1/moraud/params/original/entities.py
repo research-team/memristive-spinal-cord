@@ -45,10 +45,9 @@ params_storage[Layer1Neurons.EXTENS_INTER_2] = NeuronGroupParams(
 
 
 motor_model_params = {
-    'tau_m': 2.5,
     'tau_syn_ex': 0.5,
     'tau_syn_in': 1.5,
-    't_ref': 0.0,
+    't_ref': 2.0, # 'tau_m': 2.5
 }
 motor_model_number = 169
 motor_model_type = 'hh_psc_alpha'
