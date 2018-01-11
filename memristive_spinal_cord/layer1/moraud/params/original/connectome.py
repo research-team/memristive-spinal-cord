@@ -1,7 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
-from memristive_spinal_cord.layer1.moraud.afferents import Layer1Afferents
-from memristive_spinal_cord.layer1.params.connection_params import ConnectionParams
-from memristive_spinal_cord.layer1.params.connection_params_storage import ConnectionParamsStorage
+from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups, Layer1Afferents, Layer1Multimeters
 
 distr_normal_2 = {'distribution': 'normal', 'mu': 2.0, 'sigma': 0.175}  # 0.175^2 = 0.03
 distr_normal_3 = {'distribution': 'normal', 'mu': 3.0, 'sigma': 0.175}  # 0.175^2 = 0.03
@@ -67,68 +64,69 @@ conn_spec_inter1a_motor = {
     'indegree': 232,
 }
 
-params_storage = ConnectionParamsStorage()
+connection_params = []
 
 ######## FLEX SOURCES #########
 # source is Layer1Afferents.FLEX_1A,
-params_storage.add(
-    ConnectionParams(
+
+connection_params.append(
+    dict(
         pre=Layer1Afferents.FLEX_1A,
-        post=Layer1Neurons.FLEX_MOTOR,
+        post=Layer1NeuronGroups.FLEX_MOTOR,
         syn_spec=syn_spec_afferent1a_motor,
         conn_spec=conn_spec_afferent1a_motor,
     )
 )
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.FLEX_1A,
-        post=Layer1Neurons.FLEX_INTER_1A,
+        post=Layer1NeuronGroups.FLEX_INTER_1A,
         syn_spec=syn_spec_afferent1a_inter1a,
         conn_spec=conn_spec_afferent1a_inter1a,
     )
 )
 
 # source is Layer1Afferents.FLEX_2
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.FLEX_2,
-        post=Layer1Neurons.FLEX_INTER_2,
+        post=Layer1NeuronGroups.FLEX_INTER_2,
         syn_spec=syn_spec_afferent2_inter2,
         conn_spec=conn_spec_afferent2_inter2,
     )
 )
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.FLEX_2,
-        post=Layer1Neurons.FLEX_INTER_1A,
+        post=Layer1NeuronGroups.FLEX_INTER_1A,
         syn_spec=syn_spec_afferent2_inter1a,
         conn_spec=conn_spec_afferent2_inter1a,
     )
 )
 
-# source is Layer1Neurons.FLEX_INTER_2
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.FLEX_INTER_2,
-        post=Layer1Neurons.FLEX_MOTOR,
+# source is Layer1NeuronGroups.FLEX_INTER_2
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.FLEX_INTER_2,
+        post=Layer1NeuronGroups.FLEX_MOTOR,
         syn_spec=syn_spec_inter2_motor,
         conn_spec=conn_spec_inter2_motor,
     )
 )
 
-# source is Layer1Neurons.FLEX_INTER_1A
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.FLEX_INTER_1A,
-        post=Layer1Neurons.EXTENS_INTER_1A,
+# source is Layer1NeuronGroups.FLEX_INTER_1A
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.FLEX_INTER_1A,
+        post=Layer1NeuronGroups.EXTENS_INTER_1A,
         syn_spec=syn_spec_inter1a_inter1a,
         conn_spec=conn_spec_inter1a_inter1a,
     )
 )
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.FLEX_INTER_1A,
-        post=Layer1Neurons.EXTENS_MOTOR,
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.FLEX_INTER_1A,
+        post=Layer1NeuronGroups.EXTENS_MOTOR,
         syn_spec=syn_spec_inter1a_motor,
         conn_spec=conn_spec_inter1a_motor,
     )
@@ -136,65 +134,73 @@ params_storage.add(
 
 ######## EXTENSOR SOURCES #########
 # source is Layer1Afferents.EXTENS_1A,
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.EXTENS_1A,
-        post=Layer1Neurons.EXTENS_MOTOR,
+        post=Layer1NeuronGroups.EXTENS_MOTOR,
         syn_spec=syn_spec_afferent1a_motor,
         conn_spec=conn_spec_afferent1a_motor,
     )
 )
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.EXTENS_1A,
-        post=Layer1Neurons.EXTENS_INTER_1A,
+        post=Layer1NeuronGroups.EXTENS_INTER_1A,
         syn_spec=syn_spec_afferent1a_inter1a,
         conn_spec=conn_spec_afferent1a_inter1a,
     )
 )
 
 # source is Layer1Afferents.EXTENS_2
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.EXTENS_2,
-        post=Layer1Neurons.EXTENS_INTER_2,
+        post=Layer1NeuronGroups.EXTENS_INTER_2,
         syn_spec=syn_spec_afferent2_inter2,
         conn_spec=conn_spec_afferent2_inter2,
     )
 )
-params_storage.add(
-    ConnectionParams(
+connection_params.append(
+    dict(
         pre=Layer1Afferents.EXTENS_2,
-        post=Layer1Neurons.EXTENS_INTER_1A,
+        post=Layer1NeuronGroups.EXTENS_INTER_1A,
         syn_spec=syn_spec_afferent2_inter1a,
         conn_spec=conn_spec_afferent2_inter1a,
     )
 )
 
-# source is Layer1Neurons.EXTENS_INTER_2
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.EXTENS_INTER_2,
-        post=Layer1Neurons.EXTENS_MOTOR,
+# source is Layer1NeuronGroups.EXTENS_INTER_2
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.EXTENS_INTER_2,
+        post=Layer1NeuronGroups.EXTENS_MOTOR,
         syn_spec=syn_spec_inter2_motor,
         conn_spec=conn_spec_inter2_motor,
     )
 )
 
-# source is Layer1Neurons.EXTENS_INTER_1A
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.EXTENS_INTER_1A,
-        post=Layer1Neurons.FLEX_INTER_1A,
+# source is Layer1NeuronGroups.EXTENS_INTER_1A
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.EXTENS_INTER_1A,
+        post=Layer1NeuronGroups.FLEX_INTER_1A,
         syn_spec=syn_spec_inter1a_inter1a,
         conn_spec=conn_spec_inter1a_inter1a,
     )
 )
-params_storage.add(
-    ConnectionParams(
-        pre=Layer1Neurons.EXTENS_INTER_1A,
-        post=Layer1Neurons.FLEX_MOTOR,
+connection_params.append(
+    dict(
+        pre=Layer1NeuronGroups.EXTENS_INTER_1A,
+        post=Layer1NeuronGroups.FLEX_MOTOR,
         syn_spec=syn_spec_inter1a_motor,
         conn_spec=conn_spec_inter1a_motor,
+    )
+)
+
+########## Devices ########
+connection_params.append(
+    dict(
+        pre=Layer1Multimeters.FLEX_INTER_1A,
+        post=Layer1NeuronGroups.FLEX_INTER_1A,
     )
 )

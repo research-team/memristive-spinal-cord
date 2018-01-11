@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
+from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups
 
 neuron_group_params = dict()
 
@@ -16,25 +16,25 @@ inter_model_params = {
 inter_model_number = 196
 inter_model_type = 'iaf_psc_alpha'
 
-neuron_group_params[Layer1Neurons.FLEX_INTER_1A] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_INTER_1A] = dict(
     model=inter_model_type,
     params=inter_model_params,
     n=inter_model_number,
 )
 
-neuron_group_params[Layer1Neurons.EXTENS_INTER_1A] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_INTER_1A] = dict(
     model=inter_model_type,
     params=inter_model_params,
     n=inter_model_number,
 )
 
-neuron_group_params[Layer1Neurons.FLEX_INTER_2] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_INTER_2] = dict(
     model=inter_model_type,
     params=inter_model_params,
     n=inter_model_number,
 )
 
-neuron_group_params[Layer1Neurons.EXTENS_INTER_2] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_INTER_2] = dict(
     model=inter_model_type,
     params=inter_model_params,
     n=inter_model_number,
@@ -49,12 +49,12 @@ motor_model_params = {
 motor_model_number = 169
 motor_model_type = 'hh_psc_alpha'
 
-neuron_group_params[Layer1Neurons.EXTENS_MOTOR] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_MOTOR] = dict(
     model=motor_model_type,
     params=motor_model_params,
     n=motor_model_number,
 )
-neuron_group_params[Layer1Neurons.FLEX_MOTOR] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_MOTOR] = dict(
     model=motor_model_type,
     params=motor_model_params,
     n=motor_model_number,

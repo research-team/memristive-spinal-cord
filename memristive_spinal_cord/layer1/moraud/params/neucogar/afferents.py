@@ -1,5 +1,5 @@
 import memristive_spinal_cord.layer1.afferents as afferents
-from memristive_spinal_cord.layer1.moraud.afferents import Layer1Afferents
+from memristive_spinal_cord.layer1.moraud.entities import Layer1Afferents
 
 afferent_params = dict()
 

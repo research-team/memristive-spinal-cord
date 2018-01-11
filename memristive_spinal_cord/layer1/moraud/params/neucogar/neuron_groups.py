@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.neuron_groups import Layer1Neurons
+from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups
 
 general_neuron_model = {
     # 't_ref': [2.5, 4.0],  # Refractory period
@@ -20,37 +20,37 @@ neuron_group_params = dict()
 
 nest_neuron_model = "hh_cond_exp_traub"
 
-neuron_group_params[Layer1Neurons.FLEX_MOTOR] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_MOTOR] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
 )
 
-neuron_group_params[Layer1Neurons.EXTENS_MOTOR] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_MOTOR] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
 )
 
-neuron_group_params[Layer1Neurons.FLEX_INTER_1A] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_INTER_1A] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
 )
 
-neuron_group_params[Layer1Neurons.EXTENS_INTER_1A] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_INTER_1A] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
 )
 
-neuron_group_params[Layer1Neurons.FLEX_INTER_2] = dict(
+neuron_group_params[Layer1NeuronGroups.FLEX_INTER_2] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
 )
 
-neuron_group_params[Layer1Neurons.EXTENS_INTER_2] = dict(
+neuron_group_params[Layer1NeuronGroups.EXTENS_INTER_2] = dict(
     model=nest_neuron_model,
     params=general_neuron_model,
     n=neuron_number_in_group,
