@@ -2,7 +2,7 @@ import definitions
 from memristive_spinal_cord.layer1.moraud.entities import Layer1Multimeters
 
 device_params = dict()
-storage_dir = definitions.RESULTS_DIR,
+storage_dir = definitions.RESULTS_DIR
 
 
 def add_multimeter_params(multimeter):

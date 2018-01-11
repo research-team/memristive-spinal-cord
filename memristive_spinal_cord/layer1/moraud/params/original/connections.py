@@ -64,12 +64,12 @@ conn_spec_inter1a_motor = {
     'indegree': 232,
 }
 
-connection_params = []
+connection_params_list = []
 
 ######## FLEX SOURCES #########
 # source is Layer1Afferents.FLEX_1A,
 
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.FLEX_1A,
         post=Layer1NeuronGroups.FLEX_MOTOR,
@@ -77,7 +77,7 @@ connection_params.append(
         conn_spec=conn_spec_afferent1a_motor,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.FLEX_1A,
         post=Layer1NeuronGroups.FLEX_INTER_1A,
@@ -87,7 +87,7 @@ connection_params.append(
 )
 
 # source is Layer1Afferents.FLEX_2
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.FLEX_2,
         post=Layer1NeuronGroups.FLEX_INTER_2,
@@ -95,7 +95,7 @@ connection_params.append(
         conn_spec=conn_spec_afferent2_inter2,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.FLEX_2,
         post=Layer1NeuronGroups.FLEX_INTER_1A,
@@ -105,7 +105,7 @@ connection_params.append(
 )
 
 # source is Layer1NeuronGroups.FLEX_INTER_2
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.FLEX_INTER_2,
         post=Layer1NeuronGroups.FLEX_MOTOR,
@@ -115,7 +115,7 @@ connection_params.append(
 )
 
 # source is Layer1NeuronGroups.FLEX_INTER_1A
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.FLEX_INTER_1A,
         post=Layer1NeuronGroups.EXTENS_INTER_1A,
@@ -123,7 +123,7 @@ connection_params.append(
         conn_spec=conn_spec_inter1a_inter1a,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.FLEX_INTER_1A,
         post=Layer1NeuronGroups.EXTENS_MOTOR,
@@ -134,7 +134,7 @@ connection_params.append(
 
 ######## EXTENSOR SOURCES #########
 # source is Layer1Afferents.EXTENS_1A,
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.EXTENS_1A,
         post=Layer1NeuronGroups.EXTENS_MOTOR,
@@ -142,7 +142,7 @@ connection_params.append(
         conn_spec=conn_spec_afferent1a_motor,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.EXTENS_1A,
         post=Layer1NeuronGroups.EXTENS_INTER_1A,
@@ -152,7 +152,7 @@ connection_params.append(
 )
 
 # source is Layer1Afferents.EXTENS_2
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.EXTENS_2,
         post=Layer1NeuronGroups.EXTENS_INTER_2,
@@ -160,7 +160,7 @@ connection_params.append(
         conn_spec=conn_spec_afferent2_inter2,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Afferents.EXTENS_2,
         post=Layer1NeuronGroups.EXTENS_INTER_1A,
@@ -170,7 +170,7 @@ connection_params.append(
 )
 
 # source is Layer1NeuronGroups.EXTENS_INTER_2
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.EXTENS_INTER_2,
         post=Layer1NeuronGroups.EXTENS_MOTOR,
@@ -180,7 +180,7 @@ connection_params.append(
 )
 
 # source is Layer1NeuronGroups.EXTENS_INTER_1A
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.EXTENS_INTER_1A,
         post=Layer1NeuronGroups.FLEX_INTER_1A,
@@ -188,7 +188,7 @@ connection_params.append(
         conn_spec=conn_spec_inter1a_inter1a,
     )
 )
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1NeuronGroups.EXTENS_INTER_1A,
         post=Layer1NeuronGroups.FLEX_MOTOR,
@@ -198,7 +198,7 @@ connection_params.append(
 )
 
 ########## Devices ########
-connection_params.append(
+connection_params_list.append(
     dict(
         pre=Layer1Multimeters.FLEX_INTER_1A,
         post=Layer1NeuronGroups.FLEX_INTER_1A,
