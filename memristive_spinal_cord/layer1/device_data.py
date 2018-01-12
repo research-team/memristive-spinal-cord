@@ -82,16 +82,10 @@ def extract_device_data(device_name, value_names, storage_dir):
     return None
 
 
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Multimeters
-from memristive_spinal_cord.layer1.moraud.params.original.devices import device_params
-
-device_data = extract_device_data(
-    Layer1Multimeters.EXTENS_INTER_1A,
-    device_params[Layer1Multimeters.EXTENS_INTER_1A]['params']['record_from'],
-    "/home/asanin/workspace/xxx/memristive-spinal-cord/results"
-)
-
-average = device_data.average('V_m')
-partial_data = device_data.get_data_for_neurons([126, 127])
-
-print('asdasd')
+def get_average_voltage(device_name, storage_dir):
+    data = extract_device_data(
+        device_name,
+        ['V_m'],
+        storage_dir
+    )
+    return data.average('V_m')

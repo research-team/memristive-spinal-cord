@@ -15,13 +15,13 @@ class ResultsPlotter:
         pylab.show()
 
     def subplot(self, flexor, extensor, title):
-        if self._plot_index >= self._rows_number:
+        if self._plot_index > self._rows_number:
             raise ValueError("Too many subplots!")
         pylab.subplot(self._rows_number, self._cols_number, self._plot_index)
         self._plot_index += 1
 
-        pylab.plot(flexor['time'], flexor['value'], 'r', label='flexor')
-        pylab.plot(extensor['time'], extensor['value'], 'b', label='extensor')
+        pylab.plot(flexor.keys(), flexor.values(), 'r', label='flexor')
+        pylab.plot(extensor.keys(), extensor.values(), 'b', label='extensor')
 
         pylab.ylabel(title)
         pylab.legend()
