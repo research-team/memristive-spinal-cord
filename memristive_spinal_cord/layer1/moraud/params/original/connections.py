@@ -204,3 +204,33 @@ connection_params_list.append(
         post=Layer1NeuronGroups.FLEX_INTER_1A,
     )
 )
+connection_params_list.append(
+    dict(
+        pre=Layer1Multimeters.EXTENS_INTER_1A,
+        post=Layer1NeuronGroups.EXTENS_INTER_1A,
+    )
+)
+connection_params_list.append(
+    dict(
+        pre=Layer1Multimeters.FLEX_INTER_2,
+        post=Layer1NeuronGroups.FLEX_INTER_2,
+    )
+)
+connection_params_list.append(
+    dict(
+        pre=Layer1Multimeters.EXTENS_INTER_2,
+        post=Layer1NeuronGroups.EXTENS_INTER_2,
+    )
+)
+connection_params_list.append(
+    dict(
+        pre=Layer1Multimeters.FLEX_MOTOR,
+        post=Layer1NeuronGroups.FLEX_MOTOR,
+    )
+)
+connection_params_list.append(
+    dict(
+        pre=Layer1Multimeters.EXTENS_MOTOR,
+        post=Layer1NeuronGroups.EXTENS_MOTOR,
+    )
+)
