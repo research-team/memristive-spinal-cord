@@ -59,6 +59,7 @@ class Tier:
         self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.left_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.inhibitory_group.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
+        self.control_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
     def set_connections(self):
         # connect right group to left group

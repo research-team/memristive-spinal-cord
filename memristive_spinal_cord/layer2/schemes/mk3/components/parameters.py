@@ -49,7 +49,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        25.
+        70.
     ]
 
     # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
@@ -68,12 +68,12 @@ class Weights(Enum):
     # IR[N] means (I)nhibitory group to (R)ight group of Tier(N+1)
 
     IL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        30.
+        6.8,
+        6.8,
+        6.8,
+        6.8,
+        6.8,
+        6.8
     ]
 
     # Left group to Interneuronal Pool connection weights
@@ -89,11 +89,11 @@ class Weights(Enum):
     ]
 
     CR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        150.,
+        150.,
+        150.,
+        150.,
+        150.,
         150.
     ]
 
@@ -116,7 +116,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        150.
+        95.
     ]
 
     # Right hidden group to Left hidden group
@@ -126,56 +126,35 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        150.
+        100.
     ]
 
     # Left Excitatory to Right Inhibitory
     LERI = [
-        0.,
-        0.,
-        0.,
-        0.,
+        150.,
+        150.,
+        150.,
+        150.,
         150.
     ]
 
     # Right Inhibitory to Right Excitatory
     RIRE = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
-    ]
-
-    # Left to Right Up
-
-    LRU = [
-        40.,
-        40.,
-        40.,
-        40.,
-        40.
+        5.7,
+        5.7,
+        5.7,
+        5.7,
+        5.7
     ]
 
     # Left Excitatory to Control Up
 
     LCU = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
-    ]
-
-    # Right Down to Right
-
-    RDR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        50.
+        15.,
+        15.,
+        15.,
+        15.,
+        15.
     ]
 
     # Right hidden Inhibitory group to Right group Down to lower tier
@@ -193,17 +172,17 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        150.
+        100.
     ]
 
     # Control Down to Left
 
     CDL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+        100.,
+        100.,
+        100.,
+        100.,
+        100.
     ]
 
 
@@ -222,7 +201,7 @@ class Constants(Enum):
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
 
     RESOLUTION = 0.1
-    LOCAL_NUM_THREADS = 4
+    LOCAL_NUM_THREADS = 2
 
 
 class Paths(Enum):

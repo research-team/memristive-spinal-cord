@@ -13,7 +13,7 @@ class PolysynapticCircuit:
             upper_tier.connect(tier=lower_tier)
             hidden_tier.connect(upper_tier=upper_tier, lower_tier=lower_tier)
     
-    def get_input(self): return self.tiers[0].get_right_group()
+    def get_input(self): return self.tiers[0].get_control_group()
 
     def get_output(self): return [tier.get_left_group() for tier in self.tiers]
 

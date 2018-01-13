@@ -77,6 +77,6 @@ class Layer2:
         self.mediator.nuclei(Neurotransmitters.GLU.value).ConnectPoissonGenerator(
             weight=Weights.SG.value,
             start=1,
-            stop=6,
-            rate=40
+            stop=5,
+            rate=100
         )

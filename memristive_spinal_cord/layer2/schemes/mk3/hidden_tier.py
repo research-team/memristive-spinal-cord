@@ -72,8 +72,8 @@ class HiddenTier:
         )
         self.left_excitatory.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.right_inhibitory.nuclei(Neurotransmitters.GABA.value),
-            synapse=Synapses.GABAERGIC.value,
-            weight=HiddenWeights.RIRE.value[::-1][self.index - 1],
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=HiddenWeights.LERI.value[::-1][self.index - 1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.right_inhibitory.nuclei(Neurotransmitters.GABA.value).connect(
