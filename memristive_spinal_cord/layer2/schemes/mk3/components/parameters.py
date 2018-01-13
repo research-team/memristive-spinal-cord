@@ -10,11 +10,11 @@ class Weights(Enum):
     # RL[N] means (R)ight group to (L)eft group of Tier(N+1)
 
     RL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        100.,
+        100.,
+        100.,
+        100.,
+        100.,
         100.
     ]
 
@@ -22,11 +22,11 @@ class Weights(Enum):
     # LR[N] means (L)eft group to (R)ight group of Tier(N+1)
 
     LR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        150.,
+        150.,
+        150.,
+        150.,
+        150.,
         150.
     ]
 
@@ -45,22 +45,22 @@ class Weights(Enum):
     # RR[N] means (R)ight group of Tier(N+1) to (R)ight group of Tier(N+2)
 
     CC = [
-        0.,
-        0.,
-        0.,
-        0.,
-        75.
+        65.,
+        65.,
+        65.,
+        65.,
+        65.
     ]
 
     # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
     # RI[N] means (R)ight group of Tier(N+2) to (I)nhibitory group of Tier(N+1)
 
     RI = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        150.,
+        150.,
+        150.,
+        150.,
+        150.,
         150.
     ]
 
@@ -111,21 +111,21 @@ class HiddenWeights(Enum):
 
     # Left hidden group to Right hidden group
     LR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        95.,
+        95.,
+        95.,
+        95.,
+        97.,
         95.
     ]
 
     # Right hidden group to Left hidden group
     RL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
+        100.,
+        100.,
+        100.,
+        100.,
+        100.,
         100.
     ]
 
@@ -150,28 +150,28 @@ class HiddenWeights(Enum):
     # Left Excitatory to Control Up
 
     LCU = [
-        55.,
-        55.,
-        55.,
-        55.,
-        55.
+        35.,
+        35.,
+        35.,
+        35.,
+        35.
     ]
 
     # Right hidden Inhibitory group to Right group Down to lower tier
     IRD = [
-        0.,
-        0.,
-        0.,
-        0.,
+        120.,
+        120.,
+        120.,
+        120.,
         120.
     ]
 
-    # From upper tier Right group to Right hidden Inhibitory group
+    # From upper tier Control group to Left hidden Inhibitory group
     CID = [
-        0.,
-        0.,
-        0.,
-        0.,
+        100.,
+        100.,
+        100.,
+        100.,
         100.
     ]
 
