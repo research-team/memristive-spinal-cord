@@ -21,7 +21,8 @@ class ToolKit():
 
     def plot_column(self, show_results: bool=False, column: str='Left'):
         for tier in range(6, 0, -1):
-            filename = os.path.join(self.raw_data_dirname, 'Tier{}{} [Glu].dat'.format(str(tier), column))
+            neurotransmitter = 'GABA' if column == 'Inhibitory' else 'Glu'
+            filename = os.path.join(self.raw_data_dirname, 'Tier{}{} [{}].dat'.format(str(tier), column, neurotransmitter))
             with open(filename) as data:
                 voltage = []
                 time = []
