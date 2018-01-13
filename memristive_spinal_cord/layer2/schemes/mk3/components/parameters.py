@@ -1,10 +1,17 @@
 from enum import Enum
 
 
-class Weights(Enum):
+class TierWeights(Enum):
     # Weights of layer2 connections between neuronal groups
     # For higher convenience variables placed correspondingly to the scheme:
     # Tier6 on the top and Tier1 on the bottom
+
+    LR = [150., 0., 0., 0., 0., 0.]  # Left group to right group
+    RL = [101., 0., 0., 0., 0., 0.]  # Right group to left group
+    RI = [150., 0., 0., 0., 0., 0.]  # Right group to Inhibitory group
+    IL = [5000., 0., 0., 0., 0., 0.]  # Inhibitory to left group
+    CR = [150., 0., 0., 0., 0., 0.] # Control to right group
+
 
     # Mediator neuron to Right group connection weights
     # MR means (M)ediator to (R)ight group of Tier1
@@ -29,7 +36,7 @@ class Constants(Enum):
 
     SIMULATION_TIME = 150.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
-    SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
+    SPIKE_GENERATOR_WEIGHTS = [TierWeights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
     SYNAPTIC_DELAY_EX = [1.1, 1.3]
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
