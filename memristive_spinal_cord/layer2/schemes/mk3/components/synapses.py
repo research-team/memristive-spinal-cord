@@ -15,5 +15,5 @@ class Synapses(Enum):
     GABAERGIC = SynapseModel(
         'GABAergic',
         nest_model=SynapseModels.STATIC_SYNAPSE.value,
-        params={'delay': Constants.SYNAPTIC_DELAY_INH.value}
+        params={'delay': Constants.SYNAPTIC_DELAY_EX.value}
     )
