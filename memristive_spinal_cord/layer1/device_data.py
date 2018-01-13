@@ -1,5 +1,5 @@
 import os
-
+from collections import OrderedDict
 
 class DeviceData:
     """
@@ -7,7 +7,7 @@ class DeviceData:
     """
 
     def __init__(self, data_name_list) -> None:
-        self._items = dict()
+        self._items = OrderedDict()
         self._data_name_list = data_name_list
 
     def add_item(self, time, neuron_id, value_list):
@@ -34,7 +34,7 @@ class DeviceData:
         return self.get_data_for_neurons([neuron_id], items)
 
     def get_data_for_neurons(self, neuron_id_list, items=None):
-        result = dict()
+        result = OrderedDict()
         if items is None:
             items = self._items
         for time, item in items.items():
@@ -43,7 +43,7 @@ class DeviceData:
         return result
 
     def filter_items_for_value(self, value_name, items=None):
-        result = dict()
+        result = OrderedDict()
         data_index = self._data_name_list.index(value_name)
         if data_index is not None:
             if items is None:
@@ -54,10 +54,10 @@ class DeviceData:
         return result
 
     def average(self, value_name):
-        result = dict()
+        result = OrderedDict()
         for time, item in self.filter_items_for_value(value_name).items():
             values_list = item.values()
-            average_value = sum(values_list) / float(len(values_list))
+            average_value = round(sum(values_list) / float(len(values_list)), 3)
             result[time] = average_value
         return result
 
