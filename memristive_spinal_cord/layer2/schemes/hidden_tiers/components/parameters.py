@@ -15,7 +15,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Left to Right groups of the same tier connection weights
@@ -27,7 +27,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Left to Left groups of neighbour tiers connection weights
@@ -49,7 +49,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        25.
     ]
 
     # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
@@ -61,7 +61,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Inhibitory group to Right group of the same tier connection weights
@@ -73,19 +73,19 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        30.
     ]
 
     # Left group to Interneuronal Pool connection weights
     # LIP[N] means (L)eft group of Tier(N+1) to (I)nterneuronal (P)ool group
 
     LIP = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+        1.,
+        1.,
+        1.,
+        1.,
+        1.,
+        2.
     ]
 
     # Mediator neuron to Right group connection weights
@@ -107,7 +107,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Right hidden group to Left hidden group
@@ -117,7 +117,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Right hidden group to Left hidden Inhibitory group
@@ -126,27 +126,26 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Left hidden Inhibitory group to Right group
     IR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+        50.,
+        50.,
+        50.,
+        50.,
+        50.
     ]
 
     # Right to Right Up
 
     RRU = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+        40.,
+        40.,
+        40.,
+        40.,
+        40.
     ]
 
     # Right Down to Right
@@ -157,7 +156,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        50.
     ]
 
     # Right hidden Inhibitory group to Right group Down to lower tier
@@ -166,7 +165,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        120.
     ]
 
     # From upper tier Right group to Right hidden Inhibitory group
@@ -175,7 +174,7 @@ class HiddenWeights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
 
@@ -186,7 +185,7 @@ class Constants(Enum):
     ACTION_TIME_EX = 0.5
     ACTION_TIME_INH = 5.
 
-    SIMULATION_TIME = 100.  # milliseconds
+    SIMULATION_TIME = 150.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
     SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
