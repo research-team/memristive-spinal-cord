@@ -64,8 +64,8 @@ class Weights(Enum):
         150.
     ]
 
-    # Inhibitory group to Right group of the same tier connection weights
-    # IR[N] means (I)nhibitory group to (R)ight group of Tier(N+1)
+    # Inhibitory group to Left group of the same tier connection weights
+    # IL[N] means (I)nhibitory group to (L)eft group of Tier(N+1)
 
     IL = [
         0.,
@@ -73,7 +73,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        30.
+        50.
     ]
 
     # Control group to Right group
@@ -84,7 +84,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        0.
+        150.
     ]
 
     # Left group to Interneuronal Pool connection weights
@@ -152,11 +152,11 @@ class HiddenWeights(Enum):
     # Right Inhibitory to Right Excitatory
 
     RIRE = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+        150.,
+        150.,
+        150.,
+        150.,
+        150.
     ]
 
     # Upper Control to Inhibitory Down
@@ -179,9 +179,9 @@ class HiddenWeights(Enum):
         40.
     ]
 
-    # Right Down to Left Excitatory
+    # Control Down to Left Excitatory
 
-    RDLE = [
+    CDLE = [
         0.,
         0.,
         0.,
@@ -190,7 +190,7 @@ class HiddenWeights(Enum):
         50.
     ]
 
-    # Right hidden Inhibitory group to Right group Down to lower tier
+    # Left hidden Inhibitory group to Right group Down of lower tier
     IRD = [
         0.,
         0.,
@@ -224,7 +224,7 @@ class Constants(Enum):
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
 
     RESOLUTION = 0.1
-    LOCAL_NUM_THREADS = 4
+    LOCAL_NUM_THREADS = 2
 
 
 class Paths(Enum):

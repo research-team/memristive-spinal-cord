@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer2.schemes.hidden_tiers.polysynaptic_circuit import PolysynapticCircuit
+from memristive_spinal_cord.layer2.schemes.mk3.polysynaptic_circuit import PolysynapticCircuit
 from neucogar.Nucleus import Nucleus
 from neucogar.api_kernel import CreateNetwork
 from memristive_spinal_cord.layer2.models import Neurotransmitters
@@ -77,6 +77,6 @@ class Layer2:
         self.mediator.nuclei(Neurotransmitters.GLU.value).ConnectPoissonGenerator(
             weight=Weights.SG.value,
             start=1,
-            stop=6,
-            rate=40
+            stop=5,
+            rate=100
         )

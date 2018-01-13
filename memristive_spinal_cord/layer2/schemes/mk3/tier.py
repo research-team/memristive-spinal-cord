@@ -48,7 +48,7 @@ class Tier:
 
         self.control_group = Nucleus(nucleus_name='Tier{}Control'.format(index))
         self.control_group.addSubNucleus(
-            neurotransmitter=Neurotransmitters.GABA.value,
+            neurotransmitter=Neurotransmitters.GLU.value,
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
@@ -59,7 +59,7 @@ class Tier:
         self.right_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.left_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         self.inhibitory_group.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
-        self.control_group.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
+        self.control_group.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
 
     def set_connections(self):
         # connect right group to left group
