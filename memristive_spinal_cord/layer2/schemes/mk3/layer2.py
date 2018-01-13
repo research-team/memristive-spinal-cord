@@ -31,8 +31,8 @@ class Layer2:
         CreateNetwork(simulation_neuron_number=PolysynapticCircuit.get_number_of_neurons() + 2)
         self.set_connections()
         self.connect_multimeters()
-        # self.connect_spike_generator()
-        self.connect_noise_generator()
+        self.connect_spike_generator()
+        # self.connect_noise_generator()
 
     def set_connections(self):
         self.mediator.nuclei(Neurotransmitters.GLU.value).connect(

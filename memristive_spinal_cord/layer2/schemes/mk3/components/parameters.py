@@ -49,7 +49,7 @@ class Weights(Enum):
         0.,
         0.,
         0.,
-        70.
+        75.
     ]
 
     # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
@@ -150,11 +150,11 @@ class HiddenWeights(Enum):
     # Left Excitatory to Control Up
 
     LCU = [
-        15.,
-        15.,
-        15.,
-        15.,
-        15.
+        55.,
+        55.,
+        55.,
+        55.,
+        55.
     ]
 
     # Right hidden Inhibitory group to Right group Down to lower tier
