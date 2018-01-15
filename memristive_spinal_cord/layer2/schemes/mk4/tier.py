@@ -32,14 +32,14 @@ class Tier:
         self.__inhibitory_groups = 2
 
         for i in range(self.__excitatory_groups):
-            self.__E.append(Nucleus("Tier{}E{}".format(self.__index, i)))
+            self.__E.append(Nucleus(nucleus_name="Tier{}E{}".format(self.__index, i)))
             self.__E[i].addSubNucleus(
                 neurotransmitter=Neurotransmitters.GLU.value,
                 number=Constants.NEURONS_IN_GROUP.value,
                 params=Neurons.NEUCOGAR.value
             )
         for i in range(self.__inhibitory_groups):
-            self.__I.append(Nucleus("Tier{}I{}".format(self.__index, i)))
+            self.__I.append(Nucleus(nucleus_name="Tier{}I{}".format(self.__index, i)))
             self.__I[i].addSubNucleus(
                 neurotransmitter=Neurotransmitters.GABA.value,
                 number=Constants.NEURONS_IN_GROUP.value,
