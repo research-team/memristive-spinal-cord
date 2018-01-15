@@ -55,7 +55,7 @@ class Weights(Enum):
     # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
     # RI[N] means (R)ight group of Tier(N+2) to (I)nhibitory group of Tier(N+1)
 
-    RI = [
+    LI = [
         0.,
         0.,
         0.,
@@ -67,7 +67,7 @@ class Weights(Enum):
     # Inhibitory group to Right group of the same tier connection weights
     # IR[N] means (I)nhibitory group to (R)ight group of Tier(N+1)
 
-    IR = [
+    IL = [
         0.,
         0.,
         0.,

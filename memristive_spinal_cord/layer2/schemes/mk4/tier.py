@@ -74,7 +74,7 @@ class Tier:
         self.inhibitory_group.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.left_group.nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=-Weights.IR.value[::-1][self.get_index()-1],
+            weight=-Weights.IL.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -82,7 +82,7 @@ class Tier:
         self.left_group.nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.inhibitory_group.nuclei(Neurotransmitters.GABA.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.RI.value[::-1][self.get_index()-1],
+            weight=Weights.LI.value[::-1][self.get_index()-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
