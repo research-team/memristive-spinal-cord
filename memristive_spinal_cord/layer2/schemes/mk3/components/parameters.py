@@ -47,8 +47,8 @@ class Weights(Enum):
     CC = [
         65.,
         65.,
-        65.,
-        65.,
+        67.,
+        69.,
         65.
     ]
 
@@ -73,7 +73,7 @@ class Weights(Enum):
         6.8,
         6.8,
         6.8,
-        6.8
+        6.9
     ]
 
     # Left group to Interneuronal Pool connection weights
@@ -111,12 +111,12 @@ class HiddenWeights(Enum):
 
     # Left hidden group to Right hidden group
     LR = [
-        95.,
-        95.,
-        95.,
-        95.,
-        97.,
-        95.
+        100.,
+        100.,
+        100.,
+        100.,
+        100.,
+        100.
     ]
 
     # Right hidden group to Left hidden group
@@ -140,11 +140,11 @@ class HiddenWeights(Enum):
 
     # Right Inhibitory to Right Excitatory
     RIRE = [
-        5.7,
-        5.7,
-        5.7,
-        5.7,
-        5.7
+        0.,
+        0.,
+        0.,
+        0.,
+        0.
     ]
 
     # Left Excitatory to Control Up
@@ -157,13 +157,13 @@ class HiddenWeights(Enum):
         35.
     ]
 
-    # Right hidden Inhibitory group to Right group Down to lower tier
+    # Left hidden Inhibitory group to Right group Down to lower tier
     IRD = [
-        120.,
-        120.,
-        120.,
-        120.,
-        120.
+        150.,
+        150.,
+        150.,
+        150.,
+        150.
     ]
 
     # From upper tier Control group to Left hidden Inhibitory group
@@ -193,7 +193,7 @@ class Constants(Enum):
     ACTION_TIME_EX = 0.5
     ACTION_TIME_INH = 5.
 
-    SIMULATION_TIME = 150.  # milliseconds
+    SIMULATION_TIME = 200.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
     SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
