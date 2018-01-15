@@ -88,12 +88,18 @@ class ToolKit():
                     hspace=0.55
                 )
         else:
+            __pool = {pool_times: [], pool_voltages: []}
+            __stimuli = {stimuli_times: [], stimuli_voltages: []}
             for line in pool.readlines():
                 time, voltage = [float(value) for value in line.split()][1:]
-                pylab.plot(time, voltage)
+                __pool[pool_times].append(time)
+                __pool[pool_voltages].append(voltage)
             for line in stimuli.readlines():
                 time, voltage = [float(value) for value in line.split()][1:]
-                pylab.plot(time, voltage)
+                __stimuli[stimuli_times].append(time)
+                __stimuli[stimuli_voltages].append(voltage)
+            pylab.plot(__pool[pool_times], __pool[pool_voltages])
+            pylab.plot(__stimuli[stimuli_times], __stimuli[stimuli_voltages])
 
         if show_results:
             pylab.show()
