@@ -2,180 +2,47 @@ from enum import Enum
 
 
 class Weights(Enum):
-    # Weights of layer2 connections between neuronal groups
-    # For higher convenience variables placed correspondingly to the scheme:
-    # Tier6 on the top and Tier1 on the bottom
 
-    # Right to Left groups of the same tier connection of weights
-    # RL[N] means (R)ight group to (L)eft group of Tier(N+1)
-
-    RL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
+    EE = [
+        [0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0.],
     ]
 
-    # Left to Right groups of the same tier connection weights
-    # LR[N] means (L)eft group to (R)ight group of Tier(N+1)
-
-    LR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
+    EI = [
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.]
     ]
 
-    # Left to Left groups of neighbour tiers connection weights
-    # LL[N] means (L)eft group of Tier(N+2) to (L)eft group of Tier(N+1)
-
-    LL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.
+    IE = [
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.]
     ]
 
-    # Right to Right groups of neighbour tiers connections weights
-    # RR[N] means (R)ight group of Tier(N+1) to (R)ight group of Tier(N+2)
-
-    RR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        25.
+    TT = [
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
+        [0., 0.],
     ]
 
-    # Right group of the higher tier to Inhibitory groups of the lower tier connection weights
-    # RI[N] means (R)ight group of Tier(N+2) to (I)nhibitory group of Tier(N+1)
+    # To the pool
+    P = [0., 0., 0., 0., 0., 0.]
 
-    LI = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
-    ]
-
-    # Inhibitory group to Right group of the same tier connection weights
-    # IR[N] means (I)nhibitory group to (R)ight group of Tier(N+1)
-
-    IL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        30.
-    ]
-
-    # Left group to Interneuronal Pool connection weights
-    # LIP[N] means (L)eft group of Tier(N+1) to (I)nterneuronal (P)ool group
-
-    LIP = [
-        1.,
-        1.,
-        1.,
-        1.,
-        1.,
-        2.
-    ]
-
-    # Mediator neuron to Right group connection weights
-    # MR means (M)ediator to (R)ight group of Tier1
-
+    # Mediator to PC weight
     MR = 150.
 
     # Spike generator weight
-
     SG = 200.
-
-
-class HiddenWeights(Enum):
-
-    # Left hidden group to Right hidden group
-    LR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
-    ]
-
-    # Right hidden group to Left hidden group
-    RL = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
-    ]
-
-    # Right hidden group to Left hidden Inhibitory group
-    RI = [
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
-    ]
-
-    # Left hidden Inhibitory group to Right group
-    IR = [
-        50.,
-        50.,
-        50.,
-        50.,
-        50.
-    ]
-
-    # Right to Right Up
-
-    RRU = [
-        40.,
-        40.,
-        40.,
-        40.,
-        40.
-    ]
-
-    # Right Down to Right
-
-    RDR = [
-        0.,
-        0.,
-        0.,
-        0.,
-        0.,
-        50.
-    ]
-
-    # Right hidden Inhibitory group to Right group Down to lower tier
-    IRD = [
-        0.,
-        0.,
-        0.,
-        0.,
-        120.
-    ]
-
-    # From upper tier Right group to Right hidden Inhibitory group
-    RID = [
-        0.,
-        0.,
-        0.,
-        0.,
-        150.
-    ]
 
 
 class Constants(Enum):
@@ -185,7 +52,7 @@ class Constants(Enum):
     ACTION_TIME_EX = 0.5
     ACTION_TIME_INH = 5.
 
-    SIMULATION_TIME = 150.  # milliseconds
+    SIMULATION_TIME = 200.  # milliseconds
     SPIKE_GENERATOR_TIMES = [25 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
     SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
@@ -193,7 +60,7 @@ class Constants(Enum):
     SYNAPTIC_DELAY_INH = [1.1, 1.2]
 
     RESOLUTION = 0.1
-    LOCAL_NUM_THREADS = 4
+    LOCAL_NUM_THREADS = 2
 
 
 class Paths(Enum):
