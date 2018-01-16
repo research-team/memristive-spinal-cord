@@ -47,7 +47,7 @@ motor_model_params = {
     't_ref': 2.0, # 'tau_m': 2.5
 }
 motor_model_number = 169
-motor_model_type = 'hh_psc_alpha'
+motor_model_type = 'hh_moto_5ht'
 
 neuron_group_params[Layer1NeuronGroups.EXTENS_MOTOR] = dict(
     model=motor_model_type,

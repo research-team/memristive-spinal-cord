@@ -19,6 +19,8 @@ After that you need to go the project's root and execute the below. Those are pr
 pip install -r requirements.txt 
 ```
 
+Also you need to have a custom NEST model [hh_moto_5ht](https://github.com/research-team/hh-moto-5ht) with your NEST installation.
+
 #### Problem intro
 During SCI(Spinal Cord Injury) a rat loses its ability to move hind limbs. It restores its ability to walk with ES(Epidural Stimulation) only after 5 weeks. This restoration of walking happens in sync with the appearance of LR(Late Response) in the EMG of muscles. MR(Middle Response) appears during the 2nd week. Injection of 5-HT enhances the same effect of walking restoration almost immediately when applied directly to the spinal cord. This allows us to derive that during first two weeks the monosynaptic circuit or the first level restores and it brings MR to the EMG. During five weeks the polysynaptic circuit restores and brings LR to the EMG.
 

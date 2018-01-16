@@ -24,6 +24,8 @@ def plot_neuron_group(flexor_device, extensor_device, group_name):
     plotter.subplot(flexor_motor_data, extensor_motor_data, group_name)
 
 
+nest.Install("research_team_models")
+
 entity_params = dict()
 entity_params.update(afferent_params)
 entity_params.update(neuron_group_params)
