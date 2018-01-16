@@ -70,28 +70,36 @@ class Tier:
         Returns:
             Nucleus
         """
+        return self.__I[index]
 
     def connect_multimeters(self):
         for i in range(self.__excitatory_groups):
-            self.get_e(i).ConnectMultimeter()
+            self.get_e(i).nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         for i in range(self.__inhibitory_groups):
-            self.get_i(i).ConnectMultimeter()
+            self.get_i(i).nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
 
     def set_connections(self):
-        for i in [j for j in range(self.__excitatory_groups) if j != 3]:
+        for i in [j for j in range(self.__excitatory_groups - 1) if j != 3]:
             self.get_e(i).nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.get_e(i + 1).nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.EE.value[self.__index-1][i],
+                weight=Weights.EE.value[self.__index - 1][i if i != 4 else 5],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
         for i in [3, 5]:
             self.get_e(i).nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.get_e(i - 1).nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.EE.value[self.__index-1][2 if i == 3 else 6],
+                weight=Weights.EE.value[self.__index - 1][i if i == 3 else 6],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
+
+        self.get_e(0).nuclei(Neurotransmitters.GLU.value).connect(
+            nucleus=self.get_e(4).nuclei(Neurotransmitters.GLU.value),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.EE.value[self.__index - 1][4],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
         for i, j in zip([4, 3], [0, 1]):
             self.get_e(i).nuclei(Neurotransmitters.GLU.value).connect(
                 nucleus=self.get_i(j).nuclei(Neurotransmitters.GABA.value),
@@ -104,7 +112,7 @@ class Tier:
             self.get_i(j).nuclei(Neurotransmitters.GABA.value).connect(
                 nucleus=self.get_e(i).nuclei(Neurotransmitters.GLU.value),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.IE.value[self.__index-1][j],
+                weight=-Weights.IE.value[self.__index-1][j],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 

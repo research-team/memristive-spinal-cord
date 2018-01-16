@@ -23,21 +23,25 @@ class PolysynapticCircuit:
                 params=Neurons.NEUCOGAR.value
             )
         self.__I.addSubNucleus(
-            neurotransmitter=Neurotransmitters.GLU.value,
+            neurotransmitter=Neurotransmitters.GABA.value,
             number=Constants.NEURONS_IN_GROUP.value,
             params=Neurons.NEUCOGAR.value
         )
 
+    def set_connections(self):
+        for upper_tier, lower_tier in zip(self.__tiers[1:], self.__tiers[:-1]):
+            upper_tier.connect(lower_tier=lower_tier)
+
         self.__E[0].nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.__E[1].nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.EE.value[0],
+            weight=Weights.EE.value[5][0],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.__E[1].nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.__E[0].nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.EE.value[1],
+            weight=Weights.EE.value[5][1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.__E[1].nuclei(Neurotransmitters.GLU.value).connect(
@@ -52,10 +56,6 @@ class PolysynapticCircuit:
             weight=Weights.IE.value[5],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
-
-    def set_connections(self):
-        for upper_tier, lower_tier in zip(self.__tiers[1:], self.__tiers[:-1]):
-            upper_tier.connect(lower_tier=lower_tier)
 
     def get_input(self): return self.__tiers[0].get_e(0)
 

@@ -1,50 +1,46 @@
+import shutil
+import sys
+
 from memristive_spinal_cord.layer2.toolkit import ToolKit
-from memristive_spinal_cord.layer2.models import Neurotransmitters
-from memristive_spinal_cord.layer2.schemes.mk4.components.parameters import Constants
 import os
 import pylab
 
 
-class HiddenTiersToolKit(ToolKit):
-    def plot_hidden_layers(self, *tiers, show_results: bool=False):
-        for hidden_tier in tiers:
-            count = 0
-            for type in ['Excitatory', 'Inhibitory']:
-                if type == 'Excitatory':
-                    neurotransmitter = Neurotransmitters.GLU.value
-                else:
-                    neurotransmitter = Neurotransmitters.GABA.value
-                for side in ['Left', 'Right']:
-                    raw_data_file = os.path.join(self.raw_data_dirname, 'HiddenTier{}{}{} [{}].dat'.format(
-                        str(hidden_tier), side, type, neurotransmitter
-                    ))
-                    with open(raw_data_file) as raw_data:
-                        voltage = []
-                        time = []
-                        for line in raw_data.readlines():
-                            time.append(float(line.split()[1]))
-                            voltage.append(float(line.split()[2]))
-                    count += 1
-                    pylab.subplot(4, 1, count)
-                    pylab.axis([0, int(Constants.SIMULATION_TIME.value), -70, 50])
-                    pylab.plot(time, voltage)
-                    pylab.title('HiddenTier{}{}{}'.format(str(hidden_tier), side, type))
-                    pylab.subplots_adjust(
-                        left=0.07,
-                        right=0.97,
-                        bottom=0.07,
-                        top=0.95,
-                        hspace=0.66
-                    )
-            if show_results:
-                pylab.show()
-            else:
-                figures_dirname = 'hidden_tiers'
-                path = os.path.join(self.path, self.figures_dirname)
-                if not os.path.isdir(path):
-                    os.mkdir(path=path)
-                path = os.path.join(path, figures_dirname)
-                if not os.path.isdir(path):
-                    os.mkdir(path=path)
-                pylab.savefig(filename=os.path.join(path, 'HiddenTier{}'.format(str(hidden_tier))))
+class Plotter(ToolKit):
+    def plot_tier(self, *tiers):
+        for tier in tiers:
+            # data = {'e{}'.format(str(i)): {'times': [], 'voltages': []} for i in range(6)}
+            # data.update({'i{}'.format(str(i)): {'times': [], 'voltages': []} for i in range(2)})
+
+            for index in range(6):
+                times = []
+                voltages = []
+                try:
+                    raw_data = open(os.path.join(self.path, self.raw_data_dirname, 'Tier{}E{} [Glu].dat'.format(tier, index)), 'r')
+                except FileNotFoundError:
+                    print(sys.exc_info()[1])
+                    pass
+                for line in raw_data.readlines():
+                    time, voltage = [float(value) for value in line.split()[1:]]
+                    times.append(time)
+                    voltages.append(voltage)
+                pylab.subplot(4, 2, index + 1)
+                pylab.title('Tier{}E{}'.format(tier, index))
+                pylab.plot(times, voltages)
+            for index in range(2):
+                times = []
+                voltages = []
+                try:
+                    raw_data = open(os.path.join(self.path, self.raw_data_dirname, 'Tier{}I{} [GABA].dat'.format(tier, index)), 'r')
+                except FileNotFoundError:
+                    print(sys.exc_info()[1])
+                for line in raw_data.readlines():
+                    time, voltage = [float(value) for value in line.split()[1:]]
+                    times.append(time)
+                    voltages.append(voltage)
+                pylab.subplot(4, 2, index + 7)
+                pylab.title('Tier{}I{}'.format(tier, index))
+                pylab.plot(times, voltages)
+
+            pylab.savefig(filename=os.path.join(self.path, '{}/Tier{}.png'.format(self.figures_dirname, tier)))
             pylab.close('all')
