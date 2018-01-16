@@ -120,12 +120,18 @@ class Tier:
         lower_tier.get_e(0).nuclei(Neurotransmitters.GLU.value).connect(
             nucleus=self.get_e(0).nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.__index-1][0],
+            weight=Weights.TT.value[self.__index-2][0],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.get_e(3).nuclei(Neurotransmitters.GLU.value).connect(
-            nucleus=self.get_e(3).nuclei(Neurotransmitters.GLU.value),
+            nucleus=lower_tier.get_e(3).nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.__index-1][1],
+            weight=Weights.TT.value[self.__index-2][1],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        lower_tier.get_e(4).nuclei(Neurotransmitters.GLU.value).connect(
+            nucleus=self.get_e(0).nuclei(Neurotransmitters.GLU.value),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.TT.value[self.__index-2][2],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
