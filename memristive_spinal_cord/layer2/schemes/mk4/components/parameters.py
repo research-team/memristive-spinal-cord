@@ -9,7 +9,7 @@ class Weights(Enum):
         [100., 100., 100., 95., 100., 100., 100.],
         [100., 100., 100., 95., 100., 100., 100.],
         [100., 100., 100., 95., 100., 100., 100.],
-        [0., 0.]
+        [93., 93.]
     ]
 
     EI = [
@@ -18,7 +18,7 @@ class Weights(Enum):
         [100., 100.],
         [100., 100.],
         [100., 100.],
-        0.
+        100.
     ]
 
     IE = [
@@ -35,11 +35,12 @@ class Weights(Enum):
         [50., 100., 40.],
         [50., 100., 40.],
         [50., 100., 40.],
-        [50., 100., 40.],
+        [45., 100., 35.],
+        100.
     ]
 
     # To the pool
-    P = [15., 15., 15., 15., 15., 15.]
+    P = [13., 13., 13., 13., 13., 13.]
 
     # Mediator to PC weight
     MR = 100.
@@ -56,7 +57,7 @@ class Constants(Enum):
     ACTION_TIME_INH = 5.
 
     GENERATOR_FREQUENCY = 40.
-    SIMULATION_TIME = 375.  # milliseconds
+    SIMULATION_TIME = 450.  # milliseconds
     SPIKE_GENERATOR_TIMES = [75 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
     SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 

@@ -56,6 +56,32 @@ class PolysynapticCircuit:
             weight=Weights.IE.value[5],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
+        self.connect_tier6(self.get_tiers()[4])
+
+    def connect_tier6(self, tier5: Tier):
+        self.__E[1].nuclei(Neurotransmitters.GLU.value).connect(
+            tier5.get_e(3).nuclei(Neurotransmitters.GLU.value),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.TT.value[5],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        tier5.get_e(0).nuclei(Neurotransmitters.GLU.value).connect(
+            self.__E[0].nuclei(Neurotransmitters.GLU.value),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.TT.value[4][2],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        tier5.get_e(4).nuclei(Neurotransmitters.GLU.value).connect(
+            self.__E[0].nuclei(Neurotransmitters.GLU.value),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.TT.value[4][0],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+
+    def connect_multimeters(self):
+        for i in range(2):
+            self.__E[i].nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
+        self.__I.nuclei(Neurotransmitters.GABA.value).ConnectMultimeter()
 
     def get_input(self): return self.__tiers[0].get_e(0)
 

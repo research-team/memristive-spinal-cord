@@ -55,6 +55,7 @@ class Layer2:
         self.__interneuronal_pool.nuclei(Neurotransmitters.GLU.value).ConnectMultimeter()
         for tier in self.__polysynaptic_circuit.get_tiers():
             tier.connect_multimeters()
+        self.__polysynaptic_circuit.connect_multimeters()
 
     def connect_spike_generator(self):
         spike_generator = api_kernel.NEST.Create('spike_generator', 1, {
