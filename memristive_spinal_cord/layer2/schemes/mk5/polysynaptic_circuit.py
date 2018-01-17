@@ -2,8 +2,8 @@ from memristive_spinal_cord.layer2.schemes.mk5.tier import Tier
 
 
 class PolysynapticCircuit:
-    @staticmethod
-    def get_number_of_neurons(self):
+    @classmethod
+    def get_number_of_neurons(cls):
         return Tier.get_number_of_neurons()
 
     def __init__(self):

@@ -23,9 +23,9 @@ class Tier:
     def __init__(self, index: int):
         self.index = index
         self.e = []
-        self.i = Nucleus('I0')
+        self.i = Nucleus('Tier{}I0'.format(self.index))
         for i in range(self.excitatory_groups):
-            self.e.append(Nucleus('E{}'.format(i)))
+            self.e.append(Nucleus('Tier{}E{}'.format(self.index, i)))
             self.e[i].addSubNucleus(
                 neurotransmitter='Glu',
                 number=Constants.NEURONS_IN_GROUP.value,
