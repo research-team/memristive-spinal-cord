@@ -79,7 +79,7 @@ class ToolKit:
                 pylab.axis([0, period, -80, -55])
                 pylab.plot(__pool_slices[i][pool_times], __pool_slices[i][pool_voltages])
                 pylab.plot(__stimuli_slices[i][stimuli_times], __stimuli_slices[i][stimuli_voltages])
-                pylab.title('Slice{}'.format(str(i)))
+                # pylab.title('Slice{}'.format(str(i)))
                 pylab.subplots_adjust(
                     left=0.07,
                     bottom=0.07,

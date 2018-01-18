@@ -94,7 +94,7 @@ class Tier:
         self.get_i().nuclei('GABA').connect(
             nucleus=self.get_e(1).nuclei('Glu'),
             synapse=Synapses.GABAERGIC.value,
-            weight=Weights.IE.value[self.index-1],
+            weight=-Weights.IE.value[self.index-1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -107,7 +107,7 @@ class Tier:
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
         self.get_e(2).nuclei('Glu').connect(
-            nucleus=self.get_e(2).nuclei('Glu'),
+            nucleus=lower_tier.get_e(2).nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
             weight=Weights.TT.value[self.index-1][2],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
