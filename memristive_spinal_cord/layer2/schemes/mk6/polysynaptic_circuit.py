@@ -2,6 +2,9 @@ from memristive_spinal_cord.layer2.schemes.mk6.tier import Tier
 
 
 class PolysynapticCircuit:
+    @staticmethod
+    def get_number_of_neurons():
+        return Tier.get_number_of_neurons()
 
     def __init__(self):
         self.structure = [Tier(i+1) for i in range(6)]
