@@ -33,6 +33,7 @@ class Tier:
                 number=Constants.NEURONS_IN_GROUP.value,
                 params=Neurons.NEUCOGAR.value
             )
+        self.add_neurons(Constants.NEURONS_IN_GROUP.value * 8)
 
     def set_interconnections(self):
         for i in range(6):
