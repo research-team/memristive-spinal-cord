@@ -53,7 +53,7 @@ class PolysynapticCircuit:
         self.__I.nuclei(Neurotransmitters.GABA.value).connect(
             nucleus=self.__E[0].nuclei(Neurotransmitters.GLU.value),
             synapse=Synapses.GABAERGIC.value,
-            weight=Weights.IE.value[5],
+            weight=-Weights.IE.value[5],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.connect_tier6(self.get_tiers()[4])
