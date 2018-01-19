@@ -1,13 +1,13 @@
 from neucogar.Nucleus import Nucleus
+from neucogar import api_kernel
 
 from memristive_spinal_cord.layer2.models import ConnectionTypes
 from memristive_spinal_cord.layer2.schemes.mk6.components.neurons import Neurons
-from memristive_spinal_cord.layer2.schemes.mk6.components.parameters import Weights
+from memristive_spinal_cord.layer2.schemes.mk6.components.parameters import Weights, Constants
 from memristive_spinal_cord.layer2.schemes.mk6.components.synapses import Synapses
 
 
 class Terminals:
-
     number_of_neurons = 0
 
     @classmethod
@@ -31,6 +31,7 @@ class Terminals:
             params=Neurons.NEUCOGAR.value,
             number=1
         )
+        self.add_number_of_neurons(2)
 
     def connect(self, input, output):
         for nucleus in input:
@@ -51,3 +52,24 @@ class Terminals:
     def connect_multimeters(self):
         for nucleus in [self.pool, self.mediator]:
             nucleus.nuclei('Glu').ConnectMultimeter()
+
+    def connect_spike_generator(self):
+        spike_generator = api_kernel.NEST.Create(
+            'spike_generator',
+            1, {
+                'spike_times': Constants.SPIKE_GENERATOR_TIMES.value,
+                'spike_weights': Constants.SPIKE_GENERATOR_WEIGHTS.value
+            }
+        )
+        api_kernel.NEST.Connect(
+            spike_generator,
+            self.mediator.nuclei('Glu').getNeurons()
+        )
+
+    def connect_noise_generator(self):
+        self.mediator.nuclei('Glu').ConnectPoissonGenerator(
+            weight=Weights.SG.value,
+            start=1.,
+            stop=5.,
+            rate=100.
+        )
