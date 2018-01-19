@@ -59,7 +59,7 @@ class Tier:
             self.inhibitory[i].nuclei('GABA').connect(
                 nucleus=self.excitatory[1 if i == 0 else 3].nuclei('Glu'),
                 synapse=Synapses.GABAERGIC.value,
-                weight=Weights.IE.value[self.index][i],
+                weight=-Weights.IE.value[self.index][i],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
