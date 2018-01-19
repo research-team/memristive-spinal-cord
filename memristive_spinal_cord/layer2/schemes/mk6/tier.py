@@ -40,26 +40,26 @@ class Tier:
             self.excitatory[i].nuclei('Glu').connect(
                 nucleus=self.excitatory[i+1 if i in [0, 1, 2, 4] else i-1].nuclei('Glu'),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.EE.value[self.index][i],
+                weight=Weights.EE.value[self.index-1][i],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
         self.excitatory[0].nuclei('Glu').connect(
             nucleus=self.excitatory[4].nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.EE.value[self.index][6],
+            weight=Weights.EE.value[self.index-1][6],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         for i in range(2):
             self.excitatory[4 if i == 0 else 3].nuclei('Glu').connect(
                 nucleus=self.inhibitory[i].nuclei('GABA'),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.EI.value[self.index][i],
+                weight=Weights.EI.value[self.index-1][i],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
             self.inhibitory[i].nuclei('GABA').connect(
                 nucleus=self.excitatory[1 if i == 0 else 3].nuclei('Glu'),
                 synapse=Synapses.GABAERGIC.value,
-                weight=-Weights.IE.value[self.index][i],
+                weight=-Weights.IE.value[self.index-1][i],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
 
@@ -84,12 +84,12 @@ class Tier:
         self.excitatory[4].nuclei('Glu').connect(
             nucleus=tier.get_e(0).nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.index][0],
+            weight=Weights.TT.value[self.index-1][0],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         tier.get_e(3).nuclei('Glu').connect(
             nucleus=self.excitatory[3].nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.index][0],
+            weight=Weights.TT.value[self.index-1][0],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
