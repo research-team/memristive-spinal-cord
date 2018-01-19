@@ -80,12 +80,12 @@ class Weights(Enum):
     # LIP[N] means (L)eft group of Tier(N+1) to (I)nterneuronal (P)ool group
 
     LIP = [
-        1.,
-        1.,
-        1.,
-        1.,
-        1.,
-        2.
+        0.9,
+        0.9,
+        0.9,
+        0.9,
+        0.9,
+        0.9
     ]
 
     CR = [
