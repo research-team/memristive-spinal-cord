@@ -20,7 +20,7 @@ class PolysynapticCircuit:
             tier.connect_multimeters()
 
     def get_input(self):
-        return [tier.get_e(0) for tier in self.structure]
+        return self.structure[0].get_e(0)
 
     def get_output(self):
         return [tier.get_e(3) for tier in self.structure]

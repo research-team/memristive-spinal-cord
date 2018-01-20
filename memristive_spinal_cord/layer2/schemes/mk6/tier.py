@@ -84,12 +84,18 @@ class Tier:
         self.excitatory[4].nuclei('Glu').connect(
             nucleus=tier.get_e(0).nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.index-1][0],
+            weight=Weights.TT.value[self.index-1][1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         tier.get_e(3).nuclei('Glu').connect(
             nucleus=self.excitatory[3].nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
             weight=Weights.TT.value[self.index-1][0],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        self.get_e(0).nuclei('Glu').connect(
+            nucleus=tier.get_e(0).nuclei('Glu'),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.TT.value[self.index-1][2],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )

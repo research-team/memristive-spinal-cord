@@ -34,13 +34,12 @@ class Terminals:
         self.add_number_of_neurons(2)
 
     def connect(self, input, output):
-        for i in range(len(input)):
-            self.mediator.nuclei('Glu').connect(
-                nucleus=input[i].nuclei('Glu'),
-                synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.MR.value[i],
-                conn_type=ConnectionTypes.ALL_TO_ALL.value
-            )
+        self.mediator.nuclei('Glu').connect(
+            nucleus=input.nuclei('Glu'),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.MR.value,
+            conn_type=ConnectionTypes.ALL_TO_ALL.value
+        )
         for i in range(len(output)):
             output[i].nuclei('Glu').connect(
                 nucleus=self.pool.nuclei('Glu'),

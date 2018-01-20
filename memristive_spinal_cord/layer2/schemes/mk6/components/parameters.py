@@ -31,19 +31,19 @@ class Weights(Enum):
     ]
 
     TT = [
-        [40., 0.],
-        [40., 0.],
-        [40., 0.],
-        [40., 0.],
-        [40., 0.],
-        [40., 0.]
+        [0., 40., 45],
+        [0., 40., 45],
+        [0., 40., 45],
+        [0., 40., 45],
+        [0., 40., 45],
+        [0., 40., 45]
     ]
 
     # To the pool
     P = [1., 1., 1., 1., 1., 1.]
 
     # Mediator to PC weight
-    MR = [100., 50, 50, 50, 50, 50]
+    MR = 100
 
     # Spike generator weight
     SG = 200.
@@ -65,7 +65,7 @@ class Constants(Enum):
     SYNAPTIC_DELAY_INH = 0.85
 
     RESOLUTION = 0.1
-    LOCAL_NUM_THREADS = 2
+    LOCAL_NUM_THREADS = 8
 
 
 class Paths(Enum):
