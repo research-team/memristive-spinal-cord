@@ -104,5 +104,5 @@ class ToolKit:
         if show_results:
             pylab.show()
         else:
-            pylab.savefig(filename=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
+            pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
         pylab.close('all')

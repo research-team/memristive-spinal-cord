@@ -42,5 +42,5 @@ class Plotter(ToolKit):
                 pylab.title('Tier{}I{}'.format(tier, index))
                 pylab.plot(times, voltages)
 
-            pylab.savefig(filename=os.path.join(self.path, '{}/Tier{}.png'.format(self.figures_dirname, tier)))
+            pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
             pylab.close('all')
