@@ -167,8 +167,9 @@ Every motoneuron connected 232 times randomly to the pool of interneurons. There
 
 ### Neuron to Nest
 
-In general there are two problems: 
+Problems: 
  - Nest models do not have dual exponential as time constants. Only aplha functions.
+ - Neuron neurons mostly are normalized. It means that `V_m` value range is `[0, 1]mV` instead of usual `[-70, 40]mV`.
  - Nest synapses implement inhibition by negative weights. Neuron synapses implement inhibition with Reversal Potential and their weights are positive. So it's a separate task to transform inhibitory positive weights from Neuron to negative weights of Nest.
 
 **IntFire4** does not have a counterpart in Nest. We use Nest's `iaf_psc_alpha` which uses an alpha function instead of a dual exponential for inhibitory tau. That is why `taui2=10` isn't used.
