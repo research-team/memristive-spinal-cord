@@ -167,10 +167,12 @@ Every motoneuron connected 232 times randomly to the pool of interneurons. There
 
 ### Neuron to Nest
 
-In general the main problem is that Nest models do not have dual exponential as time constants. Only aplha functions.
+In general there are two problems: 
+ - Nest models do not have dual exponential as time constants. Only aplha functions.
+ - Nest synapses implement inhibition by negative weights. Neuron synapses implement inhibition with Reversal Potential and their weights are positive. So it's a separate task to transform inhibitory positive weights from Neuron to negative weights of Nest.
 
 **IntFire4** does not have a counterpart in Nest. We use Nest's `iaf_psc_alpha` which uses an alpha function instead of a dual exponential for inhibitory tau. That is why `taui2=10` isn't used.
-**ExpSyn** does not have a counterpart in Nest. Example how can we achieve it. Lets take an HH neuron with an `ExpSyn` on it `e=0, tau=0.8`. In Nest it would be:
+**ExpSyn** does not have a counterpart in Nest. Example how can we achieve it for **excitation** only. Lets take an HH neuron with an `ExpSyn` on it `e=0, tau=0.8`. In Nest it would be:
 ```python
 neurons = nest.Create("hh_psc_alpha")
 nest.CopyModel("static_synapse","excitatory",{"weight":1.,  "delay":1.5})
@@ -178,7 +180,7 @@ nest.Connect(neurons, ispikes, syn_spec="excitatory")
 ```
 According to this [article](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5517781/). 
 
-**Exp2Syn** The same as above. Lets take an HH neuron with an `Exp2Syn` on it `e=-75.0, tau1=0.99, tau2=1.0`. In Nest it would be:
+**Exp2Syn** The same as above. Lets take an HH neuron with an `Exp2Syn` on it `e=-75.0, tau1=0.99, tau2=1.0`. In Nest it would be (for **excitation** only):
 ```python
 neurons = nest.Create("hh_psc_alpha", {'tau_syn_in':1.})
 nest.CopyModel("static_synapse","inhibitory",{"weight":200., "delay":3.0})
