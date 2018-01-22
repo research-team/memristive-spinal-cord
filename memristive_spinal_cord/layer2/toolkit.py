@@ -43,7 +43,7 @@ class ToolKit:
         if show_results:
             pylab.show()
         else:
-            pylab.savefig(filename=os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
+            pylab.savefig(os.path.join(self.path, '{}/{}_column.png'.format(self.figures_dirname, column)))
         pylab.close('all')
 
     def plot_interneuronal_pool(self, show_results: bool=False, split: bool = True, period: float=25.0):
@@ -104,5 +104,5 @@ class ToolKit:
         if show_results:
             pylab.show()
         else:
-            pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
+            pylab.savefig(os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
         pylab.close('all')

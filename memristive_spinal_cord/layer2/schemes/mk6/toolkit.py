@@ -17,30 +17,30 @@ class Plotter(ToolKit):
                 voltages = []
                 try:
                     raw_data = open(os.path.join(self.path, self.raw_data_dirname, 'Tier{}E{} [Glu].dat'.format(tier, index)), 'r')
+                    for line in raw_data.readlines():
+                        time, voltage = [float(value) for value in line.split()[1:]]
+                        times.append(time)
+                        voltages.append(voltage)
+                    pylab.subplot(4, 2, index + 1)
+                    pylab.title('Tier{}E{}'.format(tier, index))
+                    pylab.plot(times, voltages)
                 except FileNotFoundError:
                     print(sys.exc_info()[1])
                     pass
-                for line in raw_data.readlines():
-                    time, voltage = [float(value) for value in line.split()[1:]]
-                    times.append(time)
-                    voltages.append(voltage)
-                pylab.subplot(4, 2, index + 1)
-                pylab.title('Tier{}E{}'.format(tier, index))
-                pylab.plot(times, voltages)
             for index in range(2):
                 times = []
                 voltages = []
                 try:
                     raw_data = open(os.path.join(self.path, self.raw_data_dirname, 'Tier{}I{} [GABA].dat'.format(tier, index)), 'r')
+                    for line in raw_data.readlines():
+                        time, voltage = [float(value) for value in line.split()[1:]]
+                        times.append(time)
+                        voltages.append(voltage)
+                    pylab.subplot(4, 2, index + 7)
+                    pylab.title('Tier{}I{}'.format(tier, index))
+                    pylab.plot(times, voltages)
                 except FileNotFoundError:
                     print(sys.exc_info()[1])
-                for line in raw_data.readlines():
-                    time, voltage = [float(value) for value in line.split()[1:]]
-                    times.append(time)
-                    voltages.append(voltage)
-                pylab.subplot(4, 2, index + 7)
-                pylab.title('Tier{}I{}'.format(tier, index))
-                pylab.plot(times, voltages)
 
-            pylab.savefig(fname=os.path.join(self.path, '{}/pool.png'.format(self.figures_dirname)))
+            pylab.savefig(os.path.join(self.path, '{}/Tier{}.png'.format(self.figures_dirname, tier)))
             pylab.close('all')
