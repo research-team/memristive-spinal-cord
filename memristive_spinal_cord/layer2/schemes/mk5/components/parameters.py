@@ -12,27 +12,42 @@ class Weights(Enum):
         [100., 100., 100., 100., 100., 100.]
     ]
 
-    EI = [70, 70., 70., 70., 70., 70.]
+    EI = [
+        [70., 70.],
+        [70., 70.],
+        [70., 70.],
+        [100., 100.],
+        [100., 100.],
+        [100., 100.]
+    ]
 
-    IE = [100., 100., 100., 100., 100., 100.]
+    IE = [
+        [100., 100.],
+        [100., 100.],
+        [100., 100.],
+        [100., 100.],
+        [100., 100.],
+        [100., 100.],
+    ]
 
     TT = [
-        [60., 35., 0.],
-        [60., 35., 0.],
-        [60., 35., 0.],
-        [60., 35., 0.],
+        [60., 35., 100.],
+        [60., 35., 100.],
+        [60., 35., 100.],
         [60., 35., 0.],
         [60., 35., 0.]
     ]
 
     # To the pool
-    P = [2., 2., 2., 2., 2., 2.]
+    P = [1., 1., 1., 1., 1., 1.]
 
     # Mediator to PC weight
     MR = 100.
 
     # Spike generator weight
     SG = 200.
+
+    INH = 100
 
 
 class Constants(Enum):
@@ -43,12 +58,12 @@ class Constants(Enum):
     ACTION_TIME_INH = 5.
 
     GENERATOR_FREQUENCY = 40.
-    SIMULATION_TIME = 280.  # milliseconds
-    SPIKE_GENERATOR_TIMES = [35 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
+    SIMULATION_TIME = 240.  # milliseconds
+    SPIKE_GENERATOR_TIMES = [30 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
     SPIKE_GENERATOR_WEIGHTS = [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
 
-    SYNAPTIC_DELAY_EX = 0.7
-    SYNAPTIC_DELAY_INH = 0.7
+    SYNAPTIC_DELAY_EX = 0.5
+    SYNAPTIC_DELAY_INH = 0.5
 
     RESOLUTION = 0.1
     LOCAL_NUM_THREADS = 2
