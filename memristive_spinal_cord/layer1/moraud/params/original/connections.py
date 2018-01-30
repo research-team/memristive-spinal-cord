@@ -8,39 +8,41 @@ conn_all_to_all = {
     'rule': 'all_to_all'
 }
 
+coef = 100
+
 syn_spec_afferent1a_motor = {
     'model': syn_default_model,
     'delay': distr_normal_2,
-    'weight': 0.052608
+    'weight': 0.052608 * coef
 }
 syn_spec_afferent1a_inter1a = {
     'model': syn_default_model,
     'delay': distr_normal_2,
-    'weight': 0.0175
+    'weight': 0.0175 * coef
 }
 syn_spec_afferent2_inter2 = {
     'model': syn_default_model,
     'delay': distr_normal_3,
-    'weight': 0.0175
+    'weight': 0.0175 * coef
 }
 syn_spec_afferent2_inter1a = syn_spec_afferent2_inter2
 syn_spec_inter2_motor = {
     'model': syn_default_model,
     'delay': 1,
-    'weight': 0.00907
+    'weight': 0.00907 * coef
 }
 syn_spec_inter1a_inter1a = {
     'model': syn_default_model,
     'delay': 1,
-    'weight': -0.007
+    'weight': -0.007 * coef
 }
 syn_spec_inter1a_motor = {
     'model': syn_default_model,
     'delay': 1,
-    'weight': -0.0023
+    'weight': -0.0023 * coef
 }
 
-# TODO check that indegree has a uniform distribution
+# TODO check that indegree has an uniform distribution
 conn_spec_afferent1a_motor = conn_all_to_all
 conn_spec_afferent1a_inter1a = {
     'rule': 'fixed_indegree',
@@ -66,7 +68,7 @@ conn_spec_inter1a_motor = {
 
 connection_params_list = []
 
-######## FLEX SOURCES #########
+""" FLEX SOURCES """
 # source is Layer1Afferents.FLEX_1A,
 
 connection_params_list.append(
@@ -132,7 +134,7 @@ connection_params_list.append(
     )
 )
 
-######## EXTENSOR SOURCES #########
+""" EXTENSOR SOURCES """
 # source is Layer1Afferents.EXTENS_1A,
 connection_params_list.append(
     dict(

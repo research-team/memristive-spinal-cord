@@ -12,7 +12,8 @@ from memristive_spinal_cord.layer1.results_plotter import ResultsPlotter
 import memristive_spinal_cord.layer1.device_data as device_data
 
 
-def plot_neuron_group(flexor_device, extensor_device, group_name):
+def plot_neuron_group(flexor_device: Layer1Multimeters, extensor_device: Layer1Multimeters, group_name: str) -> None:
+
     flexor_motor_data = device_data.get_average_voltage(
         flexor_device,
         definitions.RESULTS_DIR

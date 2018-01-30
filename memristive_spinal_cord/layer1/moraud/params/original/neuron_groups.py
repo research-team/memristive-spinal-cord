@@ -40,7 +40,6 @@ neuron_group_params[Layer1NeuronGroups.EXTENS_INTER_2] = dict(
     n=inter_model_number,
 )
 
-
 motor_model_params = {
     'tau_syn_ex': 0.5,
     'tau_syn_in': 1.5,
