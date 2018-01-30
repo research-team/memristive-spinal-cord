@@ -105,8 +105,15 @@ sudo chown -R ${USER} /opt/maven
 tar xzvf apache-maven-3.5.2-bin.tar.gz
 export PATH=/opt/maven/apache-maven-3.5.2/bin:${PATH}
 
+# mpmath installation
+sudo mkdir /opt/mpmath && cd /opt/mpmath
+sudo chown -R ${USER} .
+wget https://pypi.python.org/packages/7a/05/b3d1472885d8dc0606936ea5da0ccb1b4785682e78ab15e34ada24aea8d5/mpmath-1.0.0.tar.gz
+tar xzvf mpmath-1.0.0.tar.gz
+cd mpmath-1.0.0
+sudo python setup.py install
+
 # sympy installation
-sudo -H pip install mpmath
 cd /opt/
 sudo git clone git://github.com/sympy/sympy.git
 sudo chown -R ${USER} /opt/sympy
@@ -119,7 +126,7 @@ cd /opt/
 sudo git clone https://github.com/nest/nestml.git
 sudo chown -R ${USER} /opt/nestml
 cd /opt/nestml
-mvn clean install
+sudo mvn clean install
 
 # hh-moto-5ht installation
 cd /opt/
