@@ -103,7 +103,7 @@ cd /opt/maven
 sudo wget http://mirror.linux-ia64.org/apache/maven/maven-3/3.5.2/binaries/apache-maven-3.5.2-bin.tar.gz
 sudo chown -R ${USER} /opt/maven
 tar xzvf apache-maven-3.5.2-bin.tar.gz
-export PATH=/opt/maven/apache-maven-3.5.2/bin:${PATH}
+# PATH=/opt/maven/apache-maven-3.5.2/bin/:${PATH}
 
 # mpmath installation
 sudo mkdir /opt/mpmath && cd /opt/mpmath
@@ -126,14 +126,14 @@ cd /opt/
 sudo git clone https://github.com/nest/nestml.git
 sudo chown -R ${USER} /opt/nestml
 cd /opt/nestml
-sudo mvn clean install
+sudo /opt/maven/apache-maven-3.5.2/bin/mvn clean install
 
 # hh-moto-5ht installation
 cd /opt/
 sudo git clone https://github.com/research-team/hh-moto-5ht.git
 sudo chown -R ${USER} /opt/hh-moto-5ht
 cd hh-moto-5ht
-java -jar /opt/nestml/nestml.jar research_team_models --target build
+java -jar /opt/nestml/target/nestml.jar research_team_models --target build
 cd build
 cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
 make all
