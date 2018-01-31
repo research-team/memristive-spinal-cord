@@ -57,11 +57,11 @@ sudo apt-get install doxygen --assume-yes
 if test "$PYTHON_VERSION" = "2" ; then
   sudo apt-get install python-pip --assume-yes
   sudo -H pip install --upgrade pip
-  sudo -H pip install scipy nose matplotlib cython
+  sudo -H pip install scipy nose matplotlib cython numpy
 elif test "$PYTHON_VERSION" = "3" ; then
   sudo apt-get install python3-pip --assume-yes
   sudo -H pip3 install --upgrade pip
-  sudo -H pip3 install scipy nose matplotlib cython
+  sudo -H pip3 install scipy nose matplotlib cython numpy
 fi
 # installing Readline
 sudo apt-get install libreadline6 libreadline6-dev --assume-yes
