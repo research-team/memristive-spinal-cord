@@ -138,3 +138,6 @@ cd build
 cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
 make all
 make install
+
+# removing temp
+sudo rm -rf /opt/maven/ /opt/hh-moto-5ht/ /opt/sympy/ /opt/nestml/ /opt/mpmath/
