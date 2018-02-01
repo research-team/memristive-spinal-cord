@@ -24,10 +24,24 @@ class Speed(Enum):
 
 class AfferentsFile:
     @staticmethod
-    def get_nest_spike_times(filepath, speed, interval, number, type, muscle):
+    def get_nest_spike_times(
+            filepath: str, speed: Speed, interval: Interval, number: int, type: Types, muscle: Muscles) -> list:
+        """
+        Reads the experimental data from a file and returns a list of spike times
+        Args:
+            filepath: path to the directory contains the datafiles
+            speed: not sure about meaning but this is a part of the filename
+            interval: intercal between stimulations, also part of the filename
+            number: a number of one of 60 afferents in the datafile
+            type: Ia or II afferent type
+            muscle: TA (Tibialis anterior?) or GM (Gluteus Maximus?)
+
+        Returns:
+            list
+        """
         if number <= 0 or number > 60:
             raise ValueError("AfferentsFile.number must be greater than 0 and less or equal than 60")
-
+        print('Get data from: {}'.format(AfferentsFile._get_data_file(filepath, type, muscle, speed, interval)))
         with open(AfferentsFile._get_data_file(filepath, type, muscle, speed, interval), "r") as data_file:
             frequencies_list = []
             for line in data_file:
@@ -39,7 +53,19 @@ class AfferentsFile:
         return [{"spike_times": spike_times} for spike_times in spike_times_list]
 
     @staticmethod
-    def _get_data_file(filepath, type, muscle, speed, interval):
+    def _get_data_file(filepath: str, type: Types, muscle: Muscles, speed: Speed, interval: Interval) -> str:
+        """
+
+        Args:
+            filepath: path to the directory contains the file
+            type: Ia or II afferent type
+            muscle: TA (Tibialis anterior?) or GM (Gluteus Maximus?)
+            speed: a part of the filename
+            interval: a part of the filename
+
+        Returns:
+            str: name of the file
+        """
         # example: Ia_GM_speed15_int20.txt
         filename = type.value + "_" + muscle.value + "_speed" \
                    + str(speed.value) + "_int" + str(interval.value) + ".txt"
@@ -49,7 +75,7 @@ class AfferentsFile:
         )
 
 
-def test():
+def test() -> None:
     flex_spikes_list = AfferentsFile.get_nest_spike_times(
         '/layer1/moraud/afferents_data/',
         Speed.DEFAULT,
@@ -65,7 +91,7 @@ def test():
         Interval.TWENTY,
         1,
         Types.ONE_A,
-        Muscles.FLEX
+        Muscles.EXTENS
     )
 
     # print("@@@", len(gm_spikes_list))

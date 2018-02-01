@@ -10,7 +10,7 @@ class Tier:
 
     __number_of_neurons = 0
     excitatory_groups = 5
-    inhibitory_groups = 1
+    inhibitory_groups = 2
 
     @classmethod
     def add_neurons(cls, number: int):
@@ -23,7 +23,14 @@ class Tier:
     def __init__(self, index: int):
         self.index = index
         self.e = []
-        self.i = Nucleus('Tier{}I0'.format(self.index))
+        self.i = []
+        for i in range(2):
+            self.i.append(Nucleus('Tier{}I{}'.format(self.index, i)))
+            self.i[i].addSubNucleus(
+                neurotransmitter='GABA',
+                number=Constants.NEURONS_IN_GROUP.value,
+                params=Neurons.NEUCOGAR.value
+            )
         for i in range(self.excitatory_groups):
             self.e.append(Nucleus('Tier{}E{}'.format(self.index, i)))
             self.e[i].addSubNucleus(
@@ -31,11 +38,6 @@ class Tier:
                 number=Constants.NEURONS_IN_GROUP.value,
                 params=Neurons.NEUCOGAR.value
             )
-        self.i.addSubNucleus(
-            neurotransmitter='GABA',
-            number=Constants.NEURONS_IN_GROUP.value,
-            params=Neurons.NEUCOGAR.value
-        )
         self.add_neurons(Constants.NEURONS_IN_GROUP.value * (
             self.excitatory_groups + self.inhibitory_groups
         ))
@@ -51,18 +53,19 @@ class Tier:
         """
         return self.e[index]
 
-    def get_i(self):
+    def get_i(self, index):
         """
 
         Returns:
             Nucleus
         """
-        return self.i
+        return self.i[index]
 
     def connect_multimeters(self):
         for i in range(self.excitatory_groups):
             self.e[i].nuclei('Glu').ConnectMultimeter()
-        self.i.nuclei('GABA').ConnectMultimeter()
+        for i in range(self.inhibitory_groups):
+            self.i[i].nuclei('GABA').ConnectMultimeter()
 
     def set_connections(self):
         for i in [0, 1, 3]:
@@ -86,15 +89,27 @@ class Tier:
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
         self.get_e(3).nuclei('Glu').connect(
-            nucleus=self.get_i().nuclei('GABA'),
+            nucleus=self.get_i(0).nuclei('GABA'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.EI.value[self.index-1],
+            weight=Weights.EI.value[self.index-1][0],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
-        self.get_i().nuclei('GABA').connect(
+        self.get_i(0).nuclei('GABA').connect(
             nucleus=self.get_e(1).nuclei('Glu'),
             synapse=Synapses.GABAERGIC.value,
-            weight=-Weights.IE.value[self.index-1],
+            weight=-Weights.IE.value[self.index-1][0],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        self.get_e(2).nuclei('Glu').connect(
+            nucleus=self.get_i(1).nuclei('GABA'),
+            synapse=Synapses.GLUTAMATERGIC.value,
+            weight=Weights.EI.value[self.index-1][1],
+            conn_type=ConnectionTypes.ONE_TO_ONE.value
+        )
+        self.get_i(1).nuclei('GABA').connect(
+            nucleus=self.get_e(2).nuclei('Glu'),
+            synapse=Synapses.GABAERGIC.value,
+            weight=-Weights.IE.value[self.index-1][1],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )
 
@@ -103,12 +118,12 @@ class Tier:
             lower_tier.get_e(i).nuclei('Glu').connect(
                 nucleus=self.get_e(0).nuclei('Glu'),
                 synapse=Synapses.GLUTAMATERGIC.value,
-                weight=Weights.TT.value[self.index-1][0 if i == 0 else 1],
+                weight=Weights.TT.value[self.index-2][0 if i == 0 else 1],
                 conn_type=ConnectionTypes.ONE_TO_ONE.value
             )
         self.get_e(2).nuclei('Glu').connect(
             nucleus=lower_tier.get_e(2).nuclei('Glu'),
             synapse=Synapses.GLUTAMATERGIC.value,
-            weight=Weights.TT.value[self.index-1][2],
+            weight=Weights.TT.value[self.index-2][2],
             conn_type=ConnectionTypes.ONE_TO_ONE.value
         )

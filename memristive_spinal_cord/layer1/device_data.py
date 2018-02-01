@@ -1,39 +1,40 @@
 import os
 from collections import OrderedDict
 
+
 class DeviceData:
     """
     format of _items: dict(<simulation_time>: dict(<neuron_id>: <list of recorder values>))
     """
 
-    def __init__(self, data_name_list) -> None:
+    def __init__(self, data_name_list: list) -> None:
         self._items = OrderedDict()
         self._data_name_list = data_name_list
 
-    def add_item(self, time, neuron_id, value_list):
+    def add_item(self, time: float, neuron_id: int, value_list: list) -> None:
         if not self.has_item(time):
             self.create_item(time)
         item = self.get_item(time)
-        if neuron_id in item:
-            raise ValueError("DeviceData data item " + time + " already has neuron_id " + neuron_id)
-        item[neuron_id] = value_list
+        if str(neuron_id) in item:
+            raise ValueError("DeviceData data item " + str(time) + " already has neuron_id " + str(neuron_id))
+        item[str(neuron_id)] = value_list
 
-    def has_item(self, time):
+    def has_item(self, time) -> bool:
         return time in self._items
 
-    def get_item(self, time):
+    def get_item(self, time) -> float:
         return self._items[time]
 
-    def create_item(self, time):
+    def create_item(self, time) -> None:
         self._items[time] = dict()
 
-    def get_data(self):
+    def get_data(self) -> OrderedDict:
         return self._items
 
-    def get_data_for_single_neuron(self, neuron_id, items):
+    def get_data_for_single_neuron(self, neuron_id: int, items) -> OrderedDict:
         return self.get_data_for_neurons([neuron_id], items)
 
-    def get_data_for_neurons(self, neuron_id_list, items=None):
+    def get_data_for_neurons(self, neuron_id_list: list, items=None) -> OrderedDict:
         result = OrderedDict()
         if items is None:
             items = self._items
@@ -42,7 +43,7 @@ class DeviceData:
             result[time] = item_for_neurons
         return result
 
-    def filter_items_for_value(self, value_name, items=None):
+    def filter_items_for_value(self, value_name: str, items=None) -> OrderedDict:
         result = OrderedDict()
         data_index = self._data_name_list.index(value_name)
         if data_index is not None:
@@ -53,7 +54,7 @@ class DeviceData:
                 result[time] = item
         return result
 
-    def average(self, value_name):
+    def average(self, value_name: str) -> OrderedDict:
         result = OrderedDict()
         for time, item in self.filter_items_for_value(value_name).items():
             values_list = item.values()
@@ -62,7 +63,7 @@ class DeviceData:
         return result
 
 
-def extract_device_data(device_name, value_names, storage_dir):
+def extract_device_data(device_name, value_names, storage_dir: str) -> DeviceData or None:
     device_filepath = None
     for file in os.listdir(storage_dir):
         if file.startswith(device_name.value):

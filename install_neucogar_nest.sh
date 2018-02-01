@@ -57,11 +57,11 @@ sudo apt-get install doxygen --assume-yes
 if test "$PYTHON_VERSION" = "2" ; then
   sudo apt-get install python-pip --assume-yes
   sudo -H pip install --upgrade pip
-  sudo -H pip install scipy nose matplotlib cython
+  sudo -H pip install scipy nose matplotlib cython numpy
 elif test "$PYTHON_VERSION" = "3" ; then
   sudo apt-get install python3-pip --assume-yes
   sudo -H pip3 install --upgrade pip
-  sudo -H pip3 install scipy nose matplotlib cython
+  sudo -H pip3 install scipy nose matplotlib cython numpy
 fi
 # installing Readline
 sudo apt-get install libreadline6 libreadline6-dev --assume-yes
@@ -92,3 +92,52 @@ bash ${NEST_VARS}
 if ! grep -q -F "source '$NEST_VARS'" ~/.profile ; then
   echo '# NEST env\n[ -f '${NEST_VARS}' ] && source '${NEST_VARS} >> ~/.profile
 fi
+
+# hh-moto-5ht model installation
+sudo apt-get install openjdk-8-jdk --assume-yes
+JAVA_HOME=/usr/lib/jvm/`ls /usr/lib/jvm/ | grep java-8-openjdk`
+
+# maven installation
+sudo mkdir /opt/maven
+cd /opt/maven
+sudo wget http://mirror.linux-ia64.org/apache/maven/maven-3/3.5.2/binaries/apache-maven-3.5.2-bin.tar.gz
+sudo chown -R ${USER} /opt/maven
+tar xzvf apache-maven-3.5.2-bin.tar.gz
+# PATH=/opt/maven/apache-maven-3.5.2/bin/:${PATH}
+
+# mpmath installation
+sudo mkdir /opt/mpmath && cd /opt/mpmath
+sudo chown -R ${USER} .
+wget https://pypi.python.org/packages/7a/05/b3d1472885d8dc0606936ea5da0ccb1b4785682e78ab15e34ada24aea8d5/mpmath-1.0.0.tar.gz
+tar xzvf mpmath-1.0.0.tar.gz
+cd mpmath-1.0.0
+sudo python setup.py install
+
+# sympy installation
+cd /opt/
+sudo git clone git://github.com/sympy/sympy.git
+sudo chown -R ${USER} /opt/sympy
+cd /opt/sympy
+git pull origin master
+sudo python setup.py install
+
+# nestml installation
+cd /opt/
+sudo git clone https://github.com/nest/nestml.git
+sudo chown -R ${USER} /opt/nestml
+cd /opt/nestml
+sudo /opt/maven/apache-maven-3.5.2/bin/mvn clean install
+
+# hh-moto-5ht installation
+cd /opt/
+sudo git clone https://github.com/research-team/hh-moto-5ht.git
+sudo chown -R ${USER} /opt/hh-moto-5ht
+cd hh-moto-5ht
+java -jar /opt/nestml/target/nestml.jar research_team_models --target build
+cd build
+cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
+make all
+make install
+
+# removing temp
+sudo rm -rf /opt/maven/ /opt/hh-moto-5ht/ /opt/sympy/ /opt/nestml/ /opt/mpmath/
