@@ -10,7 +10,7 @@ class ResultsPlotter:
         Returns:
             None
         """
-        pylab.show()
+        pylab.show(dpi=300)
 
     def __init__(self, rows_number, title):
         """
