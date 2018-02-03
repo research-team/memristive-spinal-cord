@@ -11,6 +11,8 @@ from memristive_spinal_cord.layer1.moraud.entities import Layer1Multimeters
 from memristive_spinal_cord.layer1.results_plotter import ResultsPlotter
 import memristive_spinal_cord.layer1.device_data as device_data
 
+nest.SetKernelStatus({"total_num_virtual_procs": 8,
+                      "print_time": True})
 
 def plot_neuron_group(flexor_device: Layer1Multimeters, extensor_device: Layer1Multimeters, group_name: str) -> None:
 
@@ -35,7 +37,7 @@ entity_params.update(device_params)
 util.clean_previous_results()
 layer1 = NeuronNetwork(entity_params, connection_params_list)
 
-nest.Simulate(150.)
+nest.Simulate(10000.)
 
 plotter = ResultsPlotter(3, 'Layer1 average "V_m" of neuron groups')
 plotter.reset()

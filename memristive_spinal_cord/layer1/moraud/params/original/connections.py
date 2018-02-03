@@ -8,39 +8,55 @@ conn_all_to_all = {
     'rule': 'all_to_all'
 }
 
-coef_ex = 75
-coef_in = 50
+coef_ex = 100
+coef_in = 100
+coef_ex_moto = 2
+
+weights = {
+    'aff_1a_mot': 2,
+    'aff_1a_int_1a': 2,
+    'aff_2_int_2': 2,
+    'int_2_mot': 2,
+    'int_1a_int_1a': -2,
+    'int_1a_mot': 2
+}
 
 syn_spec_afferent1a_motor = {
     'model': syn_default_model,
     'delay': distr_normal_2,
-    'weight': 0.052608 * coef_ex
+    'weight': 0.052608 * coef_ex * coef_ex_moto
+    # 'weight': weights['aff_1a_mot']
 }
 syn_spec_afferent1a_inter1a = {
     'model': syn_default_model,
     'delay': distr_normal_2,
     'weight': 0.0175 * coef_ex
+    # 'weight': weights['aff_1a_int_1a']
 }
 syn_spec_afferent2_inter2 = {
     'model': syn_default_model,
     'delay': distr_normal_3,
     'weight': 0.0175 * coef_ex
+    # 'weight': weights['aff_2_int_2']
 }
 syn_spec_afferent2_inter1a = syn_spec_afferent2_inter2
 syn_spec_inter2_motor = {
     'model': syn_default_model,
     'delay': 1,
-    'weight': 0.00907 * coef_ex
+    'weight': 0.00907 * coef_ex * 17
+    # 'weight': weights['int_2_mot']
 }
 syn_spec_inter1a_inter1a = {
     'model': syn_default_model,
     'delay': 1,
     'weight': -0.007 * coef_in
+    # 'weight': weights['int_1a_int_1a']
 }
 syn_spec_inter1a_motor = {
     'model': syn_default_model,
     'delay': 1,
-    'weight': -0.0023 * coef_in
+    'weight': -0.0023 * coef_in * 30
+    # 'weight': weights['int_1a_mot']
 }
 
 # TODO check that indegree has an uniform distribution
