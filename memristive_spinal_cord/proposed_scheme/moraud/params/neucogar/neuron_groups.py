@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1NeuronGroups
 
 general_neuron_model = {
     # 't_ref': [2.5, 4.0],  # Refractory period

@@ -1,15 +1,15 @@
 import nest
 import definitions
-from memristive_spinal_cord.layer1.neuron_network import NeuronNetwork
+from memristive_spinal_cord.proposed_scheme.neuron_network import NeuronNetwork
 import memristive_spinal_cord.util as util
 
-from memristive_spinal_cord.layer1.moraud.params.original.afferents import afferent_params
-from memristive_spinal_cord.layer1.moraud.params.original.neuron_groups import neuron_group_params
-from memristive_spinal_cord.layer1.moraud.params.original.devices import device_params
-from memristive_spinal_cord.layer1.moraud.params.original.connections import connection_params_list
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Multimeters
-from memristive_spinal_cord.layer1.results_plotter import ResultsPlotter
-import memristive_spinal_cord.layer1.device_data as device_data
+from memristive_spinal_cord.proposed_scheme.moraud.params.original.afferents import afferent_params
+from memristive_spinal_cord.proposed_scheme.moraud.params.original.neuron_groups import neuron_group_params
+from memristive_spinal_cord.proposed_scheme.moraud.params.original.devices import device_params
+from memristive_spinal_cord.proposed_scheme.moraud.params.original.connections import connection_params_list
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1Multimeters
+from memristive_spinal_cord.proposed_scheme.results_plotter import ResultsPlotter
+import memristive_spinal_cord.proposed_scheme.device_data as device_data
 
 nest.SetKernelStatus({"total_num_virtual_procs": 8,
                       "print_time": True})

@@ -1,5 +1,5 @@
 import definitions
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Multimeters
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1Multimeters
 
 device_params = dict()
 storage_dir = definitions.RESULTS_DIR

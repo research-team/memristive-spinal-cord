@@ -1,9 +1,9 @@
-import memristive_spinal_cord.layer1.afferents as afferents
-from memristive_spinal_cord.layer1.moraud.entities import Layer1Afferents
+import memristive_spinal_cord.proposed_scheme.afferents as afferents
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1Afferents
 
 afferent_params = dict()
 
-afferent_filepath = "/layer1/moraud/afferents_data/"
+afferent_filepath = "/proposed_scheme/moraud/afferents_data/"
 generator_number_1a = 60
 
 afferent_params[Layer1Afferents.FLEX_1A] = dict(
