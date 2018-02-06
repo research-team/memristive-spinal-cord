@@ -15,7 +15,8 @@ inter_model_params = {
 inter_model_number = 20
 inter_model_type = 'hh_cond_exp_traub'
 
-for tier in range(6):
+# Polysynaptic circuit
+for tier in range(7):
     for exc in range(5):
         neuron_groups_params['Tier{}E{}'.format(tier, exc)] = dict(
             model=inter_model_type,
@@ -28,3 +29,11 @@ for tier in range(6):
             params=inter_model_params,
             n=inter_model_number
         )
+
+# Pool
+for i in range(2):
+    neuron_groups_params['Pool{}'.format(i)] = dict(
+        model=inter_model_type,
+        params=inter_model_params,
+        n=inter_model_number
+    )
