@@ -46,6 +46,19 @@ class Weights(Enum):
     PE = [1., 1., 1., 1., 1., 1., 1.]
     PI = [70]
 
+    # From pool to Mn
+    PM = {
+        'Extensor': 0,
+        'Flexor': 0
+    }
+
+    # From pool to Ia
+
+    PIa = {
+        'Extensor': 0,
+        'Flexor': 0,
+    }
+
     # Mediator to PC weight
     MR = 100.
 
