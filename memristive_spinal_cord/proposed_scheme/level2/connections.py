@@ -71,12 +71,12 @@ for tier in range(1, 7):
             }
         })
 connection_params['Tier0'] = {
-    'e0_e1': {
+    'e2_e1': {
         'model': 'static_synapse',
         'delay': distr_normal_2,
         'weight': Weights.EE.value[0][0]
     },
-    'e1_e0': {
+    'e1_e2': {
         'model': 'static_synapse',
         'delay': distr_normal_2,
         'weight': Weights.EE.value[0][1]
@@ -92,3 +92,23 @@ connection_params['Tier0'] = {
         'weight': -Weights.IE.value[1]
     }
 }
+for tier in range(1, 7):
+    connection_params['Tier{}'.format(tier)].update({
+        'e2_pool': {
+            'model': 'static_synapse',
+            'delay': distr_normal_2,
+            'weight': Weights.PE.value[tier]
+        }
+    })
+connection_params['Tier0'].update({
+    'e1_pool0': {
+        'model': 'static_synapse',
+        'delay': distr_normal_2,
+        'weight': Weights.PE.value
+    },
+    'e1_pool1': {
+        'model': 'static_synapse',
+        'delay': distr_normal_2,
+        'weight': Weights.PI.value
+    }
+})
