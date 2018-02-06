@@ -18,7 +18,7 @@ for tier in range(1, 7):
             'weight': Weights.EE.value[tier][1]
         },
         'e2_e1': {
-            'model': 'static_synase',
+            'model': 'static_synapse',
             'delay': distr_normal_2,
             'weight': Weights.EE.value[tier][2]
         },
@@ -32,7 +32,7 @@ for tier in range(1, 7):
             'delay': distr_normal_2,
             'weight': Weights.EE.value[tier][4]
         },
-        'e0_e4': {
+        'e0_e3': {
             'model': 'static_synapse',
             'delay': distr_normal_2,
             'weight': Weights.EE.value[tier][5]
@@ -61,7 +61,8 @@ for tier in range(1, 7):
                 'weight': Weights.TT.value[tier][1]
             }
         })
-    if tier > 1:
+    if 0 < tier < 6:
+        print(tier)
         connection_params[current_tier].update({
             'e2_e2': {
                 'model': 'static_synapse',
@@ -88,7 +89,7 @@ connection_params['Tier0'] = {
     'i0_e1': {
         'model': 'static_synapse',
         'delay': distr_normal_2,
-        'weight': -Weights.IE.value[1]
+        'weight': -Weights.IE.value[0]
     }
 }
 for tier in range(1, 7):
@@ -103,7 +104,7 @@ connection_params['Tier0'].update({
     'e1_pool0': {
         'model': 'static_synapse',
         'delay': distr_normal_2,
-        'weight': Weights.PE.value
+        'weight': Weights.PE.value[0]
     },
     'e1_pool1': {
         'model': 'static_synapse',
@@ -137,10 +138,10 @@ connection_params['Pool1'] = {
 }
 
 """ INTERCONNECTIONS """
-connections_list = []
+l2_connections_list = []
 
 for tier in range(1, 7):
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E0'.format(tier),
             post='Tier{}E1'.format(tier),
@@ -148,7 +149,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E1'.format(tier),
             post='Tier{}E2'.format(tier),
@@ -156,7 +157,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E2'.format(tier),
             post='Tier{}E1'.format(tier),
@@ -164,7 +165,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E3'.format(tier),
             post='Tier{}E4'.format(tier),
@@ -172,7 +173,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E4'.format(tier),
             post='Tier{}E3'.format(tier),
@@ -180,7 +181,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E0'.format(tier),
             post='Tier{}E3'.format(tier),
@@ -188,7 +189,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}E3'.format(tier),
             post='Tier{}I0'.format(tier),
@@ -196,7 +197,7 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier{}I0'.format(tier),
             post='Tier{}E1'.format(tier),
@@ -205,7 +206,7 @@ for tier in range(1, 7):
         )
     )
     if tier < 6:
-        connections_list.append(
+        l2_connections_list.append(
             dict(
                 pre='Tier{}E0'.format(tier),
                 post='Tier{}E0'.format(tier + 1),
@@ -213,7 +214,7 @@ for tier in range(1, 7):
                 conn_spec={'rule': 'one_to_one'}
             )
         )
-        connections_list.append(
+        l2_connections_list.append(
             dict(
                 pre='Tier{}E3'.format(tier),
                 post='Tier{}E0'.format(tier + 1),
@@ -221,11 +222,11 @@ for tier in range(1, 7):
                 conn_spec={'rule': 'one_to_one'}
             )
         )
-    if tier > 1:
-        connections_list.append(
+    if 1 < tier < 6:
+        l2_connections_list.append(
             dict(
-                pre='Tier{}E2'.format(tier),
-                post='Tier{}E2'.format(tier + 1),
+                pre='Tier{}E2'.format(tier + 1),
+                post='Tier{}E2'.format(tier),
                 syn_spec=connection_params['Tier{}'.format(tier)]['e2_e2'],
                 conn_spec={'rule': 'one_to_one'}
             )
@@ -233,16 +234,16 @@ for tier in range(1, 7):
 
 for tier in range(1, 7):
     for pool in range(2):
-        connections_list.append(
+        l2_connections_list.append(
             dict(
-                pre='Tier{}'.format(tier),
+                pre='Tier{}E2'.format(tier),
                 post='Pool{}'.format(pool),
-                syn_spec=connection_params['Tier{}'.format(tier)]['e2_pool{}'.format(pool)],
+                syn_spec=connection_params['Tier{}'.format(tier)]['e2_pool'],
                 conn_spec={'rule': 'one_to_one'}
             )
         )
 for pool in range(2):
-    connections_list.append(
+    l2_connections_list.append(
         dict(
             pre='Tier0E1',
             post='Pool{}'.format(pool),
@@ -253,7 +254,7 @@ for pool in range(2):
 
 """ CONNECT LEVELS """
 
-connections_list.append(
+l2_connections_list.append(
     dict(
         pre='Pool0',
         post=Layer1NeuronGroups.EXTENS_MOTOR,
@@ -261,7 +262,7 @@ connections_list.append(
         conn_spec={'rule': 'fixed_indegree', 'indegree': 100}
     )
 )
-connections_list.append(
+l2_connections_list.append(
     dict(
         pre='Pool0',
         post=Layer1NeuronGroups.EXTENS_INTER_1A,
@@ -269,7 +270,7 @@ connections_list.append(
         conn_spec={'rule': 'fixed_indegree', 'indegree': 100}
     )
 )
-connections_list.append(
+l2_connections_list.append(
     dict(
         pre='Pool1',
         post=Layer1NeuronGroups.FLEX_MOTOR,
@@ -277,7 +278,7 @@ connections_list.append(
         conn_spec={'rule': 'fixed_indegree', 'indegree': 100}
     )
 )
-connections_list.append(
+l2_connections_list.append(
     dict(
         pre='Pool1',
         post=Layer1NeuronGroups.FLEX_INTER_1A,

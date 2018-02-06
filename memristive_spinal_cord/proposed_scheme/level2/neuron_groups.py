@@ -1,4 +1,4 @@
-neuron_groups_params = dict()
+l2_neuron_group_params = dict()
 inter_model_params = {
     't_ref': 2.,  # Refractory period
     'V_m': -70.0,  #
@@ -18,13 +18,13 @@ inter_model_type = 'hh_cond_exp_traub'
 # Polysynaptic circuit
 for tier in range(7):
     for exc in range(5):
-        neuron_groups_params['Tier{}E{}'.format(tier, exc)] = dict(
+        l2_neuron_group_params['Tier{}E{}'.format(tier, exc)] = dict(
             model=inter_model_type,
             params=inter_model_params,
             n=inter_model_number,
         )
     for inh in range(2):
-        neuron_groups_params['Tier{}I{}'.format(tier, inh)] = dict(
+        l2_neuron_group_params['Tier{}I{}'.format(tier, inh)] = dict(
             model=inter_model_type,
             params=inter_model_params,
             n=inter_model_number
@@ -32,7 +32,7 @@ for tier in range(7):
 
 # Pool
 for i in range(2):
-    neuron_groups_params['Pool{}'.format(i)] = dict(
+    l2_neuron_group_params['Pool{}'.format(i)] = dict(
         model=inter_model_type,
         params=inter_model_params,
         n=inter_model_number
