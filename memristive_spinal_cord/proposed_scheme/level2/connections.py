@@ -286,3 +286,32 @@ l2_connections_list.append(
         conn_spec={'rule': 'fixed_indegree', 'indegree': 100}
     )
 )
+
+""" MULTIMETERS CONNECTION """
+for tier in range(1, 7):
+    for exc in range(5):
+        l2_connections_list.append(
+            dict(
+                pre='Tier{}E{}-multimeter'.format(tier, exc),
+                post='Tier{}E{}'.format(tier, exc)
+            )
+        )
+    l2_connections_list.append(
+        dict(
+            pre='Tier{}I0-multimeter'.format(tier),
+            post='Tier{}I0'.format(tier)
+        )
+    )
+for exc in range(2):
+    l2_connections_list.append(
+        dict(
+            pre='Tier0E{}-multimeter'.format(exc),
+            post='Tier0E{}'.format(exc)
+        )
+    )
+l2_connections_list.append(
+    dict(
+        pre='Tier0I0-multimeter',
+        post='Tier0I0'
+    )
+)
