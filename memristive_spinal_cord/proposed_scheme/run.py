@@ -11,6 +11,7 @@ from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1Multime
 from memristive_spinal_cord.proposed_scheme.results_plotter import ResultsPlotter
 import memristive_spinal_cord.proposed_scheme.device_data as device_data
 
+from memristive_spinal_cord.proposed_scheme.level2.devices import l2_device_params
 from memristive_spinal_cord.proposed_scheme.level2.neuron_groups import l2_neuron_group_params
 from memristive_spinal_cord.proposed_scheme.level2.connections import l2_connections_list
 
@@ -38,6 +39,7 @@ entity_params.update(afferent_params)
 entity_params.update(neuron_group_params)
 entity_params.update(device_params)
 entity_params.update(l2_neuron_group_params)
+entity_params.update(l2_device_params)
 connection_params_list += l2_connections_list
 
 util.clean_previous_results()
