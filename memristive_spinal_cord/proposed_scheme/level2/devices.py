@@ -1,12 +1,12 @@
 import definitions
 
 
-device_params = dict()
+l2_device_params = dict()
 storage_dir = definitions.RESULTS_DIR
 
 
 def add_multimeter_params(multimeter: str):
-    device_params[multimeter] = dict(
+    l2_device_params[multimeter] = dict(
         model='multimeter',
         n=1,
         params={
