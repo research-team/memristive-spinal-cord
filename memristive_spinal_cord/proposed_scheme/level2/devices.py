@@ -1,5 +1,6 @@
 import definitions
-
+from memristive_spinal_cord.proposed_scheme.level2.parameters import SIMULATION_TIME
+from memristive_spinal_cord.proposed_scheme.level2.parameters import Weights
 
 l2_device_params = dict()
 storage_dir = definitions.RESULTS_DIR
@@ -32,3 +33,12 @@ add_multimeter_params('Tier0I0-multimeter')
 
 for pool in range(2):
     add_multimeter_params('Pool{}-multimeter'.format(pool))
+SPIKE_GENERATOR_TIMES = [30 * i + 0.1 for i in range(int(SIMULATION_TIME // 25))]
+l2_device_params['spike_generator'] = dict(
+    model='spike_generator',
+    n=1,
+    params={
+        'spike_times': SPIKE_GENERATOR_TIMES,
+        'spike_weights': [Weights.SG.value for _ in SPIKE_GENERATOR_TIMES]
+    }
+)

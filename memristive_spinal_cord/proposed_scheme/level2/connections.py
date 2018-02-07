@@ -136,6 +136,11 @@ connection_params['Pool1'] = {
         'weight': Weights.PIa.value['Flexor']
     }
 }
+connection_params['Mediator'] = {
+    'model': 'static_synapse',
+    'delay': distr_normal_2,
+    'weight': Weights.MR.value
+}
 
 """ INTERCONNECTIONS """
 l2_connections_list = []
@@ -251,6 +256,14 @@ for pool in range(2):
             conn_spec={'rule': 'one_to_one'}
         )
     )
+l2_connections_list.append(
+    dict(
+        pre='Mediator',
+        post='Tier1E0',
+        syn_spec=connection_params['Mediator'],
+        conn_spec={'rule': 'all_to_all'}
+    )
+)
 
 """ CONNECT LEVELS """
 
@@ -313,5 +326,18 @@ l2_connections_list.append(
     dict(
         pre='Tier0I0-multimeter',
         post='Tier0I0'
+    )
+)
+for i in range(2):
+    l2_connections_list.append(
+        dict(
+            pre='Pool{}-multimeter'.format(i),
+            post='Pool{}'.format(i)
+        )
+    )
+l2_connections_list.append(
+    dict(
+        pre='spike_generator',
+        post='Mediator'
     )
 )

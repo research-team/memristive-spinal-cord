@@ -36,3 +36,10 @@ for i in range(2):
         params=inter_model_params,
         n=inter_model_number
     )
+
+# Mediator
+l2_neuron_group_params['Mediator'] = dict(
+    model=inter_model_type,
+    params=inter_model_params,
+    n=1
+)

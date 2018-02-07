@@ -66,3 +66,6 @@ class Weights(Enum):
     SG = 200.
 
     INH = 100
+
+
+SIMULATION_TIME = 500.

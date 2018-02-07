@@ -38,7 +38,7 @@ class ResultsPlotter:
         Plots one figure at corresponding position. The method will be called several times
         Args:
             flexor: data from simulated flexor muscle
-            extensor: data from simyulated extensor muscle
+            extensor: data from simulated extensor muscle
             title: just a title
         Returns:
             None
