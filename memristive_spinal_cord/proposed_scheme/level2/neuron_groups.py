@@ -23,12 +23,11 @@ for tier in range(7):
             params=inter_model_params,
             n=inter_model_number,
         )
-    for inh in range(2):
-        l2_neuron_group_params['Tier{}I{}'.format(tier, inh)] = dict(
-            model=inter_model_type,
-            params=inter_model_params,
-            n=inter_model_number
-        )
+    l2_neuron_group_params['Tier{}I0'.format(tier)] = dict(
+        model=inter_model_type,
+        params=inter_model_params,
+        n=inter_model_number
+    )
 
 # Pool
 for i in range(2):
