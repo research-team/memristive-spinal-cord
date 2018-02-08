@@ -74,11 +74,12 @@ plot_neuron_groups('Pool1-multimeter', 'Pool0-multimeter', 'Pool')
 plotter.save(os.path.join(img_path, 'pool-level1.png'))
 
 for tier in range(6, 0, -1):
-    plotter = ResultsPlotter(6, 'Tier{}'.format(tier))
+    plotter = ResultsPlotter(7, 'Tier{}'.format(tier))
     plotter.reset()
     for exc in range(5):
         plot_neuron_group('Tier{}E{}-multimeter'.format(tier, exc), 'Tier{}E{}'.format(tier, exc))
     plot_neuron_group('Tier{}I0-multimeter'.format(tier), 'Tier{}I0'.format(tier))
+    plot_neuron_group('Tier{}I1-multimeter'.format(tier), 'Tier{}I1'.format(tier))
     plotter.save(os.path.join(img_path, 'level2-tier{}.png'.format(tier)))
 
 plotter = ResultsPlotter(3, 'Tier0')

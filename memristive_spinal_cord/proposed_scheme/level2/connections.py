@@ -46,6 +46,16 @@ for tier in range(1, 7):
             'model': 'static_synapse',
             'delay': distr_normal_2,
             'weight': -Weights.IE.value[tier][0]
+        },
+        'e4_i1': {
+            'model': 'static_synapse',
+            'delay': distr_normal_2,
+            'weight': Weights.EI.value[tier][1]
+        },
+        'i1_e3': {
+            'model': 'static_synapse',
+            'delay': distr_normal_2,
+            'weight': -Weights.IE.value[tier][1]
         }
     }
     if tier < 6:
@@ -210,6 +220,22 @@ for tier in range(1, 7):
             conn_spec={'rule': 'one_to_one'}
         )
     )
+    l2_connections_list.append(
+        dict(
+            pre='Tier{}E4'.format(tier),
+            post='Tier{}I1'.format(tier),
+            syn_spec=connection_params['Tier{}'.format(tier)]['e4_i1'],
+            conn_spec={'rule': 'one_to_one'}
+        )
+    )
+    l2_connections_list.append(
+        dict(
+            pre='Tier{}I1'.format(tier),
+            post='Tier{}E3'.format(tier),
+            syn_spec=connection_params['Tier{}'.format(tier)]['i1_e3'],
+            conn_spec={'rule': 'one_to_one'}
+        )
+    )
     if tier < 6:
         l2_connections_list.append(
             dict(
@@ -313,6 +339,12 @@ for tier in range(1, 7):
         dict(
             pre='Tier{}I0-multimeter'.format(tier),
             post='Tier{}I0'.format(tier)
+        )
+    )
+    l2_connections_list.append(
+        dict(
+            pre='Tier{}I1-multimeter'.format(tier),
+            post='Tier{}I1'.format(tier)
         )
     )
 for exc in range(2):

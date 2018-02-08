@@ -26,6 +26,7 @@ for tier in range(1, 7):
     for exc in range(5):
         add_multimeter_params('Tier{}E{}-multimeter'.format(tier, exc))
     add_multimeter_params('Tier{}I0-multimeter'.format(tier))
+    add_multimeter_params('Tier{}I1-multimeter'.format(tier))
 
 for exc in range(2):
     add_multimeter_params('Tier0E{}-multimeter'.format(exc))
