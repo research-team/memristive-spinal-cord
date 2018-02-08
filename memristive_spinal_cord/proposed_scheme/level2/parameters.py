@@ -68,4 +68,4 @@ class Weights(Enum):
     INH = 100
 
 
-SIMULATION_TIME = 500.
+SIMULATION_TIME = 2000.

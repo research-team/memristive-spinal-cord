@@ -10,7 +10,11 @@ class ResultsPlotter:
         Returns:
             None
         """
-        pylab.show(dpi=300)
+        pylab.show(dpi=500)
+
+    @staticmethod
+    def save(filename):
+        pylab.savefig(filename)
 
     def __init__(self, rows_number, title):
         """
@@ -30,6 +34,7 @@ class ResultsPlotter:
         Returns:
             None
         """
+        pylab.close('all')
         pylab.figure() # creates a new figure
         pylab.title(self._title) # sets the title
 
@@ -53,3 +58,23 @@ class ResultsPlotter:
 
         pylab.ylabel(title)
         pylab.legend()
+
+    def subplot_one_figure(self, group, title) -> None:
+        """
+        Previous plotting method for one figure by subplot
+        Args:
+            group: name of the neural group
+            title: just a title for the figure
+
+        Returns:
+            None
+        """
+        if self._plot_index > self._rows_number:
+            raise ValueError("Too many subplots!")
+        pylab.subplot(self._rows_number, self._cols_number, self._plot_index)
+        self._plot_index += 1
+
+        pylab.plot(group.keys(), group.values(), 'k-')
+
+        pylab.ylabel(title)
+        # pylab.legend()
