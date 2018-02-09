@@ -2,7 +2,7 @@ from memristive_spinal_cord.proposed_scheme.level2.parameters import Weights
 from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1NeuronGroups
 
 
-distr_normal_2 = {'distribution': 'normal', 'mu': 2.0, 'sigma': 0.175}
+distr_normal_2 = {'distribution': 'normal', 'mu': 3.0, 'sigma': 0.175}
 connection_params = {}
 for tier in range(1, 7):
     current_tier = 'Tier{}'.format(tier)
