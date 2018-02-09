@@ -1,5 +1,5 @@
 import neucogar.namespaces as NEST_NAMESPACE
-from memristive_spinal_cord.layer1.moraud.entities  import Layer1NeuronGroups, Layer1Afferents
+from memristive_spinal_cord.proposed_scheme.moraud.entities  import Layer1NeuronGroups, Layer1Afferents
 
 weight_Glu = 185
 weight_GABA = -70

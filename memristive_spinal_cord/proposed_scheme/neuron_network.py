@@ -46,6 +46,7 @@ class NeuronNetwork:
         Args:
             connection_params (dict)
         """
+        print(connection_params)
         nest_params = dict(connection_params)
         nest_params['pre'] = self.get_entity(nest_params['pre'])
         nest_params['post'] = self.get_entity(nest_params['post'])

@@ -65,8 +65,9 @@ class DeviceData:
 
 def extract_device_data(device_name, value_names, storage_dir: str) -> DeviceData or None:
     device_filepath = None
+    device_name = device_name if type(device_name) is str else device_name.value
     for file in os.listdir(storage_dir):
-        if file.startswith(device_name.value):
+        if file.startswith(device_name):
             device_filepath = storage_dir + '/' + file
             break
 

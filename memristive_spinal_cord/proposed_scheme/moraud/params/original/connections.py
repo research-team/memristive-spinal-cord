@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups, Layer1Afferents, Layer1Multimeters
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1NeuronGroups, Layer1Afferents, Layer1Multimeters
 
 distr_normal_2 = {'distribution': 'normal', 'mu': 2.0, 'sigma': 0.175}  # 0.175^2 = 0.03
 distr_normal_3 = {'distribution': 'normal', 'mu': 3.0, 'sigma': 0.175}  # 0.175^2 = 0.03

@@ -1,4 +1,4 @@
-from memristive_spinal_cord.layer1.moraud.entities import Layer1NeuronGroups
+from memristive_spinal_cord.proposed_scheme.moraud.entities import Layer1NeuronGroups
 
 neuron_group_params = dict()
 
