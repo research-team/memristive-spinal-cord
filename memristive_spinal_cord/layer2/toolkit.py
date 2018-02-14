@@ -20,7 +20,7 @@ class ToolKit:
         os.mkdir(path=os.path.join(self.path, dirname))
 
     def plot_column(self, show_results: bool=False, column: str='Left'):
-        for tier in range(5, 0, -1):
+        for tier in range(6, 0, -1):
             neurotransmitter = 'GABA' if column == 'Inhibitory' else 'Glu'
             filename = os.path.join(self.raw_data_dirname, 'Tier{}E{} [{}].dat'.format(str(tier), column, neurotransmitter))
             with open(filename) as data:
@@ -29,7 +29,7 @@ class ToolKit:
                 for line in data.readlines():
                     time.append(float(line.split()[1]))
                     voltage.append(float(line.split()[2]))
-            pylab.subplot(5, 1, 6 - tier)
+            pylab.subplot(6, 1, 7 - tier)
             pylab.plot(time, voltage)
             title = 'Tier{}{}'.format(str(tier), column)
             pylab.title(title, fontsize=10)
