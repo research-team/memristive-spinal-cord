@@ -42,4 +42,13 @@ A number of spikes equaled the integer part placed at the interval aligned to th
 ![EES](img/ees.png)
 
 The main idea is number of activated afferents depends on a stimulation amplitude. A basic principle of the switching
-isn't clear now. The algorithm is borrowed and implemented in python by [Alexei Sanin](https://github.com/vogdb).  
+isn't clear now. The algorithm is borrowed and implemented in python by [Alexei Sanin](https://github.com/vogdb).
+
+## 3. Level 1
+
+![Level1](img/level1.png)  
+
+The level 1 is an earlier verified model for spinal cord simulation. It contains 2 motoneuron groups
+and 4 interneuron groups. Stimulated afferents act on interneurins and motoneurons according
+the basic scheme.
+
