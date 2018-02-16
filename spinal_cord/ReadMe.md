@@ -52,3 +52,10 @@ The level 1 is an earlier verified model for spinal cord simulation. It contains
 and 4 interneuron groups. Stimulated afferents act on interneurins and motoneurons according
 the basic scheme.
 
+## 4. Level 2
+
+![Level2](img/level2.png)
+
+The 2-nd levels constists of six basic layer, one specific zero-layer, and interneuronal pool which balances
+activity of the flexor or extensor groups. Also we assume existing of the hidden tiers-generators which accumulate
+activity.
