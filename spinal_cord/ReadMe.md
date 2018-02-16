@@ -1,7 +1,7 @@
 # The Spinal Cord simulation
 
 ## 0. Intro
-![The diagram of the scheme](img/basic-structure.png)
+![The diagram of the scheme](img/basic_structure.png)
 This model is used to simulate the S1 segment of the spinal cord. It consists of several logical parts.
 Let's go from left to right follow the data flow.
 
@@ -25,6 +25,8 @@ but very useful for debugging and weights setup.
 
 ## 1. Spike times generation
 
+![AfferentSpikeGenerator](img/afferent_spike_generator.png)
+
 The experimental data consists of lists of frequencies, but for simulation we have to provide a list of spike times
 for NEST. The _AfferentSpikeGenerator_ class solves the problem. It generates a list of spike times for an
  every afferent by using the next algorithm:  
@@ -34,3 +36,10 @@ and splits the value into two parts: integer part and fraction part. Then the fr
 If `charge` becomes over than `1`, then integer part's value incremented by `1`, and `charge`'s value decremented by `1`.
 A number of spikes equaled the integer part placed at the interval aligned to the interval's center with equal
  distance between them.
+ 
+## 2. EES implementation
+
+![EES](img/ees.png)
+
+The main idea is number of activated afferents depends on a stimulation amplitude. A basic principle of the switching
+isn't clear now. The algorithm is borrowed and implemented in python by [Alexei Sanin](https://github.com/vogdb).  
