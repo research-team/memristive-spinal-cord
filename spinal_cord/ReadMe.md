@@ -54,8 +54,28 @@ the basic scheme.
 
 ## 4. Level 2
 
-![Level2](img/level2.png)
-
 The 2-nd levels constists of six basic layer, one specific zero-layer, and interneuronal pool which balances
 activity of the flexor or extensor groups. Also we assume existing of the hidden tiers-generators which accumulate
 activity.
+
+### 4.1. Tiers
+
+An every layer of the second level called a tier in our simulation.
+Tiers with indexes from 1 to 6 have the same structure. One of the proposed
+variants is shown below.
+
+![Tier](img/tier.png)
+
+Top two groups work as a generator. They accumulate activation pulse and facilitate inhibition of the group at bottom
+and potentiation of the next tier. Six tiers form a polysynaptic circuit.  
+
+![Polysynaptic Circuit](img/polysynaptic_circuit.png)
+
+#### 4.1.1. Tier0
+
+Level 2 also has a Tier0 which regulate the activity of both groups of the interneuronal pool. It's structure may differ
+from other tiers structure
+
+So the whole structure looks like something below.
+
+![Spinal Cord](img/spinal_cord.png)
