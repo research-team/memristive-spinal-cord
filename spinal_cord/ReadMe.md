@@ -1,7 +1,7 @@
 # The Spinal Cord simulation
 
 ## 0. Intro
-![The diagram of the scheme](img/basic_structure.png)
+![The diagram of the scheme](readme_img/basic_structure.png)
 This model is used to simulate the S1 segment of the spinal cord. It consists of several logical parts.
 Let's go from left to right follow the data flow.
 
@@ -25,7 +25,7 @@ but very useful for debugging and weights setup.
 
 ## 1. Spike times generation
 
-![AfferentSpikeGenerator](img/afferent_spike_generator.png)
+![AfferentSpikeGenerator](readme_img/afferent_spike_generator.png)
 
 The experimental data consists of lists of frequencies, but for simulation we have to provide a list of spike times
 for NEST. The _AfferentSpikeGenerator_ class solves the problem. It generates a list of spike times for an
@@ -39,14 +39,14 @@ A number of spikes equaled the integer part placed at the interval aligned to th
  
 ## 2. EES implementation
 
-![EES](img/ees.png)
+![EES](readme_img/ees.png)
 
 The main idea is number of activated afferents depends on a stimulation amplitude. A basic principle of the switching
 isn't clear now. The algorithm is borrowed and implemented in python by [Alexei Sanin](https://github.com/vogdb).
 
 ## 3. Level 1
 
-![Level1](img/level1.png)  
+![Level1](readme_img/level1.png)  
 
 The level 1 is an earlier verified model for spinal cord simulation. It contains 2 motoneuron groups
 and 4 interneuron groups. Stimulated afferents act on interneurins and motoneurons according
@@ -64,12 +64,12 @@ An every layer of the second level called a tier in our simulation.
 Tiers with indexes from 1 to 6 have the same structure. One of the proposed
 variants is shown below.
 
-![Tier](img/tier.png)
+![Tier](readme_img/tier.png)
 
 Top two groups work as a generator. They accumulate activation pulse and facilitate inhibition of the group at bottom
 and potentiation of the next tier. Six tiers form a polysynaptic circuit.  
 
-![Polysynaptic Circuit](img/polysynaptic_circuit.png)
+![Polysynaptic Circuit](readme_img/polysynaptic_circuit.png)
 
 #### 4.1.1. Tier0
 
@@ -78,10 +78,10 @@ from other tiers structure
 
 So the whole structure looks like something below.
 
-![Spinal Cord](img/spinal_cord.png)
+![Spinal Cord](readme_img/spinal_cord.png)
 
 ## 5. High-level class diagram
 
 So, the scheme can be implemented by using the next classes and relations
 
-![Spinal Cord UML-diagram](img/spinal_cord_classes.png)
+![Spinal Cord UML-diagram](readme_img/spinal_cord_classes.png)
