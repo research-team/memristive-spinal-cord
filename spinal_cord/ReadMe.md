@@ -79,3 +79,9 @@ from other tiers structure
 So the whole structure looks like something below.
 
 ![Spinal Cord](img/spinal_cord.png)
+
+## 5. High-level class diagram
+
+So, the scheme can be implemented by using the next classes and relations
+
+![Spinal Cord UML-diagram](img/spinal_cord_classes.png)
