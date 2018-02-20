@@ -12,7 +12,7 @@ class EesStimulation:
         self.datapath = datapath
 
     def compute_activated_number(self, amplitude, muscle, group, number):
-        percent = EesStimulation.compute_activated_percent(amplitude=amplitude, muscle=muscle, group=group)
+        percent = EesStimulation.compute_activated_percent(self, amplitude=amplitude, muscle=muscle, group=group)
         return int(round(number * percent))
 
     def compute_activated_percent(self, amplitude, muscle, group):
