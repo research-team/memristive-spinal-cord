@@ -37,7 +37,7 @@ def generate_spikes(frequency_list: list, interval: Interval) -> list:
 
 class AfferentSpikeTimeGenerator:
 
-    def __init__(self, datapath):
+    def __init__(self, datapath='data'):
         self.datapath = datapath
 
     def get_spiketimes_list(
@@ -50,15 +50,6 @@ class AfferentSpikeTimeGenerator:
     ) -> list:
         """
         Reads the experimental data from a file and returns a list of spike times for a specific afferent
-        Args:
-            muscle:
-            number: an order number of one of 60 afferent fibers
-            type:
-            speed:
-            interval:
-
-        Returns:
-            list: a list of the spike times
         """
         if number in range(0, 61):
             # example: Ia_GM_speed15_int20.txt
@@ -76,7 +67,7 @@ class AfferentSpikeTimeGenerator:
 
 
 def test() -> None:
-    spike_generator = AfferentSpikeTimeGenerator('data')
+    spike_generator = AfferentSpikeTimeGenerator()
     flex_spikes_list = spike_generator.get_spiketimes_list(
         muscle=Muscle.FLEX,
         number=1,
