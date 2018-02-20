@@ -1,32 +1,6 @@
-from enum import Enum
+from spinal_cord.namespace import Afferent, Muscle, Interval, Speed
 from pkg_resources import resource_filename
 import os
-
-
-""" NAMESPACE """
-
-
-class Type(Enum):
-    IA = 'Ia'
-    II = 'II'
-    SENSORY = 'sensory'
-
-
-class Muscle(Enum):
-    FLEX = 'TA'
-    EXTENS = 'MG'
-
-
-class Speed(Enum):
-    FIFTEEN = 15
-    DEFAULT = ''
-
-
-class Interval(Enum):
-    DEFAULT = 20
-
-
-""" END NAMESPACE """
 
 
 def generate_spikes(frequency_list: list, interval: Interval) -> list:
@@ -70,7 +44,7 @@ class AfferentSpikeTimeGenerator:
             self,
             muscle: Muscle,
             number: int,
-            type: Type,
+            afferent: Afferent,
             speed: Speed=Speed.DEFAULT,
             interval: Interval=Interval.DEFAULT,
     ) -> list:
@@ -88,8 +62,8 @@ class AfferentSpikeTimeGenerator:
         """
         if number in range(0, 61):
             # example: Ia_GM_speed15_int20.txt
-            filename = '{type}_{muscle}_speed{speed}_int{interval}.txt'.format(
-                type=type.value, muscle=muscle.value, speed=speed.value, interval=interval.value)
+            filename = '{afferent}_{muscle}_speed{speed}_int{interval}.txt'.format(
+                afferent=afferent.value, muscle=muscle.value, speed=speed.value, interval=interval.value)
             filepath = resource_filename('afferents', os.path.join(self.datapath, filename))
 
             print('Getting data from {}'.format(filename))
@@ -106,6 +80,6 @@ def test() -> None:
     flex_spikes_list = spike_generator.get_spiketimes_list(
         muscle=Muscle.FLEX,
         number=1,
-        type=Type.IA,
+        afferent=Afferent.IA,
     )
     print(flex_spikes_list)
