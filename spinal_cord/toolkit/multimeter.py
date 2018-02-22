@@ -2,12 +2,12 @@ import nest
 from pkg_resources import resource_filename
 
 
-def add_multimeter(name: str):
-    nest.Create(
+def add_multimeter(name: str) -> int:
+    return nest.Create(
         model='multimeter',
         n=1,
         params={
-            'label': '{}/results/{}'.format(resource_filename('spinal_cord'), name),
+            'label': '{}/{}'.format(resource_filename('spinal_cord', 'results'), name),
             'record_from': ['V_m'],
             'withtime': True,
             'withgid': True,

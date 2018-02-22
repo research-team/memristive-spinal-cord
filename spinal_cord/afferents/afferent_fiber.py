@@ -1,5 +1,6 @@
 import nest
 from spinal_cord.namespace import Muscle, Afferent
+from spinal_cord.toolkit.multimeter import add_multimeter
 
 
 class AfferentFiber:
@@ -18,4 +19,8 @@ class AfferentFiber:
                 'tau_syn_ex': 0.2,
                 't_ref': 1.0,
             }
+        )
+        nest.Connect(
+            pre=add_multimeter('afferent_{}_fiber_{}'.format(afferent.value, muscle.value)),
+            post=self.neuron_ids
         )
