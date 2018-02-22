@@ -59,15 +59,16 @@ class EES:
                 number=len(afferent.neuron_ids)
             )
             nest.Connect(
-                pre=sample(self.ees_id, activated_number),
-                post=sample(afferent.neuron_ids, activated_number),
+                pre=self.ees_id,
+                post=afferent.neuron_ids,
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
                     'weight': 10
                 },
                 conn_spec={
-                    'rule': 'one_to_one'
+                    'rule': 'output_degree',
+                    'degree': activated_number
                 }
             )
 
