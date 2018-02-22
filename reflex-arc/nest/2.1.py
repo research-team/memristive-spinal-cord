@@ -4,35 +4,73 @@ import nest
 
 nest.ResetKernel()
 
-nest.SetKernelStatus({
-    "print_time": True,
-    "local_num_threads": 4})
+nest.SetKernelStatus({"print_time": True,
+                     "local_num_threads": 4})
 
 nrn_parameters = {
-    't_ref': 4.0,
-    'V_m': -70.0,
-    'E_L': -70.0,
-    'E_K': -77.0,
-    'g_L': 30.0,
-    'g_Na': 12000.0,
-    'g_K': 3600.0,
-    'C_m': 134.0,
-    'tau_syn_ex': 0.2,
-    'tau_syn_in': 2.0}
+    # 't_ref': [2.5, 4.0],  # Refractory period
+    't_ref': 2.5,  # Refractory period
+    'V_m': -70.0,  #
+    'E_L': -70.0,  #
+    'E_K': -77.0,  #
+    'g_L': 30.0,  #
+    'g_Na': 12000.0,  #
+    'g_K': 3600.0,  #
+    'C_m': 134.0,  # Capacity of membrane (pF)
+    'tau_syn_ex': 0.2,  # Time of excitatory action (ms)
+    'tau_syn_in': 2.0}  # Time of inhibitory action (ms)
 
-conn_spec = {'rule': 'all_to_all'}
+conn_spec = {'rule': 'one_to_one'}
 
-ac = {'model': 'static_synapse',
+glu = {'model': 'static_synapse',
       'delay': 1.,
-      'weight': 300.}
+      'weight': 185.}
 
 gaba = {'model': 'static_synapse',
         'delay': 1.,
-        'weight': -300.}
+        'weight': -70.}
 
 static_syn = {'weight': 100.,
               'delay': 1.}
 
+
+#Neurons
 i_a = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
 
-moto = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+i_i = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+
+i_n = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+
+m_n = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+
+
+#Conectomes
+nest.Connect(pre=i_a, post=m_n, conn_spec=conn_spec, syn_spec=glu)
+
+nest.Connect(pre=i_i, post=i_n, conn_spec=conn_spec, syn_spec=glu)
+
+nest.Connect(pre=i_n, post=m_n, conn_spec=conn_spec, syn_spec=gaba)
+
+
+generator = nest.Create("poisson_generator", 1, {
+                        'rate': 300.})
+
+nest.Connect(pre=generator, post=i_a, syn_spec=static_syn)
+
+nest.Connect(pre=generator, post=i_i, syn_spec=static_syn)
+
+
+mm = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1})
+
+
+nest.Connect(pre=mm, post=m_n)
+
+
+import nest.voltage_trace
+
+
+nest.Simulate(100.)
+
+
+nest.voltage_trace.from_device(mm)
+nest.voltage_trace.show()
