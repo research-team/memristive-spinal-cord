@@ -17,6 +17,12 @@ class Level1:
         afferent_fiber_ii_flex = AfferentFiber(muscle=Muscle.FLEX, afferent=Afferent.II)
         afferent_fiber_ii_extens = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.II)
 
+        flex_motogroup.connect_motogroup(extens_motogroup)
+        extens_motogroup.connect_motogroup(flex_motogroup)
+
+        flex_motogroup.connect_afferents(afferent_ia=afferent_fiber_ia_flex, afferent_ii=afferent_fiber_ii_flex)
+        extens_motogroup.connect_afferents(afferent_ia=afferent_fiber_ia_extens, afferent_ii=afferent_fiber_ii_extens)
+
         ees = EES()
 
         ees.connect(
@@ -26,3 +32,4 @@ class Level1:
             afferent_fiber_ii_extens,
             afferent_fiber_ii_flex
         )
+
