@@ -70,3 +70,12 @@ class Motogroup:
                 'indegree': 100
             }
         )
+        nest.Connect(
+            pre=self.ia_ids,
+            post=motogroup.moto_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1,
+                'weight': -6.9
+            }
+        )
