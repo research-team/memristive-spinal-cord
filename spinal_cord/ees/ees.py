@@ -67,8 +67,8 @@ class EES:
                     'weight': 10
                 },
                 conn_spec={
-                    'rule': 'output_degree',
-                    'degree': activated_number
+                    'rule': 'fixed_outdegree',
+                    'outdegree': activated_number
                 }
             )
 

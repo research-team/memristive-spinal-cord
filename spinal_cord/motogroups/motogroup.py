@@ -120,7 +120,7 @@ class Motogroup:
                 'indegree': 62
             }
         )
-        nest.Create(
+        nest.Connect(
             pre=afferent_ii.neuron_ids,
             post=self.ii_ids,
             syn_spec={
