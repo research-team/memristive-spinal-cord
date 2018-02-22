@@ -19,18 +19,3 @@ class AfferentFiber:
                 't_ref': 1.0,
             }
         )
-
-    def connect(self, neuron_group) -> None:
-        nest.Connect(
-            pre=self.neuron_ids,
-            post=neuron_group.neuron_ids,
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': 1.,
-                'weight': 100
-            },
-            conn_spec={
-                'rule': 'fixed_indegree',
-                'indegree': 62
-            }
-        )

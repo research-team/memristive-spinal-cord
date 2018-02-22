@@ -1,10 +1,11 @@
 import nest
+from spinal_cord.afferents.afferent_fiber import AfferentFiber
 
 
 class Motogroup:
 
     distr_normal2 = {'distribution': 'normal', 'mu': 2.0, 'sigma': 0.175}
-    distr_normal_3 = {'distribution': 'normal', 'mu': 3.0, 'sigma': 0.175}
+    distr_normal3 = {'distribution': 'normal', 'mu': 3.0, 'sigma': 0.175}
     number_of_interneurons = 196
     interneuron_model = 'hh_cond_exp_traub'
     int_params = {
@@ -56,7 +57,7 @@ class Motogroup:
             }
         )
 
-    def connect(self, motogroup):
+    def connect_motogroup(self, motogroup):
         nest.Connect(
             pre=self.ia_ids,
             post=motogroup.ia_ids,
@@ -75,7 +76,60 @@ class Motogroup:
             post=motogroup.moto_ids,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1,
+                'delay': 1.,
                 'weight': -6.9
+            }
+        )
+
+    def connect_afferents(self, afferent_ia: AfferentFiber, afferent_ii: AfferentFiber):
+        nest.Connect(
+            pre=afferent_ia.neuron_ids,
+            post=self.moto_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': self.distr_normal2,
+                'weight': 10.5216
+            },
+            conn_spec={
+                'rule': 'all_to_all',
+            }
+        )
+        nest.Connect(
+            pre=afferent_ia.neuron_ids,
+            post=self.ia_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': self.distr_normal2,
+                'weight': 1.75
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 62
+            }
+        )
+        nest.Connect(
+            pre=afferent_ii.neuron_ids,
+            post=self.ia_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 1.75
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 62
+            }
+        )
+        nest.Create(
+            pre=afferent_ii.neuron_ids,
+            post=self.ii_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': self.distr_normal3,
+                'weight': 1.75
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 62
             }
         )
