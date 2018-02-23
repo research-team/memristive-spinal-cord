@@ -1,6 +1,10 @@
 # stdp, 2 синапса, 20 сек. Результат в spinal cord. Модель ходжкина-хаксли
 
 import nest
+import os
+
+from reflex_arc.nest.plotter import plot
+import shutil
 
 nest.ResetKernel()
 
@@ -52,25 +56,37 @@ nest.Connect(pre=i_i, post=i_n, conn_spec=conn_spec, syn_spec=glu)
 nest.Connect(pre=i_n, post=m_n, conn_spec=conn_spec, syn_spec=gaba)
 
 
-generator = nest.Create("poisson_generator", 1, {
+generators = nest.Create("poisson_generator", 2, {
                         'rate': 300.})
 
-nest.Connect(pre=generator, post=i_a, syn_spec=static_syn)
+nest.Connect(pre=[generators[0]], post=i_a, syn_spec=static_syn)
 
-nest.Connect(pre=generator, post=i_i, syn_spec=static_syn)
-
-
-mm = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1})
+nest.Connect(pre=[generators[1]], post=i_i, syn_spec=static_syn)
 
 
-nest.Connect(pre=mm, post=m_n)
+mm_moto = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label': 'results/moto'})
+mm_ia = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label': 'results/ia'})
+mm_ii = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label': 'results/ii'})
+mm_in = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label': 'results/in'})
 
 
-import nest.voltage_trace
+nest.Connect(pre=mm_moto, post=m_n)
+nest.Connect(pre=mm_ia, post=i_a)
+nest.Connect(pre=mm_ii, post=i_i)
+nest.Connect(pre=mm_in, post=i_n)
 
 
+# import nest.voltage_trace
+
+if os.path.isdir('results'):
+    shutil.rmtree('results')
+    os.mkdir('results')
+else:
+    os.mkdir('results')
 nest.Simulate(100.)
 
 
-nest.voltage_trace.from_device(mm)
-nest.voltage_trace.show()
+# nest.voltage_trace.from_device(mm, title='Moto')
+# nest.voltage_trace.show()
+plot()
+
