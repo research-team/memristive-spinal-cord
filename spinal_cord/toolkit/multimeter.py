@@ -11,7 +11,7 @@ def add_multimeter(name: str) -> int:
             'record_from': ['V_m'],
             'withtime': True,
             'withgid': True,
-            'interval': 0.1,
+            'interval': 1.,
             'to_file': True,
             'to_memory': False
         })

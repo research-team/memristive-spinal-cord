@@ -29,15 +29,26 @@ class Receptor:
         )
 
     def connect(self, afferent: AfferentFiber):
-        nest.Connect(
-            pre=self.receptor_ids,
-            post=afferent.neuron_ids,
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': 1.,
-                'weight': 100
-            },
-            conn_spec={
-                'rule': 'one_to_one',
+        # nest.Connect(
+        #     pre=self.receptor_ids,
+        #     post=afferent.neuron_ids,
+        #     syn_spec={
+        #         'model': 'static_synapse',
+        #         'delay': 1.,
+        #         'weight': 100
+        #     },
+        #     conn_spec={
+        #         'rule': 'one_to_one',
+        #     }
+        # )
+        gen = nest.Create(
+            model='poisson_generator',
+            n=1,
+            params={
+                'rate': 300
             }
+        )
+        nest.Connect(
+            pre=gen,
+            post=afferent.neuron_ids
         )

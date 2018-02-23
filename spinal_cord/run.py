@@ -11,3 +11,5 @@ nest.SetKernelStatus({
 nest.Install('research_team_models')
 level1 = Level1()
 nest.Simulate(100.)
+level1.plot_afferents()
+

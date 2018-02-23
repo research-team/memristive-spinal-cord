@@ -1,5 +1,6 @@
 import nest
 from spinal_cord.afferents.afferent_fiber import AfferentFiber
+from spinal_cord.toolkit.multimeter import add_multimeter
 
 
 class Motogroup:

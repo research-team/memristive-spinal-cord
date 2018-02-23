@@ -8,7 +8,6 @@ import numpy
 from pkg_resources import resource_filename
 import os
 import nest
-from random import sample
 
 
 class EES:
@@ -16,6 +15,7 @@ class EES:
     @staticmethod
     def compute_activated_number(amplitude, muscle, group, number):
         percent = EES.compute_activated_percent(amplitude=amplitude, muscle=muscle, group=group)
+        print('{}%'.format(round(percent * 100), 2))
         return int(round(number * percent))
 
     @staticmethod
@@ -42,41 +42,46 @@ class EES:
         return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
 
     def __init__(self):
+        spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float)
         self.ees_id = nest.Create(
             model='spike_generator',
             n=1,
             params={
-                'spike_times': EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float)
+                'spike_times': spike_times
             }
         )
+        print('EES id is {}'.format(self.ees_id))
+        print(EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float))
 
     def connect(self, amplitude: int, *afferents: AfferentFiber) -> None:
         for afferent in afferents:
+            print('afferents id are {}'.format(afferent.neuron_ids))
             activated_number = EES.compute_activated_number(
                 amplitude=amplitude,
                 muscle=afferent.muscle,
                 group=afferent.afferent,
                 number=len(afferent.neuron_ids)
             )
+            print('Activated number = {}'.format(activated_number))
             nest.Connect(
                 pre=self.ees_id,
                 post=afferent.neuron_ids,
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
-                    'weight': 10
+                    'weight': 2000.
                 },
                 conn_spec={
-                    'rule': 'fixed_outdegree',
-                    'outdegree': activated_number
+                    'rule': 'all_to_all',
                 }
             )
+        print(nest.GetStatus(nest.GetConnections(self.ees_id)))
 
 
 def test() -> None:
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.FLEX, group=Group.IA))
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.FLEX, group=Group.II))
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.FLEX, group=Group.MOTO))
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.EXTENS, group=Group.IA))
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.EXTENS, group=Group.II))
-    print(EES.compute_activated_percent(amplitude=300, muscle=Muscle.EXTENS, group=Group.MOTO))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.FLEX, group=Group.IA, number=60))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.FLEX, group=Group.II, number=60))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.FLEX, group=Group.MOTO, number=60))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.EXTENS, group=Group.IA, number=60))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.EXTENS, group=Group.II, number=60))
+    print(EES.compute_activated_number(amplitude=300, muscle=Muscle.EXTENS, group=Group.MOTO, number=60))
