@@ -2,7 +2,7 @@ import nest
 from pkg_resources import resource_filename
 
 
-def add_multimeter(name: str) -> int:
+def add_multimeter(name: str):
     return nest.Create(
         model='multimeter',
         n=1,
@@ -11,7 +11,7 @@ def add_multimeter(name: str) -> int:
             'record_from': ['V_m'],
             'withtime': True,
             'withgid': True,
-            'interval': 1.,
+            'interval': 0.1,
             'to_file': True,
             'to_memory': False
         })

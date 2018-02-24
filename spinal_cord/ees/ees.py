@@ -47,7 +47,7 @@ class EES:
             model='spike_generator',
             n=1,
             params={
-                'spike_times': spike_times
+                'spike_times': spike_times,
             }
         )
         print('EES id is {}'.format(self.ees_id))
@@ -68,8 +68,8 @@ class EES:
                 post=afferent.neuron_ids,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
-                    'weight': 2000.
+                    'delay': .1,
+                    'weight': 100.
                 },
                 conn_spec={
                     'rule': 'all_to_all',

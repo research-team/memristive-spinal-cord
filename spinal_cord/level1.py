@@ -10,8 +10,8 @@ class Level1:
 
     def __init__(self):
 
-        self.flex_motogroup = Motogroup()
-        self.extens_motogroup = Motogroup()
+        self.flex_motogroup = Motogroup(muscle=Muscle.FLEX)
+        self.extens_motogroup = Motogroup(muscle=Muscle.EXTENS)
 
         self.afferent_fiber_ia_flex = AfferentFiber(muscle=Muscle.FLEX, afferent=Afferent.IA)
         self.afferent_fiber_ia_extens = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
@@ -26,10 +26,10 @@ class Level1:
         self.ees = EES()
         self.ees.connect(
             500,
-            self.afferent_fiber_ia_extens,
             self.afferent_fiber_ia_flex,
-            self.afferent_fiber_ii_extens,
-            self.afferent_fiber_ii_flex
+            self.afferent_fiber_ia_extens,
+            self.afferent_fiber_ii_flex,
+            self.afferent_fiber_ii_extens
         )
 
     def plot_afferents(self):
@@ -48,5 +48,31 @@ class Level1:
             first=self.afferent_fiber_ii_flex.name,
             second=self.afferent_fiber_ii_extens.name,
             title='II'
+        )
+        plotter.show()
+
+    def plot_motogroups(self):
+        plotter = ResultsPlotter(3, 'Average "V_m" of motogroups')
+
+        plotter.subplot(
+            first_label='extensor',
+            second_label='flexor',
+            first=self.extens_motogroup.motoname,
+            second=self.flex_motogroup.motoname,
+            title='Moto'
+        )
+        plotter.subplot(
+            first_label='extensor',
+            second_label='flexor',
+            first=self.extens_motogroup.ia_name,
+            second=self.flex_motogroup.ia_name,
+            title='Ia'
+        )
+        plotter.subplot(
+            title='II',
+            first_label='extensor',
+            first=self.extens_motogroup.ii_name,
+            second_label='flexor',
+            second=self.flex_motogroup.ii_name
         )
         plotter.show()
