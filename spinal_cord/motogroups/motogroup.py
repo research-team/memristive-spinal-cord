@@ -1,5 +1,6 @@
 import nest
 from spinal_cord.afferents.afferent_fiber import AfferentFiber
+from spinal_cord.namespace import Muscle
 from spinal_cord.toolkit.multimeter import add_multimeter
 
 
@@ -22,8 +23,10 @@ class Motogroup:
         'tau_syn_in': 5.0  # Time of inhibitory action (ms)
     }
 
-    def __init__(self):
-
+    def __init__(self, muscle: Muscle):
+        self.motoname = 'moto_{}'.format(muscle.value)
+        self.ia_name = 'ia_{}'.format(muscle.value)
+        self.ii_name = 'ii_{}'.format(muscle.value)
         self.moto_ids = nest.Create(
             model='hh_moto_5ht',
             n=169,
@@ -57,6 +60,18 @@ class Motogroup:
                 'indegree': 116
             }
         )
+        # nest.Connect(
+        #     pre=add_multimeter(self.motoname),
+        #     post=self.moto_ids
+        # )
+        # nest.Connect(
+        #     pre=add_multimeter(self.ia_name),
+        #     "nj djpost=self.ia_ids
+        # )
+        # nest.Connect(
+        #     pre=add_multimeter(self.ii_name),
+        #     post=self.ii_ids
+        # )
 
     def connect_motogroup(self, motogroup):
         nest.Connect(
