@@ -10,16 +10,19 @@ def clear_results():
     if os.path.isdir(results_dir_filename):
         shutil.rmtree(results_dir_filename)
         os.mkdir(results_dir_filename)
+        os.mkdir(os.path.join(results_dir_filename, 'img'))
     else:
         os.mkdir(results_dir_filename)
+        os.mkdir(os.path.join(results_dir_filename, 'img'))
 
 
 class ResultsPlotter:
-    def __init__(self, rows_number, title):
+    def __init__(self, rows_number, title, filename):
         self.rows_number = rows_number
         self.cols_number = 1
         self.plot_index = 1
         self.title = title
+        self.filename = filename
         w, h = pylab.figaspect(.25)
         self.a = pylab.figure(figsize=(w, h))
         self.a.suptitle(title)
@@ -28,9 +31,9 @@ class ResultsPlotter:
         pylab.subplots_adjust(left=0.05, right=0.99)
         pylab.xlabel('ms')
         # pylab.show()
-        pylab.savefig('res.png', dpi=300)
+        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
 
-    def subplot(self, first, first_label: str, second, second_label: str, title: str):
+    def subplot(self, title: str, first, first_label: str, second=None, second_label: str=None):
         if self.plot_index > self.rows_number:
             raise ValueError("Too many subplots!")
         pylab.subplot(self.rows_number, self.cols_number, self.plot_index)
