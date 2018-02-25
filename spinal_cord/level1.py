@@ -3,7 +3,6 @@ from spinal_cord.motogroups.motogroup import Motogroup
 from spinal_cord.namespace import Muscle, Afferent
 from spinal_cord.ees.ees import EES
 from spinal_cord.toolkit.plotter import ResultsPlotter
-from spinal_cord.afferents.receptor import Receptor
 
 
 class Level1:
@@ -23,7 +22,7 @@ class Level1:
         self.flex_motogroup.connect_afferents(afferent_ia=self.afferent_fiber_ia_flex, afferent_ii=self.afferent_fiber_ii_flex)
         self.extens_motogroup.connect_afferents(afferent_ia=self.afferent_fiber_ia_extens, afferent_ii=self.afferent_fiber_ii_extens)
 
-        self.ees_amplitude = 60
+        self.ees_amplitude = 300
         self.ees = EES(amplitude=self.ees_amplitude)
         self.ees.connect(
             self.afferent_fiber_ia_flex,
@@ -33,7 +32,7 @@ class Level1:
         )
 
     def plot_afferents(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude))
+        plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')
 
         plotter.subplot(
             first_label='extensor',
@@ -52,7 +51,7 @@ class Level1:
         plotter.show()
 
     def plot_motogroups(self):
-        plotter = ResultsPlotter(3, 'Average "V_m" of motogroups')
+        plotter = ResultsPlotter(3, 'Average "V_m" of motogroups', 'level1')
 
         plotter.subplot(
             first_label='extensor',
