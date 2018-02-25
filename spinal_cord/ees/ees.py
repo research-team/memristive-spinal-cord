@@ -70,7 +70,7 @@ class EES:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': .1,
-                    'weight': 100.
+                    'weight': 20.
                 },
                 conn_spec={
                     'rule': 'fixed_total_number',
