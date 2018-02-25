@@ -1,6 +1,7 @@
 import nest
 from spinal_cord.namespace import Muscle, Afferent
 from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.afferents.receptor import Receptor
 
 
 class AfferentFiber:
@@ -23,6 +24,21 @@ class AfferentFiber:
                 'C_m': 134.0,  # Capacity of membrane (pF)
                 'tau_syn_ex': 0.5,  # Time of excitatory action (ms)
                 'tau_syn_in': 5.0  # Time of inhibitory action (ms)
+            }
+        )
+        self.receptor = Receptor(
+            muscle=muscle, afferent=afferent
+        )
+        nest.Connect(
+            pre=self.receptor.receptor_ids,
+            post=self.neuron_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': .1,
+                'weight': 75.
+            },
+            conn_spec={
+                'rule': 'one_to_one'
             }
         )
         nest.Connect(

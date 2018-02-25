@@ -31,7 +31,7 @@ class AfferentSpikeTimeGenerator:
                 time_between_spikes = interval / spikes_at_interval
                 time -= time_between_spikes / 2  # shifting time to place spikes closer to the center
                 spike_times.extend(
-                    [round(time + time_between_spikes * (n + 1), 2) for n in range(spikes_at_interval)])
+                    [round(time + time_between_spikes * (n + 1), 1) for n in range(spikes_at_interval)])
                 time += time_between_spikes / 2  # shifting back
             time += interval
         return spike_times

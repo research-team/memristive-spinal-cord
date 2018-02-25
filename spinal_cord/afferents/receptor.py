@@ -1,5 +1,4 @@
 import nest
-from spinal_cord.afferents.afferent_fiber import AfferentFiber
 from spinal_cord.afferents.spiketimes_generator import AfferentSpikeTimeGenerator
 from spinal_cord.namespace import Afferent, Muscle, Interval, Speed
 
@@ -26,29 +25,4 @@ class Receptor:
                 interval=interval,
                 datapath=datapath
             )
-        )
-
-    def connect(self, afferent: AfferentFiber):
-        # nest.Connect(
-        #     pre=self.receptor_ids,
-        #     post=afferent.neuron_ids,
-        #     syn_spec={
-        #         'model': 'static_synapse',
-        #         'delay': 1.,
-        #         'weight': 100
-        #     },
-        #     conn_spec={
-        #         'rule': 'one_to_one',
-        #     }
-        # )
-        gen = nest.Create(
-            model='poisson_generator',
-            n=1,
-            params={
-                'rate': 300
-            }
-        )
-        nest.Connect(
-            pre=gen,
-            post=afferent.neuron_ids
         )
