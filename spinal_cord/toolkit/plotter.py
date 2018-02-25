@@ -19,10 +19,13 @@ class ResultsPlotter:
         self.rows_number = rows_number
         self.cols_number = 1
         self.plot_index = 1
-        pylab.figure()
-        pylab.title(title)
+        self.title = title
+        self.a = pylab.figure()
+        self.a.suptitle(title)
 
     def show(self):
+        pylab.subplots_adjust(left=0.15)
+        pylab.xlabel('ms')
         pylab.show()
 
     def subplot(self, first, first_label: str, second, second_label: str, title: str):
@@ -48,5 +51,5 @@ class ResultsPlotter:
             'b-.',
             label=second_label)
 
-        pylab.ylabel(title)
+        pylab.ylabel(title, fontsize=11)
         pylab.legend()

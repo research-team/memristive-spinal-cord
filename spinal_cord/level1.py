@@ -23,9 +23,9 @@ class Level1:
         self.flex_motogroup.connect_afferents(afferent_ia=self.afferent_fiber_ia_flex, afferent_ii=self.afferent_fiber_ii_flex)
         self.extens_motogroup.connect_afferents(afferent_ia=self.afferent_fiber_ia_extens, afferent_ii=self.afferent_fiber_ii_extens)
 
-        self.ees = EES()
+        self.ees_amplitude = 60
+        self.ees = EES(amplitude=self.ees_amplitude)
         self.ees.connect(
-            500,
             self.afferent_fiber_ia_flex,
             self.afferent_fiber_ia_extens,
             self.afferent_fiber_ii_flex,
@@ -33,7 +33,7 @@ class Level1:
         )
 
     def plot_afferents(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of afferents')
+        plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude))
 
         plotter.subplot(
             first_label='extensor',
