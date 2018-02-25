@@ -1,4 +1,6 @@
 import nest
+from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.toolkit.plotter import ResultsPlotter
 
 
 class Pool:
@@ -17,6 +19,8 @@ class Pool:
     }
 
     def __init__(self):
+        self.extens_group_name = 'pool_extens'
+        self.flex_group_name = 'pool_flex'
         self.suspended_flex_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
             n=1,
@@ -60,4 +64,41 @@ class Pool:
             conn_spec={
                 'rule': 'all_to_all'
             }
+        )
+        nest.Connect(
+            pre=self.flex_group_nrn_ids,
+            post=self.extens_group_nrn_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': -15.
+            }
+        )
+        nest.Connect(
+            pre=self.extens_group_nrn_ids,
+            post=self.flex_group_nrn_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': -15.
+            }
+        )
+        nest.Connect(
+            pre=add_multimeter(self.flex_group_name),
+            post=self.flex_group_nrn_ids
+        )
+        nest.Connect(
+            pre=add_multimeter(self.extens_group_name),
+            post=self.extens_group_nrn_ids
+        )
+
+    def plot_results(self):
+        plotter = ResultsPlotter(1, 'Average "V_m" of Pool', 'pool')
+
+        plotter.subplot(
+            first_label='extensor',
+            first=self.extens_group_name,
+            second_label='flexor',
+            second=self.flex_group_name,
+            title='Pool'
         )
