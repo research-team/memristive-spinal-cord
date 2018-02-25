@@ -1,0 +1,10 @@
+### Examples of EES action  
+![](test_figures/amplitude_200.png)  
+![](test_figures/amplitude_250.png)  
+![](test_figures/amplitude_300.png)  
+![](test_figures/amplitude_350.png)  
+![](test_figures/amplitude_400.png)  
+![](test_figures/amplitude_450.png)  
+![](test_figures/amplitude_500.png)  
+![](test_figures/amplitude_550.png)  
+![](test_figures/amplitude_600.png)  

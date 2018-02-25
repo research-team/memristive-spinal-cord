@@ -41,8 +41,9 @@ class EES:
         start = 1000 // frequency_hz
         return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
 
-    def __init__(self):
+    def __init__(self, amplitude: float):
         spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float)
+        self.amplitude = amplitude
         self.ees_id = nest.Create(
             model='spike_generator',
             n=1,
@@ -53,11 +54,11 @@ class EES:
         print('EES id is {}'.format(self.ees_id))
         print(EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float))
 
-    def connect(self, amplitude: int, *afferents: AfferentFiber) -> None:
+    def connect(self, *afferents: AfferentFiber) -> None:
         for afferent in afferents:
             print('afferents id are {}'.format(afferent.neuron_ids))
             activated_number = EES.compute_activated_number(
-                amplitude=amplitude,
+                amplitude=self.amplitude,
                 muscle=afferent.muscle,
                 group=afferent.afferent,
                 number=len(afferent.neuron_ids)
@@ -72,7 +73,8 @@ class EES:
                     'weight': 100.
                 },
                 conn_spec={
-                    'rule': 'all_to_all',
+                    'rule': 'fixed_total_number',
+                    'N': activated_number
                 }
             )
         print(nest.GetStatus(nest.GetConnections(self.ees_id)))
