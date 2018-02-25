@@ -20,13 +20,15 @@ class ResultsPlotter:
         self.cols_number = 1
         self.plot_index = 1
         self.title = title
-        self.a = pylab.figure()
+        w, h = pylab.figaspect(.25)
+        self.a = pylab.figure(figsize=(w, h))
         self.a.suptitle(title)
 
     def show(self):
-        pylab.subplots_adjust(left=0.15)
+        pylab.subplots_adjust(left=0.05, right=0.99)
         pylab.xlabel('ms')
-        pylab.show()
+        # pylab.show()
+        pylab.savefig('res.png', dpi=300)
 
     def subplot(self, first, first_label: str, second, second_label: str, title: str):
         if self.plot_index > self.rows_number:
@@ -40,7 +42,7 @@ class ResultsPlotter:
         pylab.plot(
             times,
             values,
-            'r.',
+            'r--',
             label=first_label)
         data = DataMiner.get_average_voltage(second)
         times = sorted(list(data.keys()))
@@ -48,7 +50,7 @@ class ResultsPlotter:
         pylab.plot(
             times,
             values,
-            'b-.',
+            'b:',
             label=second_label)
 
         pylab.ylabel(title, fontsize=11)
