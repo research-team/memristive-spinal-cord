@@ -1,8 +1,8 @@
 import nest
+from spinal_cord.toolkit.multimeter import add_multimeter
 
 
 class Tier:
-
     params = {
         't_ref': 2.,  # Refractory period
         'V_m': -70.0,  #
@@ -16,21 +16,27 @@ class Tier:
         'tau_syn_in': 5.0  # Time of inhibitory action (ms)
     }
 
-    def __init__(self):
-        self.e = [
-            nest.Create(
-                model='hh_cond_exp_traub',
-                n=20,
-                params=self.params
-            ) for _ in range(5)
-        ]
-        self.i = [
-            nest.Create(
-                model='hh_cond_exp_traub',
-                n=20,
-                params=self.params
-            ) for _ in range(2)
-        ]
+    def __init__(self, index: int):
+        self.index = index
+        self.e = []
+        for _ in range(5):
+            self.e.append(
+                nest.Create(
+                    model='hh_cond_exp_traub',
+                    n=20,
+                    params=self.params
+                )
+            )
+        self.i = []
+        for _ in range(2):
+            self.i.append(
+                nest.Create(
+                    model='hh_cond_exp_traub',
+                    n=20,
+                    params=self.params
+                )
+            )
+
         nest.Connect(
             pre=self.e[0],
             post=self.e[1],
@@ -151,3 +157,13 @@ class Tier:
                 'rule': 'one_to_one'
             }
         )
+        for i in range(len(self.e)):
+            nest.Connect(
+                pre=add_multimeter('Tier{}E{}'.format(self.index, i)),
+                post=self.e[i]
+            )
+        for i in range(len(self.i)):
+            nest.Create(
+                pre=add_multimeter('Tier{}I{}'.format(self.index, i)),
+                post=self.i[i]
+            )
