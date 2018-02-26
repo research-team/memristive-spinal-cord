@@ -1,5 +1,6 @@
 import nest
 from spinal_cord.level1 import Level1
+from spinal_cord.level2 import Level2
 from spinal_cord.toolkit.plotter import clear_results
 
 
@@ -11,5 +12,9 @@ nest.SetKernelStatus({
 })
 nest.Install('research_team_models')
 level1 = Level1()
+level2 = Level2(level1)
+
 nest.Simulate(100.)
 level1.plot_afferents()
+level1.plot_motogroups()
+
