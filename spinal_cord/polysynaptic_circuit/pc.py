@@ -8,7 +8,7 @@ class PolysynapticCircuit:
     def __init__(self):
 
         self.tiers = [
-            Tier() for _ in range(6)
+            Tier(i) for i in range(6)
         ]
         for i in range(len(self.tiers)-1):
             nest.Connect(
@@ -27,7 +27,7 @@ class PolysynapticCircuit:
                 pre=self.tiers[i].e[3],
                 post=self.tiers[i+1].e[0],
                 syn_spec={
-                    'model': 'static_synase',
+                    'model': 'static_synapse',
                     'delay': 1.,
                     'weight': 45.
                 },
