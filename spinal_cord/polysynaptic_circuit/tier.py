@@ -163,7 +163,7 @@ class Tier:
                 post=self.e[i]
             )
         for i in range(len(self.i)):
-            nest.Create(
+            nest.Connect(
                 pre=add_multimeter('Tier{}I{}'.format(self.index, i)),
                 post=self.i[i]
             )
