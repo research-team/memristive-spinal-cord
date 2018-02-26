@@ -11,9 +11,11 @@ def clear_results():
         shutil.rmtree(results_dir_filename)
         os.mkdir(results_dir_filename)
         os.mkdir(os.path.join(results_dir_filename, 'img'))
+        os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
     else:
         os.mkdir(results_dir_filename)
         os.mkdir(os.path.join(results_dir_filename, 'img'))
+        os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
 
 
 class ResultsPlotter:
@@ -28,7 +30,7 @@ class ResultsPlotter:
         self.a.suptitle(title)
 
     def show(self):
-        pylab.subplots_adjust(left=0.05, right=0.99)
+        pylab.subplots_adjust(left=0.05, right=0.99, hspace=0.1*self.rows_number)
         pylab.xlabel('ms')
         # pylab.show()
         pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
