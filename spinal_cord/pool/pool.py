@@ -1,4 +1,5 @@
 import nest
+from spinal_cord.level1 import Level1
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
 
@@ -90,6 +91,61 @@ class Pool:
         nest.Connect(
             pre=add_multimeter(self.extens_group_name),
             post=self.extens_group_nrn_ids
+        )
+
+    def connect_level1(self, level1: Level1):
+        nest.Connect(
+            pre=self.extens_group_nrn_ids,
+            post=level1.extens_motogroup.ia_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 10.
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 10
+            }
+        )
+        nest.Connect(
+            pre=self.extens_group_nrn_ids,
+            post=level1.extens_motogroup.moto_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 10.
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 10
+            }
+        )
+
+        nest.Connect(
+            pre=self.flex_group_nrn_ids,
+            post=level1.flex_motogroup.ia_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 10,
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 10
+            }
+        )
+        nest.Connect(
+            pre=self.flex_group_nrn_ids,
+            post=level1.flex_motogroup.moto_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 10
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 10
+            }
         )
 
     def plot_results(self):
