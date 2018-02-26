@@ -60,18 +60,18 @@ class Motogroup:
                 'indegree': 116
             }
         )
-        # nest.Connect(
-        #     pre=add_multimeter(self.motoname),
-        #     post=self.moto_ids
-        # )
-        # nest.Connect(
-        #     pre=add_multimeter(self.ia_name),
-        #     "nj djpost=self.ia_ids
-        # )
-        # nest.Connect(
-        #     pre=add_multimeter(self.ii_name),
-        #     post=self.ii_ids
-        # )
+        nest.Connect(
+            pre=add_multimeter(self.motoname),
+            post=self.moto_ids
+        )
+        nest.Connect(
+            pre=add_multimeter(self.ia_name),
+            post=self.ia_ids
+        )
+        nest.Connect(
+            pre=add_multimeter(self.ii_name),
+            post=self.ii_ids
+        )
 
     def connect_motogroup(self, motogroup):
         nest.Connect(
