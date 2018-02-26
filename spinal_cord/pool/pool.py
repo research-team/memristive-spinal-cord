@@ -22,6 +22,8 @@ class Pool:
     def __init__(self):
         self.extens_group_name = 'pool_extens'
         self.flex_group_name = 'pool_flex'
+        self.extens_suspended_name = 'suspended_extens'
+        self.flex_suspended_name = 'suspended_extens'
         self.suspended_flex_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
             n=1,
@@ -149,7 +151,7 @@ class Pool:
         )
 
     def plot_results(self):
-        plotter = ResultsPlotter(1, 'Average "V_m" of Pool', 'pool')
+        plotter = ResultsPlotter(2, 'Average "V_m" of Pool', 'pool')
 
         plotter.subplot(
             first_label='extensor',
@@ -157,4 +159,11 @@ class Pool:
             second_label='flexor',
             second=self.flex_group_name,
             title='Pool'
+        )
+        plotter.subplot(
+            first_label='suspended extensor',
+            first=self.extens_suspended_name,
+            second_label='suspended_flexor',
+            second=self.flex_suspended_name,
+            title='Suspended'
         )
