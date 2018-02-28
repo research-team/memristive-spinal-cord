@@ -24,12 +24,12 @@ class Pool:
         self.flex_group_name = 'pool_flex'
         self.extens_suspended_name = 'suspended_extens'
         self.flex_suspended_name = 'suspended_flex'
-        self.suspended_flex_nrn_id = nest.Create(
+        self.flex_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
             n=1,
             params=self.params
         )
-        self.suspended_extens_nrn_id = nest.Create(
+        self.extens_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
             n=1,
             params=self.params
@@ -45,7 +45,7 @@ class Pool:
             params=self.params
         )
         nest.Connect(
-            pre=self.suspended_extens_nrn_id,
+            pre=self.extens_suspended_nrn_id,
             post=self.extens_group_nrn_ids,
             syn_spec={
                 'model': 'static_synapse',
@@ -57,7 +57,7 @@ class Pool:
             }
         )
         nest.Connect(
-            pre=self.suspended_flex_nrn_id,
+            pre=self.flex_suspended_nrn_id,
             post=self.flex_group_nrn_ids,
             syn_spec={
                 'model': 'static_synapse',
@@ -93,6 +93,14 @@ class Pool:
         nest.Connect(
             pre=add_multimeter(self.extens_group_name),
             post=self.extens_group_nrn_ids
+        )
+        nest.Connect(
+            pre=add_multimeter(self.flex_suspended_name),
+            post=self.flex_suspended_nrn_id
+        )
+        nest.Connect(
+            pre=add_multimeter(self.extens_suspended_name),
+            post=self.extens_suspended_nrn_id
         )
 
     def connect_level1(self, level1: Level1):
