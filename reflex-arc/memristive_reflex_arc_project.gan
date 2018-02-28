@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><project name="Memristive reflex arc " company="" webLink="http://" view-date="2018-01-01" view-index="0" gantt-divider-location="468" resource-divider-location="300" version="2.8.1" locale="en_GB">
+    <description/>
+    <view zooming-state="default:10" id="gantt-chart">
+        <field id="tpd3" name="Name" width="185" order="0"/>
+        <field id="tpd4" name="Begin date" width="103" order="1"/>
+        <field id="tpd5" name="End date" width="82" order="2"/>
+        <field id="tpd6" name="Duration" width="34" order="3"/>
+        <field id="tpd9" name="Predecessors" width="40" order="4"/>
+        <field id="tpd10" name="ID" width="20" order="5"/>
+    </view>
+    <view id="resource-table">
+        <field id="0" name="Name" width="210" order="0"/>
+        <field id="1" name="Default role" width="86" order="1"/>
+    </view>
+    <!-- -->
+    <calendars>
+        <day-types>
+            <day-type id="0"/>
+            <day-type id="1"/>
+            <default-week id="1" name="default" sun="1" mon="0" tue="0" wed="0" thu="0" fri="0" sat="1"/>
+            <only-show-weekends value="false"/>
+            <overriden-day-types/>
+            <days/>
+        </day-types>
+    </calendars>
+    <tasks empty-milestones="true">
+        <taskproperties>
+            <taskproperty id="tpd0" name="type" type="default" valuetype="icon"/>
+            <taskproperty id="tpd1" name="priority" type="default" valuetype="icon"/>
+            <taskproperty id="tpd2" name="info" type="default" valuetype="icon"/>
+            <taskproperty id="tpd3" name="name" type="default" valuetype="text"/>
+            <taskproperty id="tpd4" name="begindate" type="default" valuetype="date"/>
+            <taskproperty id="tpd5" name="enddate" type="default" valuetype="date"/>
+            <taskproperty id="tpd6" name="duration" type="default" valuetype="int"/>
+            <taskproperty id="tpd7" name="completion" type="default" valuetype="int"/>
+            <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
+            <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
+        </taskproperties>
+        <task id="0" name="Modelling arc" meeting="false" start="2018-03-01" duration="30" complete="0" expand="true"/>
+        <task id="1" name="Memristive neuron" meeting="false" start="2018-03-01" duration="145" complete="0" expand="true">
+            <depend id="2" type="2" difference="0" hardness="Strong"/>
+            <task id="7" name="Leaky integrator" meeting="false" start="2018-03-01" duration="25" complete="0" expand="true">
+                <depend id="10" type="2" difference="0" hardness="Strong"/>
+                <task id="8" name="Implementaiton" meeting="false" start="2018-03-01" duration="5" complete="0" expand="true">
+                    <depend id="9" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="9" name="Validation" meeting="false" start="2018-03-08" duration="20" complete="0" expand="true"/>
+            </task>
+            <task id="10" name="Excitatory input" meeting="false" start="2018-04-05" duration="70" complete="0" expand="true">
+                <task id="12" name="Design" meeting="false" start="2018-04-05" duration="10" complete="0" expand="true">
+                    <depend id="13" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="13" name="Simulation" meeting="false" start="2018-04-19" duration="10" complete="0" expand="true">
+                    <depend id="14" type="2" difference="0" hardness="Strong"/>
+                    <depend id="16" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="14" name="Implementation" meeting="false" start="2018-05-03" duration="20" complete="0" expand="true">
+                    <depend id="15" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="15" name="Validation" meeting="false" start="2018-05-31" duration="30" complete="0" expand="true"/>
+            </task>
+            <task id="11" name="Inhibitory input" meeting="false" start="2018-05-03" duration="70" complete="0" expand="true">
+                <depend id="73" type="2" difference="0" hardness="Strong"/>
+                <task id="16" name="Design" meeting="false" start="2018-05-03" duration="10" complete="0" expand="true">
+                    <depend id="17" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="17" name="Simulaiton" meeting="false" start="2018-05-17" duration="10" complete="0" expand="true">
+                    <depend id="18" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="18" name="Implementation" meeting="false" start="2018-05-31" duration="20" complete="0" expand="true">
+                    <depend id="19" type="2" difference="0" hardness="Strong"/>
+                </task>
+                <task id="19" name="Validation" meeting="false" start="2018-06-28" duration="30" complete="0" expand="true"/>
+            </task>
+            <task id="73" name="Integration" meeting="false" start="2018-08-09" duration="30" complete="0" expand="true"/>
+        </task>
+        <task id="2" name="Memristive reflex arc" meeting="false" start="2018-09-20" duration="90" complete="0" expand="true">
+            <task id="76" name="Implementation 2 neurons" meeting="false" start="2018-09-20" duration="20" complete="0" expand="true">
+                <depend id="78" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="78" name="Integration of 2 neurons" meeting="false" start="2018-10-18" duration="30" complete="0" expand="true">
+                <depend id="80" type="2" difference="0" hardness="Strong"/>
+            </task>
+            <task id="80" name="Validation" meeting="false" start="2018-11-29" duration="40" complete="0" expand="true"/>
+        </task>
+    </tasks>
+    <resources/>
+    <allocations/>
+    <vacations/>
+    <previous/>
+    <roles roleset-name="Default"/>
+    <roles roleset-name="SoftwareDevelopment"/>
+</project>
