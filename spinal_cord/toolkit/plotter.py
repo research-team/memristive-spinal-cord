@@ -29,10 +29,9 @@ class ResultsPlotter:
         self.a = pylab.figure(figsize=(w, h))
         self.a.suptitle(title)
 
-    def show(self):
+    def save(self):
         pylab.subplots_adjust(left=0.05, right=0.99, hspace=0.1*self.rows_number)
         pylab.xlabel('ms')
-        # pylab.show()
         pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
 
     def subplot(self, title: str, first, first_label: str, second=None, second_label: str=None):

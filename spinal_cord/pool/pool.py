@@ -175,4 +175,4 @@ class Pool:
             second=self.flex_suspended_name,
             title='Suspended'
         )
-        plotter.show()
+        plotter.save()

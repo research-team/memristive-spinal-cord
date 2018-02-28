@@ -48,7 +48,7 @@ class Level1:
             second=self.afferent_fiber_ii_extens.name,
             title='II'
         )
-        plotter.show()
+        plotter.save()
 
     def plot_motogroups(self):
         plotter = ResultsPlotter(3, 'Average "V_m" of motogroups', 'level1')
@@ -74,4 +74,4 @@ class Level1:
             second_label='flexor',
             second=self.flex_motogroup.ii_name
         )
-        plotter.show()
+        plotter.save()
