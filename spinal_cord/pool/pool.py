@@ -23,7 +23,7 @@ class Pool:
         self.extens_group_name = 'pool_extens'
         self.flex_group_name = 'pool_flex'
         self.extens_suspended_name = 'suspended_extens'
-        self.flex_suspended_name = 'suspended_extens'
+        self.flex_suspended_name = 'suspended_flex'
         self.suspended_flex_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
             n=1,
@@ -167,3 +167,4 @@ class Pool:
             second=self.flex_suspended_name,
             title='Suspended'
         )
+        plotter.show()
