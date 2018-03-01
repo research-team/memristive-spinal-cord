@@ -3,7 +3,7 @@
 import nest
 import os
 
-from reflex_arc.nest.plotter import plot
+from reflex_arc.nest.plotter import plot, simple_plot
 import shutil
 
 nest.ResetKernel()
@@ -26,15 +26,20 @@ nrn_parameters = {
 
 conn_spec = {'rule': 'one_to_one'}
 
+glu_weight = 185.
+gaba_weight = -70.
+static_weight = 100.
+generator_rate = 300.
+
 glu = {'model': 'static_synapse',
       'delay': 1.,
-      'weight': 185.}
+      'weight': glu_weight}
 
 gaba = {'model': 'static_synapse',
         'delay': 1.,
-        'weight': -70.}
+        'weight': gaba_weight}
 
-static_syn = {'weight': 100.,
+static_syn = {'weight': static_weight,
               'delay': 1.}
 
 
@@ -57,7 +62,7 @@ nest.Connect(pre=i_n, post=m_n, conn_spec=conn_spec, syn_spec=gaba)
 
 
 generators = nest.Create("poisson_generator", 2, {
-                        'rate': 300.})
+                        'rate': generator_rate})
 
 nest.Connect(pre=[generators[0]], post=i_a, syn_spec=static_syn)
 
@@ -88,5 +93,5 @@ nest.Simulate(100.)
 
 # nest.voltage_trace.from_device(mm, title='Moto')
 # nest.voltage_trace.show()
-plot()
+plot(generator_rate, glu_weight, gaba_weight, static_weight)
 

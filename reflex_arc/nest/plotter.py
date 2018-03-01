@@ -20,10 +20,23 @@ def plot_one(name):
     pylab.ylabel(name)
 
 
-def plot():
+def plot(gen_rate, glu_weight, gaba_weight, static_weight):
+    print("plot start")
     for i in range(4):
         pylab.subplot(4, 1, i + 1)
         plot_one(names[i-1])
     # pylab.show()
+    print("plot end")
     pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('result.png', dpi=120)
+    pylab.savefig('result{}Hz_glu{}_gaba{}_stat{}.png'.format(gen_rate, glu_weight, gaba_weight, static_weight), dpi=120)
+
+
+def simple_plot(name):
+    print("plot start")
+    for i in range(4):
+        pylab.subplot(4, 1, i + 1)
+        plot_one(names[i-1])
+    # pylab.show()
+    print("plot end")
+    pylab.subplots_adjust(hspace=0.4)
+    pylab.savefig('result{}.png'.format(name), dpi=120)
