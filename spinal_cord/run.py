@@ -14,7 +14,8 @@ nest.Install('research_team_models')
 level1 = Level1()
 level2 = Level2(level1)
 
-nest.Simulate(100.)
+nest.Simulate(5000.)
 level1.plot_afferents()
 level1.plot_motogroups()
-
+level2.plot_pool()
+level2.plot_pc()
