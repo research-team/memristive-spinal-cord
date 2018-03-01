@@ -34,28 +34,30 @@ class ResultsPlotter:
         pylab.xlabel('ms')
         pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
 
-    def subplot(self, title: str, first, first_label: str, second=None, second_label: str=None):
+    def subplot(self, title: str, first=None, first_label: str=None, second=None, second_label: str=None):
         if self.plot_index > self.rows_number:
             raise ValueError("Too many subplots!")
         pylab.subplot(self.rows_number, self.cols_number, self.plot_index)
         self.plot_index += 1
 
-        data = DataMiner.get_average_voltage(first)
-        times = sorted(list(data.keys()))
-        values = [data[time] for time in times]
-        pylab.plot(
-            times,
-            values,
-            'r--',
-            label=first_label)
-        data = DataMiner.get_average_voltage(second)
-        times = sorted(list(data.keys()))
-        values = [data[time] for time in times]
-        pylab.plot(
-            times,
-            values,
-            'b:',
-            label=second_label)
+        if first:
+            data = DataMiner.get_average_voltage(first)
+            times = sorted(list(data.keys()))
+            values = [data[time] for time in times]
+            pylab.plot(
+                times,
+                values,
+                'r--',
+                label=first_label)
+        if second:
+            data = DataMiner.get_average_voltage(second)
+            times = sorted(list(data.keys()))
+            values = [data[time] for time in times]
+            pylab.plot(
+                times,
+                values,
+                'b:',
+                label=second_label)
 
         pylab.ylabel(title, fontsize=11)
         pylab.legend()

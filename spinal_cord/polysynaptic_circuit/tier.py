@@ -159,11 +159,11 @@ class Tier:
         )
         for i in range(len(self.e)):
             nest.Connect(
-                pre=add_multimeter('Tier{}E{}'.format(self.index, i)),
+                pre=add_multimeter('tier{}e{}'.format(self.index, i)),
                 post=self.e[i]
             )
         for i in range(len(self.i)):
             nest.Connect(
-                pre=add_multimeter('Tier{}I{}'.format(self.index, i)),
+                pre=add_multimeter('tier{}i{}'.format(self.index, i)),
                 post=self.i[i]
             )

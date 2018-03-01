@@ -1,6 +1,7 @@
 from spinal_cord.level1 import Level1
 from spinal_cord.polysynaptic_circuit.pc import PolysynapticCircuit
 from spinal_cord.pool.pool import Pool
+from spinal_cord.toolkit.plotter import ResultsPlotter
 
 
 class Level2:
@@ -14,3 +15,22 @@ class Level2:
 
     def plot_pool(self):
         self.pool.plot_results()
+
+    def plot_pc(self):
+        for tier in range(len(self.pc.tiers)):
+            plotter = ResultsPlotter(7, 'Tier{}'.format(tier), 'tier{}'.format(tier))
+            total_excitatory_groups = len(self.pc.tiers[tier].e)
+            total_inhibitory_groups = len(self.pc.tiers[tier].i)
+            for e in range(total_excitatory_groups):
+                plotter.subplot(
+                    title='E{}'.format(tier, e),
+                    first_label='average V_m',
+                    first='tier{}e{}'.format(tier, e)
+                )
+            for i in range(total_inhibitory_groups):
+                plotter.subplot(
+                    title='I{}'.format(tier, i),
+                    second_label='average V_m',
+                    second='tier{}i{}'.format(tier, i)
+                )
+            plotter.save()
