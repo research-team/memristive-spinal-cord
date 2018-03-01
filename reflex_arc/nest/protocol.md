@@ -24,3 +24,4 @@ But with the following excitation from "ia", spike arises.
 Next 40 ms in "moto" spikes don't arise.
 Only impulses, which does't reach threshold, because of inhibition by "in".
 At 90 ms in "moto" spike arises due to impulse from "ia".
+Time of simulation finished.
