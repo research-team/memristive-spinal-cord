@@ -1,5 +1,3 @@
-# stdp, 2 синапса, 20 сек. Результат в spinal cord. Модель ходжкина-хаксли
-
 import nest
 import os
 

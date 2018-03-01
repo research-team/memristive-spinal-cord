@@ -2,13 +2,13 @@ import pylab
 import os
 from pkg_resources import resource_filename
 
-names = ['moto', 'ia', 'ii', 'in']
+names = ['Moto', 'Ia', 'II', 'In']
 
 
 def plot_one(name):
     results = dict()
     for file in os.listdir('results'):
-        if name in file:
+        if name.lower() in file:
             with open(os.path.join('results', file)) as data:
                 for line in data:
                     time, value = line.split()[1:]
