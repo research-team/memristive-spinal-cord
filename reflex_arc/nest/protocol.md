@@ -5,19 +5,25 @@ Model of the reflex arc
 ![Figure](memristive_reflex_arc.png)
 
 Figure 1. 
-Motoneuron "moto", inhibitory interneuron "in", fibers "ia" and "ii'. 
-Fibers "ia" and "ii" connect to two generators.
-Fiber "ia" excites glutamine motoneuron.
-And fiber "ii" excites glutamine interneuron,
+Motoneuron "Moto", inhibitory interneuron "In", afferent fibers "Ia" and "II". 
+Afferents "Ia" and "II" connect to two generators.
+Afferent "Ia" excites glutamine motoneuron.
+And afferent "II" excites glutamine interneuron,
 that has inhibits GABA motoneuron. 
 
 ![Figure](result40.0Hz_glu300.0_gaba-200.0_stat200.0.png) 
 
 Figure 2. 
 Generator rate 40 Hz.
+
+Spike from afferent fiber "II" 
+
+Spike from afferent fiber "Ia" at 20 ms triggers hyperpolarization of membrane
+potential of motoneuron. Indicated in the graph "Moto"
+
 Fiber "II" excites interneuron "In" and it inhibits motoneuron "Moto". 
 Hyperpolarization arises.
-In this time fiber "Ia" excites "Moto" and impulse arises, but doesn't reach threshold.
+In this time fiber "Ia" excites "Moto" and depolarization arises, but doesn't reach threshold.
 At 33 ms "In" inhibits "Moto" and arises hyperpolarization.
 After 10 ms impulse from "Ia" induce spike in "Moto".
 Then fiber "Ia" once more excites "Moto" and again spike arises.
