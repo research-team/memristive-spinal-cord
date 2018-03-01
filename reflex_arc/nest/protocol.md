@@ -1,10 +1,26 @@
 ## Protocol
 
-Protocol for simulation of the reflex arc with one neuron per group
+Protocol for simulation of the reflex arc.
 
-![Figure](result.png)  
+![Figure](memristive_reflex_arc.png)
 
-The diagram shows four neurons: "in", "moto", "ia" and "ii'. 
-Neurons "ia" and "ii" connect with two generators, which rate of 300 Hz. Neuron "ia" excites glutamine motoneuron "moto".
-And neuron "ii" excites glutamine interneuron "in", which inhibits GABA motoneuron "moto". We connect multimeter to all
-neurons.
+Figure 1. 
+Motoneuron "moto", inhibitory interneuron "in", fibers "ia" and "ii'. 
+Fibers "ia" and "ii" connect with two generators, which rate of 300 Hz.
+Fiber "ia" excites glutamine motoneuron.
+And fiber "ii" excites glutamine interneuron,
+which inhibits GABA motoneuron. 
+
+![Figure](result.png) 
+
+Figure 2. Fiber "ii" excites interneuron "in" and it inhibits motoneuron "moto". 
+Hyperpolarization arises.
+In this time fiber "ia" excites "moto".
+Impulse arises, but doesn't reach threshold.
+Next impulse from "ia" induce spike in "moto".
+Then fiber "ia" once more excites "moto".
+Impulse arises and again doesn't reach threshold.
+But with the following excitation from "ia", spike arises.
+Next 40 ms in "moto" spikes don't arise.
+Only impulses, which does't reach threshold, because of inhibition by "in".
+At 90 ms in "moto" spike arises due to impulse from "ia".
