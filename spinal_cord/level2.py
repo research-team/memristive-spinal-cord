@@ -2,16 +2,17 @@ from spinal_cord.level1 import Level1
 from spinal_cord.polysynaptic_circuit.pc import PolysynapticCircuit
 from spinal_cord.pool.pool import Pool
 from spinal_cord.toolkit.plotter import ResultsPlotter
+from spinal_cord.fibers import AfferentFibers
 
 
 class Level2:
 
-    def __init__(self, level1: Level1):
+    def __init__(self, level1: Level1, afferents: AfferentFibers):
         self.pc = PolysynapticCircuit()
         self.pool = Pool()
-
         self.pc.connect_pool(self.pool)
         self.pool.connect_level1(level1)
+        self.pool.connect_sensory(afferents.dsaf)
 
     def plot_pool(self):
         self.pool.plot_results()
@@ -23,7 +24,7 @@ class Level2:
             total_inhibitory_groups = len(self.pc.tiers[tier].i)
             for e in range(total_excitatory_groups):
                 plotter.subplot(
-                    title='E{}'.format(tier, e),
+                    title='E{}'.format(e),
                     first_label='average V_m',
                     first='tier{}e{}'.format(tier, e)
                 )

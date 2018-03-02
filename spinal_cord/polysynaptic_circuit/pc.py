@@ -63,3 +63,16 @@ class PolysynapticCircuit:
                         'rule': 'one_to_one'
                     }
                 )
+        nest.Connect(
+            pre=pool.flex_suspended_nrn_id,
+            post=self.tiers[0].e[0],
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 100.
+            },
+            conn_spec={
+                'rule': 'fixed_total_number',
+                'N': 20
+            }
+        )

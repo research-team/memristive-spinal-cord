@@ -1,4 +1,5 @@
 import nest
+from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
 from spinal_cord.level1 import Level1
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
@@ -53,7 +54,8 @@ class Pool:
                 'weight': 100.
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_total_number',
+                'N': 15
             }
         )
         nest.Connect(
@@ -65,7 +67,8 @@ class Pool:
                 'weight': 100.
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_total_number',
+                'N': 15
             }
         )
         nest.Connect(
@@ -74,7 +77,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': -15.
+                'weight': -30.
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
             }
         )
         nest.Connect(
@@ -83,7 +90,29 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': -15.
+                'weight': -30.
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
+            }
+        )
+        nest.Connect(
+            pre=self.extens_suspended_nrn_id,
+            post=self.flex_group_nrn_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': -30.
+            }
+        )
+        nest.Connect(
+            pre=self.flex_suspended_nrn_id,
+            post=self.extens_group_nrn_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': -30.
             }
         )
         nest.Connect(
@@ -101,6 +130,29 @@ class Pool:
         nest.Connect(
             pre=add_multimeter(self.extens_suspended_name),
             post=self.extens_suspended_nrn_id
+        )
+
+    def connect_sensory(self, sensory_afferent_fiber: DummySensoryAfferentFiber):
+        pre = sensory_afferent_fiber.neuron_id
+        syn_spec = {
+           'model': 'static_synapse',
+           'delay': .1,
+           'weight': 90.
+        }
+        conn_spec = {
+            'rule': 'one_to_one'
+        }
+        nest.Connect(
+            pre=pre,
+            post=self.flex_suspended_nrn_id,
+            syn_spec=syn_spec,
+            conn_spec=conn_spec
+        )
+        nest.Connect(
+            pre=pre,
+            post=self.extens_suspended_nrn_id,
+            syn_spec=syn_spec,
+            conn_spec=conn_spec
         )
 
     def connect_level1(self, level1: Level1):

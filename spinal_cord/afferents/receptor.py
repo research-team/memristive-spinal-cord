@@ -28,9 +28,9 @@ class Receptor:
         )
 
 
-class DummySensoryReceptor():
+class DummySensoryReceptor:
 
-    def __init__(self, time: float=20000, period: float=1000., stand_coef: float=0.7, interval: int=20, rate: float=60):
+    def __init__(self, time: float=20000, period: float=1000., stand_coef: float=0.7, rate: float=60):
         spike_times = []
         standing_time = period * stand_coef
         walking_time = period * (1 - stand_coef)
@@ -38,15 +38,19 @@ class DummySensoryReceptor():
         timepoint = 0.1
         i = 0
         while timepoint < time:
-            spikes_at_period = int(periods[i] / 1000 * rate)
-            time_between_spikes = periods[i] / spikes_at_period
-            spike_times.extend([timepoint + time_between_spikes * i for i in range(spikes_at_period)])
-            timepoint += periods[i]
-            i = (i + 1) % 2
+            if i:
+                timepoint += periods[i]
+                i = (i + 1) % 2
+            else:
+                spikes_at_period = int(periods[i] / 1000 * rate)
+                time_between_spikes = round(periods[i] / spikes_at_period, 1)
+                spike_times.extend([timepoint + time_between_spikes * i for i in range(spikes_at_period)])
+                timepoint += periods[i]
+                i = (i + 1) % 2
 
         self.receptor_id = nest.Create(
             model='spike_generator',
             n=1,
-            params={'spike_times': spike_times, 'spike_weights': [60. for _ in spike_times]}
+            params={'spike_times': spike_times, 'spike_weights': [100. for _ in spike_times]}
         )
 
