@@ -6,6 +6,7 @@ class Afferent(Enum):
     II = 'II'
     SENSORY = 'sensory'
 
+
 class Muscle(Enum):
     FLEX = 'TA'
     EXTENS = 'GM'
