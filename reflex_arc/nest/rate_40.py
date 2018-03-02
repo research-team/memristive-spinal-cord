@@ -10,8 +10,7 @@ nest.SetKernelStatus({"print_time": True,
                      "local_num_threads": 4})
 
 nrn_parameters = {
-    # 't_ref': [2.5, 4.0],  # Refractory period
-    't_ref': 2.5,  # Refractory period
+    't_ref': 7.,  # Refractory period
     'V_m': -70.0,  #
     'E_L': -70.0,  #
     'E_K': -77.0,  #
@@ -79,8 +78,6 @@ nest.Connect(pre=mm_ii, post=i_i)
 nest.Connect(pre=mm_in, post=i_n)
 
 
-# import nest.voltage_trace
-
 if os.path.isdir('results'):
     shutil.rmtree('results')
     os.mkdir('results')
@@ -90,7 +87,5 @@ nest.Simulate(100.)
 
 print("end of simulation")
 
-# nest.voltage_trace.from_device(mm, title='Moto')
-# nest.voltage_trace.show()
 plot(gen_rate, glu_weight, gaba_weight, static_weight)
 
