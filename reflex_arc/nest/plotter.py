@@ -1,11 +1,12 @@
 import pylab
 import os
-from pkg_resources import resource_filename
+import logging
 
-names = ['Moto', 'Ia', 'II', 'In']
+names = ['Ia', 'Moto', 'In', 'II']
 
 
 def plot_one(name):
+    logging.warning('plot one {}'.format(name))
     results = dict()
     for file in os.listdir('results'):
         if name.lower() in file:
@@ -24,8 +25,7 @@ def plot(gen_rate, glu_weight, gaba_weight, static_weight):
     print("plot start")
     for i in range(4):
         pylab.subplot(4, 1, i + 1)
-        plot_one(names[i-1])
-    # pylab.show()
+        plot_one(names[i])
     print("plot end")
     pylab.subplots_adjust(hspace=0.4)
     pylab.savefig('result{}Hz_glu{}_gaba{}_stat{}.png'.format(gen_rate, glu_weight, gaba_weight, static_weight), dpi=120)
@@ -35,8 +35,7 @@ def simple_plot(name):
     print("plot start")
     for i in range(4):
         pylab.subplot(4, 1, i + 1)
-        plot_one(names[i-1])
-    # pylab.show()
+        plot_one(names[i])
     print("plot end")
     pylab.subplots_adjust(hspace=0.4)
     pylab.savefig('result{}.png'.format(name), dpi=120)
