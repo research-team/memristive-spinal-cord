@@ -14,12 +14,17 @@ that has inhibits GABA motoneuron.
 ![Figure](result40.0Hz_glu300.0_gaba-200.0_stat200.0.png) 
 
 Figure 2. 
-Generator rate 40 Hz.
+Generator rate 40 Hz. 
+Afferent fiber "II" excites interneuron "In" cause a spike.
+That has trigger hyperpolarization of membrane potential of motoneuron.
+Indicated in the graph "Moto".
+Spike from afferent "Ia" at 20 ms excites motoneuron and triggers depolarization.
+Then at 33 ms "In" inhibits "Moto" and cause hyperpolarization.
+After 8 ms afferent "Ia" excites motoneuron triggers a spike.
+Next spike from "In" triggers hyperpolarization of membrane potential.
 
-Spike from afferent fiber "II" 
 
-Spike from afferent fiber "Ia" at 20 ms triggers hyperpolarization of membrane
-potential of motoneuron. Indicated in the graph "Moto"
+
 
 Fiber "II" excites interneuron "In" and it inhibits motoneuron "Moto". 
 Hyperpolarization arises.
@@ -34,7 +39,7 @@ Then "In" inhibits "Moto" and arises hyperpolarization.
 After 1 ms "Ia" excites "Moto" and impulse arises, but doesn't reach threshold.
 Time of simulation finished.
 
-![Figure](result300.0Hz_glu185.0_gaba-70.0_stat100.0.png)
+![Figure]()
 
 Figure 3. 
 Generator rate 300 Hz.
