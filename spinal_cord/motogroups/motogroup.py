@@ -33,7 +33,7 @@ class Motogroup:
             params={
                 'tau_syn_ex': 0.5,
                 'tau_syn_in': 1.5,
-                't_ref': 2.0,  # 'tau_m': 2.5
+                't_ref': 2.,  # 'tau_m': 2.5
             }
         )
 
@@ -116,7 +116,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': 1.75
+                'weight': 17.5
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -128,7 +128,7 @@ class Motogroup:
             post=self.ia_ids,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': self.distr_normal2,
                 'weight': 1.75
             },
             conn_spec={

@@ -54,8 +54,7 @@ class Pool:
                 'weight': 100.
             },
             conn_spec={
-                'rule': 'fixed_total_number',
-                'N': 15
+                'rule': 'all_to_all'
             }
         )
         nest.Connect(
@@ -67,8 +66,7 @@ class Pool:
                 'weight': 100.
             },
             conn_spec={
-                'rule': 'fixed_total_number',
-                'N': 15
+                'rule': 'all_to_all'
             }
         )
         nest.Connect(
@@ -133,14 +131,14 @@ class Pool:
         )
 
     def connect_sensory(self, sensory_afferent_fiber: DummySensoryAfferentFiber):
-        pre = sensory_afferent_fiber.neuron_id
+        pre = sensory_afferent_fiber.neuron_ids
         syn_spec = {
            'model': 'static_synapse',
            'delay': .1,
-           'weight': 90.
+           'weight': 10.
         }
         conn_spec = {
-            'rule': 'one_to_one'
+            'rule': 'all_to_all'
         }
         nest.Connect(
             pre=pre,
@@ -228,3 +226,20 @@ class Pool:
             title='Suspended'
         )
         plotter.save()
+
+    def plot_slices(self, time=25.):
+        n_slices = 7
+        plotter = ResultsPlotter(7, 'Average "V_m" of Pool', 'pool slices')
+        plotter.subplot_with_slices(
+            slices=n_slices,
+            first_label='extensor',
+            first=self.extens_group_name,
+            second_label='flexor',
+            second=self.flex_group_name,
+            third_label='stimuli',
+            third=self.extens_suspended_name,
+            title='Pool'
+        )
+        plotter.save()
+
+

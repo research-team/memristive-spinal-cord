@@ -1,4 +1,4 @@
-from spinal_cord.afferents.afferent_fiber import AfferentFiber
+from spinal_cord.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
 
 __author__ = 'Alexey Sanin'
 
@@ -38,11 +38,13 @@ class EES:
     @staticmethod
     def generate_spiketimes(frequency_hz, how_long_s):
         how_many = int(frequency_hz * how_long_s)
-        start = 1000 // frequency_hz
-        return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
+        # start = 1000 // frequency_hz
+        time_between_spikes = 1000 / frequency_hz
+        # return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
+        return [0.5 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
-        spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float)
+        spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=20)
         self.amplitude = amplitude
         self.ees_id = nest.Create(
             model='spike_generator',
@@ -52,11 +54,10 @@ class EES:
             }
         )
         print('EES id is {}'.format(self.ees_id))
-        print(EES.generate_spiketimes(frequency_hz=40, how_long_s=1000).astype(float))
+        print(EES.generate_spiketimes(frequency_hz=40, how_long_s=1000))
 
-    def connect(self, *afferents: AfferentFiber) -> None:
+    def connect(self, *afferents: AfferentFiber or DummySensoryAfferentFiber) -> None:
         for afferent in afferents:
-            print('afferents id are {}'.format(afferent.neuron_ids))
             activated_number = EES.compute_activated_number(
                 amplitude=self.amplitude,
                 muscle=afferent.muscle,
@@ -70,7 +71,7 @@ class EES:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': .1,
-                    'weight': 20.
+                    'weight': 100.
                 },
                 conn_spec={
                     'rule': 'fixed_total_number',
@@ -78,6 +79,21 @@ class EES:
                 }
             )
         print(nest.GetStatus(nest.GetConnections(self.ees_id)))
+
+    def connect_dummy(self, afferent):
+        nest.Connect(
+            pre=self.ees_id,
+            post=afferent.neuron_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': .1,
+                'weight': 90.
+            },
+            conn_spec={
+                'rule': 'fixed_total_number',
+                'N': 45
+            }
+        )
 
 
 def test() -> None:

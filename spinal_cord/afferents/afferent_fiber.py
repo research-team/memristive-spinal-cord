@@ -35,7 +35,7 @@ class AfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 75.
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -50,9 +50,9 @@ class AfferentFiber:
 class DummySensoryAfferentFiber:
     def __init__(self, dummy_sensory_receptor: DummySensoryReceptor):
         self.name = 'dummy_sensory',
-        self.neuron_id = nest.Create(
+        self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
-            n=1,
+            n=60,
             params={
                 't_ref': 2.,  # Refractory period
                 'V_m': -70.0,  #
@@ -69,14 +69,14 @@ class DummySensoryAfferentFiber:
         self.receptor = DummySensoryReceptor()
         nest.Connect(
             pre=self.receptor.receptor_id,
-            post=self.neuron_id,
+            post=self.neuron_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 100.
+                'weight': 0.
             },
             conn_spec={
-                'rule': 'one_to_one'
+                'rule': 'all_to_all'
             }
         )
 

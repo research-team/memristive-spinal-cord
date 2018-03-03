@@ -22,6 +22,7 @@ class AfferentFibers:
             self.afferent_fiber_ii_flex,
             self.afferent_fiber_ii_extens
         )
+        self.ees.connect_dummy(self.dsaf)
 
     def plot_afferents(self):
         plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')

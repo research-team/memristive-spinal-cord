@@ -61,3 +61,40 @@ class ResultsPlotter:
 
         pylab.ylabel(title, fontsize=11)
         pylab.legend()
+
+    def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
+        if slices > self.rows_number:
+            raise ValueError('Too much subplots')
+
+        data1 = DataMiner.get_average_voltage(first)
+        times1 = sorted(data1.keys())
+        data2 = DataMiner.get_average_voltage(second)
+        data3 = DataMiner.get_average_voltage(third)
+        fraction = len(data1) / slices
+        for slice in range(slices):
+            pylab.subplot(self.rows_number, self.cols_number, self.plot_index)
+            self.plot_index += 1
+            start = int(slice * fraction)
+            end = int((slice + 1) * fraction) if slice < 6 else len(times1) - 1
+            times = times1[start:end]
+            values = [data1[time] for time in times]
+            pylab.plot(
+                times,
+                values,
+                'b:',
+                label=first_label)
+            values = [data2[time] for time in times]
+            pylab.plot(
+                times,
+                values,
+                'r--',
+                label=second_label)
+            values = [data3[time] for time in times]
+            pylab.plot(
+                times,
+                values,
+                'g',
+                label=third_label)
+
+        pylab.ylabel(title, fontsize=11)
+        pylab.legend()

@@ -35,3 +35,6 @@ class Level2:
                     second='tier{}i{}'.format(tier, i)
                 )
             plotter.save()
+
+    def plot_slices(self):
+        self.pool.plot_slices()
