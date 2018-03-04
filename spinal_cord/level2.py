@@ -30,7 +30,7 @@ class Level2:
                 )
             for i in range(total_inhibitory_groups):
                 plotter.subplot(
-                    title='I{}'.format(tier, i),
+                    title='I{}'.format(i),
                     second_label='average V_m',
                     second='tier{}i{}'.format(tier, i)
                 )
