@@ -7,7 +7,10 @@ import shutil
 nest.ResetKernel()
 
 nest.SetKernelStatus({"print_time": True,
-                     "local_num_threads": 4})
+                     "local_num_threads": 4,
+                      "resolution": 0.001})
+
+T = 100.
 
 nrn_parameters = {
     't_ref': 7.,  # Refractory period
@@ -23,13 +26,17 @@ nrn_parameters = {
 
 conn_spec = {'rule': 'one_to_one'}
 
-glu_weight = 300.
-gaba_weight = -200.
+glu_weight = 200.
+gaba_weight = -300.
 static_weight = 200.
 gen_rate = 40.
 
 glu = {'model': 'static_synapse',
       'delay': 1.,
+      'weight': glu_weight}
+
+glu_1 = {'model': 'static_synapse',
+      'delay': 2.,
       'weight': glu_weight}
 
 gaba = {'model': 'static_synapse',
@@ -51,19 +58,23 @@ m_n = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
 
 
 #Conectomes
-nest.Connect(pre=i_a, post=m_n, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=i_a, post=m_n, conn_spec=conn_spec, syn_spec=glu_1)
 
 nest.Connect(pre=i_i, post=i_n, conn_spec=conn_spec, syn_spec=glu)
 
 nest.Connect(pre=i_n, post=m_n, conn_spec=conn_spec, syn_spec=gaba)
 
 
-generators = nest.Create("poisson_generator", 2, {
-                        'rate': gen_rate})
+rate = 1 / 40
+spike_times = [rate + i * rate for i in range(int(T / rate))]
+generators = nest.Create("spike_generator", 1, {'spike_times': spike_times,
+                                                'spike_weights': [10.0 for i in spike_times]
+})
+print(spike_times)
 
-nest.Connect(pre=[generators[0]], post=i_a, syn_spec=static_syn)
+nest.Connect(pre=generators, post=i_a, syn_spec=static_syn)
 
-nest.Connect(pre=[generators[1]], post=i_i, syn_spec=static_syn)
+nest.Connect(pre=generators, post=i_i, syn_spec=static_syn)
 
 
 mm_moto = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label': 'results/moto'})
@@ -83,9 +94,8 @@ if os.path.isdir('results'):
     os.mkdir('results')
 else:
     os.mkdir('results')
-nest.Simulate(100.)
+nest.Simulate(T)
 
-print("end of simulation")
 
 plot(gen_rate, glu_weight, gaba_weight, static_weight)
 
