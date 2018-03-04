@@ -74,8 +74,9 @@ class EES:
                     'weight': 100.
                 },
                 conn_spec={
-                    'rule': 'fixed_total_number',
-                    'N': activated_number
+                    'rule': 'fixed_outdegree',
+                    'outdegree': activated_number,
+                    'multapses': False
                 }
             )
         print(nest.GetStatus(nest.GetConnections(self.ees_id)))
@@ -90,8 +91,9 @@ class EES:
                 'weight': 90.
             },
             conn_spec={
-                'rule': 'fixed_total_number',
-                'N': 45
+                'rule': 'fixed_outdegree',
+                'outdegree': 45,
+                'multapses': False
             }
         )
 

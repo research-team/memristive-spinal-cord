@@ -72,7 +72,8 @@ class PolysynapticCircuit:
                 'weight': 100.
             },
             conn_spec={
-                'rule': 'fixed_total_number',
-                'N': 20
+                'rule': 'fixed_outdegree',
+                'outdegree': 20,
+                'multapses': False
             }
         )

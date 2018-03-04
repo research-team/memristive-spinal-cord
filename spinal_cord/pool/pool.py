@@ -227,9 +227,9 @@ class Pool:
         )
         plotter.save()
 
-    def plot_slices(self, time=25.):
+    def plot_slices(self, afferent: str, time=25.):
         n_slices = 7
-        plotter = ResultsPlotter(7, 'Average "V_m" of Pool', 'pool slices')
+        plotter = ResultsPlotter(7, 'Average "V_m" of Pool', 'pool_slices')
         plotter.subplot_with_slices(
             slices=n_slices,
             first_label='extensor',
@@ -237,7 +237,7 @@ class Pool:
             second_label='flexor',
             second=self.flex_group_name,
             third_label='stimuli',
-            third=self.extens_suspended_name,
+            third=afferent[0],
             title='Pool'
         )
         plotter.save()

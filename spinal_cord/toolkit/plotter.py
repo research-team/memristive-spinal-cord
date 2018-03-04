@@ -65,12 +65,14 @@ class ResultsPlotter:
     def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
-
+        step = .1
+        interval = 25.
         data1 = DataMiner.get_average_voltage(first)
-        times1 = sorted(data1.keys())
+        number_of_dots = int(1 / step * slices * interval)
+        times1 = sorted(data1.keys())[:number_of_dots]
         data2 = DataMiner.get_average_voltage(second)
         data3 = DataMiner.get_average_voltage(third)
-        fraction = len(data1) / slices
+        fraction = len(times1) / slices
         for slice in range(slices):
             pylab.subplot(self.rows_number, self.cols_number, self.plot_index)
             self.plot_index += 1

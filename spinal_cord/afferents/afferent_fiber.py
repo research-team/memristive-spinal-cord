@@ -79,4 +79,7 @@ class DummySensoryAfferentFiber:
                 'rule': 'all_to_all'
             }
         )
-
+        nest.Connect(
+            pre=add_multimeter(self.name),
+            post=self.neuron_ids
+        )

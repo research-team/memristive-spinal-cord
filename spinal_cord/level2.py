@@ -36,5 +36,5 @@ class Level2:
                 )
             plotter.save()
 
-    def plot_slices(self):
-        self.pool.plot_slices()
+    def plot_slices(self, afferent: str):
+        self.pool.plot_slices(afferent)
