@@ -57,10 +57,12 @@ class PolysynapticCircuit:
                     syn_spec={
                         'model': 'static_synapse',
                         'delay': 1.,
-                        'weight': 80.
+                        'weight': 10.
                     },
                     conn_spec={
-                        'rule': 'one_to_one'
+                        'rule': 'fixed_outdegree',
+                        'outdegree': 12,
+                        'multapses': False
                     }
                 )
         nest.Connect(

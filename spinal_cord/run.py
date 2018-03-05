@@ -17,7 +17,7 @@ level1 = Level1()
 level1.connect_afferents(afferents)
 level2 = Level2(level1, afferents)
 
-nest.Simulate(1280.)
+nest.Simulate(720.)
 
 level1.plot_motogroups()
 level2.plot_pool()
