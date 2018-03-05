@@ -2,6 +2,7 @@ import nest
 from spinal_cord.afferents.afferent_fiber import AfferentFiber
 from spinal_cord.namespace import Muscle
 from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.weights import Weights
 
 
 class Motogroup:
@@ -53,7 +54,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': 15.419
+                'weight': Weights.ii_moto.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -74,26 +75,41 @@ class Motogroup:
         )
 
     def connect_motogroup(self, motogroup):
-        nest.Connect(
-            pre=self.ia_ids,
-            post=motogroup.ia_ids,
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': self.distr_normal2,
-                'weight': -0.7
-            },
-            conn_spec={
-                'rule': 'fixed_indegree',
-                'indegree': 100
-            }
-        )
+        if motogroup.motoname == 'moto_GM':
+            nest.Connect(
+                pre=self.ia_ids,
+                post=motogroup.ia_ids,
+                syn_spec={
+                    'model': 'static_synapse',
+                    'delay': self.distr_normal2,
+                    'weight': 0
+                },
+                conn_spec={
+                    'rule': 'fixed_indegree',
+                    'indegree': 100
+                }
+            )
+        else:
+            nest.Connect(
+                pre=self.ia_ids,
+                post=motogroup.ia_ids,
+                syn_spec={
+                    'model': 'static_synapse',
+                    'delay': self.distr_normal2,
+                    'weight': Weights.ia_ia.value
+                },
+                conn_spec={
+                    'rule': 'fixed_indegree',
+                    'indegree': 100
+                }
+            )
         nest.Connect(
             pre=self.ia_ids,
             post=motogroup.moto_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': -6.9
+                'weight': Weights.ia_moto.value
             }
         )
 
@@ -104,7 +120,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': 10.5216
+                'weight': Weights.aff_ia_moto.value
             },
             conn_spec={
                 'rule': 'all_to_all',
@@ -116,7 +132,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': 17.5
+                'weight': Weights.aff_ia_ia.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -129,7 +145,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': 1.75
+                'weight': Weights.aff_ii_ia.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -142,7 +158,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal3,
-                'weight': 1.75
+                'weight': Weights.aff_ii_ii.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',

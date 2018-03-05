@@ -7,12 +7,13 @@ from spinal_cord.fibers import AfferentFibers
 
 class Level2:
 
-    def __init__(self, level1: Level1, afferents: AfferentFibers):
+    def __init__(self, level1: Level1, afferents: AfferentFibers=None):
         self.pc = PolysynapticCircuit()
         self.pool = Pool()
         self.pc.connect_pool(self.pool)
         self.pool.connect_level1(level1)
-        self.pool.connect_sensory(afferents.dsaf)
+        if afferents:
+            self.pool.connect_sensory(afferents.dsaf)
 
     def plot_pool(self):
         self.pool.plot_results()

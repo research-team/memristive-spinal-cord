@@ -1,6 +1,7 @@
 import nest
 from spinal_cord.polysynaptic_circuit.tier import Tier
 from spinal_cord.pool.pool import Pool
+from spinal_cord.weights import Weights
 
 
 class PolysynapticCircuit:
@@ -17,7 +18,7 @@ class PolysynapticCircuit:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
-                    'weight': 40.
+                    'weight': Weights.e2e2.value
                 },
                 conn_spec={
                     'rule': 'one_to_one'
@@ -29,7 +30,7 @@ class PolysynapticCircuit:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
-                    'weight': 45.
+                    'weight': Weights.e3e0.value
                 },
                 conn_spec={
                     'rule': 'one_to_one'
@@ -41,7 +42,7 @@ class PolysynapticCircuit:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
-                    'weight': 100.
+                    'weight': Weights.e2e2.value
                 },
                 conn_spec={
                     'rule': 'one_to_one'
@@ -57,7 +58,7 @@ class PolysynapticCircuit:
                     syn_spec={
                         'model': 'static_synapse',
                         'delay': 1.,
-                        'weight': 10.
+                        'weight': Weights.e2p.value
                     },
                     conn_spec={
                         'rule': 'fixed_outdegree',

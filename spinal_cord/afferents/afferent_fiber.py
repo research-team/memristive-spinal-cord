@@ -35,7 +35,7 @@ class AfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 100.
+                'weight': 0.
             },
             conn_spec={
                 'rule': 'one_to_one'

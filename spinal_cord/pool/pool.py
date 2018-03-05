@@ -3,6 +3,7 @@ from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
 from spinal_cord.level1 import Level1
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
+from spinal_cord.weights import Weights
 
 
 class Pool:
@@ -160,11 +161,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 10.
+                'weight': Weights.p_ex_ia.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 10
+                'indegree': 25
             }
         )
         nest.Connect(
@@ -173,11 +174,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 10.
+                'weight': Weights.p_ex_moto.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 10
+                'indegree': 25
             }
         )
 
@@ -187,11 +188,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 10,
+                'weight': Weights.p_fl_ia.value,
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 10
+                'indegree': 25
             }
         )
         nest.Connect(
@@ -200,11 +201,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 10
+                'weight': Weights.p_fl_moto.value
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 10
+                'indegree': 25
             }
         )
 

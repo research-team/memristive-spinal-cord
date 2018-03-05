@@ -1,5 +1,6 @@
 import nest
 from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.weights import Weights
 
 
 class Tier:
@@ -43,7 +44,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e0e1.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -55,7 +56,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 90.
+                'weight': Weights.e1e2.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -67,7 +68,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 90.
+                'weight': Weights.e2e1.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -79,7 +80,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e3e4.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -91,7 +92,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e4e3.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -103,7 +104,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e0e3.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -115,7 +116,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e3i0.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -127,7 +128,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': -60.
+                'weight': Weights.i0e1.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -139,7 +140,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': -50.
+                'weight': Weights.i1e1.value
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -151,7 +152,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': 100.
+                'weight': Weights.e2i1.value
             },
             conn_spec={
                 'rule': 'one_to_one'
