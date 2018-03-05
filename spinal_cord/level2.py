@@ -19,7 +19,7 @@ class Level2:
 
     def plot_pc(self):
         for tier in range(len(self.pc.tiers)):
-            plotter = ResultsPlotter(7, 'Tier{}'.format(tier), 'tier{}'.format(tier))
+            plotter = ResultsPlotter(7, 'Tier{}'.format(tier+1), 'tier{}'.format(tier+1))
             total_excitatory_groups = len(self.pc.tiers[tier].e)
             total_inhibitory_groups = len(self.pc.tiers[tier].i)
             for e in range(total_excitatory_groups):

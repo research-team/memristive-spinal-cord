@@ -42,7 +42,7 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={
@@ -54,8 +54,8 @@ class Tier:
             post=self.e[2],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
-                'weight': 100.
+                'delay': 0.9,
+                'weight': 90.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -66,8 +66,8 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
-                'weight': 100.
+                'delay': 0.9,
+                'weight': 90.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -78,7 +78,7 @@ class Tier:
             post=self.e[4],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={
@@ -90,7 +90,7 @@ class Tier:
             post=self.e[3],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={
@@ -102,7 +102,7 @@ class Tier:
             post=self.e[3],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={
@@ -114,7 +114,7 @@ class Tier:
             post=self.i[0],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={
@@ -126,8 +126,8 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
-                'weight': -25.
+                'delay': 0.9,
+                'weight': -60.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -138,8 +138,8 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
-                'weight': -25.
+                'delay': 0.9,
+                'weight': -50.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -150,7 +150,7 @@ class Tier:
             post=self.i[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': 0.9,
                 'weight': 100.
             },
             conn_spec={

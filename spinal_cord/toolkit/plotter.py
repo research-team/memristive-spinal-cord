@@ -66,7 +66,7 @@ class ResultsPlotter:
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
-        interval = 25.
+        interval = 40.
         data1 = DataMiner.get_average_voltage(first)
         number_of_dots = int(1 / step * slices * interval)
         times1 = sorted(data1.keys())[:number_of_dots]

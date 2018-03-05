@@ -44,7 +44,7 @@ class EES:
         return [0.5 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
-        spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=20)
+        spike_times = EES.generate_spiketimes(frequency_hz=25, how_long_s=20)
         self.amplitude = amplitude
         self.ees_id = nest.Create(
             model='spike_generator',
@@ -54,7 +54,7 @@ class EES:
             }
         )
         print('EES id is {}'.format(self.ees_id))
-        print(EES.generate_spiketimes(frequency_hz=40, how_long_s=1000))
+        print(EES.generate_spiketimes(frequency_hz=25, how_long_s=1000))
 
     def connect(self, *afferents: AfferentFiber or DummySensoryAfferentFiber) -> None:
         for afferent in afferents:
