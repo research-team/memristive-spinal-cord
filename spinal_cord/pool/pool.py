@@ -230,7 +230,7 @@ class Pool:
 
     def plot_slices(self, afferent: str, time=40.):
         n_slices = 7
-        plotter = ResultsPlotter(7, 'Average "V_m" of Pool', 'pool_slices')
+        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Pool', 'pool_slices')
         plotter.subplot_with_slices(
             slices=n_slices,
             first_label='extensor',

@@ -30,7 +30,7 @@ class Weights(Enum):
     aff_ia_moto = 15.
     aff_ia_ia = 5.
     aff_ii_ia = 5.
-    aff_ii_ii = 18.
+    aff_ii_ii = 28.
     ii_moto = 27.
     ia_ia = -0.7
     ia_moto = -6.9
