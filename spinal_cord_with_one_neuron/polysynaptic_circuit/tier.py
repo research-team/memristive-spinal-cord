@@ -1,6 +1,6 @@
 import nest
-from spinal_cord.toolkit.multimeter import add_multimeter
-from spinal_cord.weights import Weights
+from spinal_cord_with_one_neuron.toolkit.multimeter import add_multimeter
+from spinal_cord_with_one_neuron.weights import Weights
 
 
 class Tier:
@@ -24,7 +24,7 @@ class Tier:
             self.e.append(
                 nest.Create(
                     model='hh_cond_exp_traub',
-                    n=20,
+                    n=1,
                     params=self.params
                 )
             )
@@ -33,7 +33,7 @@ class Tier:
             self.i.append(
                 nest.Create(
                     model='hh_cond_exp_traub',
-                    n=20,
+                    n=1,
                     params=self.params
                 )
             )

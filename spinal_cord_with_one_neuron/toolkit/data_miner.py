@@ -9,7 +9,7 @@ class DataMiner:
         logging.warning('Gathering data for {}'.format(neuron_group_name))
         neurons = list()
         average_data = dict()
-        results_dir = os.path.join(resource_filename('spinal_cord', 'results'), 'raw_data')
+        results_dir = os.path.join(resource_filename('spinal_cord_with_one_neuron', 'results'), 'raw_data')
         for result_file in os.listdir(results_dir):
             if neuron_group_name in result_file:
                 with open(os.path.join(results_dir, result_file)) as datafile:

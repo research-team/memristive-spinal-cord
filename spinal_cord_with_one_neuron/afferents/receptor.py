@@ -1,6 +1,6 @@
 import nest
-from spinal_cord.afferents.spiketimes_generator import AfferentSpikeTimeGenerator
-from spinal_cord.namespace import Afferent, Muscle, Interval, Speed
+from spinal_cord_with_one_neuron.afferents.spiketimes_generator import AfferentSpikeTimeGenerator
+from spinal_cord_with_one_neuron.namespace import Afferent, Muscle, Interval, Speed
 
 
 class Receptor:
@@ -9,7 +9,7 @@ class Receptor:
             self,
             muscle: Muscle,
             afferent: Afferent,
-            number: int=60,
+            number: int=1,
             speed: Speed=Speed.DEFAULT,
             interval: Interval=Interval.DEFAULT,
             datapath: str='data'

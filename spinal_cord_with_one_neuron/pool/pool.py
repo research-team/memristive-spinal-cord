@@ -1,9 +1,9 @@
 import nest
-from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
-from spinal_cord.level1 import Level1
-from spinal_cord.toolkit.multimeter import add_multimeter
-from spinal_cord.toolkit.plotter import ResultsPlotter
-from spinal_cord.weights import Weights
+from spinal_cord_with_one_neuron.afferents.afferent_fiber import DummySensoryAfferentFiber
+from spinal_cord_with_one_neuron.level1 import Level1
+from spinal_cord_with_one_neuron.toolkit.multimeter import add_multimeter
+from spinal_cord_with_one_neuron.toolkit.plotter import ResultsPlotter
+from spinal_cord_with_one_neuron.weights import Weights
 
 
 class Pool:
@@ -38,12 +38,12 @@ class Pool:
         )
         self.flex_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
-            n=20,
+            n=1,
             params=self.params
         )
         self.extens_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
-            n=20,
+            n=1,
             params=self.params
         )
         nest.Connect(
@@ -80,7 +80,7 @@ class Pool:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 15
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -93,7 +93,7 @@ class Pool:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 15
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -165,7 +165,7 @@ class Pool:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 25
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -229,8 +229,8 @@ class Pool:
         plotter.save()
 
     def plot_slices(self, afferent: str, time=40.):
-        n_slices = 7
-        plotter = ResultsPlotter(7, 'Average "V_m" of Pool', 'pool_slices')
+        n_slices = 6
+        plotter = ResultsPlotter(6, 'Average "V_m" of Pool', 'pool_slices')
         plotter.subplot_with_slices(
             slices=n_slices,
             first_label='extensor',
@@ -244,3 +244,4 @@ class Pool:
         plotter.save()
 
 
+()

@@ -1,9 +1,9 @@
-from spinal_cord.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
+from spinal_cord_with_one_neuron.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
 
 __author__ = 'Alexey Sanin'
 
 
-from spinal_cord.namespace import Group, Muscle
+from spinal_cord_with_one_neuron.namespace import Group, Muscle
 import numpy
 from pkg_resources import resource_filename
 import os
@@ -92,7 +92,7 @@ class EES:
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 45,
+                'outdegree': 1,
                 'multapses': False
             }
         )

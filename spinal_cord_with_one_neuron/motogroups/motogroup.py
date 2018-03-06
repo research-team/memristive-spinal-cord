@@ -1,8 +1,8 @@
 import nest
-from spinal_cord.afferents.afferent_fiber import AfferentFiber
-from spinal_cord.namespace import Muscle
-from spinal_cord.toolkit.multimeter import add_multimeter
-from spinal_cord.weights import Weights
+from spinal_cord_with_one_neuron.afferents.afferent_fiber import AfferentFiber
+from spinal_cord_with_one_neuron.namespace import Muscle
+from spinal_cord_with_one_neuron.toolkit.multimeter import add_multimeter
+from spinal_cord_with_one_neuron.weights import Weights
 
 
 class Motogroup:

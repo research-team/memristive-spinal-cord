@@ -1,7 +1,7 @@
 import nest
-from spinal_cord.namespace import Muscle, Afferent
-from spinal_cord.toolkit.multimeter import add_multimeter
-from spinal_cord.afferents.receptor import Receptor, DummySensoryReceptor
+from spinal_cord_with_one_neuron.namespace import Muscle, Afferent
+from spinal_cord_with_one_neuron.toolkit.multimeter import add_multimeter
+from spinal_cord_with_one_neuron.afferents.receptor import Receptor, DummySensoryReceptor
 
 
 class AfferentFiber:
@@ -12,7 +12,7 @@ class AfferentFiber:
         self.afferent = afferent
         self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
-            n=60,
+            n=1,
             params={
                 't_ref': 2.,  # Refractory period
                 'V_m': -70.0,  #
@@ -52,7 +52,7 @@ class DummySensoryAfferentFiber:
         self.name = 'dummy_sensory',
         self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
-            n=60,
+            n=1,
             params={
                 't_ref': 2.,  # Refractory period
                 'V_m': -70.0,  #

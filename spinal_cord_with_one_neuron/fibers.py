@@ -1,8 +1,8 @@
-from spinal_cord.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
-from spinal_cord.afferents.receptor import DummySensoryReceptor
-from spinal_cord.ees.ees import EES
-from spinal_cord.namespace import Muscle, Afferent
-from spinal_cord.toolkit.plotter import ResultsPlotter
+from spinal_cord_with_one_neuron.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
+from spinal_cord_with_one_neuron.afferents.receptor import DummySensoryReceptor
+from spinal_cord_with_one_neuron.ees.ees import EES
+from spinal_cord_with_one_neuron.namespace import Muscle, Afferent
+from spinal_cord_with_one_neuron.toolkit.plotter import ResultsPlotter
 
 
 class AfferentFibers:

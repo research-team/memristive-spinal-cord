@@ -7,7 +7,7 @@ def add_multimeter(name: str):
         model='multimeter',
         n=1,
         params={
-            'label': '{}/{}/{}'.format(resource_filename('spinal_cord', 'results'), 'raw_data', name),
+            'label': '{}/{}/{}'.format(resource_filename('spinal_cord_with_one_neuron', 'results'), 'raw_data', name),
             'record_from': ['V_m'],
             'withtime': True,
             'withgid': True,

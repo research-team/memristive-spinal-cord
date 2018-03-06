@@ -2,11 +2,11 @@ import shutil
 from pkg_resources import resource_filename
 import os
 import pylab
-from spinal_cord.toolkit.data_miner import DataMiner
+from spinal_cord_with_one_neuron.toolkit.data_miner import DataMiner
 
 
 def clear_results():
-    results_dir_filename = resource_filename('spinal_cord', 'results')
+    results_dir_filename = resource_filename('spinal_cord_with_one_neuron', 'results')
     if os.path.isdir(results_dir_filename):
         shutil.rmtree(results_dir_filename)
         os.mkdir(results_dir_filename)
@@ -32,7 +32,7 @@ class ResultsPlotter:
     def save(self):
         pylab.subplots_adjust(left=0.05, right=0.99, hspace=0.15*self.rows_number)
         pylab.xlabel('ms')
-        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
+        pylab.savefig(os.path.join(resource_filename('spinal_cord_with_one_neuron', 'results'), 'img', self.filename))
 
     def subplot(self, title: str, first=None, first_label: str=None, second=None, second_label: str=None):
         if self.plot_index > self.rows_number:

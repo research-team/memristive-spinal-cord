@@ -1,8 +1,8 @@
-from spinal_cord.level1 import Level1
-from spinal_cord.polysynaptic_circuit.pc import PolysynapticCircuit
-from spinal_cord.pool.pool import Pool
-from spinal_cord.toolkit.plotter import ResultsPlotter
-from spinal_cord.fibers import AfferentFibers
+from spinal_cord_with_one_neuron.level1 import Level1
+from spinal_cord_with_one_neuron.polysynaptic_circuit.pc import PolysynapticCircuit
+from spinal_cord_with_one_neuron.pool.pool import Pool
+from spinal_cord_with_one_neuron.toolkit.plotter import ResultsPlotter
+from spinal_cord_with_one_neuron.fibers import AfferentFibers
 
 
 class Level2:

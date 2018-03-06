@@ -1,4 +1,4 @@
-from spinal_cord.namespace import Afferent, Muscle, Interval, Speed
+from spinal_cord_with_one_neuron.namespace import Afferent, Muscle, Interval, Speed
 from pkg_resources import resource_filename
 import os
 

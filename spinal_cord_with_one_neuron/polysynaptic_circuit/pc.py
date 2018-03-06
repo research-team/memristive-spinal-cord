@@ -1,7 +1,7 @@
 import nest
-from spinal_cord.polysynaptic_circuit.tier import Tier
-from spinal_cord.pool.pool import Pool
-from spinal_cord.weights import Weights
+from spinal_cord_with_one_neuron.polysynaptic_circuit.tier import Tier
+from spinal_cord_with_one_neuron.pool.pool import Pool
+from spinal_cord_with_one_neuron.weights import Weights
 
 
 class PolysynapticCircuit:
@@ -62,7 +62,7 @@ class PolysynapticCircuit:
                     },
                     conn_spec={
                         'rule': 'fixed_outdegree',
-                        'outdegree': 12,
+                        'outdegree': 1,
                         'multapses': False
                     }
                 )
@@ -76,7 +76,7 @@ class PolysynapticCircuit:
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 20,
+                'outdegree': 1,
                 'multapses': False
             }
         )
