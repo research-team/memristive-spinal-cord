@@ -24,7 +24,7 @@ class ResultsPlotter:
                   'axes.labelsize': 'x-small',
                   'axes.titlesize': 'x-small',
                   'xtick.labelsize': 'x-small',
-                  'ytick.labelsize': 5}
+                  'ytick.labelsize': 8}
         pylab.rcParams.update(params)
         self.rows_number = rows_number
         self.cols_number = 1
