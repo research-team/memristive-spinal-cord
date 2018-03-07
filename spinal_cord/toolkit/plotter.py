@@ -20,6 +20,12 @@ def clear_results():
 
 class ResultsPlotter:
     def __init__(self, rows_number, title, filename):
+        params = {'legend.fontsize': 'x-small',
+                  'axes.labelsize': 'x-small',
+                  'axes.titlesize': 'x-small',
+                  'xtick.labelsize': 'x-small',
+                  'ytick.labelsize': 8}
+        pylab.rcParams.update(params)
         self.rows_number = rows_number
         self.cols_number = 1
         self.plot_index = 1
@@ -48,7 +54,8 @@ class ResultsPlotter:
                 times,
                 values,
                 'r--',
-                label=first_label)
+                label=first_label
+            )
         if second:
             data = DataMiner.get_average_voltage(second)
             times = sorted(list(data.keys()))
@@ -57,10 +64,12 @@ class ResultsPlotter:
                 times,
                 values,
                 'b:',
-                label=second_label)
+                label=second_label,
+                linewidth=1.
+            )
 
         pylab.ylabel(title, fontsize=11)
-        pylab.legend()
+        pylab.legend(fontsize=11)
 
     def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
         if slices > self.rows_number:
@@ -84,19 +93,22 @@ class ResultsPlotter:
                 times,
                 values,
                 'b:',
-                label=first_label)
+                label=first_label
+            )
             values = [data2[time] for time in times]
             pylab.plot(
                 times,
                 values,
                 'r--',
-                label=second_label)
+                label=second_label
+            )
             values = [data3[time] for time in times]
             pylab.plot(
                 times,
                 values,
                 'g',
-                label=third_label)
+                label=third_label
+            )
 
         pylab.ylabel(title, fontsize=11)
-        pylab.legend()
+        pylab.legend(fontsize=11)
