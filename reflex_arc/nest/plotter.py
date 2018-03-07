@@ -1,8 +1,10 @@
 import pylab
 import os
-import logging
 
-names = ['Ia', 'Moto', 'In', 'II']
+# names = ['Ia_MnF', 'Ia_MnE', 'II_MnF', 'II_MnE', 'Mn_F', 'Mn_E', 'Ex_MnF', 'Ex_MnE', 'Iai_MnF', 'Iai_MnE']
+names = dict()
+names['flex'] = ['Iai_MnE', 'Mn_F', 'Ia_MnF', 'Ex_MnF', 'II_MnF']
+names['extens'] = ['Iai_MnF', 'Mn_E', 'Ia_MnE', 'Ex_MnE', 'II_MnE']
 
 
 def plot_one(name):
@@ -20,12 +22,14 @@ def plot_one(name):
     pylab.ylabel(name)
 
 
-def plot(gen_rate, glu_weight, gaba_weight, static_weight):
-    for i in range(4):
-        pylab.subplot(4, 1, i + 1)
-        plot_one(names[i])
+def plot(gen_rate, glu_weight, gaba_weight, static_weight, group: str):
+    for i in range(5):
+        pylab.subplot(5, 1, i + 1)
+        plot_one(names[group][i])
     pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('result{}Hz_glu{}_gaba{}_stat{}.png'.format(gen_rate, glu_weight, gaba_weight, static_weight), dpi=120)
+    pylab.savefig('RAT_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
+                  dpi=120)
+    pylab.close('all')
 
 
 def simple_plot(name):
