@@ -44,7 +44,7 @@ class EES:
         return [0.5 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
-        spike_times = EES.generate_spiketimes(frequency_hz=25, how_long_s=20)
+        spike_times = EES.generate_spiketimes(frequency_hz=40, how_long_s=20)
         self.amplitude = amplitude
         self.ees_id = nest.Create(
             model='spike_generator',

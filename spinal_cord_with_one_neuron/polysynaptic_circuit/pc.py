@@ -18,7 +18,7 @@ class PolysynapticCircuit:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 1.,
-                    'weight': Weights.e2e2.value
+                    'weight': Weights.e0e0.value
                 },
                 conn_spec={
                     'rule': 'one_to_one'

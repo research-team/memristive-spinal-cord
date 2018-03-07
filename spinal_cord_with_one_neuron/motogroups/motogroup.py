@@ -30,7 +30,7 @@ class Motogroup:
         self.ii_name = 'ii_{}'.format(muscle.value)
         self.moto_ids = nest.Create(
             model='hh_moto_5ht',
-            n=169,
+            n=1,
             params={
                 'tau_syn_ex': 0.5,
                 'tau_syn_in': 1.5,
@@ -58,7 +58,7 @@ class Motogroup:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 116
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -86,7 +86,7 @@ class Motogroup:
                 },
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': 100
+                    'indegree': 1
                 }
             )
         else:
@@ -100,7 +100,7 @@ class Motogroup:
                 },
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': 100
+                    'indegree': 1
                 }
             )
         nest.Connect(
@@ -136,7 +136,7 @@ class Motogroup:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 62
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -149,7 +149,7 @@ class Motogroup:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 62
+                'indegree': 1
             }
         )
         nest.Connect(
@@ -162,6 +162,6 @@ class Motogroup:
             },
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': 62
+                'indegree': 1
             }
         )

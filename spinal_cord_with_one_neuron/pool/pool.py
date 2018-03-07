@@ -131,12 +131,12 @@ class Pool:
             post=self.extens_suspended_nrn_id
         )
 
-    def connect_sensory(self, sensory_afferent_fiber: DummySensoryAfferentFiber):
+    def connect_sensory(self, sensory_afferent_fiber: DummySensoryAfferentFiber): # check connect Weight
         pre = sensory_afferent_fiber.neuron_ids
         syn_spec = {
            'model': 'static_synapse',
            'delay': .1,
-           'weight': 4.
+           'weight': 100.
         }
         conn_spec = {
             'rule': 'all_to_all'

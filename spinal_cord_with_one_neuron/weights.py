@@ -17,23 +17,23 @@ class Weights(Enum):
 
     # Coonnections between tiers
 
-    e0e0 = 40.
-    e3e0 = 45.
+    e0e0 = 140.
+    e3e0 = 145.
     e2e2 = 100.
 
     # Connections to pool
 
-    e2p = 10
+    e2p = 100
 
     # Motogroup interconnections
 
-    aff_ia_moto = 15.
-    aff_ia_ia = 5.
-    aff_ii_ia = 5.
-    aff_ii_ii = 18.
-    ii_moto = 27.
-    ia_ia = -0.7
-    ia_moto = -6.9
+    aff_ia_moto = 15. #blue moti
+    aff_ia_ia = 5.  #blue top
+    aff_ii_ia = 5.  # red top
+    aff_ii_ii = 18. #red bot
+    ii_moto = 27. # bot to moto
+    ia_ia = -0.7  # ingib
+    ia_moto = -6.9 # cross
 
     # Pool to Motogroup
     p_ex_moto = 55.
