@@ -8,7 +8,6 @@ Figure 1.
 Extensor and flexor motoneurons "Mn-E" and "Mn-F,"
  excitatory and inhibitory interneurons "Ex" and "Iai",
   afferent fibers "II" and "Ia". 
-
 Afferents "II" and "Ia" connect with generators (40 Hz).
 Afferents "II" excite glutamine excitatory interneurons,
  that have excite motoneurons.
