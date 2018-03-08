@@ -27,7 +27,7 @@ def plot(gen_rate, glu_weight, gaba_weight, static_weight, group: str):
         pylab.subplot(5, 1, i + 1)
         plot_one(names[group][i])
     pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('RAT_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
+    pylab.savefig('RAB_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
                   dpi=120)
     pylab.close('all')
 

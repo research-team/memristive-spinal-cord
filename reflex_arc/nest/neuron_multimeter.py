@@ -15,26 +15,26 @@ nrn_parameters = {
 
 # Neuron
 # Mn_F
-Ia_MnF = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Ia_MnF = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
 
-II_MnF = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+II_MnF = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
 
-Mn_F = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Mn_F = nest.Create("hh_cond_exp_traub", 169, nrn_parameters)
 
-Ex_MnF = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Ex_MnF = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 
-Iai_MnF = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Iai_MnF = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 
 # Mn_E
-Ia_MnE = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Ia_MnE = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
 
-II_MnE = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+II_MnE = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
 
-Mn_E = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Mn_E = nest.Create("hh_cond_exp_traub", 169, nrn_parameters)
 
-Ex_MnE = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Ex_MnE = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 
-Iai_MnE = nest.Create("hh_cond_exp_traub", 1, nrn_parameters)
+Iai_MnE = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 
 
 # Multimeter

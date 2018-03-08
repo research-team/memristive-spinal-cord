@@ -15,10 +15,12 @@ from reflex_arc.nest.neuron_multimeter import *
 
 T = 100.
 
-conn_spec = {'rule': 'one_to_one'}
+#conn_spec = {'rule': 'one_to_one'}
 
-glu_weight = 200.
-gaba_weight = -200.
+#conn_spec2 = {'rule': 'fixed_indegree', 'indegree': 116, 'multapses': False}
+
+glu_weight = 20.
+gaba_weight = -20.
 static_weight = 200.
 gen_rate = 40.
 
@@ -40,35 +42,48 @@ static_syn = {'weight': static_weight,
 
 #Conectomes
 # Mn_E
-nest.Connect(pre=II_MnE, post=Ex_MnE, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=II_MnE, post=Ex_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
 
-nest.Connect(pre=Ex_MnE, post=Mn_E, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=Ex_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
 
-nest.Connect(pre=II_MnE, post=Iai_MnE, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=II_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
-nest.Connect(pre=Iai_MnE, post=Iai_MnF, conn_spec=conn_spec, syn_spec=gaba)
+nest.Connect(pre=Iai_MnE, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 
-nest.Connect(pre=Iai_MnE, post=Mn_F, conn_spec=conn_spec, syn_spec=gaba)
+nest.Connect(pre=Iai_MnE, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 
-nest.Connect(pre=Ia_MnE, post=Mn_E, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=Ia_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
-nest.Connect(pre=Ia_MnE, post=Iai_MnE, conn_spec=conn_spec, syn_spec=glu)
-
+nest.Connect(pre=Ia_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
 # Mn_F
-nest.Connect(pre=II_MnF, post=Ex_MnF, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=II_MnF, post=Ex_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
-nest.Connect(pre=Ex_MnF, post=Mn_F, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=Ex_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
 
-nest.Connect(pre=II_MnF, post=Iai_MnF, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=II_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
-nest.Connect(pre=Iai_MnF, post=Iai_MnE, conn_spec=conn_spec, syn_spec=gaba)
+nest.Connect(pre=Iai_MnF, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 
-nest.Connect(pre=Iai_MnF, post=Mn_E, conn_spec=conn_spec, syn_spec=gaba)
+nest.Connect(pre=Iai_MnF, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 
-nest.Connect(pre=Ia_MnF, post=Mn_F, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=Ia_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
-nest.Connect(pre=Ia_MnF, post=Iai_MnF, conn_spec=conn_spec, syn_spec=glu)
+nest.Connect(pre=Ia_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 
 
 time_between_spikes = 1000 / gen_rate  # time between spikes
