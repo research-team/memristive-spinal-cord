@@ -17,8 +17,8 @@ class Weights(Enum):
 
     # Coonnections between tiers
 
-    e0e0 = 0.
-    e3e0 = 0.
+    e0e0 = 45.
+    e3e0 = 40.
     e2e2 = 100.
 
     # Connections to pool
