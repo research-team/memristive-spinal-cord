@@ -9,7 +9,7 @@ nest.ResetKernel()
 
 nest.SetKernelStatus({"print_time": True,
                      "local_num_threads": 4,
-                      "resolution": 0.001})
+                      "resolution": 0.1})
 
 from reflex_arc.nest.neuron_multimeter import *
 
@@ -19,17 +19,34 @@ T = 100.
 
 #conn_spec2 = {'rule': 'fixed_indegree', 'indegree': 116, 'multapses': False}
 
-glu_weight = 20.
-gaba_weight = -20.
-static_weight = 200.
+glu_weight_ia = 3.3
+glu_weight_ex = 0.
+gaba_weight_iai = -0.
+glu_weight_ii = 3.4
+
+glu_ia = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': glu_weight_ia}
+
+glu_ex = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': glu_weight_ex}
+
+gaba_iai = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': gaba_weight_iai}
+
+glu_ii = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': glu_weight_ii}
+
+glu_weight = 5.
+gaba_weight = -15.
+static_weight = 60.
 gen_rate = 40.
 
 glu = {'model': 'static_synapse',
         'delay': 1.,
-        'weight': glu_weight}
-
-glu_1 = {'model': 'static_synapse',
-        'delay': 2.,
         'weight': glu_weight}
 
 gaba = {'model': 'static_synapse',
@@ -43,10 +60,10 @@ static_syn = {'weight': static_weight,
 #Conectomes
 # Mn_E
 nest.Connect(pre=II_MnE, post=Ex_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
+             syn_spec=glu_ii)
 
 nest.Connect(pre=Ex_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
+             syn_spec=glu_ex)
 
 nest.Connect(pre=II_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
@@ -55,20 +72,20 @@ nest.Connect(pre=Iai_MnE, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'in
              syn_spec=gaba)
 
 nest.Connect(pre=Iai_MnE, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
+             syn_spec=gaba_iai)
 
 nest.Connect(pre=Ia_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
+             syn_spec=glu_ia)
 
 nest.Connect(pre=Ia_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
 
 # Mn_F
 nest.Connect(pre=II_MnF, post=Ex_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
+             syn_spec=glu_ii)
 
 nest.Connect(pre=Ex_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
+             syn_spec=glu_ex)
 
 nest.Connect(pre=II_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
@@ -77,17 +94,17 @@ nest.Connect(pre=Iai_MnF, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'in
              syn_spec=gaba)
 
 nest.Connect(pre=Iai_MnF, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
+             syn_spec=gaba_iai)
 
 nest.Connect(pre=Ia_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
+             syn_spec=glu_ia)
 
 nest.Connect(pre=Ia_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
 
 
 time_between_spikes = 1000 / gen_rate  # time between spikes
-spike_times = [5. + i * time_between_spikes for i in range(int(T / time_between_spikes))]
+spike_times = [4.5 + i * time_between_spikes for i in range(int(T / time_between_spikes))]
 generators = nest.Create("spike_generator", 1, {'spike_times': spike_times,
                                                 'spike_weights': [10.0 for i in spike_times]})
 generator_1 = nest.Create("spike_generator", 1, {'spike_times': spike_times,
