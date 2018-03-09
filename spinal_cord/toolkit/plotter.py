@@ -23,8 +23,7 @@ class ResultsPlotter:
         params = {'legend.fontsize': 'x-small',
                   'axes.labelsize': 'x-small',
                   'axes.titlesize': 'x-small',
-                  'xtick.labelsize': 'x-small',
-                  'ytick.labelsize': 8}
+                  'xtick.labelsize': 'x-small'}
         pylab.rcParams.update(params)
         self.rows_number = rows_number
         self.cols_number = 1
@@ -72,6 +71,14 @@ class ResultsPlotter:
         pylab.legend(fontsize=11)
 
     def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
+        if slices == 7:
+            pylab.rcParams.update({'ytick.labelsize': 3})
+            blue_line = 'b'
+            red_line = 'r'
+        else:
+            pylab.rcParams.update({'ytick.labelsize': 8})
+            blue_line = 'b:'
+            red_line = 'r--'
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
@@ -92,14 +99,14 @@ class ResultsPlotter:
             pylab.plot(
                 times,
                 values,
-                'b:',
+                blue_line,
                 label=first_label
             )
             values = [data2[time] for time in times]
             pylab.plot(
                 times,
                 values,
-                'r--',
+                red_line,
                 label=second_label
             )
             values = [data3[time] for time in times]

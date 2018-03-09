@@ -238,7 +238,7 @@ class Pool:
             second_label='flexor',
             second=self.flex_group_name,
             third_label='stimuli',
-            third=afferent[0],
+            third=afferent,
             title='Pool'
         )
         plotter.save()

@@ -47,3 +47,18 @@ class Level1:
             second=self.flex_motogroup.ii_name
         )
         plotter.save()
+
+    def plot_slices(self, afferent: str, time=40.):
+        n_slices = 7
+        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Pool', 'moto_slices')
+        plotter.subplot_with_slices(
+            slices=n_slices,
+            first_label='extensor',
+            first=self.extens_motogroup.motoname,
+            second_label='flexor',
+            second=self.flex_motogroup.motoname,
+            third_label='stimuli',
+            third=afferent[0],
+            title='Pool'
+        )
+        plotter.save()

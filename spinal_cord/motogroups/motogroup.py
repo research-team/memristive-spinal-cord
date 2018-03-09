@@ -2,6 +2,7 @@ import nest
 from spinal_cord.afferents.afferent_fiber import AfferentFiber
 from spinal_cord.namespace import Muscle
 from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.toolkit.plotter import ResultsPlotter
 from spinal_cord.weights import Weights
 
 
