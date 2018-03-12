@@ -2,35 +2,27 @@
 
 Model of the reflex arc
 
-![Figure](memristive_reflex_arc.png)
+![Figure](cheme_rf_arc.png)
 
 Figure 1. 
-Motoneuron "Moto", inhibitory interneuron "In", afferent fibers "Ia" and "II". 
-Afferents "Ia" and "II" connect to two generators.
-Afferent "Ia" excites glutamine motoneuron.
-And afferent "II" excites glutamine interneuron,
-that has inhibits GABA motoneuron. 
+Extensor and flexor motoneurons "Mn-E" and "Mn-F,"
+ excitatory and inhibitory interneurons "Ex" and "Iai",
+  afferent fibers "II" and "Ia". 
+Afferents "II" and "Ia" connect with generators (40 Hz).
+Afferents "II" excite glutamine excitatory interneurons,
+ that have excite motoneurons.
+Also "II" excite inhibitory interneurons,
+ which in turn inhibit GABA another inhibitory interneuron and motoneurons.
+Afferents "Ia" excite  motoneurons and inhibitory interneurons.
 
 
-![Figure](result40.0Hz_glu300.0_gaba-200.0_stat200.0.png) 
+![Figure](diagram_rf_arc.png)
 
 Figure 2. 
-Generator rate 40 Hz. 
-Afferent fiber "II" excites interneuron "In" cause a spike.
-That has trigger hyperpolarization of membrane potential of motoneuron.
-Indicated in the graph "Moto".
-Spike from afferent "Ia" at 20 ms excites motoneuron and causes depolarization,
- which doesn't reach the threshold and fades.
-Then at 33 ms interneuron inhibits "Moto" and triggers hyperpolarization.
-After this afferent "Ia" excites motoneuron cause a spike.
-Next spike from "In" triggers hyperpolarization of membrane potential.
-And at 80 ms exciting from "Ia" causes a spike in motoneuron.
-Then inhibition by interneuron triggers hyperpolarization.
-Spike from afferent "Ia" in 92 ms excites motoneuron and causes depolarization.
-Time of simulation finished.
-
-
-![Figure](result300.0Hz_glu185.0_gaba-70.0_stat100.0.png)
-
-Figure 3. 
-Generator rate 300 Hz.
+Afferent fiber "Ia" excites motoneuron and triggers depolarization,
+ but it doesn't reach the threshold, 
+ because at the same time inhibitory interneuron "Iai" inhibits this motoneuron.
+Indicated in the graph "Mn_F" and "Mn_E".
+Afferent "II" excites excitatory interneuron "Ex",
+ which in turn excites motoneuron and triggers a spike.
+The algorithm is repeated 3 more times and then time of simulation finished.
