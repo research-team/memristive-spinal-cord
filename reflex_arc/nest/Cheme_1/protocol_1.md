@@ -2,7 +2,7 @@
 
 Model of the reflex arc
 
-![Figure](cheme_rf_arc.png)
+![Figure](Diargams_1/cheme_rf_arc.png)
 
 Figure 1. 
 Extensor and flexor motoneurons "Mn-E" and "Mn-F,"
@@ -16,7 +16,7 @@ Also "II" excite inhibitory interneurons,
 Afferents "Ia" excite  motoneurons and inhibitory interneurons.
 
 
-![Figure](diagram_rf_arc.png)
+![Figure](Diargams_1/diagram_rf_arc.png)
 
 Figure 2. 
 Afferent fiber "Ia" excites motoneuron and triggers depolarization,

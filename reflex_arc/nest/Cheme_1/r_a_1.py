@@ -2,7 +2,7 @@ import nest
 import os
 
 
-from reflex_arc.nest.plotter import plot
+from reflex_arc.nest.Cheme_1.pl_1 import plot
 import shutil
 
 nest.ResetKernel()
@@ -11,18 +11,15 @@ nest.SetKernelStatus({"print_time": True,
                      "local_num_threads": 4,
                       "resolution": 0.1})
 
-from reflex_arc.nest.neuron_multimeter import *
+from reflex_arc.nest.Cheme_1.n_m_1 import *
 
 T = 100.
-
-#conn_spec = {'rule': 'one_to_one'}
-
-#conn_spec2 = {'rule': 'fixed_indegree', 'indegree': 116, 'multapses': False}
 
 glu_weight_ia = 3.3
 glu_weight_ex = 0.
 gaba_weight_iai = -0.
-glu_weight_ii = 3.4
+glu_weight_ii_f = 3.4
+glu_weight_ii_e = 1.04
 
 glu_ia = {'model': 'static_synapse',
         'delay': 1.,
@@ -36,9 +33,13 @@ gaba_iai = {'model': 'static_synapse',
         'delay': 1.,
         'weight': gaba_weight_iai}
 
-glu_ii = {'model': 'static_synapse',
+glu_ii_f = {'model': 'static_synapse',
         'delay': 1.,
-        'weight': glu_weight_ii}
+        'weight': glu_weight_ii_f}
+
+glu_ii_e = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': glu_weight_ii_e}
 
 glu_weight = 5.
 gaba_weight = -15.
@@ -60,7 +61,7 @@ static_syn = {'weight': static_weight,
 #Conectomes
 # Mn_E
 nest.Connect(pre=II_MnE, post=Ex_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu_ii)
+             syn_spec=glu_ii_e)
 
 nest.Connect(pre=Ex_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu_ex)
@@ -82,7 +83,7 @@ nest.Connect(pre=Ia_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'ind
 
 # Mn_F
 nest.Connect(pre=II_MnF, post=Ex_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu_ii)
+             syn_spec=glu_ii_f)
 
 nest.Connect(pre=Ex_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu_ex)
@@ -104,7 +105,7 @@ nest.Connect(pre=Ia_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'ind
 
 
 time_between_spikes = 1000 / gen_rate  # time between spikes
-spike_times = [4.5 + i * time_between_spikes for i in range(int(T / time_between_spikes))]
+spike_times = [round(4.5 + i * time_between_spikes, 1) for i in range(int(T / time_between_spikes))]
 generators = nest.Create("spike_generator", 1, {'spike_times': spike_times,
                                                 'spike_weights': [10.0 for i in spike_times]})
 generator_1 = nest.Create("spike_generator", 1, {'spike_times': spike_times,

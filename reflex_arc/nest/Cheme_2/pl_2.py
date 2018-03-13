@@ -1,10 +1,8 @@
 import pylab
 import os
 
-# names = ['Ia_MnF', 'Ia_MnE', 'II_MnF', 'II_MnE', 'Mn_F', 'Mn_E', 'Ex_MnF', 'Ex_MnE', 'Iai_MnF', 'Iai_MnE']
 names = dict()
-names['flex'] = ['Iai_MnE', 'Mn_F', 'Ia_MnF', 'Ex_MnF', 'II_MnF']
-names['extens'] = ['Iai_MnF', 'Mn_E', 'Ia_MnE', 'Ex_MnE', 'II_MnE']
+names['moto'] = ['Mn_R', 'Mn_F', 'Mn_E', 'Mn_L']
 
 
 def plot_one(name):
@@ -27,7 +25,7 @@ def plot(gen_rate, glu_weight, gaba_weight, static_weight, group: str):
         pylab.subplot(5, 1, i + 1)
         plot_one(names[group][i])
     pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('RAB_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
+    pylab.savefig('R_A_2_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
                   dpi=120)
     pylab.close('all')
 
