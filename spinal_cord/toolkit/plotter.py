@@ -2,6 +2,8 @@ import shutil
 from pkg_resources import resource_filename
 import os
 import pylab
+
+from spinal_cord.params import Params
 from spinal_cord.toolkit.data_miner import DataMiner
 
 
@@ -25,6 +27,14 @@ class ResultsPlotter:
                   'axes.titlesize': 'x-small',
                   'xtick.labelsize': 'x-small'}
         pylab.rcParams.update(params)
+        if rows_number == 7:
+            pylab.rcParams.update({'ytick.labelsize': 4})
+            self.blue_line_style = 'b'
+            self.red_line_style = 'r'
+        else:
+            pylab.rcParams.update({'ytick.labelsize': 8})
+            self.blue_line_style = 'b:'
+            self.red_line_style = 'r--'
         self.rows_number = rows_number
         self.cols_number = 1
         self.plot_index = 1
@@ -37,7 +47,7 @@ class ResultsPlotter:
     def save(self):
         pylab.subplots_adjust(left=0.05, right=0.99, hspace=0.15*self.rows_number)
         pylab.xlabel('ms')
-        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', self.filename))
+        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', '{}_{}Hz'.format(self.filename, Params.rate.value)))
 
     def subplot(self, title: str, first=None, first_label: str=None, second=None, second_label: str=None):
         if self.plot_index > self.rows_number:
@@ -52,7 +62,7 @@ class ResultsPlotter:
             pylab.plot(
                 times,
                 values,
-                'r--',
+                self.red_line_style,
                 label=first_label
             )
         if second:
@@ -62,7 +72,7 @@ class ResultsPlotter:
             pylab.plot(
                 times,
                 values,
-                'b:',
+                self.blue_line_style,
                 label=second_label,
                 linewidth=1.
             )
@@ -71,18 +81,10 @@ class ResultsPlotter:
         pylab.legend(fontsize=11)
 
     def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
-        if slices == 7:
-            pylab.rcParams.update({'ytick.labelsize': 3})
-            blue_line = 'b'
-            red_line = 'r'
-        else:
-            pylab.rcParams.update({'ytick.labelsize': 8})
-            blue_line = 'b:'
-            red_line = 'r--'
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
-        interval = 40.
+        interval = 1000 / Params.rate.value
         data1 = DataMiner.get_average_voltage(first)
         number_of_dots = int(1 / step * slices * interval)
         times1 = sorted(data1.keys())[:number_of_dots]
@@ -90,6 +92,7 @@ class ResultsPlotter:
         data3 = DataMiner.get_average_voltage(third)
         fraction = len(times1) / slices
         for slice in range(slices):
+            # pylab.ylim(ymax=-60)
             pylab.subplot(self.rows_number, self.cols_number, self.plot_index)
             self.plot_index += 1
             start = int(slice * fraction)
@@ -99,14 +102,14 @@ class ResultsPlotter:
             pylab.plot(
                 times,
                 values,
-                blue_line,
+                self.blue_line_style,
                 label=first_label
             )
             values = [data2[time] for time in times]
             pylab.plot(
                 times,
                 values,
-                red_line,
+                self.red_line_style,
                 label=second_label
             )
             values = [data3[time] for time in times]
@@ -116,6 +119,5 @@ class ResultsPlotter:
                 'g',
                 label=third_label
             )
-
-        pylab.ylabel(title, fontsize=11)
-        pylab.legend(fontsize=11)
+            pylab.ylabel(title, fontsize=8)
+            pylab.legend(fontsize=6)
