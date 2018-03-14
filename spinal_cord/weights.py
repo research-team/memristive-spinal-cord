@@ -32,8 +32,8 @@ class Weights(Enum):
     aff_ii_ia = 5.
     aff_ii_ii = 28.
     ii_moto = 24.
-    ia_ia = -0.7
-    ia_moto = -0.9
+    ia_ia = -3.
+    ia_moto = -2.
 
     # Pool to Motogroup
     p_ex_moto = 80.
@@ -45,7 +45,7 @@ class Weights(Enum):
 
     p_extens_sus_extens_ex = 100.
     p_flex_sus_flex_ex = 100.
-    p_extens_sus_flex_in = -30.
-    p_flex_sus_extens_in = -30.
-    p_flex_extens_in = -30.
-    p_extens_flex_in = -30.
+    p_extens_sus_flex_in = -40.
+    p_flex_sus_extens_in = -40.
+    p_flex_extens_in = -40.
+    p_extens_flex_in = -40.
