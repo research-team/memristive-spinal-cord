@@ -30,13 +30,14 @@ class Receptor:
 
 class DummySensoryReceptor:
 
-    def __init__(self, time: float=20000, period: float=1000., stand_coef: float=0.7, rate: float=60):
+    def __init__(self, muscle: Muscle, time: float=20000, period: float=1000., stand_coef: float=0.7, rate: float=60):
+        self.muscle = muscle
         spike_times = []
         standing_time = period * stand_coef
         walking_time = period * (1 - stand_coef)
-        periods = [standing_time, walking_time]
+        periods = [standing_time, walking_time] if muscle == Muscle.EXTENS else [walking_time, standing_time]
         timepoint = 0.1
-        i = 0
+        i = 1 if muscle == Muscle.FLEX else 0
         while timepoint < time:
             if i:
                 timepoint += periods[i]
