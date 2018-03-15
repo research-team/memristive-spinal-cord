@@ -1,4 +1,5 @@
 from spinal_cord.afferents.afferent_fiber import AfferentFiber, DummySensoryAfferentFiber
+from spinal_cord.params import Params
 
 __author__ = 'Alexey Sanin'
 
@@ -39,12 +40,12 @@ class EES:
     def generate_spiketimes(frequency_hz, how_long_s):
         how_many = int(frequency_hz * how_long_s)
         # start = 1000 // frequency_hz
-        time_between_spikes = 1000 / frequency_hz
+        time_between_spikes = round(1000 / frequency_hz)
         # return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
         return [0.5 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
-        spike_times = EES.generate_spiketimes(frequency_hz=25, how_long_s=20)
+        spike_times = EES.generate_spiketimes(frequency_hz=Params.rate.value, how_long_s=20)
         self.amplitude = amplitude
         self.ees_id = nest.Create(
             model='spike_generator',

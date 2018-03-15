@@ -49,7 +49,7 @@ class AfferentFiber:
 
 class DummySensoryAfferentFiber:
     def __init__(self, dummy_sensory_receptor: DummySensoryReceptor):
-        self.name = 'dummy_sensory',
+        self.name = 'dummy_sensory'
         self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=60,

@@ -17,8 +17,8 @@ class Weights(Enum):
 
     # Coonnections between tiers
 
-    e0e0 = 0.
-    e3e0 = 0.
+    e0e0 = 45.
+    e3e0 = 40.
     e2e2 = 100.
 
     # Connections to pool
@@ -27,16 +27,25 @@ class Weights(Enum):
 
     # Motogroup interconnections
 
-    aff_ia_moto = 15.
+    aff_ia_moto = 14.
     aff_ia_ia = 5.
     aff_ii_ia = 5.
     aff_ii_ii = 28.
-    ii_moto = 27.
+    ii_moto = 24.
     ia_ia = -0.7
-    ia_moto = -6.9
+    ia_moto = -0.9
 
     # Pool to Motogroup
-    p_ex_moto = 55.
+    p_ex_moto = 80.
     p_ex_ia = 5.
-    p_fl_moto = 55.
+    p_fl_moto = 80.
     p_fl_ia = 5.
+
+    # Pool interconnections
+
+    p_extens_sus_extens_ex = 100.
+    p_flex_sus_flex_ex = 100.
+    p_extens_sus_flex_in = -30.
+    p_flex_sus_extens_in = -30.
+    p_flex_extens_in = -30.
+    p_extens_flex_in = -30.
