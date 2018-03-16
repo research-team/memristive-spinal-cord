@@ -12,7 +12,7 @@ from spinal_cord.weights import init
 if len(sys.argv) > 1:
     time = float(sys.argv[1])
     clear_results(sys.argv[2])
-    params = sys.argv[2].split()
+    params = sys.argv[2].split('_')
     index = int(params[0])
     init(weights=params[1:])
 else:

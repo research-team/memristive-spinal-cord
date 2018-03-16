@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/cmen/rt-msc/')
 from pkg_resources import resource_filename
 filepath = resource_filename('spinal_cord', 'autoparams.csv')
 

@@ -78,7 +78,6 @@ class EES:
                     'multapses': False
                 }
             )
-        print(nest.GetStatus(nest.GetConnections(self.ees_id)))
 
     def connect_dummy(self, flex, extens):
         nest.Connect(

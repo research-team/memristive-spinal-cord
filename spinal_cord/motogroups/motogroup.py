@@ -55,7 +55,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': Weights.ii_moto.value
+                'weight': Weights.ii_moto
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -97,7 +97,7 @@ class Motogroup:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': self.distr_normal2,
-                    'weight': Weights.ia_ia.value
+                    'weight': Weights.ia_ia
                 },
                 conn_spec={
                     'rule': 'fixed_indegree',
@@ -110,7 +110,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.ia_moto.value
+                'weight': Weights.ia_moto
             }
         )
 
@@ -121,7 +121,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': Weights.aff_ia_moto.value
+                'weight': Weights.aff_ia_moto
             },
             conn_spec={
                 'rule': 'all_to_all',
@@ -133,7 +133,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': Weights.aff_ia_ia.value
+                'weight': Weights.aff_ia_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -146,7 +146,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal2,
-                'weight': Weights.aff_ii_ia.value
+                'weight': Weights.aff_ii_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -159,7 +159,7 @@ class Motogroup:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': self.distr_normal3,
-                'weight': Weights.aff_ii_ii.value
+                'weight': Weights.aff_ii_ii
             },
             conn_spec={
                 'rule': 'fixed_indegree',

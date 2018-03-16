@@ -52,7 +52,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_sus_extens_ex.value
+                'weight': Weights.p_extens_sus_extens_ex
             },
             conn_spec={
                 'rule': 'all_to_all'
@@ -64,7 +64,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_sus_flex_ex.value
+                'weight': Weights.p_flex_sus_flex_ex
             },
             conn_spec={
                 'rule': 'all_to_all'
@@ -76,7 +76,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_extens_in.value
+                'weight': Weights.p_flex_extens_in
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -89,7 +89,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_flex_in.value
+                'weight': Weights.p_extens_flex_in
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -102,7 +102,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_sus_flex_in.value
+                'weight': Weights.p_extens_sus_flex_in
             }
         )
         nest.Connect(
@@ -111,7 +111,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_sus_extens_in.value
+                'weight': Weights.p_flex_sus_extens_in
             }
         )
         nest.Connect(
@@ -160,7 +160,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_ex_ia.value
+                'weight': Weights.p_ex_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -173,7 +173,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_ex_moto.value
+                'weight': Weights.p_ex_moto
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -187,7 +187,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_fl_ia.value,
+                'weight': Weights.p_fl_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -200,7 +200,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_fl_moto.value
+                'weight': Weights.p_fl_moto
             },
             conn_spec={
                 'rule': 'fixed_indegree',

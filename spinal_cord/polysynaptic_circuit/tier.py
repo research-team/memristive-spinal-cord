@@ -44,7 +44,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e0e1.value
+                'weight': Weights.e0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -56,7 +56,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e1e2.value
+                'weight': Weights.e1e2
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -68,7 +68,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e2e1.value
+                'weight': Weights.e2e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -80,7 +80,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e3e4.value
+                'weight': Weights.e3e4
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -92,7 +92,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e4e3.value
+                'weight': Weights.e4e3
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -104,7 +104,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e0e3.value
+                'weight': Weights.e0e3
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -116,7 +116,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e3i0.value
+                'weight': Weights.e3i0
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -128,7 +128,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.i0e1.value
+                'weight': Weights.i0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -140,7 +140,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.i1e1.value
+                'weight': Weights.i1e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -152,7 +152,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e2i1.value
+                'weight': Weights.e2i1
             },
             conn_spec={
                 'rule': 'one_to_one'

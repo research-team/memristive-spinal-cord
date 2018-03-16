@@ -3,15 +3,15 @@ from enum import Enum
 
 def init(weights: list):
     weights = [float(weight) for weight in weights]
-    Weights.aff_ia_moto.value = weights[0]
-    Weights.aff_ia_ia.value = weights[1]
-    Weights.aff_ii_ii.value = weights[2]
-    Weights.ii_moto.value = weights[3]
-    Weights.ia_ia.value = weights[4]
-    Weights.ia_moto.value = weights[5]
+    Weights.aff_ia_moto = weights[0]
+    Weights.aff_ia_ia = weights[1]
+    Weights.aff_ii_ii = weights[2]
+    Weights.ii_moto = weights[3]
+    Weights.ia_ia = weights[4]
+    Weights.ia_moto = weights[5]
 
 
-class Weights(Enum):
+class Weights:
 
     # Tier Interconnections
     e0e1 = 100.
