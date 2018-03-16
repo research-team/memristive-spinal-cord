@@ -1,12 +1,20 @@
 import nest
+import sys
 from spinal_cord.fibers import AfferentFibers
 from spinal_cord.level1 import Level1
 from spinal_cord.level2 import Level2
 from spinal_cord.params import Params
 from spinal_cord.toolkit.plotter import clear_results
+from spinal_cord.weights import init
+
+if len(sys.argv) > 1:
+    time = float(sys.argv[1])
+    params = sys.argv[2].split()
+    index = int(params[0])
+    init(weights=params[1:])
 
 
-clear_results()
+# clear_results()
 nest.SetKernelStatus({
     'total_num_virtual_procs': 7,
     'print_time': True,
@@ -18,7 +26,7 @@ level1 = Level1()
 level1.connect_afferents(afferents)
 level2 = Level2(level1, afferents)
 
-nest.Simulate(1200)
+nest.Simulate(50.)
 
 # level1.plot_motogroups()
 level2.plot_pool()
