@@ -2,10 +2,11 @@ import shutil
 from pkg_resources import resource_filename
 import os
 import pylab
+import matplotlib
+matplotlib.use('Agg')
 
 from spinal_cord.params import Params
 from spinal_cord.toolkit.data_miner import DataMiner
-
 
 def clear_results():
     results_dir_filename = resource_filename('spinal_cord', 'results')
@@ -19,9 +20,9 @@ def clear_results():
         os.mkdir(os.path.join(results_dir_filename, 'img'))
         os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
 
-
 class ResultsPlotter:
     def __init__(self, rows_number, title, filename):
+        pylab.ioff()
         params = {'legend.fontsize': 'x-small',
                   'axes.labelsize': 'x-small',
                   'axes.titlesize': 'x-small',

@@ -69,6 +69,8 @@ sudo apt-get install libreadline6 libreadline6-dev --assume-yes
 sudo apt-get install pkg-config cmake-data --assume-yes
 # installing tkinter module
 sudo apt-get install python3-tk --assume-yes
+sudo apt-get install unzip --assume-yes
+
 sudo apt-get autoremove --assume-yes
 
 NEST_NAME="nest-${NEST_VERSION}"
@@ -83,7 +85,7 @@ unzip -o ${TMP_FOLDER}/"$NEST_NAME".zip -d ${NEST_PATH}/src
 cd ${NEST_PATH}/build/${NEST_NAME}
 mv -f ${NEST_PATH}/src/`ls ${NEST_PATH}/src` ${NEST_PATH}/src/${NEST_NAME}
 cmake -DCMAKE_INSTALL_PREFIX:PATH=${NEST_PATH}/${NEST_NAME} ${NEST_PATH}/src/${NEST_NAME} -Dwith-mpi=ON -Dwith-python=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE # -DPYTHON_LIBRARY=/usr/lib/python3.5
-make
+make --jobs 8
 make install
 # make installcheck
 NEST_VARS=${NEST_PATH}/${NEST_NAME}/bin/nest_vars.sh
@@ -136,7 +138,7 @@ cd hh-moto-5ht
 java -jar /opt/nestml/target/nestml.jar research_team_models --target build
 cd build
 cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
-make all
+make -- jobs 8 all
 make install
 
 # removing temp
