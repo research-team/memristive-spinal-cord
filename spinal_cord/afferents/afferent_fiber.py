@@ -35,7 +35,7 @@ class AfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 0.
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -49,7 +49,7 @@ class AfferentFiber:
 
 class DummySensoryAfferentFiber:
     def __init__(self, dummy_sensory_receptor: DummySensoryReceptor):
-        self.name = 'dummy_sensory'
+        self.name = 'dummy_sensory_{}'.format(dummy_sensory_receptor.muscle.value)
         self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=60,
@@ -66,14 +66,14 @@ class DummySensoryAfferentFiber:
                 'tau_syn_in': 5.0  # Time of inhibitory action (ms)
             }
         )
-        self.receptor = DummySensoryReceptor()
+        self.receptor = dummy_sensory_receptor
         nest.Connect(
             pre=self.receptor.receptor_id,
             post=self.neuron_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 0.
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'all_to_all'

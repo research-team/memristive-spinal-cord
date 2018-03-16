@@ -54,8 +54,6 @@ class EES:
                 'spike_times': spike_times,
             }
         )
-        print('EES id is {}'.format(self.ees_id))
-        print(EES.generate_spiketimes(frequency_hz=25, how_long_s=1000))
 
     def connect(self, *afferents: AfferentFiber or DummySensoryAfferentFiber) -> None:
         for afferent in afferents:
@@ -82,14 +80,28 @@ class EES:
             )
         print(nest.GetStatus(nest.GetConnections(self.ees_id)))
 
-    def connect_dummy(self, afferent):
+    def connect_dummy(self, flex, extens):
         nest.Connect(
             pre=self.ees_id,
-            post=afferent.neuron_ids,
+            post=flex.neuron_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 90.
+                'weight': 100.
+            },
+            conn_spec={
+                'rule': 'fixed_outdegree',
+                'outdegree': 45,
+                'multapses': False
+            }
+        )
+        nest.Connect(
+            pre=self.ees_id,
+            post=extens.neuron_ids,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': .1,
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'fixed_outdegree',

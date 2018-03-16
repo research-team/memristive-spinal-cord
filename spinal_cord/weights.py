@@ -1,6 +1,16 @@
 from enum import Enum
 
 
+def init(weights: list):
+    weights = [float(weight) for weight in weights]
+    Weights.aff_ia_moto.value = weights[0]
+    Weights.aff_ia_ia.value = weights[1]
+    Weights.aff_ii_ii.value = weights[2]
+    Weights.ii_moto.value = weights[3]
+    Weights.ia_ia.value = weights[4]
+    Weights.ia_moto.value = weights[5]
+
+
 class Weights(Enum):
 
     # Tier Interconnections
@@ -27,25 +37,25 @@ class Weights(Enum):
 
     # Motogroup interconnections
 
-    aff_ia_moto = 14.
+    aff_ia_moto = 4.
     aff_ia_ia = 5.
     aff_ii_ia = 5.
-    aff_ii_ii = 28.
-    ii_moto = 24.
-    ia_ia = -0.7
-    ia_moto = -0.9
+    aff_ii_ii = 14.
+    ii_moto = 4.
+    ia_ia = -3.
+    ia_moto = -2.
 
     # Pool to Motogroup
-    p_ex_moto = 80.
-    p_ex_ia = 5.
-    p_fl_moto = 80.
-    p_fl_ia = 5.
+    p_ex_moto = 5.
+    p_ex_ia = 2.
+    p_fl_moto = 5.
+    p_fl_ia = 2.
 
     # Pool interconnections
 
     p_extens_sus_extens_ex = 100.
     p_flex_sus_flex_ex = 100.
-    p_extens_sus_flex_in = -30.
-    p_flex_sus_extens_in = -30.
-    p_flex_extens_in = -30.
-    p_extens_flex_in = -30.
+    p_extens_sus_flex_in = -40.
+    p_flex_sus_extens_in = -40.
+    p_flex_extens_in = -40.
+    p_extens_flex_in = -40.

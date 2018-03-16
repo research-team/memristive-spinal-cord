@@ -11,8 +11,10 @@ class AfferentFibers:
         self.afferent_fiber_ia_extens = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
         self.afferent_fiber_ii_flex = AfferentFiber(muscle=Muscle.FLEX, afferent=Afferent.II)
         self.afferent_fiber_ii_extens = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.II)
-        self.dsr = DummySensoryReceptor()
-        self.dsaf = DummySensoryAfferentFiber(self.dsr)
+        self.dsr_flex = DummySensoryReceptor(Muscle.FLEX)
+        self.dsr_extens = DummySensoryReceptor(Muscle.EXTENS)
+        self.dsaf_flex = DummySensoryAfferentFiber(self.dsr_flex)
+        self.dsaf_extens = DummySensoryAfferentFiber(self.dsr_extens)
 
         self.ees_amplitude = 300
         self.ees = EES(amplitude=self.ees_amplitude)
@@ -22,10 +24,10 @@ class AfferentFibers:
             self.afferent_fiber_ii_flex,
             self.afferent_fiber_ii_extens
         )
-        self.ees.connect_dummy(self.dsaf)
+        self.ees.connect_dummy(self.dsaf_flex, self.dsaf_extens)
 
     def plot_afferents(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')
+        plotter = ResultsPlotter(3, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')
 
         plotter.subplot(
             first_label='extensor',
@@ -42,8 +44,10 @@ class AfferentFibers:
             title='II'
         )
         plotter.subplot(
-            first_label='sensory',
-            first=self.dsaf,
+            first_label='sensory_flex',
+            first=self.dsaf_flex.name,
+            second_label='sensory_extens',
+            second=self.dsaf_extens.name,
             title='sensory'
         )
         plotter.save()
