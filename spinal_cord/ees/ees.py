@@ -54,8 +54,6 @@ class EES:
                 'spike_times': spike_times,
             }
         )
-        print('EES id is {}'.format(self.ees_id))
-        print(EES.generate_spiketimes(frequency_hz=25, how_long_s=1000))
 
     def connect(self, *afferents: AfferentFiber or DummySensoryAfferentFiber) -> None:
         for afferent in afferents:
