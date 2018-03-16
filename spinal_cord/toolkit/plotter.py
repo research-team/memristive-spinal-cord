@@ -5,19 +5,27 @@ import pylab
 
 from spinal_cord.params import Params
 from spinal_cord.toolkit.data_miner import DataMiner
+from datetime import datetime
 
 
-def clear_results():
+def clear_results(name=None):
     results_dir_filename = resource_filename('spinal_cord', 'results')
-    if os.path.isdir(results_dir_filename):
-        shutil.rmtree(results_dir_filename)
+    if not name:
+        if os.path.isdir(results_dir_filename):
+            shutil.rmtree(results_dir_filename)
         os.mkdir(results_dir_filename)
         os.mkdir(os.path.join(results_dir_filename, 'img'))
         os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
     else:
-        os.mkdir(results_dir_filename)
-        os.mkdir(os.path.join(results_dir_filename, 'img'))
-        os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
+        dt = datetime.now()
+        name = '{}_{}'.format(dt, name)
+        if os.path.isdir(results_dir_filename):
+            if not os.path.isdir(os.path.join(results_dir_filename, 'img')):
+                os.mkdir(os.path.join(results_dir_filename, 'img'))
+            os.mkdir(os.path.join(results_dir_filename, 'img', name))
+            if os.path.isdir(os.path.join(results_dir_filename, 'raw_data')):
+                shutil.rmtree(os.path.join(results_dir_filename, 'raw_data'))
+            os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
 
 
 class ResultsPlotter:

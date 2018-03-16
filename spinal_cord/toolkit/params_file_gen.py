@@ -11,7 +11,7 @@ with open(filepath, 'w') as params_file:
                         for ia_moto in range(0, -5, -1):
                             index += 1
                             print(index)
-                            params_file.write('{},{},{},{},{},{},{}\n'.format(
+                            params_file.write('{}_{}_{}_{}_{}_{}_{}\n'.format(
                                 index,
                                 aff_ia_moto,
                                 aff_ia_ia,

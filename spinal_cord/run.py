@@ -9,12 +9,13 @@ from spinal_cord.weights import init
 
 if len(sys.argv) > 1:
     time = float(sys.argv[1])
+    clear_results(sys.argv[2])
     params = sys.argv[2].split()
     index = int(params[0])
     init(weights=params[1:])
+else:
+    clear_results()
 
-
-# clear_results()
 nest.SetKernelStatus({
     'total_num_virtual_procs': 7,
     'print_time': True,
