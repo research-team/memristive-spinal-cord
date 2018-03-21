@@ -2,6 +2,7 @@ import nest
 from spinal_cord.namespace import Muscle, Afferent
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.afferents.receptor import Receptor, DummySensoryReceptor
+from random import randint
 
 
 class AfferentFiber:
@@ -73,10 +74,12 @@ class DummySensoryAfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 100.
+                'weight': 0.
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_outdegree',
+                'outdegree': 25,
+                'multapses': False
             }
         )
         nest.Connect(

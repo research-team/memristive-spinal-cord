@@ -9,7 +9,7 @@ from spinal_cord.params import Params
 from spinal_cord.toolkit.plotter import clear_results
 from spinal_cord.weights import init
 
-time = 300.
+time = 1000.
 if len(sys.argv) > 1:
     time = float(sys.argv[1])
     clear_results(sys.argv[2])

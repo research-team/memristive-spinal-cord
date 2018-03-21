@@ -14,7 +14,7 @@ class AfferentFibers:
         self.dsr = DummySensoryReceptor()
         self.dsaf = DummySensoryAfferentFiber(self.dsr)
 
-        self.ees_amplitude = 300
+        self.ees_amplitude = 600
         self.ees = EES(amplitude=self.ees_amplitude)
         self.ees.connect(
             self.afferent_fiber_ia_flex,

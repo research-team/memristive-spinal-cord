@@ -36,6 +36,8 @@ class Pool:
             n=1,
             params=self.params
         )
+        # nest.SetStatus(self.extens_suspended_nrn_id, {'E_L': -58.})
+        # nest.SetStatus(self.flex_suspended_nrn_id, {'E_L': -58.})
         self.flex_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
