@@ -67,12 +67,12 @@ class PolysynapticCircuit:
                     }
                 )
         nest.Connect(
-            pre=pool.flex_suspended_nrn_id,
+            pre=pool.extens_suspended_nrn_id,
             post=self.tiers[0].e[0],
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 100.
+                'weight': 77.
             },
             conn_spec={
                 'rule': 'fixed_outdegree',

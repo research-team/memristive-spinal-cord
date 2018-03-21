@@ -131,7 +131,7 @@ class Pool:
             post=self.extens_suspended_nrn_id
         )
 
-    def connect_sensory(self, sensory_flex: DummySensoryAfferentFiber, sensory_extens: DummySensoryAfferentFiber):
+    def connect_sensory(self, sensory: DummySensoryAfferentFiber):
         syn_spec = {
            'model': 'static_synapse',
            'delay': .1,
@@ -141,15 +141,23 @@ class Pool:
             'rule': 'all_to_all'
         }
         nest.Connect(
-            pre=sensory_flex.neuron_ids,
+            pre=sensory.neuron_ids,
             post=self.flex_suspended_nrn_id,
-            syn_spec=syn_spec,
+            syn_spec={
+               'model': 'static_synapse',
+               'delay': .1,
+               'weight': -15.
+            },
             conn_spec=conn_spec
         )
         nest.Connect(
-            pre=sensory_extens.neuron_ids,
+            pre=sensory.neuron_ids,
             post=self.extens_suspended_nrn_id,
-            syn_spec=syn_spec,
+            syn_spec={
+               'model': 'static_synapse',
+               'delay': .1,
+               'weight': 4.
+            },
             conn_spec=conn_spec
         )
 

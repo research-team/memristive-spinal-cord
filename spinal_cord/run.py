@@ -9,7 +9,7 @@ from spinal_cord.params import Params
 from spinal_cord.toolkit.plotter import clear_results
 from spinal_cord.weights import init
 
-time = 500.
+time = 300.
 if len(sys.argv) > 1:
     time = float(sys.argv[1])
     clear_results(sys.argv[2])
@@ -34,6 +34,7 @@ nest.Simulate(time)
 level1.plot_motogroups()
 level2.plot_pool()
 level2.plot_pc()
-level1.plot_slices(afferents.dsaf_extens.name)
-# level1.plot_moto_only()
+level1.plot_slices(afferents.dsaf.name)
+afferents.plot_afferents()
+level1.plot_moto_only()
 

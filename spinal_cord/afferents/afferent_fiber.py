@@ -49,7 +49,7 @@ class AfferentFiber:
 
 class DummySensoryAfferentFiber:
     def __init__(self, dummy_sensory_receptor: DummySensoryReceptor):
-        self.name = 'dummy_sensory_{}'.format(dummy_sensory_receptor.muscle.value)
+        self.name = 'dummy_sensory'
         self.neuron_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=60,
@@ -73,7 +73,7 @@ class DummySensoryAfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 0.
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'all_to_all'

@@ -42,7 +42,7 @@ class EES:
         # start = 1000 // frequency_hz
         time_between_spikes = round(1000 / frequency_hz)
         # return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
-        return [0.5 + time_between_spikes * i for i in range(how_many)]
+        return [10. + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
         spike_times = EES.generate_spiketimes(frequency_hz=Params.rate.value, how_long_s=20)
@@ -79,24 +79,10 @@ class EES:
                 }
             )
 
-    def connect_dummy(self, flex, extens):
+    def connect_dummy(self, dsaf):
         nest.Connect(
             pre=self.ees_id,
-            post=flex.neuron_ids,
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': .1,
-                'weight': 100.
-            },
-            conn_spec={
-                'rule': 'fixed_outdegree',
-                'outdegree': 45,
-                'multapses': False
-            }
-        )
-        nest.Connect(
-            pre=self.ees_id,
-            post=extens.neuron_ids,
+            post=dsaf.neuron_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,

@@ -38,10 +38,10 @@ class Level1:
             second_label='flexor',
             first=self.extens_motogroup.ia_name,
             second=self.flex_motogroup.ia_name,
-            title='Ia'
+            title='Ia (inter inh)'
         )
         plotter.subplot(
-            title='II',
+            title='II (inter exc)',
             first_label='extensor',
             first=self.extens_motogroup.ii_name,
             second_label='flexor',
