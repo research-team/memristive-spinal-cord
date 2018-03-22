@@ -72,7 +72,7 @@ class PolysynapticCircuit:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 90.
+                'weight': 5.
             },
             conn_spec={
                 'rule': 'fixed_outdegree',

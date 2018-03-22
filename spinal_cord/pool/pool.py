@@ -4,6 +4,7 @@ from spinal_cord.level1 import Level1
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
 from spinal_cord.weights import Weights
+from random import shuffle
 
 
 class Pool:
@@ -17,8 +18,8 @@ class Pool:
         'g_Na': 12000.0,  #
         'g_K': 3600.0,  #
         'C_m': 134.0,  # Capacity of membrane (pF)
-        'tau_syn_ex': 0.5,  # Time of excitatory action (ms)
-        'tau_syn_in': 5.0  # Time of inhibitory action (ms)
+        'tau_syn_ex': 4.7,  # Time of excitatory action (ms)
+        'tau_syn_in': 3.1  # Time of inhibitory action (ms)
     }
 
     def __init__(self):
@@ -28,16 +29,16 @@ class Pool:
         self.flex_suspended_name = 'suspended_flex'
         self.flex_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
-            n=1,
+            n=20,
             params=self.params
         )
         self.extens_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
-            n=1,
+            n=20,
             params=self.params
         )
         # nest.SetStatus(self.extens_suspended_nrn_id, {'E_L': -58.})
-        # nest.SetStatus(self.flex_suspended_nrn_id, {'E_L': -58.})
+        nest.SetStatus(self.flex_suspended_nrn_id[:13], {'E_L': -58.})
         self.flex_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -105,6 +106,10 @@ class Pool:
                 'model': 'static_synapse',
                 'delay': 1.,
                 'weight': Weights.p_extens_sus_flex_in
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
             }
         )
         nest.Connect(
@@ -114,6 +119,10 @@ class Pool:
                 'model': 'static_synapse',
                 'delay': 1.,
                 'weight': Weights.p_flex_sus_extens_in
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
             }
         )
         nest.Connect(
@@ -137,10 +146,12 @@ class Pool:
         syn_spec = {
            'model': 'static_synapse',
            'delay': .1,
-           'weight': 4.
+           'weight': 10.
         }
         conn_spec = {
-            'rule': 'all_to_all'
+            'rule': 'fixed_indegree',
+            'indegree': 8,
+            'multapses': False
         }
         nest.Connect(
             pre=sensory.neuron_ids,
@@ -148,7 +159,7 @@ class Pool:
             syn_spec={
                'model': 'static_synapse',
                'delay': .1,
-               'weight': -15.
+               'weight': -20.
             },
             conn_spec=conn_spec
         )
