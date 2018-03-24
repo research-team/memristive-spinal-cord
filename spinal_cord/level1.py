@@ -56,8 +56,6 @@ class Level1:
             slices=n_slices,
             first_label='extensor',
             first=self.extens_motogroup.motoname,
-            second_label='flexor',
-            second=self.flex_motogroup.motoname,
             title='Pool'
         )
         plotter.save()
@@ -67,9 +65,7 @@ class Level1:
 
         plotter.subplot(
             first_label='extensor',
-            second_label='flexor',
             first=self.extens_motogroup.motoname,
-            second=self.flex_motogroup.motoname,
             title='Moto'
         )
         plotter.save()

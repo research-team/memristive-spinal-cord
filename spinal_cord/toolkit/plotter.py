@@ -28,6 +28,7 @@ def clear_results(name=None):
                 shutil.rmtree(os.path.join(results_dir_filename, 'raw_data'))
             os.mkdir(os.path.join(results_dir_filename, 'raw_data'))
 
+
 class ResultsPlotter:
     def __init__(self, rows_number, title, filename):
         pylab.ioff()
@@ -36,14 +37,14 @@ class ResultsPlotter:
                   'axes.titlesize': 'x-small',
                   'xtick.labelsize': 'x-small'}
         pylab.rcParams.update(params)
-        if rows_number == 7:
+        if rows_number in [5, 7]:
             pylab.rcParams.update({'ytick.labelsize': 4})
             self.blue_line_style = 'b'
             self.red_line_style = 'r'
         else:
             pylab.rcParams.update({'ytick.labelsize': 8})
             self.blue_line_style = 'b:'
-            self.red_line_style = 'r--'
+            self.red_line_style = 'r'
         self.rows_number = rows_number
         self.cols_number = 1
         self.plot_index = 1
@@ -93,13 +94,14 @@ class ResultsPlotter:
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
-        shift = 10.
+        shift = 0.
         interval = 1000 / Params.rate.value
         data1 = DataMiner.get_average_voltage(first)
         number_of_dots = int(1 / step * slices * interval)
         shift_dots = int(1 / step * shift)
         times1 = sorted(data1.keys())[shift_dots:number_of_dots+shift_dots]
-        data2 = DataMiner.get_average_voltage(second)
+        if second:
+            data2 = DataMiner.get_average_voltage(second)
         if third:
             data3 = DataMiner.get_average_voltage(third)
         fraction = len(times1) / slices
@@ -114,16 +116,17 @@ class ResultsPlotter:
             pylab.plot(
                 times,
                 values,
-                self.blue_line_style,
+                self.red_line_style,
                 label=first_label
             )
-            values = [data2[time] for time in times]
-            pylab.plot(
-                times,
-                values,
-                self.red_line_style,
-                label=second_label
-            )
+            if second:
+                values = [data2[time] for time in times]
+                pylab.plot(
+                    times,
+                    values,
+                    self.blue_line_style,
+                    label=second_label
+                )
             if third:
                 values = [data3[time] for time in times]
                 pylab.plot(

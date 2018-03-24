@@ -198,7 +198,7 @@ class Pool:
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 5
+                'outdegree': 25
             }
         )
 

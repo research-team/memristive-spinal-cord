@@ -16,8 +16,8 @@ class Weights:
     # Tier Interconnections
     e0e1 = 100.
     e0e3 = 100.
-    e1e2 = 90.
-    e2e1 = 90.
+    e1e2 = 100.
+    e2e1 = 100.
     e2i1 = 100.
     e3e4 = 100.
     e3i0 = 100.
@@ -39,7 +39,7 @@ class Weights:
 
     # Motogroup interconnections
 
-    aff_ia_moto = 13.
+    aff_ia_moto = 10.
     aff_ia_ia = 0.
     aff_ii_ia = 0.
     aff_ii_ii = 0.
@@ -48,7 +48,7 @@ class Weights:
     ia_moto = 0.
 
     # Pool to Motogroup
-    p_ex_moto = 1000.
+    p_ex_moto = 90.
     p_ex_ia = 0.
     p_fl_moto = 0.
     p_fl_ia = 0.
