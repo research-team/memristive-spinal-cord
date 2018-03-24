@@ -61,9 +61,7 @@ class PolysynapticCircuit:
                         'weight': Weights.e2p
                     },
                     conn_spec={
-                        'rule': 'fixed_outdegree',
-                        'outdegree': 12,
-                        'multapses': False
+                        'rule': 'one_to_one'
                     }
                 )
         nest.Connect(
@@ -75,8 +73,6 @@ class PolysynapticCircuit:
                 'weight': 5.
             },
             conn_spec={
-                'rule': 'fixed_outdegree',
-                'outdegree': 20,
-                'multapses': False
+                'rule': 'one_to_one'
             }
         )

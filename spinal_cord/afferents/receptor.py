@@ -30,7 +30,7 @@ class Receptor:
 
 class DummySensoryReceptor:
 
-    def __init__(self, time: float=20000, period: float=1000., stand_coef: float=0.7, rate: float=60):
+    def __init__(self, time: float=2000, period: float=1000., stand_coef: float=0.7, rate: float=60):
         spike_times = []
         standing_time = period * stand_coef
         walking_time = period * (1 - stand_coef)

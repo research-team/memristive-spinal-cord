@@ -38,7 +38,7 @@ class Pool:
             params=self.params
         )
         # nest.SetStatus(self.extens_suspended_nrn_id, {'E_L': -58.})
-        nest.SetStatus(self.flex_suspended_nrn_id[:13], {'E_L': -58.})
+        # nest.SetStatus(self.flex_suspended_nrn_id[:13], {'E_L': -58.})
         self.flex_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -58,7 +58,7 @@ class Pool:
                 'weight': Weights.p_extens_sus_extens_ex
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'one_to_one'
             }
         )
         nest.Connect(
@@ -70,7 +70,7 @@ class Pool:
                 'weight': Weights.p_flex_sus_flex_ex
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'one_to_one'
             }
         )
         nest.Connect(
@@ -143,14 +143,14 @@ class Pool:
         )
 
     def connect_sensory(self, sensory: DummySensoryAfferentFiber):
-        syn_spec = {
-           'model': 'static_synapse',
-           'delay': .1,
-           'weight': 10.
-        }
+        # syn_spec = {
+        #    'model': 'static_synapse',
+        #    'delay': .1,
+        #    'weight': 15.
+        # }
         conn_spec = {
             'rule': 'fixed_indegree',
-            'indegree': 8,
+            'indegree': 3,
             'multapses': False
         }
         nest.Connect(
@@ -159,7 +159,7 @@ class Pool:
             syn_spec={
                'model': 'static_synapse',
                'delay': .1,
-               'weight': -20.
+               'weight': 0.
             },
             conn_spec=conn_spec
         )
@@ -169,7 +169,7 @@ class Pool:
             syn_spec={
                'model': 'static_synapse',
                'delay': .1,
-               'weight': 4.
+               'weight': 6.
             },
             conn_spec=conn_spec
         )

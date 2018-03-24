@@ -93,12 +93,15 @@ class ResultsPlotter:
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
+        shift = 10.
         interval = 1000 / Params.rate.value
         data1 = DataMiner.get_average_voltage(first)
         number_of_dots = int(1 / step * slices * interval)
-        times1 = sorted(data1.keys())[:number_of_dots]
+        shift_dots = int(1 / step * shift)
+        times1 = sorted(data1.keys())[shift_dots:number_of_dots+shift_dots]
         data2 = DataMiner.get_average_voltage(second)
-        data3 = DataMiner.get_average_voltage(third)
+        if third:
+            data3 = DataMiner.get_average_voltage(third)
         fraction = len(times1) / slices
         for slice in range(slices):
             # pylab.ylim(ymax=-60)
@@ -121,12 +124,13 @@ class ResultsPlotter:
                 self.red_line_style,
                 label=second_label
             )
-            values = [data3[time] for time in times]
-            pylab.plot(
-                times,
-                values,
-                'g',
-                label=third_label
-            )
+            if third:
+                values = [data3[time] for time in times]
+                pylab.plot(
+                    times,
+                    values,
+                    'g',
+                    label=third_label
+                )
             pylab.ylabel(title, fontsize=8)
             pylab.legend(fontsize=6)

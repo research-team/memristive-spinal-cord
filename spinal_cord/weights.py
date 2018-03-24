@@ -24,6 +24,8 @@ class Weights:
     e4e3 = 100.
     i0e1 = -60.
     i1e1 = -50.
+    e3i0e1 = -100.
+    e2i1e1 = -50.
 
     # Coonnections between tiers
 
@@ -33,29 +35,29 @@ class Weights:
 
     # Connections to pool
 
-    e2p = 4.
+    e2p = 0.
 
     # Motogroup interconnections
 
-    aff_ia_moto = 7.
-    aff_ia_ia = 5.
-    aff_ii_ia = 5.
-    aff_ii_ii = 14.
-    ii_moto = 6.
-    ia_ia = -3.
-    ia_moto = -2.
+    aff_ia_moto = 0.
+    aff_ia_ia = 0.
+    aff_ii_ia = 0.
+    aff_ii_ii = 0.
+    ii_moto = 0.
+    ia_ia = 0.
+    ia_moto = 0.
 
     # Pool to Motogroup
-    p_ex_moto = 24.
-    p_ex_ia = 8.
-    p_fl_moto = 24.
-    p_fl_ia = 8.
+    p_ex_moto = 0.
+    p_ex_ia = 0.
+    p_fl_moto = 0.
+    p_fl_ia = 0.
 
     # Pool interconnections
 
-    p_extens_sus_extens_ex = 1.
-    p_flex_sus_flex_ex = 1.
-    p_extens_sus_flex_in = -10.
-    p_flex_sus_extens_in = -10.
-    p_flex_extens_in = -40.
-    p_extens_flex_in = -40.
+    p_extens_sus_extens_ex = 0.
+    p_flex_sus_flex_ex = 0.
+    p_extens_sus_flex_in = 0.
+    p_flex_sus_extens_in = 0.
+    p_flex_extens_in = 0.
+    p_extens_flex_in = 0.

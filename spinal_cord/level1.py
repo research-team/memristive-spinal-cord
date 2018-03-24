@@ -58,8 +58,6 @@ class Level1:
             first=self.extens_motogroup.motoname,
             second_label='flexor',
             second=self.flex_motogroup.motoname,
-            third_label='stimuli',
-            third=afferent,
             title='Pool'
         )
         plotter.save()

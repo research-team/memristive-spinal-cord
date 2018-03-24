@@ -1,6 +1,7 @@
 import nest
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.weights import Weights
+from pkg_resources import resource_filename
 
 
 class Tier:
@@ -86,18 +87,27 @@ class Tier:
                 'rule': 'one_to_one'
             }
         )
+        a = nest.Create("weight_recorder", 1, {'to_memory': False, 'to_file': True, 'label': '{}/{}/{}'.format(resource_filename('spinal_cord', 'results'), 'raw_data', 'kek')})
+        name = 'wcr_syn{}'.format(self.index)
+        nest.CopyModel('stdp_synapse', name, {'weight_recorder': a[0]})
         nest.Connect(
             pre=self.e[4],
             post=self.e[3],
             syn_spec={
-                'model': 'static_synapse',
+                'model': name,
                 'delay': 0.9,
+                'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
+                'lambda': 0.0037,  # Time interval for STDP
+                'Wmax': 100.,  # Maximum possible weight
+                'mu_minus': 0.,  # STDP depression step
+                'mu_plus': 0.,  # STDP potential step
                 'weight': Weights.e4e3
             },
             conn_spec={
                 'rule': 'one_to_one'
             }
         )
+
         nest.Connect(
             pre=self.e[0],
             post=self.e[3],

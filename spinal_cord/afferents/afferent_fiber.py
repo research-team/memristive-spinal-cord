@@ -74,11 +74,11 @@ class DummySensoryAfferentFiber:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 100.
+                'weight': 0.
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 25,
+                'outdegree': 20,
                 'multapses': False
             }
         )
