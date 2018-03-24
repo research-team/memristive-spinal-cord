@@ -197,8 +197,8 @@ class Pool:
                 'weight': Weights.p_ex_moto
             },
             conn_spec={
-                'rule': 'fixed_indegree',
-                'indegree': 25
+                'rule': 'fixed_outdegree',
+                'outdegree': 5
             }
         )
 

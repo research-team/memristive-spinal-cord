@@ -29,6 +29,7 @@ class EES:
         currents_delta = abs(available_currents - amplitude)
         closest_computed_current_index = currents_delta.argmin()
         percent = ruler[closest_computed_current_index] / max(ruler)
+        print('percent = {}'.format(percent))
         return percent
 
     @staticmethod
@@ -42,7 +43,7 @@ class EES:
         # start = 1000 // frequency_hz
         time_between_spikes = round(1000 / frequency_hz)
         # return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
-        return [10. + time_between_spikes * i for i in range(how_many)]
+        return [0.1 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
         spike_times = EES.generate_spiketimes(frequency_hz=Params.rate.value, how_long_s=20)
@@ -90,7 +91,7 @@ class EES:
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 45,
+                'outdegree': 54,
                 'multapses': False
             }
         )

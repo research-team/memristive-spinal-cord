@@ -35,11 +35,11 @@ class Weights:
 
     # Connections to pool
 
-    e2p = 0.
+    e2p = 20.
 
     # Motogroup interconnections
 
-    aff_ia_moto = 0.
+    aff_ia_moto = 13.
     aff_ia_ia = 0.
     aff_ii_ia = 0.
     aff_ii_ii = 0.
@@ -48,7 +48,7 @@ class Weights:
     ia_moto = 0.
 
     # Pool to Motogroup
-    p_ex_moto = 0.
+    p_ex_moto = 1000.
     p_ex_ia = 0.
     p_fl_moto = 0.
     p_fl_ia = 0.
