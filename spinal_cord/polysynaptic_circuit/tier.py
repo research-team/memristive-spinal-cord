@@ -14,8 +14,8 @@ class Tier:
         'g_Na': 12000.0,  #
         'g_K': 3600.0,  #
         'C_m': 134.0,  # Capacity of membrane (pF)
-        'tau_syn_ex': 0.5,  # Time of excitatory action (ms)
-        'tau_syn_in': 5.0  # Time of inhibitory action (ms)
+        'tau_syn_ex': 4.7,  # Time of excitatory action (ms)
+        'tau_syn_in': 3.1  # Time of inhibitory action (ms)
     }
 
     def __init__(self, index: int):
@@ -125,7 +125,7 @@ class Tier:
             post=self.i[0],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 0.9,
+                'delay': 0.7,
                 'weight': Weights.e3i0
             },
             conn_spec={
@@ -137,37 +137,37 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 0.9,
+                'delay': 0.7,
                 'weight': Weights.i0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
             }
         )
-        nest.Connect(
-            pre=self.i[1],
-            post=self.e[1],
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': 0.9,
-                'weight': Weights.i1e1
-            },
-            conn_spec={
-                'rule': 'one_to_one'
-            }
-        )
-        nest.Connect(
-            pre=self.e[2],
-            post=self.i[1],
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': 0.9,
-                'weight': Weights.e2i1
-            },
-            conn_spec={
-                'rule': 'one_to_one'
-            }
-        )
+        # nest.Connect(
+        #     pre=self.i[1],
+        #     post=self.e[1],
+        #     syn_spec={
+        #         'model': 'static_synapse',
+        #         'delay': 0.9,
+        #         'weight': Weights.i1e1
+        #     },
+        #     conn_spec={
+        #         'rule': 'one_to_one'
+        #     }
+        # )
+        # nest.Connect(
+        #     pre=self.e[2],
+        #     post=self.i[1],
+        #     syn_spec={
+        #         'model': 'static_synapse',
+        #         'delay': 0.9,
+        #         'weight': Weights.e2i1
+        #     },
+        #     conn_spec={
+        #         'rule': 'one_to_one'
+        #     }
+        # )
         for i in range(len(self.e)):
             nest.Connect(
                 pre=add_multimeter('tier{}e{}'.format(self.index, i)),

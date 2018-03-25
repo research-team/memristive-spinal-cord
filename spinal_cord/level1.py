@@ -51,17 +51,16 @@ class Level1:
 
     def plot_slices(self, afferent: str, time=40.):
         n_slices = 7
-        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Moto, stimulation rate: {}Hz'.format(Params.rate.value), 'moto_slices')
+        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Moto, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'moto_slices')
         plotter.subplot_with_slices(
             slices=n_slices,
             first_label='extensor',
-            first=self.extens_motogroup.motoname,
-            title='Pool'
+            first=self.extens_motogroup.motoname
         )
         plotter.save()
 
     def plot_moto_only(self):
-        plotter = ResultsPlotter(1, 'Average "V_m" of motoneurons, stimulation rate: {}Hz'.format(Params.rate.value), 'moto')
+        plotter = ResultsPlotter(1, 'Average "V_m" of motoneurons, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'moto')
 
         plotter.subplot(
             first_label='extensor',

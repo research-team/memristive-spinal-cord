@@ -1,5 +1,7 @@
 from enum import Enum
 
+from spinal_cord.params import Params
+
 
 def init(weights: list):
     weights = [float(weight) for weight in weights]
@@ -13,25 +15,27 @@ def init(weights: list):
 
 class Weights:
 
+    ids = []
+
     # Tier Interconnections
-    e0e1 = 100.
-    e0e3 = 100.
-    e1e2 = 90.
-    e2e1 = 90.
-    e2i1 = 100.
-    e3e4 = 100.
-    e3i0 = 100.
-    e4e3 = 100.
-    i0e1 = -60.
+    e0e1 = 20.
+    e0e3 = 20.
+    e1e2 = 20.
+    e2e1 = 20.
+    e2i1 = 0.
+    e3e4 = 20.
+    e3i0 = 20.
+    e4e3 = 20.
+    i0e1 = -100. * Params.inh_coef.value
     i1e1 = -50.
-    e3i0e1 = -100.
+    e3i0e1 = -90. * Params.inh_coef.value
     e2i1e1 = -50.
 
-    # Coonnections between tiers
+    # Connections between tiers
 
-    e0e0 = 45.
-    e3e0 = 40.
-    e2e2 = 100.
+    e0e0 = 11.
+    e3e0 = 5.
+    e2e2 = 20.
 
     # Connections to pool
 

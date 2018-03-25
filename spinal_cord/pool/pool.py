@@ -1,6 +1,7 @@
 import nest
 from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
 from spinal_cord.level1 import Level1
+from spinal_cord.params import Params
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
 from spinal_cord.weights import Weights
@@ -230,13 +231,11 @@ class Pool:
         )
 
     def plot_results(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of Pool', 'pool')
+        plotter = ResultsPlotter(2, 'Average "V_m" of Pool, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'pool')
 
         plotter.subplot(
             first_label='extensor',
             first=self.extens_group_name,
-            second_label='flexor',
-            second=self.flex_group_name,
             title='Pool'
         )
         plotter.subplot(

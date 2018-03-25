@@ -1,7 +1,7 @@
 import nest
 from spinal_cord.afferents.afferent_fiber import AfferentFiber
 from spinal_cord.namespace import Muscle
-from spinal_cord.toolkit.multimeter import add_multimeter
+from spinal_cord.toolkit.multimeter import add_multimeter, add_multimeter_moto
 from spinal_cord.toolkit.plotter import ResultsPlotter
 from spinal_cord.weights import Weights
 
@@ -63,7 +63,7 @@ class Motogroup:
             }
         )
         nest.Connect(
-            pre=add_multimeter(self.motoname),
+            pre=add_multimeter_moto(self.motoname),
             post=self.moto_ids
         )
         nest.Connect(

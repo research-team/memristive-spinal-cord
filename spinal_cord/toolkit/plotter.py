@@ -9,6 +9,7 @@ from spinal_cord.params import Params
 from spinal_cord.toolkit.data_miner import DataMiner
 from datetime import datetime
 
+
 def clear_results(name=None):
     results_dir_filename = resource_filename('spinal_cord', 'results')
     if not name:
@@ -57,7 +58,7 @@ class ResultsPlotter:
     def save(self):
         pylab.subplots_adjust(left=0.05, right=0.99, hspace=0.15*self.rows_number)
         pylab.xlabel('ms')
-        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', '{}_{}Hz'.format(self.filename, Params.rate.value)))
+        pylab.savefig(os.path.join(resource_filename('spinal_cord', 'results'), 'img', '{}_{}Hz_{}%Inh'.format(self.filename, Params.rate.value, int(Params.inh_coef.value * 100))))
 
     def subplot(self, title: str, first=None, first_label: str=None, second=None, second_label: str=None):
         if self.plot_index > self.rows_number:
@@ -90,7 +91,7 @@ class ResultsPlotter:
         pylab.ylabel(title, fontsize=11)
         pylab.legend(fontsize=11)
 
-    def subplot_with_slices(self, slices: int, title: str, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
+    def subplot_with_slices(self, slices: int, title: str=None, first=None, first_label: str=None, second=None, second_label: str=None, third=None, third_label=None):
         if slices > self.rows_number:
             raise ValueError('Too much subplots')
         step = .1
@@ -135,5 +136,6 @@ class ResultsPlotter:
                     'g',
                     label=third_label
                 )
-            pylab.ylabel(title, fontsize=8)
+            if title:
+                pylab.ylabel(title, fontsize=8)
             pylab.legend(fontsize=6)

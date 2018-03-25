@@ -7,7 +7,9 @@ from spinal_cord.level1 import Level1
 from spinal_cord.level2 import Level2
 from spinal_cord.params import Params
 from spinal_cord.toolkit.plotter import clear_results
-from spinal_cord.weights import init
+from spinal_cord.weights import init, Weights
+import nest.visualization
+
 
 time = 700.
 if len(sys.argv) > 1:
@@ -29,6 +31,7 @@ afferents = AfferentFibers()
 level1 = Level1()
 level1.connect_afferents(afferents)
 level2 = Level2(level1, afferents)
+# nest.visualization.plot_network(Weights.ids, filename='/home/cmen/lol.pdf', ext_conns=False)
 nest.Simulate(time)
 
 # level1.plot_motogroups()
