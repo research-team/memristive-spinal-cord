@@ -31,10 +31,10 @@ level1.connect_afferents(afferents)
 level2 = Level2(level1, afferents)
 nest.Simulate(time)
 
-level1.plot_motogroups()
+# level1.plot_motogroups()
 level2.plot_pool()
-level2.plot_pc()
+# level2.plot_pc()
 level1.plot_slices(afferents.dsaf.name)
-afferents.plot_afferents()
+# afferents.plot_afferents()
 level1.plot_moto_only()
 

@@ -16,8 +16,8 @@ class Weights:
     # Tier Interconnections
     e0e1 = 100.
     e0e3 = 100.
-    e1e2 = 100.
-    e2e1 = 100.
+    e1e2 = 90.
+    e2e1 = 90.
     e2i1 = 100.
     e3e4 = 100.
     e3i0 = 100.

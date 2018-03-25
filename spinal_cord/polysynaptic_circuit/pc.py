@@ -1,5 +1,5 @@
 import nest
-from spinal_cord.polysynaptic_circuit.tier import Tier
+from spinal_cord.polysynaptic_circuit.tier_combined import Tier
 from spinal_cord.pool.pool import Pool
 from spinal_cord.weights import Weights
 
@@ -9,7 +9,7 @@ class PolysynapticCircuit:
     def __init__(self):
 
         self.tiers = [
-            Tier(i) for i in range(6)
+            Tier(i) for i in range(3)
         ]
         for i in range(len(self.tiers)-1):
             nest.Connect(
