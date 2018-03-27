@@ -3,5 +3,5 @@ from enum import Enum
 
 class Params(Enum):
 
-    rate = 20  # Hz
-    inh_coef = .25
+    rate = 25  # Hz
+    inh_coef = 1.

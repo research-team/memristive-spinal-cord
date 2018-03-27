@@ -1,4 +1,5 @@
 import nest
+from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
 from spinal_cord.polysynaptic_circuit.tier import Tier
 from spinal_cord.pool.pool import Pool
 from spinal_cord.weights import Weights
@@ -9,7 +10,7 @@ class PolysynapticCircuit:
     def __init__(self):
 
         self.tiers = [
-            Tier(i) for i in range(4)
+            Tier(i) for i in range(6)
         ]
         for i in range(len(self.tiers)-1):
             nest.Connect(
@@ -64,13 +65,41 @@ class PolysynapticCircuit:
                         'rule': 'one_to_one'
                     }
                 )
+        # nest.Connect(
+        #     pre=pool.extens_suspended_nrn_id,
+        #     post=self.tiers[0].e[0],
+        #     syn_spec={
+        #         'model': 'static_synapse',
+        #         'delay': 1.,
+        #         'weight': 7.
+        #     },
+        #     conn_spec={
+        #         'rule': 'fixed_indegree',
+        #         'indegree': 3
+        #     }
+        # )
+
+    def connect_sensory(self, sensory: DummySensoryAfferentFiber):
         nest.Connect(
-            pre=pool.extens_suspended_nrn_id,
+            pre=sensory.neuron_ids,
             post=self.tiers[0].e[0],
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': 7.
+                'weight': 25
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 3
+            }
+        )
+        nest.Connect(
+            pre=sensory.neuron_ids,
+            post=self.tiers[0].e[1],
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 1.,
+                'weight': 25
             },
             conn_spec={
                 'rule': 'fixed_indegree',

@@ -11,7 +11,7 @@ from spinal_cord.weights import init, Weights
 import nest.visualization
 
 
-time = 700.
+time = 350.
 if len(sys.argv) > 1:
     time = float(sys.argv[1])
     clear_results(sys.argv[2])
@@ -36,8 +36,8 @@ nest.Simulate(time)
 
 # level1.plot_motogroups()
 level2.plot_pool()
-# level2.plot_pc()
+level2.plot_pc()
 level1.plot_slices(afferents.dsaf.name)
-# afferents.plot_afferents()
+afferents.plot_afferents()
 level1.plot_moto_only()
 

@@ -14,9 +14,11 @@ class Tier:
         'g_Na': 12000.0,  #
         'g_K': 3600.0,  #
         'C_m': 134.0,  # Capacity of membrane (pF)
-        'tau_syn_ex': 4.7,  # Time of excitatory action (ms)
-        'tau_syn_in': 3.1  # Time of inhibitory action (ms)
+        'tau_syn_ex': 0.7,  # Time of excitatory action (ms)
+        'tau_syn_in': 3.4  # Time of inhibitory action (ms)
     }
+
+    # params = {}
 
     def __init__(self, index: int):
         self.index = index
@@ -87,20 +89,12 @@ class Tier:
                 'rule': 'one_to_one'
             }
         )
-        a = nest.Create("weight_recorder", 1, {'to_memory': False, 'to_file': True, 'label': '{}/{}/{}'.format(resource_filename('spinal_cord', 'results'), 'raw_data', 'kek')})
-        name = 'wcr_syn{}'.format(self.index)
-        nest.CopyModel('stdp_synapse', name, {'weight_recorder': a[0]})
         nest.Connect(
             pre=self.e[4],
             post=self.e[3],
             syn_spec={
-                'model': name,
+                'model': 'static_synapse',
                 'delay': 0.9,
-                'alpha': 1.0,  # Coeficient for inhibitory STDP time (alpha * lambda)
-                'lambda': 0.0037,  # Time interval for STDP
-                'Wmax': 100.,  # Maximum possible weight
-                'mu_minus': 0.,  # STDP depression step
-                'mu_plus': 0.,  # STDP potential step
                 'weight': Weights.e4e3
             },
             conn_spec={
@@ -125,7 +119,7 @@ class Tier:
             post=self.i[0],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 0.7,
+                'delay': 0.9,
                 'weight': Weights.e3i0
             },
             conn_spec={
@@ -137,37 +131,37 @@ class Tier:
             post=self.e[1],
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 0.7,
+                'delay': 0.9,
                 'weight': Weights.i0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
             }
         )
-        # nest.Connect(
-        #     pre=self.i[1],
-        #     post=self.e[1],
-        #     syn_spec={
-        #         'model': 'static_synapse',
-        #         'delay': 0.9,
-        #         'weight': Weights.i1e1
-        #     },
-        #     conn_spec={
-        #         'rule': 'one_to_one'
-        #     }
-        # )
-        # nest.Connect(
-        #     pre=self.e[2],
-        #     post=self.i[1],
-        #     syn_spec={
-        #         'model': 'static_synapse',
-        #         'delay': 0.9,
-        #         'weight': Weights.e2i1
-        #     },
-        #     conn_spec={
-        #         'rule': 'one_to_one'
-        #     }
-        # )
+        nest.Connect(
+            pre=self.i[1],
+            post=self.e[1],
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 0.9,
+                'weight': Weights.i1e1
+            },
+            conn_spec={
+                'rule': 'one_to_one'
+            }
+        )
+        nest.Connect(
+            pre=self.e[2],
+            post=self.i[1],
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': 0.9,
+                'weight': Weights.e2i1
+            },
+            conn_spec={
+                'rule': 'one_to_one'
+            }
+        )
         for i in range(len(self.e)):
             nest.Connect(
                 pre=add_multimeter('tier{}e{}'.format(self.index, i)),

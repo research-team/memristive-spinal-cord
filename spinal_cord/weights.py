@@ -18,24 +18,24 @@ class Weights:
     ids = []
 
     # Tier Interconnections
-    e0e1 = 20.
-    e0e3 = 20.
-    e1e2 = 20.
-    e2e1 = 20.
-    e2i1 = 0.
-    e3e4 = 20.
-    e3i0 = 20.
-    e4e3 = 20.
+    e0e1 = 70.
+    e0e3 = 70.
+    e1e2 = 65.
+    e2e1 = 0.
+    e2i1 = 70.
+    e3e4 = 75.
+    e3i0 = 70.
+    e4e3 = 75.
     i0e1 = -100. * Params.inh_coef.value
-    i1e1 = -50.
+    i1e1 = -100.
     e3i0e1 = -90. * Params.inh_coef.value
     e2i1e1 = -50.
 
     # Connections between tiers
 
-    e0e0 = 11.
-    e3e0 = 5.
-    e2e2 = 20.
+    e0e0 = 40.
+    e3e0 = 25.
+    e2e2 = 80.
 
     # Connections to pool
 
