@@ -1,11 +1,13 @@
 
-<img src="/images/logo/spinal-cord-logo.png?raw=true 'Logo'" alt="Logo" height=200/>
+<!-- <img src="/images/logo/spinal-cord-logo.png?raw=true 'Logo'" alt="Logo" height=200/> -->
+![logo](doc/logo/spinal-cord-logo.png)
 
 
 ### Intro
 Model of ES (Electric stimulation) of spinal cord. It should enhance walking cycle with correct parameters. A proposed scheme is below.
 
-<img src="/images/spinal-cord-diagram/spinal-cord-diagram.png?raw=true 'Reflexes'" alt="Model diagram" height=500/>
+<!-- <img src="/doc/diagram/spinal-cord-diagram.png?raw=true 'Reflexes'" alt="Model diagram" height=500/> -->
+![Reflexes](doc/diagram/spinal-cord-diagram.png)
 
 ### Install
 
@@ -37,9 +39,11 @@ Muscle is innervated by motoneurons (efferents), sensory neurons (afferents). Th
   - Group 1b. Innervates junction between muscle and its tendon. Not presented on images. Conveys input about its own contraction/stretch. It inhibits its agonist.
 - Group 2. Innervates muscle spindles. Conveys input about contraction/stretch. Slow. It excites its agonist, inhibits antagonist. When a muscle is relaxed, all of its afferents are zero. Lets contract the muscle. Information about its contraction/stretch is conveyed with 0.2s delay here comparing to Group 1a.
 
-<img src="/images/biology-intro/reflexes.jpg?raw=true 'Reflexes'" alt="Reflexes" height=300/>
+<!-- <img src="/images/biology-intro/reflexes.jpg?raw=true 'Reflexes'" alt="Reflexes" height=300/> -->
+![reflexes](doc/biology-intro/reflexes.jpg)
 
-<img src="/images/biology-intro/innervation.jpg?raw=true 'Muscle innervation'" alt="Muscle innervation" height=300/>
+<!-- <img src="/images/biology-intro/innervation.jpg?raw=true 'Muscle innervation'" alt="Muscle innervation" height=300/> -->
+![innervation](doc/biology-intro/innervation.jpg)
 
 #### About computational model of Moraud and Marco 2016
 They research the influence of Group 1a, Group 2 afferents only. Their simple model is presented at the figure 1A. Afferents are represented as Frequency Generators. They generate different activity for different environments. Those activities are predefined and were gotten by recording from real rat's afferents in those different environments. Model's validation:
