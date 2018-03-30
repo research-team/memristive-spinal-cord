@@ -24,8 +24,13 @@ right_3 = nest.Create(
     model='hh_cond_exp_traub',
     n=20,
     params={'C_m': 200., 'V_m': -70., 'E_L': -70., 'tau_syn_ex': .5, 'tau_syn_in': 1.1, 't_ref': 2.})
+left_3 = nest.Create(
+    model='hh_cond_exp_traub',
+    n=20,
+    params={'C_m': 100., 'V_m': -70., 'E_L': -70., 'tau_syn_ex': .5, 'tau_syn_in': 1.1, 't_ref': 2.})
 
-n_spikes = 6
+
+n_spikes = 3
 spike_times = [10. + i * 25. for i in range(n_spikes)]
 ees = nest.Create(
     model='spike_generator',
@@ -62,30 +67,30 @@ nest.Connect(
     syn_spec={
         'model': 'static_synapse',
         'delay': 1.,
-        'weight': 4.4
+        'weight': 4.5
     },
     conn_spec={
         'rule': 'fixed_indegree',
         'indegree': 8,
         'multapses': False})
-# nest.Connect(
-#     pre=right_2,
-#     post=right_3,
-#     syn_spec={
-#         'model': 'static_synapse',
-#         'delay': 1.,
-#         'weight': 28.
-#     },
-#     conn_spec={
-#         'rule': 'fixed_indegree',
-#         'indegree': 2})
+nest.Connect(
+    pre=right_2,
+    post=right_3,
+    syn_spec={
+        'model': 'static_synapse',
+        'delay': 10.,
+        'weight': 30.5
+    },
+    conn_spec={
+        'rule': 'fixed_indegree',
+        'indegree': 2})
 nest.Connect(
     pre=left_2,
     post=right_2,
     syn_spec={
         'model': 'static_synapse',
-        'delay': 1.,
-        'weight': 0.
+        'delay': 10.,
+        'weight': 23.
     },
     conn_spec={
         'rule': 'fixed_indegree',
@@ -95,8 +100,30 @@ nest.Connect(
     post=left_2,
     syn_spec={
         'model': 'static_synapse',
+        'delay': 10.,
+        'weight': 23.
+    },
+    conn_spec={
+        'rule': 'fixed_indegree',
+        'indegree': 2})
+nest.Connect(
+    pre=left_3,
+    post=right_3,
+    syn_spec={
+        'model': 'static_synapse',
         'delay': 1.,
-        'weight': 0.
+        'weight': 40.
+    },
+    conn_spec={
+        'rule': 'fixed_indegree',
+        'indegree': 5})
+nest.Connect(
+    pre=right_3,
+    post=left_3,
+    syn_spec={
+        'model': 'static_synapse',
+        'delay': 1.,
+        'weight': 40.
     },
     conn_spec={
         'rule': 'fixed_indegree',
@@ -117,6 +144,10 @@ nest.Connect(
 nest.Connect(
     pre=add_multimeter('right_3'),
     post=right_3)
+nest.Connect(
+    pre=add_multimeter('left_3'),
+    post=right_3)
+
 
 nest.Connect(
     pre=ees,
@@ -140,3 +171,10 @@ nest.Connect(
 nest.Connect(
     pre=left_1,
     post=add_spike_detector('l1_spikes'))
+nest.Connect(
+    pre=right_3,
+    post=add_spike_detector('r3_spikes'))
+nest.Connect(
+    pre=left_2,
+    post=add_spike_detector('l2_spikes'))
+
