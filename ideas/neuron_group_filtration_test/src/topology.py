@@ -30,7 +30,7 @@ left_3 = nest.Create(
     params={'C_m': 100., 'V_m': -70., 'E_L': -70., 'tau_syn_ex': .5, 'tau_syn_in': 1.1, 't_ref': 2.})
 
 
-n_spikes = 3
+n_spikes = 4
 spike_times = [10. + i * 25. for i in range(n_spikes)]
 ees = nest.Create(
     model='spike_generator',
@@ -78,8 +78,8 @@ nest.Connect(
     post=right_3,
     syn_spec={
         'model': 'static_synapse',
-        'delay': 10.,
-        'weight': 30.5
+        'delay': 1.,
+        'weight': 30.7
     },
     conn_spec={
         'rule': 'fixed_indegree',
