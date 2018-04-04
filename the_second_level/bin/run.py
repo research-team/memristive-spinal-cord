@@ -61,7 +61,5 @@ for tier in range(1, 7):
     # Plotter.save_spikes('tier{}_spikes'.format(tier))
 
 Plotter.plot_voltage('moto', 'Moto')
-Plotter.save_voltage('moto')
-
 Plotter.plot_voltage('pool', 'Pool')
-Plotter.save_voltage('pool')
+Plotter.save_voltage('moto-pool')

@@ -202,16 +202,14 @@ class Tier:
 class Topology:
 
     def __init__(self, n_spikes: int):
+
+        tiers = 6
         
-        self.tiers = [Tier(i) for i in range(1, 7)]
+        self.tiers = [Tier(i) for i in range(1, tiers+1)]
         self.ees = nest.Create(
             model='spike_generator',
             n=1,
             params={'spike_times': [10. + i * 25. for i in range(n_spikes)]})
-        self.moto = nest.Create(
-            model='hh_cond_exp_traub',
-            n=1,
-            params={'C_m': 134., 'V_m': -70., 'E_L': -70., 'tau_syn_ex': 0.5})
         self.pool = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -257,13 +255,13 @@ class Topology:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 700.
+                'weight': 1000.
             },
             conn_spec={
                 'rule': 'all_to_all'
             })
 
-        for tier in range(5):
+        for tier in range(tiers-1):
             # tier_1 to tier_2 [e0-e0]
             nest.Connect(
                 pre=self.tiers[tier].e0,
@@ -290,15 +288,14 @@ class Topology:
                     'rule': 'fixed_indegree',
                     'indegree': 7
                 })
+        for tier in range(tiers):
             nest.Connect(
-                pre=self.tiers[tier].e3,
+                pre=self.tiers[tier].e2,
                 post=self.pool,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 5.,
-                    'weight': 1.
-                },
+                    'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
+                    'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(20)]},
                 conn_spec={
-                    'rule': 'fixed_outdegree',
-                    'outdegree': 20
+                    'rule': 'all_to_all'
                 })
