@@ -48,7 +48,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                'weight': {'distribution': 'normal', 'mu': 50., 'sigma': 5.}},
+                'weight': {'distribution': 'normal', 'mu': 45., 'sigma': 5.}},
             conn_spec={
                 'rule': 'fixed_indegree',
                 'indegree': 5
@@ -60,7 +60,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                'weight': {'distribution': 'normal', 'mu': 20., 'sigma': 4.}},
+                'weight': {'distribution': 'normal', 'mu': 85., 'sigma': 4.}},
             conn_spec={
                 'rule': 'fixed_indegree',
                 'indegree': 5
@@ -72,9 +72,10 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                'weight': {'distribution': 'normal', 'mu': 15., 'sigma': 4.}},
+                'weight': {'distribution': 'normal', 'mu': 85., 'sigma': 4.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e0 to e3
         nest.Connect(
@@ -119,9 +120,22 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                'weight': {'distribution': 'normal', 'mu': -75., 'sigma': 2.}},
+                'weight': {'distribution': 'normal', 'mu': -60., 'sigma': 2.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
+            })
+        # e4 to e1
+        nest.Connect(
+            pre=self.e4,
+            post=self.e1,
+            syn_spec={
+                'model': 'static_synapse',
+                'delay': {'distribution': 'normal', 'mu': 15., 'sigma': 4.},
+                'weight': {'distribution': 'normal', 'mu': -50., 'sigma': 2.}},
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
 
         # e1 to e0 [relax]
@@ -143,7 +157,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.5,
-                'weight': 250.
+                'weight': 300.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -214,7 +228,7 @@ class Topology:
         self.ees = nest.Create(
             model='spike_generator',
             n=1,
-            params={'spike_times': [10. + i * 25. for i in range(n_spikes)]})
+            params={'spike_times': [10. + i * 35. for i in range(n_spikes)]})
         self.pool = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -280,6 +294,18 @@ class Topology:
                     'rule': 'fixed_indegree',
                     'indegree': 5
                 })
+            # tier_2 to tier_1 [e2-e2]
+            nest.Connect(
+                pre=self.tiers[tier+1].e2,
+                post=self.tiers[tier].e2,
+                syn_spec={
+                    'model': 'static_synapse',
+                    'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
+                    'weight': {'distribution': 'normal', 'mu': 35., 'sigma': 2.}},
+                conn_spec={
+                    'rule': 'fixed_indegree',
+                    'indegree': 5
+                })
             # tier_1 to tier_2 [e3-e0]
             nest.Connect(
                 pre=self.tiers[tier].e3,
@@ -300,7 +326,8 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
-                    'weight': {'distribution': 'normal', 'mu': 25., 'sigma': 0.2}},
+                    'weight': {'distribution': 'normal', 'mu': 35., 'sigma': 0.2}},
                 conn_spec={
-                    'rule': 'all_to_all'
+                    'rule': 'fixed_indegree',
+                    'indegree': 5
                 })

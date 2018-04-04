@@ -15,7 +15,7 @@ Cleaner.create_structure()
 
 from the_second_level.src.topology import Topology
 topology = Topology(int(sys.argv[1]))
-nest.Simulate(500.)
+nest.Simulate(350.)
 
 from the_second_level.src.tools.plotter import Plotter
 
