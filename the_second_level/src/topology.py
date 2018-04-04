@@ -47,10 +47,11 @@ class Tier:
             post=self.e1,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 25.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 50., 'sigma': 5.}},
             conn_spec={
-                'rule': 'all_to_all',
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e1 to e2
         nest.Connect(
@@ -58,10 +59,11 @@ class Tier:
             post=self.e2,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 20., 'sigma': 4.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e2 to e1
         nest.Connect(
@@ -69,8 +71,8 @@ class Tier:
             post=self.e1,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 15., 'sigma': 4.}},
             conn_spec={
                 'rule': 'all_to_all'
             })
@@ -80,10 +82,11 @@ class Tier:
             post=self.e3,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 50., 'sigma': 5.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e3 to e4
         nest.Connect(
@@ -91,10 +94,11 @@ class Tier:
             post=self.e4,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 49.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 85., 'sigma': 4.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e4 to e3
         nest.Connect(
@@ -102,10 +106,11 @@ class Tier:
             post=self.e3,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 49.) for _ in range(20)] for _ in range(20)]},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 85., 'sigma': 4.}},
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_indegree',
+                'indegree': 5
             })
         # e3 to e1
         nest.Connect(
@@ -113,23 +118,23 @@ class Tier:
             post=self.e1,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(5., 7.) for _ in range(20)] for _ in range(20)],
-                'weight': -200.},
+                'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': -75., 'sigma': 2.}},
             conn_spec={
                 'rule': 'all_to_all'
             })
 
         # e1 to e0 [relax]
-        nest.Connect(
-            pre=self.e1,
-            post=self.e0,
-            syn_spec={
-                'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.8) for _ in range(20)] for _ in range(20)],
-                'weight': [[uniform(0., 0.) for _ in range(20)] for _ in range(20)]},
-            conn_spec={
-                'rule': 'all_to_all'
-            })
+        # nest.Connect(
+        #     pre=self.e1,
+        #     post=self.e0,
+        #     syn_spec={
+        #         'model': 'static_synapse',
+        #         'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
+        #         'weight': {'distribution': 'normal', 'mu': 25., 'sigma': 2.}},
+        #     conn_spec={
+        #         'rule': 'all_to_all'
+        #     })
 
         # e0 to crutch
         nest.Connect(
@@ -138,7 +143,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.5,
-                'weight': 300.
+                'weight': 250.
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -231,8 +236,8 @@ class Topology:
             post=self.moto,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(169)],
-                'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(169)]},
+                'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
+                'weight': {'distribution': 'normal', 'mu': 25., 'sigma': 2.}},
             conn_spec={
                 'rule': 'all_to_all'
             })
@@ -294,8 +299,8 @@ class Topology:
                 post=self.pool,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': [[uniform(0.4, 0.7) for _ in range(20)] for _ in range(20)],
-                    'weight': [[uniform(0., 50.) for _ in range(20)] for _ in range(20)]},
+                    'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
+                    'weight': {'distribution': 'normal', 'mu': 25., 'sigma': 0.2}},
                 conn_spec={
                     'rule': 'all_to_all'
                 })
