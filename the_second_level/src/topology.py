@@ -274,7 +274,7 @@ class Topology:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 1000.
+                'weight': 1750.
             },
             conn_spec={
                 'rule': 'all_to_all'
@@ -326,7 +326,7 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.7, 'sigma': 0.1},
-                    'weight': {'distribution': 'normal', 'mu': 35., 'sigma': 0.2}},
+                    'weight': {'distribution': 'normal', 'mu': 100., 'sigma': 0.2}},
                 conn_spec={
                     'rule': 'fixed_indegree',
                     'indegree': 5

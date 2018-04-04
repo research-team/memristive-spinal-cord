@@ -7,6 +7,7 @@ class Miner:
 
     @staticmethod
     def gather_voltage(name: str):
+        neurons = []
         values = dict()
         logging.warning('Searching for {}'.format(name))
         for datafile in os.listdir(raw_data_path):
@@ -15,11 +16,13 @@ class Miner:
                 with open(os.path.join(raw_data_path, datafile)) as data:
                     for line in data:
                         gid, time, value = line.split()
+                        if gid not in neurons:
+                            neurons.append(gid)
                         if float(time) not in values.keys():
                             values[float(time)] = 0.
                         values[float(time)] += float(value)
         for time in values.keys():
-            values[float(time)] /= 20.
+            values[float(time)] /= float(len(neurons))
         return values
 
     @staticmethod
