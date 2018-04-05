@@ -30,14 +30,16 @@ class Receptor:
 
 class DummySensoryReceptor:
 
-    def __init__(self, initial_phase: str='stance', time: float=2000, period: float=1000., stand_coef: float=0.7, rate: float=60):
-        if initial_phase not in ['swing', 'stance']:
-            raise RuntimeError('Initial phase must be swing or stance')
-        i = 0 if initial_phase == 'stance' else 1
+    def __init__(self, inversion: bool=False, time: float=2000, period: float=1000., stand_coef: float=0.7, rate: float=60):
         spike_times = []
         standing_time = period * stand_coef
         walking_time = period * (1 - stand_coef)
-        periods = [standing_time, walking_time]
+        if inversion:
+            i = 0
+            periods = [standing_time, walking_time]
+        else:
+            i = 1
+            periods = [walking_time, standing_time]
         timepoint = 0.1
         while timepoint < time:
             if i:
