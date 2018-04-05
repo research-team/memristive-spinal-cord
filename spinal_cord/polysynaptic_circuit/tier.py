@@ -1,6 +1,7 @@
 import nest
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.weights import Weights
+from pkg_resources import resource_filename
 
 
 class Tier:
@@ -13,9 +14,11 @@ class Tier:
         'g_Na': 12000.0,  #
         'g_K': 3600.0,  #
         'C_m': 134.0,  # Capacity of membrane (pF)
-        'tau_syn_ex': 0.5,  # Time of excitatory action (ms)
-        'tau_syn_in': 5.0  # Time of inhibitory action (ms)
+        'tau_syn_ex': 0.7,  # Time of excitatory action (ms)
+        'tau_syn_in': 3.4  # Time of inhibitory action (ms)
     }
+
+    # params = {}
 
     def __init__(self, index: int):
         self.index = index
@@ -44,7 +47,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e0e1.value
+                'weight': Weights.e0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -56,7 +59,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e1e2.value
+                'weight': Weights.e1e2
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -68,7 +71,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e2e1.value
+                'weight': Weights.e2e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -80,7 +83,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e3e4.value
+                'weight': Weights.e3e4
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -92,19 +95,20 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e4e3.value
+                'weight': Weights.e4e3
             },
             conn_spec={
                 'rule': 'one_to_one'
             }
         )
+
         nest.Connect(
             pre=self.e[0],
             post=self.e[3],
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e0e3.value
+                'weight': Weights.e0e3
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -116,7 +120,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e3i0.value
+                'weight': Weights.e3i0
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -128,7 +132,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.i0e1.value
+                'weight': Weights.i0e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -140,7 +144,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.i1e1.value
+                'weight': Weights.i1e1
             },
             conn_spec={
                 'rule': 'one_to_one'
@@ -152,7 +156,7 @@ class Tier:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.9,
-                'weight': Weights.e2i1.value
+                'weight': Weights.e2i1
             },
             conn_spec={
                 'rule': 'one_to_one'

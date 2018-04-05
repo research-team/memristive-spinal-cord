@@ -38,10 +38,10 @@ class Level1:
             second_label='flexor',
             first=self.extens_motogroup.ia_name,
             second=self.flex_motogroup.ia_name,
-            title='Ia'
+            title='Ia (inter inh)'
         )
         plotter.subplot(
-            title='II',
+            title='II (inter exc)',
             first_label='extensor',
             first=self.extens_motogroup.ii_name,
             second_label='flexor',
@@ -51,27 +51,20 @@ class Level1:
 
     def plot_slices(self, afferent: str, time=40.):
         n_slices = 7
-        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Moto, stimulation rate: {}Hz'.format(Params.rate.value), 'moto_slices')
+        plotter = ResultsPlotter(n_slices, 'Average "V_m" of Moto, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'moto_slices')
         plotter.subplot_with_slices(
             slices=n_slices,
             first_label='extensor',
-            first=self.extens_motogroup.motoname,
-            second_label='flexor',
-            second=self.flex_motogroup.motoname,
-            third_label='stimuli',
-            third=afferent,
-            title='Pool'
+            first=self.extens_motogroup.motoname
         )
         plotter.save()
 
     def plot_moto_only(self):
-        plotter = ResultsPlotter(1, 'Average "V_m" of motoneurons, stimulation rate: {}Hz'.format(Params.rate.value), 'moto')
+        plotter = ResultsPlotter(1, 'Average "V_m" of motoneurons, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'moto')
 
         plotter.subplot(
             first_label='extensor',
-            second_label='flexor',
             first=self.extens_motogroup.motoname,
-            second=self.flex_motogroup.motoname,
             title='Moto'
         )
         plotter.save()

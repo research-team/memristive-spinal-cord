@@ -14,7 +14,7 @@ class AfferentFibers:
         self.dsr = DummySensoryReceptor()
         self.dsaf = DummySensoryAfferentFiber(self.dsr)
 
-        self.ees_amplitude = 300
+        self.ees_amplitude = 500
         self.ees = EES(amplitude=self.ees_amplitude)
         self.ees.connect(
             self.afferent_fiber_ia_flex,
@@ -25,7 +25,7 @@ class AfferentFibers:
         self.ees.connect_dummy(self.dsaf)
 
     def plot_afferents(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')
+        plotter = ResultsPlotter(3, 'Average "V_m" of afferents (Stimulation amplitude: {})'.format(self.ees_amplitude), 'afferents')
 
         plotter.subplot(
             first_label='extensor',
@@ -43,7 +43,7 @@ class AfferentFibers:
         )
         plotter.subplot(
             first_label='sensory',
-            first=self.dsaf,
+            first=self.dsaf.name,
             title='sensory'
         )
         plotter.save()

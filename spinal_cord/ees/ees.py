@@ -29,6 +29,7 @@ class EES:
         currents_delta = abs(available_currents - amplitude)
         closest_computed_current_index = currents_delta.argmin()
         percent = ruler[closest_computed_current_index] / max(ruler)
+        print('percent = {}'.format(percent))
         return percent
 
     @staticmethod
@@ -42,7 +43,7 @@ class EES:
         # start = 1000 // frequency_hz
         time_between_spikes = round(1000 / frequency_hz)
         # return numpy.linspace(start, how_long_s * 1000, how_many, dtype=numpy.int)
-        return [0.5 + time_between_spikes * i for i in range(how_many)]
+        return [0.1 + time_between_spikes * i for i in range(how_many)]
 
     def __init__(self, amplitude: float):
         spike_times = EES.generate_spiketimes(frequency_hz=Params.rate.value, how_long_s=20)
@@ -54,8 +55,6 @@ class EES:
                 'spike_times': spike_times,
             }
         )
-        print('EES id is {}'.format(self.ees_id))
-        print(EES.generate_spiketimes(frequency_hz=25, how_long_s=1000))
 
     def connect(self, *afferents: AfferentFiber or DummySensoryAfferentFiber) -> None:
         for afferent in afferents:
@@ -80,20 +79,19 @@ class EES:
                     'multapses': False
                 }
             )
-        print(nest.GetStatus(nest.GetConnections(self.ees_id)))
 
-    def connect_dummy(self, afferent):
+    def connect_dummy(self, dsaf):
         nest.Connect(
             pre=self.ees_id,
-            post=afferent.neuron_ids,
+            post=dsaf.neuron_ids,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 90.
+                'weight': 100.
             },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 45,
+                'outdegree': 54,
                 'multapses': False
             }
         )

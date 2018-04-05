@@ -2,6 +2,7 @@ import nest
 from spinal_cord.namespace import Muscle, Afferent
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.afferents.receptor import Receptor, DummySensoryReceptor
+from random import randint
 
 
 class AfferentFiber:
@@ -66,7 +67,7 @@ class DummySensoryAfferentFiber:
                 'tau_syn_in': 5.0  # Time of inhibitory action (ms)
             }
         )
-        self.receptor = DummySensoryReceptor()
+        self.receptor = dummy_sensory_receptor
         nest.Connect(
             pre=self.receptor.receptor_id,
             post=self.neuron_ids,
@@ -76,7 +77,9 @@ class DummySensoryAfferentFiber:
                 'weight': 0.
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'fixed_outdegree',
+                'outdegree': 20,
+                'multapses': False
             }
         )
         nest.Connect(

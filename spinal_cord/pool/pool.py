@@ -1,9 +1,11 @@
 import nest
 from spinal_cord.afferents.afferent_fiber import DummySensoryAfferentFiber
 from spinal_cord.level1 import Level1
+from spinal_cord.params import Params
 from spinal_cord.toolkit.multimeter import add_multimeter
 from spinal_cord.toolkit.plotter import ResultsPlotter
 from spinal_cord.weights import Weights
+from random import shuffle
 
 
 class Pool:
@@ -17,8 +19,8 @@ class Pool:
         'g_Na': 12000.0,  #
         'g_K': 3600.0,  #
         'C_m': 134.0,  # Capacity of membrane (pF)
-        'tau_syn_ex': 0.5,  # Time of excitatory action (ms)
-        'tau_syn_in': 5.0  # Time of inhibitory action (ms)
+        'tau_syn_ex': 4.7,  # Time of excitatory action (ms)
+        'tau_syn_in': 3.1  # Time of inhibitory action (ms)
     }
 
     def __init__(self):
@@ -28,14 +30,16 @@ class Pool:
         self.flex_suspended_name = 'suspended_flex'
         self.flex_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
-            n=1,
+            n=20,
             params=self.params
         )
         self.extens_suspended_nrn_id = nest.Create(
             model='hh_cond_exp_traub',
-            n=1,
+            n=20,
             params=self.params
         )
+        # nest.SetStatus(self.extens_suspended_nrn_id, {'E_L': -58.})
+        # nest.SetStatus(self.flex_suspended_nrn_id[:13], {'E_L': -58.})
         self.flex_group_nrn_ids = nest.Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -52,10 +56,10 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_sus_extens_ex.value
+                'weight': Weights.p_extens_sus_extens_ex
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'one_to_one'
             }
         )
         nest.Connect(
@@ -64,10 +68,10 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_sus_flex_ex.value
+                'weight': Weights.p_flex_sus_flex_ex
             },
             conn_spec={
-                'rule': 'all_to_all'
+                'rule': 'one_to_one'
             }
         )
         nest.Connect(
@@ -76,7 +80,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_extens_in.value
+                'weight': Weights.p_flex_extens_in
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -89,7 +93,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_flex_in.value
+                'weight': Weights.p_extens_flex_in
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -102,7 +106,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_extens_sus_flex_in.value
+                'weight': Weights.p_extens_sus_flex_in
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
             }
         )
         nest.Connect(
@@ -111,7 +119,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_flex_sus_extens_in.value
+                'weight': Weights.p_flex_sus_extens_in
+            },
+            conn_spec={
+                'rule': 'fixed_indegree',
+                'indegree': 15
             }
         )
         nest.Connect(
@@ -131,26 +143,35 @@ class Pool:
             post=self.extens_suspended_nrn_id
         )
 
-    def connect_sensory(self, sensory_afferent_fiber: DummySensoryAfferentFiber):
-        pre = sensory_afferent_fiber.neuron_ids
-        syn_spec = {
-           'model': 'static_synapse',
-           'delay': .1,
-           'weight': 4.
-        }
+    def connect_sensory(self, sensory: DummySensoryAfferentFiber):
+        # syn_spec = {
+        #    'model': 'static_synapse',
+        #    'delay': .1,
+        #    'weight': 15.
+        # }
         conn_spec = {
-            'rule': 'all_to_all'
+            'rule': 'fixed_indegree',
+            'indegree': 3,
+            'multapses': False
         }
         nest.Connect(
-            pre=pre,
+            pre=sensory.neuron_ids,
             post=self.flex_suspended_nrn_id,
-            syn_spec=syn_spec,
+            syn_spec={
+               'model': 'static_synapse',
+               'delay': .1,
+               'weight': 0.
+            },
             conn_spec=conn_spec
         )
         nest.Connect(
-            pre=pre,
+            pre=sensory.neuron_ids,
             post=self.extens_suspended_nrn_id,
-            syn_spec=syn_spec,
+            syn_spec={
+               'model': 'static_synapse',
+               'delay': .1,
+               'weight': 6.
+            },
             conn_spec=conn_spec
         )
 
@@ -161,7 +182,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_ex_ia.value
+                'weight': Weights.p_ex_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -174,11 +195,11 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_ex_moto.value
+                'weight': Weights.p_ex_moto
             },
             conn_spec={
-                'rule': 'fixed_indegree',
-                'indegree': 25
+                'rule': 'fixed_outdegree',
+                'outdegree': 25
             }
         )
 
@@ -188,7 +209,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_fl_ia.value,
+                'weight': Weights.p_fl_ia
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -201,7 +222,7 @@ class Pool:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': Weights.p_fl_moto.value
+                'weight': Weights.p_fl_moto
             },
             conn_spec={
                 'rule': 'fixed_indegree',
@@ -210,13 +231,11 @@ class Pool:
         )
 
     def plot_results(self):
-        plotter = ResultsPlotter(2, 'Average "V_m" of Pool', 'pool')
+        plotter = ResultsPlotter(2, 'Average "V_m" of Pool, stimulation rate: {}Hz, inhibition strength: {}%'.format(Params.rate.value, int(Params.inh_coef.value * 100)), 'pool')
 
         plotter.subplot(
             first_label='extensor',
             first=self.extens_group_name,
-            second_label='flexor',
-            second=self.flex_group_name,
             title='Pool'
         )
         plotter.subplot(

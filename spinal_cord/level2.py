@@ -13,7 +13,8 @@ class Level2:
         self.pc.connect_pool(self.pool)
         self.pool.connect_level1(level1)
         if afferents:
-            self.pool.connect_sensory(afferents.dsaf)
+            # self.pool.connect_sensory(sensory=afferents.dsaf)
+            self.pc.connect_sensory(sensory=afferents.dsaf)
 
     def plot_pool(self):
         self.pool.plot_results()
