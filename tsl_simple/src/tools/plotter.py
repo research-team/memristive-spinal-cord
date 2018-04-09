@@ -24,7 +24,39 @@ class Plotter:
         pylab.ylim([-80., 60.])
         Plotter.plot_voltage('moto', 'Motoneuron')
         pylab.legend()
-        Plotter.save_voltage('voltages')
+        Plotter.save_voltage('main_voltages')
+
+        for sublevel in range(num_sublevels):
+            pylab.subplot(num_sublevels, 1, num_sublevels - sublevel)
+            for group in ['hight', 'heft']:
+                pylab.ylim([-80., 60.])
+                Plotter.plot_voltage('{}{}'.format(group, sublevel),
+                    '{}{}'.format(group, sublevel+1))
+            pylab.legend()
+        Plotter.save_voltage('hidden_tiers')
+
+    @staticmethod
+    def plot_slices(num_slices: int=7, name: str='moto'):
+        step = .1
+        shift = 25
+        interval = 25
+        data = Miner.gather_voltage(name)
+        num_dots = int(1 / step * num_slices * interval)
+        shift_dots = int(1 / step * shift)
+        raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
+        fraction = len(raw_times) / num_slices
+
+        for s in range(num_slices):
+            pylab.subplot(num_slices, 1, s + 1)
+            start = int(s * fraction)
+            end = int((s + 1) * fraction) if s < num_slices - 1 else len(raw_times) - 1
+            times = raw_times[start:end]
+            values = [data[time] for time in times]
+            pylab.ylim(-80, 60)
+            pylab.plot(times, values)
+
+        Plotter.save_voltage('slices')
+
 
     @staticmethod
     def plot_all_spikes():
@@ -77,7 +109,7 @@ class Plotter:
     def save_spikes(name: str):
         pylab.rcParams['font.size'] = 4
         pylab.xlabel('Time, ms')
-        pylab.subplots_adjust(hspace=0.6)
+        pylab.subplots_adjust(hspace=0.7)
         pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
         pylab.close('all')
 
