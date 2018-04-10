@@ -101,7 +101,7 @@ class Sublevel:
                 'weight': Connections.sub_left_to_right['sublayer_{}'.format(index)]['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.sub_right_to_left['sublayer_{}'.format(index)]['degree']})
+                'indegree': Connections.sub_left_to_right['sublayer_{}'.format(index)]['degree']})
 
 class HiddenSublevel:
 
@@ -157,7 +157,7 @@ class HiddenSublevel:
                 'weight': Connections.hidden_sub_left_to_right['sublayer_{}'.format(index)]['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.hidden_sub_right_to_left['sublayer_{}'.format(index)]['degree']})  
+                'indegree': Connections.hidden_sub_left_to_right['sublayer_{}'.format(index)]['degree']})  
 
 
 class Topology:
