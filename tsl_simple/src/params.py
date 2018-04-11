@@ -3,9 +3,516 @@ num_spikes = 2
 simulation_time = 200.
 
 
+class Params:
+
+    pool_to_moto_conn = {
+        'weight': 1000,
+        'degree': 3}
+
+    num_pool_nrns = 50
+
+    num_moto_nrns = 169
+
+    params = {
+        'sublayer_1': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        },
+        'sublayer_2': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        },
+        'sublayer_3': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        },
+        'sublayer_4': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        },
+        'sublayer_5': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        },
+        'sublayer_6': {
+            'num_neurons': {
+                'left': 20,
+                'right': 20,
+                'hidden_left': 20,
+                'hidden_right': 20
+            },
+            'connections': {
+                'left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_right': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_left': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'right_to_hidden_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_right_to_right_up': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'hidden_left_to_left_down': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': -10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                },
+                'left_to_pool': {
+                    'weight': {
+                        'distribution': 'normal',
+                        'mu': 10.,
+                        'sigma': 2.
+                    },
+                    'degree': 1
+                }
+            }
+        }
+    }
+
+
+
 class Connections:
 
-    sub_left_to_right = {
+    left_to_right = {
         'sublayer_5': {
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1},
@@ -25,7 +532,7 @@ class Connections:
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1}}
 
-    sub_right_to_left = {
+    right_to_left = {
         'sublayer_5': {
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1},
@@ -45,7 +552,7 @@ class Connections:
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1}}
 
-    hidden_sub_left_to_right = {
+    hidden_left_to_right = {
         'sublayer_5': {
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1},
@@ -65,7 +572,7 @@ class Connections:
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1}}
 
-    hidden_sub_right_to_left = {
+    hidden_right_to_left = {
         'sublayer_5': {
             'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
             'degree': 1},

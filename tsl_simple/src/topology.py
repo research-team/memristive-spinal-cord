@@ -3,7 +3,7 @@ from tsl_simple.src.tools.multimeter import add_multimeter
 from tsl_simple.src.tools.spike_detector import add_spike_detector
 from tsl_simple.src.paths import raw_data_path
 from nest import Create, Connect, SetStatus
-from tsl_simple.src.params import num_sublevels, num_spikes, Connections, Neurons
+from tsl_simple.src.params import num_sublevels, num_spikes, Params
 from random import uniform
 
 
@@ -12,7 +12,7 @@ class Motoneuron:
     def __init__(self):
         self.gids = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.moto,
+            n=Params.num_moto_nrns,
             params={
                 'C_m': 500.,
                 'V_m': -70.,
@@ -32,7 +32,7 @@ class Pool:
     def __init__(self):
         self.gids = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.pool,
+            n=Params.num_pool_nrns,
             params={
                 'V_m': -70.,
                 'E_L': -70.,
@@ -52,7 +52,7 @@ class Sublevel:
     def __init__(self, index: int, name_left: str='left', name_right: str='right'):
         self.right = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.sublayers['sublayer_{}'.format(index)]['right'],
+            n=Params.params['sublayer_{}'.format(index + 1)]['num_neurons']['right'],
             params={
                 'V_m': -70.,
                 'E_L': -70.,
@@ -61,7 +61,7 @@ class Sublevel:
                 'tau_syn_in': 0.3})
         self.left = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.sublayers['sublayer_{}'.format(index)]['left'],
+            n=Params.params['sublayer_{}'.format(index + 1)]['num_neurons']['left'],
             params={
                 'V_m': -70.,
                 'E_L': -70.,
@@ -88,27 +88,27 @@ class Sublevel:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.4,
-                'weight': Connections.sub_right_to_left['sublayer_{}'.format(index)]['weight']},
+                'weight': Params.params['sublayer_{}'.format(index + 1)]['connections']['right_to_left']['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.sub_right_to_left['sublayer_{}'.format(index)]['degree']})
+                'indegree': Params.params['sublayer_{}'.format(index + 1)]['connections']['right_to_left']['degree']})
         Connect(
             pre=self.left,
             post=self.right,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.4,
-                'weight': Connections.sub_left_to_right['sublayer_{}'.format(index)]['weight']},
+                'weight': Params.params['sublayer_{}'.format(index + 1)]['connections']['left_to_right']['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.sub_left_to_right['sublayer_{}'.format(index)]['degree']})
+                'indegree': Params.params['sublayer_{}'.format(index + 1)]['connections']['left_to_right']['degree']})
 
 class HiddenSublevel:
 
     def __init__(self, index: int, name_left: str='left', name_right: str='right'):
         self.right = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.hidden_sublayers['sublayer_{}'.format(index)]['right'],
+            n=Params.params['sublayer_{}'.format(index + 1)]['num_neurons']['hidden_right'],
             params={
                 'V_m': -70.,
                 'E_L': -70.,
@@ -117,7 +117,7 @@ class HiddenSublevel:
                 'tau_syn_in': 0.3})
         self.left = Create(
             model='hh_cond_exp_traub',
-            n=Neurons.hidden_sublayers['sublayer_{}'.format(index)]['left'],
+            n=Params.params['sublayer_{}'.format(index + 1)]['num_neurons']['hidden_left'],
             params={
                 'V_m': -70.,
                 'E_L': -70.,
@@ -144,20 +144,20 @@ class HiddenSublevel:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.4,
-                'weight': Connections.hidden_sub_right_to_left['sublayer_{}'.format(index)]['weight']},
+                'weight': Params.params['sublayer_{}'.format(index + 1)]['connections']['hidden_right_to_left']['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.hidden_sub_right_to_left['sublayer_{}'.format(index)]['degree']})
+                'indegree': Params.params['sublayer_{}'.format(index + 1)]['connections']['hidden_right_to_left']['degree']})
         Connect(
             pre=self.left,
             post=self.right,
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 0.4,
-                'weight': Connections.hidden_sub_left_to_right['sublayer_{}'.format(index)]['weight']},
+                'weight': Params.params['sublayer_{}'.format(index + 1)]['connections']['hidden_left_to_right']['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.hidden_sub_left_to_right['sublayer_{}'.format(index)]['degree']})  
+                'indegree': Params.params['sublayer_{}'.format(index + 1)]['connections']['hidden_left_to_right']['degree']})  
 
 
 class Topology:
@@ -211,24 +211,20 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': .4,
-                    'weight': Connections.right_to_right_up[
-                        'sublayers_{}_{}'.format(i, i + 1)]['weight']},
+                    'weight': Params.params['sublayer_{}'.format(i + 1)]['connections']['right_to_right_up']['weight']},
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': Connections.right_to_right_up[
-                        'sublayers_{}_{}'.format(i, i + 1)]['degree']})
+                    'indegree': Params.params['sublayer_{}'.format(i + 1)]['connections']['right_to_right_up']['degree']})
             Connect(
                 pre=self.hidden_sublevels[i].right,
                 post=self.sublevels[i+1].right,
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                    'weight': Connections.hidden_right_to_right_up[
-                        'sublayer_{}_{}'.format(i, i+1)]['weight']},
+                    'weight': Params.params['sublayer_{}'.format(i + 1)]['connections']['hidden_right_to_right_up']['weight']},
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': Connections.hidden_right_to_right_up[
-                        'sublayer_{}_{}'.format(i, i+1)]['degree']})
+                    'indegree': Params.params['sublayer_{}'.format(i + 1)]['connections']['hidden_right_to_right_up']['degree']})
         for i in range(num_sublevels):
             Connect(
                 pre=self.sublevels[i].right,
@@ -236,24 +232,20 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                    'weight': Connections.right_to_hidden_right_up[
-                        'sublayer_{}'.format(i)]['weight']},
+                    'weight': Params.params['sublayer_{}'.format(i + 1)]['connections']['right_to_hidden_right_up']['weight']},
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': Connections.right_to_hidden_right_up[
-                        'sublayer_{}'.format(i)]['degree']})
+                    'indegree': Params.params['sublayer_{}'.format(i + 1)]['connections']['right_to_hidden_right_up']['degree']})
             Connect(
                 pre=self.hidden_sublevels[i].left,
                 post=self.sublevels[i].left,
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                    'weight': Connections.hidden_left_to_left_down[
-                        'sublayer_{}'.format(i)]['weight']},
+                    'weight': Params.params['sublayer_{}'.format(i + 1)]['connections']['hidden_left_to_left_down']['weight']},
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': Connections.hidden_left_to_left_down[
-                        'sublayer_{}'.format(i)]['degree']})
+                    'indegree': Params.params['sublayer_{}'.format(i + 1)]['connections']['hidden_left_to_left_down']['degree']})
 
 
         # pool to moto
@@ -265,12 +257,10 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                    'weight': Connections.left_to_pool[
-                        'sublayer_{}'.format(i)]['weight']},
+                    'weight': Params.params['sublayer_{}'.format(i + 1)]['connections']['left_to_pool']['weight']},
                 conn_spec={
                     'rule': 'fixed_indegree',
-                    'indegree': Connections.left_to_pool[
-                        'sublayer_{}'.format(i)]['degree']
+                    'indegree': Params.params['sublayer_{}'.format(i + 1)]['connections']['left_to_pool']['degree']
                 })
 
         Connect(
@@ -279,7 +269,7 @@ class Topology:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': {'distribution': 'normal', 'mu': 0.5, 'sigma': 0.1},
-                'weight': Connections.pool_to_moto['weight']},
+                'weight': Params.pool_to_moto_conn['weight']},
             conn_spec={
                 'rule': 'fixed_indegree',
-                'indegree': Connections.pool_to_moto['degree']})
+                'indegree': Params.pool_to_moto_conn['degree']})
