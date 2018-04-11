@@ -1,0 +1,210 @@
+nMN = 169       /* The number of cells */
+nInt = 196
+nAff = 120
+nsyn = 100
+
+{load_file("Ia1.hoc")}
+{load_file("Ia2.hoc")}
+{load_file("Ib1.hoc")}
+{load_file("Ib2.hoc")}
+{load_file("IIint1.hoc")}
+{load_file("IIint2.hoc")}
+{load_file("IAint1.hoc")}
+{load_file("IAint2.hoc")}
+{load_file("MNE.hoc")}
+{load_file("MNF.hoc")}
+{load_file("save.hoc")}
+
+objectvar precellsIIe[nInt], MNe[nMN], precellsIAe[nInt]
+objectvar precellsIIf[nInt], MNf[nMN], precellsIAf[nInt]
+objectvar IaE[nAff], IbE[nAff], IaF[nAff], IbF[nAff]
+objectvar spgenIaEx[nAff], spgenIbEx[nAff], spgenIaFl[nAff], spgenIbFl[nAff]
+objectvar exsyn[nMN][nsyn], exstdpmech[nMN][nsyn], expresyn[nMN][nsyn], expostsyn[nMN][nsyn]
+objectvar inhsyn[nMN][nsyn], inhstdpmech[nMN][nsyn], inhpresyn[nMN][nsyn], inhpostsyn[nMN][nsyn]
+objectvar exsyn1[nMN][nsyn], exstdpmech1[nMN][nsyn], expresyn1[nMN][nsyn], expostsyn1[nMN][nsyn]
+objectvar inhsyn1[nMN][nsyn], inhstdpmech1[nMN][nsyn], inhpresyn1[nMN][nsyn], inhpostsyn1[nMN][nsyn]
+objectvar affsynMNe[nMN][nsyn], affsynMNf[nMN][nsyn]
+objectvar mutualinhsynE[nInt][nsyn], mutualinhstdpmechE[nInt][nsyn], mutualinhpresynE[nInt][nsyn], mutualinhpostsynE[nInt][nsyn]
+objectvar mutualinhsynF[nInt][nsyn], mutualinhstdpmechF[nInt][nsyn], mutualinhpresynF[nInt][nsyn], mutualinhpostsynF[nInt][nsyn]
+objectvar affsynIAe[nInt][nsyn], affsynIAf[nInt][nsyn], affsynIAe1[nInt][nsyn], affsynIAf1[nInt][nsyn], affsynIIe[nInt][nsyn], affsynIIf[nInt][nsyn]
+create dummy
+/* building arc */
+
+for i = 0, nMN-1 { 
+    MNe[i] = new MNE(i*5)
+    MNf[i] = new MNF(i*5)
+}
+
+for i = 0, nInt-1 { 
+    precellsIAe[i] = new IA1(i)
+    precellsIAf[i] = new IA2(i)
+    precellsIIe[i] = new II1(i)
+    precellsIIf[i] = new II2(i)
+}
+
+for i = 0, nAff-1 { 
+    IaE[i] = new Ia1(i)
+    IbE[i] = new Ib1(i)
+    IaF[i] = new Ia2(i)
+    IbF[i] = new Ib2(i)
+}
+
+/* add spike generators on afferents */
+
+for i = 0, nAff-1 { //spike generator
+    spgenIaEx[i] = new SpikeGenerator(0.8)
+        spgenIaEx[i].freq = fr3[i]
+        spgenIaEx[i].start = 5
+        spgenIaEx[i].number = 1000000
+        spgenIaEx[i].noise = 0.2 
+    spgenIbEx[i] = new SpikeGenerator(0.8)
+        spgenIbEx[i].freq = fr1[i]
+        spgenIbEx[i].start = 5
+        spgenIbEx[i].number = 1000000
+        spgenIbEx[i].noise = 0.2 
+    spgenIaFl[i] = new SpikeGenerator(0.8)
+        spgenIaFl[i].freq = fr4[i]
+        spgenIaFl[i].start = 5
+        spgenIaFl[i].number = 1000000
+        spgenIaFl[i].noise = 0.2 
+    spgenIbFl[i] = new SpikeGenerator(0.8)
+        spgenIbFl[i].freq = fr2[i]
+        spgenIbFl[i].start = 5
+        spgenIbFl[i].number = 1000000
+        spgenIbFl[i].noise = 0.2 
+}
+
+/* connection between motoneurons and interneurons, motoneurons and afferents */
+objref r
+r = new Random()
+
+for i = 0,nMN-1 {
+    for j = 0,nsyn-1 {
+        exE = exconn[i][j]
+        inhE = inhconn[i][j]
+        exF = exconn1[i][j]
+        inhF = inhconn1[i][j]
+        affE = affconn[i][j]
+        affF = affconn1[i][j]
+        inhw = inhweights[i][j]
+        exw = exweights[i][j]
+        inhw1 = inhweights1[i][j]
+        exw1 = exweights1[i][j]
+        nd = j/10
+        precellsIIe[exE].axon exsyn[i][j] = new NetCon(&v(0), MNe[i].synlistex.object(j), 10, 1, 0.5)
+        precellsIAe[inhE].axon inhsyn[i][j] = new NetCon(&v(0), MNf[i].synlistinh.object(j), -50, 1, 0.5)
+        exsyn[i][j].weight = 0.01
+        inhsyn[i][j].weight = 0.01
+        exstdpmech[i][j] = new StdwaSA(0.5)
+        precellsIIe[exE].axon expresyn[i][j] = new NetCon(&v(0), exstdpmech[i][j], 10, 1, 1)
+        MNe[i].dend[nd] expostsyn[i][j] = new NetCon(&v(0), exstdpmech[i][j], 10, 1, -1)
+        setpointer exstdpmech[i][j].wsyn, exsyn[i][j].weight
+        //exstdpmech[i][j].gv = 0.015
+        inhstdpmech[i][j] = new StdwaSA(0.5)
+        precellsIAe[inhE].axon inhpresyn[i][j] = new NetCon(&v(0), inhstdpmech[i][j], -50, 1, 1)
+        MNf[i].dend[nd] inhpostsyn[i][j] = new NetCon(&v(0), inhstdpmech[i][j], -50, 1, -1)
+        setpointer inhstdpmech[i][j].wsyn, inhsyn[i][j].weight
+        //inhstdpmech[i][j].gv = r.normal(0, .015)
+        //inhstdpmech[i][j].antiwt = 0.01
+        precellsIIf[exF].axon exsyn1[i][j] = new NetCon(&v(0), MNf[i].synlistex.object(j), 10, 1, 0.5)
+        precellsIAf[inhF].axon inhsyn1[i][j] = new NetCon(&v(0), MNe[i].synlistinh.object(j), -50, 1, 0.5)
+        exsyn1[i][j].weight = 0.01
+        inhsyn1[i][j].weight = 0.01
+        exstdpmech1[i][j] = new StdwaSA(0.5)
+        precellsIIf[exF].axon expresyn1[i][j] = new NetCon(&v(0), exstdpmech1[i][j], 10, 1, 1)
+        MNf[i].dend[nd] expostsyn1[i][j] = new NetCon(&v(0), exstdpmech1[i][j], 10, 1, -1)
+        setpointer exstdpmech1[i][j].wsyn, exsyn1[i][j].weight
+        //exstdpmech1[i][j].gv = 0.015
+        inhstdpmech1[i][j] = new StdwaSA(0.5)
+        precellsIAe[inhF].axon inhpresyn1[i][j] = new NetCon(&v(0), inhstdpmech1[i][j], -50, 1, 1)
+        MNe[i].dend[nd] inhpostsyn1[i][j] = new NetCon(&v(0), inhstdpmech1[i][j], -50, 1, -1)
+        setpointer inhstdpmech1[i][j].wsyn, inhsyn1[i][j].weight
+        //inhstdpmech1[i][j].gv = r.normal(0, .015)
+        //inhstdpmech1[i][j].antiwt = 0.01
+        IaE[affE].axon affsynMNe[i][j] = new NetCon(spgenIaEx[affE], MNe[i].synlistaff.object(j), -20, 1, 1)
+        IaF[affF].axon affsynMNf[i][j] = new NetCon(spgenIaFl[affE], MNf[i].synlistaff.object(j), -20, 1, 1)
+    }
+}
+
+/* connection between inhibitory interneurons, interneurons and afferents */
+
+for i = 0,nInt-1 {
+    for j = 0,nsyn-1 {
+        minhE = minh[i][j]
+        minhF = minh1[i][j]
+        affinhE = affi[i][j]
+        affinhF = affi1[i][j]
+        aff1inhE = affi2[i][j]
+        aff1inhF = affi21[i][j]
+        affexE = affex[i][j]
+        affexF = affex1[i][j]
+        nd = j/10
+        mutualinhstdpmechE[i][j] = new StdwaSA(0.5)
+        precellsIAe[i].axon mutualinhsynE[i][j] = new NetCon(&v(0), precellsIAf[minhE].synlistinh.object(j), -50, 2, 0.01)
+        precellsIAe[i].axon mutualinhpresynE[i][j] = new NetCon(&v(0), mutualinhstdpmechE[i][j], -50, 1, 1)
+        precellsIAf[minhE].dend[nd] mutualinhpostsynE[i][j] = new NetCon(&v(0), mutualinhstdpmechE[i][j], -50, 1, -1)
+        setpointer mutualinhstdpmechE[i][j].wsyn, mutualinhsynE[i][j].weight
+        //mutualinhstdpmechE[i][j].antiwt = 0.01
+        //mutualinhstdpmechE[i][j].gv = r.normal(0, .015)
+        mutualinhstdpmechF[i][j] = new StdwaSA(0.5)
+        precellsIAf[i].axon mutualinhsynF[i][j] = new NetCon(&v(0), precellsIAe[minhF].synlistinh.object(j), -50, 2, 0.01)
+        precellsIAf[i].axon mutualinhpresynF[i][j] = new NetCon(&v(0), mutualinhstdpmechF[i][j], -50, 1, 1)
+        precellsIAe[minhF].dend[nd] mutualinhpostsynF[i][j] = new NetCon(&v(0), mutualinhstdpmechF[i][j], -50, 1, -1)
+        setpointer mutualinhstdpmechF[i][j].wsyn, mutualinhsynF[i][j].weight
+        //mutualinhstdpmechF[i][j].antiwt = 0.01
+        //mutualinhstdpmechF[i][j].gv = r.normal(0, .015)
+        IaE[affinhE].axon affsynIAe[i][j] = new NetCon(spgenIaEx[affE], precellsIAe[i].synlistaff.object(j), -20, 1, 1)
+        IaF[affinhF].axon affsynIAf[i][j] = new NetCon(spgenIaFl[affE], precellsIAf[i].synlistaff.object(j), -20, 1, 1)
+        IbE[aff1inhE].axon affsynIAe1[i][j] = new NetCon(spgenIbEx[affE], precellsIAe[i].synlistaff.object(j), -20, 1, 1)
+        IbF[aff1inhF].axon affsynIAf1[i][j] = new NetCon(spgenIbFl[affE], precellsIAf[i].synlistaff.object(j), -20, 1, 1)
+        IbE[affexE].axon affsynIIe[i][j] = new NetCon(spgenIbEx[affE], precellsIIe[i].synlistaff.object(j), -20, 1, 1)
+        IbF[affexF].axon affsynIIf[i][j] = new NetCon(spgenIbFl[affE], precellsIIf[i].synlistaff.object(j), -20, 1, 1)      
+    }
+}
+
+//recording will be here
+
+/*
+objref exsynrec[nMN][nsyn], inhsynrec[nMN][nsyn]
+recDt = 25
+for i = 0,nMN-1 {
+    for j = 0,nsyn-1 {
+        exsynrec[i][j]= new Vector()
+        exsynrec[i][j].record(&exsyn[i][j].weight, recDt) 
+        inhsynrec[i][j]= new Vector()
+        inhsynrec[i][j].record(&inhsyn[i][j].weight, recDt)
+    }
+}
+
+tstop = 7000
+v_init = -70
+run()
+
+objref fok
+fok=new File()
+
+
+for i = 0,nMN-1 {
+    for j = 0,nsyn-1 {
+        strdef basename0, basename1, extension, filename0, filename1
+        basename0 = "./res/ex"
+        basename1 = "./res/inh"
+        extension = "txt"
+
+        sprint(filename0, "%s%dn%d.%s", basename0, i, j, extension)
+        fok.wopen(filename0)
+        exsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename1, "%s%dn%d.%s", basename1, i, j, extension)
+        fok.wopen(filename1)
+        inhsynrec[i][j].printf(fok)
+        fok.close()
+    }
+}*/
+
+{load_file("1.ses")}
+
+forall psection()
+
+access dummy

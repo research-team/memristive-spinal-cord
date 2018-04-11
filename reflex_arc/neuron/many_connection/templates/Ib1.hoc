@@ -1,0 +1,65 @@
+begintemplate Ib1
+public soma, axon, presyn, connect2target, spgenIbEx
+
+create soma, axon
+objectvar presyn[2]
+objref spgenIbEx
+
+proc init() {local i
+    ndend = 1          
+
+    soma_diam = 10    
+    soma_len = 10      
+    soma_nseg = 1
+    soma_cm = 2
+    soma_Ra = 200     
+
+    axon_diam = 2      
+    axon_len = 350 + $1
+    axon_nseg = 50 
+    axon_cm = 2
+    axon_Ra = 0.002         
+
+    create soma, axon  
+
+    soma {
+    nseg = soma_nseg    
+    diam = soma_diam    
+    L = soma_len 
+    cm = soma_cm
+    Ra = soma_Ra  
+    insert hh     
+
+    pt3dclear()
+    pt3dadd(-500,50,$1*5,soma_diam) 
+    pt3dadd(-500-soma_len,50,$1*5,soma_diam) 
+    }
+
+    axon {
+    nseg = axon_nseg    
+    diam = axon_diam    
+    L = axon_len 
+    cm = axon_cm
+    Ra = axon_Ra
+    insert hh
+    pt3dclear()     
+    pt3dadd(-500,50,$1*5,axon_diam) 
+    pt3dadd(-500+axon_len,50,$1*5,axon_diam) 
+    }
+
+    spgenIbEx = new SpikeGenerator(0.8)
+        spgenIbEx.freq = $2
+        spgenIbEx.start = 5
+        spgenIbEx.number = 1000000
+        spgenIbEx.noise = 0.2 
+
+    connect axon(1), soma(0)    
+}
+
+obfunc connect2target() { localobj nc
+    nc = new NetCon(spgenIbEx, $o1)
+    if (numarg() == 2) { $o2 = nc }
+    return nc
+}
+
+endtemplate Ib1

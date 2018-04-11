@@ -1,0 +1,243 @@
+objectvar f, fok
+
+f = new File()
+
+f.ropen("./a1.txt")
+
+aff = 120
+double fr1[aff]
+
+for i = 0,aff-1 {
+	fr1[i]=f.scanvar()
+}
+f.close()
+
+f.ropen("./a2.txt")
+
+double fr2[aff]
+
+for i = 0,aff-1 {
+	fr2[i]=f.scanvar()
+}
+f.close()
+
+f.ropen("./a3.txt")
+
+aff = 120
+double fr3[aff]
+
+for i = 0,aff-1 {
+	fr3[i]=f.scanvar()
+}
+f.close()
+
+f.ropen("./a4.txt")
+
+double fr4[aff]
+
+for i = 0,aff-1 {
+	fr4[i]=f.scanvar()
+}
+f.close()
+
+nMN = 169       
+nInt = 196
+nsyn = 100
+
+f.ropen("./connection_matrix/connex.txt")
+
+double exconn[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exconn[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/conninh.txt")
+
+double inhconn[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		inhconn[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connex1.txt")
+
+double exconn1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exconn1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/conninh.txt")
+
+double inhconn1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		inhconn1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaff.txt")
+
+double affconn[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		affconn[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaff1.txt")
+
+double affconn1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		affconn1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connminh.txt")
+
+double minh[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		minh[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connminh1.txt")
+
+double minh1[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		minh1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaffinh.txt")
+
+double affi[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affi[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaffinh1.txt")
+
+double affi1[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affi1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaffex.txt")
+
+double affex[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affex[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaffex1.txt")
+
+double affex1[nInt][nsyn]
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affex1[i][j]=f.scanvar()
+	}
+}
+
+f.close()
+
+f.ropen("./connection_matrix/connaffinh2.txt")
+
+double affi2[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affi2[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/connaffinh21.txt")
+
+double affi21[nInt][nsyn]
+
+for i = 0,nInt-1 {
+	for j = 0,nsyn-1 {
+		affi21[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/weights.txt")
+
+double inhweights[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		inhweights[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights.txt")
+
+double exweights[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/weights1.txt")
+
+double inhweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		inhweights1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()

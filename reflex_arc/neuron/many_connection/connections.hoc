@@ -1,0 +1,125 @@
+/* add connections */
+
+objref connect_MNe_Aff, connect_MNf_Aff, connect_MNe_IA, connect_MNe_II, connect_MNf_IA, connect_MNf_II
+objref connect_IAf_Ia, connect_IAe_Ia, connect_IAf_Ib, connect_IAe_Ib, connect_IAf_IAe, connect_IAe_IAf
+objref connect_IIf_Ib, connect_IIe_Ib
+objref syn, target, stdp, presyn, postsyn, stdpmech, presyns, postsyns
+connect_MNe_Aff = new List()
+connect_MNf_Aff = new List()
+connect_MNe_II = new List()
+connect_MNe_IA = new List()
+connect_IIe_Ib = new List()
+connect_IIf_Ib = new List()
+connect_MNf_II = new List()
+connect_MNf_IA = new List()
+connect_IAe_Ia = new List()
+connect_IAf_Ia = new List()
+connect_IAe_Ib = new List()
+connect_IAf_Ib = new List()
+connect_IAe_IAf = new List()
+connect_IAf_IAe = new List()
+presyns = new List()
+postsyns = new List()
+stdpmech = new List()
+
+proc connection(){
+    syn = $o1
+    nc = pc.gid_connect($3, syn)
+    nc.weight = 1
+    nc.delay = 1
+    $o2.append(nc)
+}
+
+proc connectionSTDP(){
+    syn = $o1
+    nc = pc.gid_connect($4, syn)
+    nc.weight = 0.01
+    nc.delay = 1
+    $o2.append(nc)
+    stdp = new StdwaSA(0.5)
+    presyn = pc.gid_connect($4, stdp)
+    presyn.weight = 1
+    postsyn = pc.gid_connect($3, stdp)
+    postsyn.weight = -1
+    setpointer stdp.wsyn, $o2.object($o2.count-1).weight
+    $o5.append(stdp)
+    $o6.append(presyn)
+    $o7.append(postsyn)
+}
+//MN extensor connections
+for (i=pc.id; nMN -1;  {
+	if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+    	affE = affconn[i][j]+nMN+nInt+nInt
+        exII = exconn[i][j] + nMN
+        exIA = inhconn[i][j] + nMN + nInt + ncell
+        connection(target.synlistaff.object(j), connect_MNe_Aff, affE)
+        connectionSTDP(target.synlistex.object(j), connect_MNe_II, i, exII, stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, exIA, stdpmech, presyns, postsyns)        
+    }
+}
+
+//MN flexor connections
+for i=pc.id+ncell, nMN+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        affF = affconn1[i-ncell][j]+nMN+nInt+nInt+ncell
+        flII = exconn1[i-ncell][j] + nMN +ncell
+        flIA = inhconn1[i-ncell][j] + nMN + nInt 
+        connection(target.synlistaff.object(j), connect_MNf_Aff, affF)
+        connectionSTDP(target.synlistex.object(j), connect_MNf_II, i, flII, stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistinh.object(j), connect_MNf_IA, i, flIA, stdpmech, presyns, postsyns)  
+    }
+}
+
+//between II extensor and afferents
+for i=pc.id+nMN, nMN+nInt - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        affex = affex[i-nMN][j]+nMN+nInt+nInt+nAff
+        connection(target.synlistaff.object(j), connect_IIe_Ib, affex)
+    }
+}
+
+//between II flexor and afferents
+for i=pc.id+nMN+ncell, nMN+nInt+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        affex = affex1[i-nMN-ncell][j]+nMN+nInt+nInt+nAff+ncell
+        connection(target.synlistaff.object(j), connect_IIf_Ib, affex)
+    }
+}
+
+//between IA extensor and afferents
+//between IA extensor and IA flexor
+for i=pc.id+nMN+nInt, nMN+nInt+nInt - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        affIa = affi[i-nMN-nInt][j]+nMN+nInt+nInt
+        affIb = affi2[i-nMN-nInt][j]+nMN+nInt+nInt+nAff
+        minh = minh[i-nMN-nInt][j] + nMN + nInt + ncell
+        connection(target.synlistaff.object(j), connect_IAe_Ia, affIa)
+        connection(target.synlistaffb.object(j), connect_IAe_Ib, affIb)
+        connectionSTDP(target.synlistinh.object(j), connect_IAe_IAf, i, minh, stdpmech, presyns, postsyns)  
+    }
+}
+
+//between IA flexor and afferents
+//between IA flexor and IA extensor
+for i=pc.id+nMN+nInt+ncell, nMN+nInt+nInt+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        affIa = affi1[i-nMN-nInt-ncell][j]+nMN+nInt+nInt+ncell
+        affIb = affi21[i-nMN-nInt-ncell][j]+nMN+nInt+nInt+nAff+ncell
+        minh = minh1[i-nMN-nInt-ncell][j] + nMN + nInt
+        connection(target.synlistaff.object(j), connect_IAf_Ia, affIa)
+        connection(target.synlistaffb.object(j), connect_IAf_Ib, affIb)
+        connectionSTDP(target.synlistinh.object(j), connect_IAf_IAe, i, minh, stdpmech, presyns, postsyns)  
+    }
+}
