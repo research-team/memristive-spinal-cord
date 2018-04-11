@@ -1,37 +1,43 @@
-objref exsynrec[nMN][nsyn], flsynrec[nMN][nsyn]
+num = connect_MNe_II.count/100
+objref exsynrec[num][nsyn], flsynrec[num][nsyn]
 recDt = 5
-for i = 0,nMN-1 {
-    for j = 0,nsyn-1 {
-        exsynrec[i][j]= new Vector()
-        exsynrec[i][j].record(&connect_MNe_II.object(i*nsyn+j).weight, recDt) 
-        flsynrec[i][j]= new Vector()
-        flsynrec[i][j].record(&connect_MNf_II.object(i*nsyn+j).weight, recDt)
-    }
+for i=0,num-1 {
+        for j = 0,nsyn-1 {
+                exsynrec[i][j]= new Vector()
+                exsynrec[i][j].record(&connect_MNe_II.object(i*nsyn+j).weight, recDt)
+                flsynrec[i][j]= new Vector()
+                flsynrec[i][j].record(&connect_MNf_II.object(i*nsyn+j).weight, recDt)
+        }
 }
-
+print(num)
+print(pc.id)
+//running
 tstop = 10
-v_init = -70
-run()
-
+{pc.set_maxstep(2)}
+stdinit()
+{pc.psolve(tstop)}
+//writing
 objref fok
 fok=new File()
-
-
-for i = 0,nMN-1 {
+for i=0,num-1 {
     for j = 0,nsyn-1 {
         strdef basename0, basename1, extension, filename0, filename1
         basename0 = "./res/ex"
         basename1 = "./res/fl"
         extension = "txt"
 
-        sprint(filename0, "%s%dn%d.%s", basename0, i, j, extension)
+        sprint(filename0, "%s%dn%dp%d.%s", basename0, i, j, pc.id, extension)
         fok.wopen(filename0)
         exsynrec[i][j].printf(fok)
         fok.close()
 
-        sprint(filename1, "%s%dn%d.%s", basename1, i, j, extension)
+        sprint(filename1, "%s%dn%dp%d.%s", basename1, i, j, pc.id, extension)
         fok.wopen(filename1)
         flsynrec[i][j].printf(fok)
         fok.close()
     }
 }
+print(tstop)
+{pc.runworker()}
+{pc.done()}
+quit()
