@@ -1,6 +1,6 @@
 num_sublevels = 6
-num_spikes = 2
-simulation_time = 200.
+num_spikes = 7
+simulation_time = 250.
 
 
 class Params:
@@ -25,74 +25,74 @@ class Params:
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 86.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 70.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 50.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 }
             }
         },
@@ -107,238 +107,238 @@ class Params:
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 88.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 80.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 2
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 40.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -500.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 7
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 }
             }
         },
         'sublayer_3': {
             'num_neurons': {
-                'left': 20,
+                'left': 18,
                 'right': 20,
-                'hidden_left': 20,
-                'hidden_right': 20
+                'hidden_left': 52,
+                'hidden_right': 52
             },
             'connections': {
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 92.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 80.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 30.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -600.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 6
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 }
             }
         },
         'sublayer_4': {
             'num_neurons': {
-                'left': 20,
+                'left': 19,
                 'right': 20,
-                'hidden_left': 20,
-                'hidden_right': 20
+                'hidden_left': 50,
+                'hidden_right': 50
             },
             'connections': {
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 84.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 70.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 30.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 }
             }
         },
@@ -346,81 +346,81 @@ class Params:
             'num_neurons': {
                 'left': 20,
                 'right': 20,
-                'hidden_left': 20,
-                'hidden_right': 20
+                'hidden_left': 50,
+                'hidden_right': 50
             },
             'connections': {
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 120.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 70.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 30.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 6
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 }
             }
         },
@@ -428,41 +428,41 @@ class Params:
             'num_neurons': {
                 'left': 20,
                 'right': 20,
-                'hidden_left': 20,
-                'hidden_right': 20
+                'hidden_left': 50,
+                'hidden_right': 50
             },
             'connections': {
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 3
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'right_to_right_up': {
                     'weight': {
@@ -475,10 +475,10 @@ class Params:
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 200.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 4
                 },
                 'hidden_right_to_right_up': {
                     'weight': {
@@ -491,18 +491,18 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 6
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 }
             }
         }
