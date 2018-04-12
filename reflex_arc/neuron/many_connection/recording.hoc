@@ -9,12 +9,11 @@ for i=0,num-1 {
                 flsynrec[i][j].record(&connect_MNf_II.object(i*nsyn+j).weight, recDt)
         }
 }
-print(num)
-print(pc.id)
 //running
 tstop = 10
 {pc.set_maxstep(2)}
-stdinit()
+run()
+if (t%2 == 1){print(tstop)}
 {pc.psolve(tstop)}
 //writing
 objref fok
@@ -40,4 +39,4 @@ for i=0,num-1 {
 print(tstop)
 {pc.runworker()}
 {pc.done()}
-quit()
+//quit()

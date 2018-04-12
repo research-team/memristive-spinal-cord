@@ -119,7 +119,7 @@ if (pc.id == 0) {
 
 {load_file("connections.hoc")}
 
-//{load_file("recording.hoc")}
+{load_file("recording.hoc")}
 
 //forall psection()
 

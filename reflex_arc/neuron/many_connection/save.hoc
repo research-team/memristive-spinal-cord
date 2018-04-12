@@ -62,7 +62,7 @@ addSmth(str18, affi21)
 addSmth(str19, connMNeip)
 addSmth(str20, connMNfip)
 addSmth(str21, connIAeip)
-addSmth(str22, connIAeip)
+addSmth(str22, connIAfip)
 
 
 /*//weights
