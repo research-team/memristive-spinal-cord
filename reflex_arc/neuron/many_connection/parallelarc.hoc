@@ -1,3 +1,4 @@
+load_file("nrngui.hoc")
 nMN = 169       /* The number of cells */
 nInt = 196
 nAff = 120
@@ -24,6 +25,7 @@ cells = new List()
 {load_file("./templates/sens1.hoc")}
 {load_file("./templates/MNE.hoc")}
 {load_file("./templates/MNF.hoc")}
+{load_file("./templates/EES.hoc")}
 {load_file("save.hoc")}
 
 objref pc
@@ -55,12 +57,12 @@ for (i=pc.id+nMN+nInt; i < nMN+nInt+nInt; i += pc.nhost){
 
 //afferents Ia
 for (i=pc.id+nMN+nInt+nInt; i < nMN+nInt+nInt+nAff; i += pc.nhost){
-    addcell(new Ia1(i-nMN-nInt-nInt, fr3[i-nMN-nInt-nInt]), i, pc.id)
+    addcell(new Ia1(i-nMN-nInt-nInt, fr3.get(i-nMN-nInt-nInt)), i, pc.id)
 }
 
 //afferents Ib
 for (i=pc.id+nMN+nInt+nInt+nAff; i < nMN+nInt+nInt+nAff+nAff; i += pc.nhost){
-    addcell(new Ib1(i-nMN-nInt-nInt-nAff, fr1[i-nMN-nInt-nInt-nAff]), i, pc.id)   
+    addcell(new Ib1(i-nMN-nInt-nInt-nAff, fr1.get(i-nMN-nInt-nInt-nAff)), i, pc.id)   
 }
 
 //Flexors
@@ -81,16 +83,16 @@ for (i=pc.id+nMN+nInt+ncell; i < nMN+nInt+nInt+ncell; i += pc.nhost){
 
 //afferents Ia
 for (i=pc.id+nMN+nInt+nInt+ncell; i < nMN+nInt+nInt+nAff+ncell; i += pc.nhost){
-    addcell(new Ia2(i-nMN-nInt-nInt-ncell,fr4[i-nMN-nInt-nInt-ncell]), i, pc.id)
+    addcell(new Ia2(i-nMN-nInt-nInt-ncell,fr4.get(i-nMN-nInt-nInt-ncell)), i, pc.id)
 }
 
 //afferents Ib
 for (i=pc.id+nMN+nInt+nInt+nAff+ncell; i < nMN+nInt+nInt+nAff+nAff+ncell; i += pc.nhost){
-    addcell(new Ib2(i-nMN-nInt-nInt-nAff-ncell, fr2[i-nMN-nInt-nInt-nAff-ncell]), i, pc.id)
+    addcell(new Ib2(i-nMN-nInt-nInt-nAff-ncell, fr2.get(i-nMN-nInt-nInt-nAff-ncell)), i, pc.id)
 }
 
 /* building interpool */
-//Extesors
+//Flexors
 for (i=pc.id+2*ncell; i < 2*ncell+nSens; i += pc.nhost){
     addcell(new sens0(i-2*ncell), i, pc.id)
 }
@@ -99,7 +101,7 @@ for (i=pc.id+2*ncell+nSens; i < 2*ncell+nSens+nIP; i += pc.nhost){
     addcell(new IP0(i-2*ncell-nSens), i, pc.id)
 }
 
-//Flexors
+//Extensors
 for (i=pc.id+2*ncell+nSens+nIP; i < 2*ncell+nSens+nSens+nIP; i += pc.nhost){
     addcell(new sens1(i-2*ncell-nSens-nIP), i, pc.id)
 }
@@ -108,11 +110,16 @@ for (i=pc.id+2*ncell+nSens+nSens+nIP; i < 2*ncell+nSens+nSens+nIP+nIP; i += pc.n
     addcell(new IP1(i-2*ncell-nSens-nSens-nIP), i, pc.id)
 }
 
+//add EES
+if (pc.id == 0) {
+    {addcell(new EES(),(2*ncell+nSens+nSens+nIP+nIP),pc.id)}
+}
+
+
+
 {load_file("connections.hoc")}
 
+//{load_file("recording.hoc")}
 
-
-{load_file("recording.hoc")}
-
-forall psection()
+//forall psection()
 

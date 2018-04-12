@@ -220,7 +220,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  pnt_receive[_mechtype] = _net_receive;
  pnt_receive_size[_mechtype] = 1;
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 SpikeGenerator /Users/sulgod/Desktop/arcarc/many_connection/x86_64/pregen.mod\n");
+ 	ivoc_help("help ?1 SpikeGenerator /Users/sulgod/msc/reflex_arc/neuron/many_connection/x86_64/pregen.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }

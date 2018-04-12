@@ -49,8 +49,8 @@ proc init() {local i
 
     spgenIbEx = new SpikeGenerator(0.8)
         spgenIbEx.freq = $2
-        spgenIbEx.start = 5
-        spgenIbEx.number = 1000000
+        spgenIbEx.start = 1
+        spgenIbEx.number = 1000000000
         spgenIbEx.noise = 0.2 
 
     connect axon(1), soma(0)    

@@ -2,7 +2,9 @@
 
 objref connect_MNe_Aff, connect_MNf_Aff, connect_MNe_IA, connect_MNe_II, connect_MNf_IA, connect_MNf_II
 objref connect_IAf_Ia, connect_IAe_Ia, connect_IAf_Ib, connect_IAe_Ib, connect_IAf_IAe, connect_IAe_IAf
-objref connect_IIf_Ib, connect_IIe_Ib
+objref connect_IIf_Ib, connect_IIe_Ib, connect_sens0_EES, connect_sens1_EES
+objref connect_IP0_sens0, connect_IP1_sens0, connect_IP0_sens1, connect_IP1_sens1
+objref connect_IP0_MNf, connect_IP1_MNe, connect_IP0_IAf, connect_IP1_IAe
 objref syn, target, stdp, presyn, postsyn, stdpmech, presyns, postsyns
 connect_MNe_Aff = new List()
 connect_MNf_Aff = new List()
@@ -18,6 +20,16 @@ connect_IAe_Ib = new List()
 connect_IAf_Ib = new List()
 connect_IAe_IAf = new List()
 connect_IAf_IAe = new List()
+connect_sens0_EES = new List()
+connect_sens1_EES = new List()
+connect_IP0_sens0 = new List()
+connect_IP0_sens1 = new List()
+connect_IP1_sens0 = new List()
+connect_IP1_sens1 = new List()
+connect_IP0_MNf = new List()
+connect_IP1_MNe = new List()
+connect_IP0_IAf = new List()
+connect_IP1_IAe = new List()
 presyns = new List()
 postsyns = new List()
 stdpmech = new List()
@@ -47,16 +59,14 @@ proc connectionSTDP(){
     $o7.append(postsyn)
 }
 //MN extensor connections
-for (i=pc.id; nMN -1;  {
-	if (!pc.gid_exists(i)) { continue }
+for i=pc.id, nMN -1 {
+    if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-    	affE = affconn[i][j]+nMN+nInt+nInt
-        exII = exconn[i][j] + nMN
-        exIA = inhconn[i][j] + nMN + nInt + ncell
-        connection(target.synlistaff.object(j), connect_MNe_Aff, affE)
-        connectionSTDP(target.synlistex.object(j), connect_MNe_II, i, exII, stdpmech, presyns, postsyns)
-        connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, exIA, stdpmech, presyns, postsyns)        
+        connection(target.synlistaff.object(j), connect_MNe_Aff, (affconn.get(i*nsyn+j)+nMN+nInt+nInt))
+        connectionSTDP(target.synlistex.object(j), connect_MNe_II, i, (exconn.get(i*nsyn+j)+ nMN), stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, (inhconn.get(i*nsyn+j)+ nMN + nInt + ncell), stdpmech, presyns, postsyns)        
+        connectionSTDP(target.synlistip.object(j), connect_IP1_MNe, i, (connMNeip.get(i*nsyn+j)+ 2*ncell+nSens+nSens+nIP), stdpmech, presyns, postsyns)        
     }
 }
 
@@ -65,12 +75,10 @@ for i=pc.id+ncell, nMN+ncell - 1{
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        affF = affconn1[i-ncell][j]+nMN+nInt+nInt+ncell
-        flII = exconn1[i-ncell][j] + nMN +ncell
-        flIA = inhconn1[i-ncell][j] + nMN + nInt 
-        connection(target.synlistaff.object(j), connect_MNf_Aff, affF)
-        connectionSTDP(target.synlistex.object(j), connect_MNf_II, i, flII, stdpmech, presyns, postsyns)
-        connectionSTDP(target.synlistinh.object(j), connect_MNf_IA, i, flIA, stdpmech, presyns, postsyns)  
+        connection(target.synlistaff.object(j), connect_MNf_Aff, (affconn1.get((i-ncell)*nsyn+j)+nMN+nInt+nInt+ncell))
+        connectionSTDP(target.synlistex.object(j), connect_MNf_II, i, (exconn1.get((i-ncell)*nsyn+j)+ nMN +ncell), stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistinh.object(j), connect_MNf_IA, i, (inhconn1.get((i-ncell)*nsyn+j)+ nMN + nInt), stdpmech, presyns, postsyns)  
+        connectionSTDP(target.synlistip.object(j), connect_IP0_MNf, i, (connMNfip.get((i-ncell)*nsyn+j)+ 2*ncell+nSens), stdpmech, presyns, postsyns)        
     }
 }
 
@@ -79,8 +87,7 @@ for i=pc.id+nMN, nMN+nInt - 1{
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        affex = affex[i-nMN][j]+nMN+nInt+nInt+nAff
-        connection(target.synlistaff.object(j), connect_IIe_Ib, affex)
+        connection(target.synlistaff.object(j), connect_IIe_Ib, (affex.get((i-nMN)*nsyn+j)+nMN+nInt+nInt+nAff))
     }
 }
 
@@ -89,8 +96,7 @@ for i=pc.id+nMN+ncell, nMN+nInt+ncell - 1{
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        affex = affex1[i-nMN-ncell][j]+nMN+nInt+nInt+nAff+ncell
-        connection(target.synlistaff.object(j), connect_IIf_Ib, affex)
+        connection(target.synlistaff.object(j), connect_IIf_Ib, (affex.get((i-nMN-ncell)*nsyn+j)+nMN+nInt+nInt+nAff+ncell))
     }
 }
 
@@ -100,12 +106,10 @@ for i=pc.id+nMN+nInt, nMN+nInt+nInt - 1{
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        affIa = affi[i-nMN-nInt][j]+nMN+nInt+nInt
-        affIb = affi2[i-nMN-nInt][j]+nMN+nInt+nInt+nAff
-        minh = minh[i-nMN-nInt][j] + nMN + nInt + ncell
-        connection(target.synlistaff.object(j), connect_IAe_Ia, affIa)
-        connection(target.synlistaffb.object(j), connect_IAe_Ib, affIb)
-        connectionSTDP(target.synlistinh.object(j), connect_IAe_IAf, i, minh, stdpmech, presyns, postsyns)  
+        connection(target.synlistaff.object(j), connect_IAe_Ia, (affi.get((i-nMN-nInt)*nsyn+j)+nMN+nInt+nInt))
+        connection(target.synlistaffb.object(j), connect_IAe_Ib, (affi2.get((i-nMN-nInt)*nsyn+j)+nMN+nInt+nInt+nAff))
+        connectionSTDP(target.synlistinh.object(j), connect_IAe_IAf, i, (minh.get((i-nMN-nInt)*nsyn+j) + nMN + nInt + ncell), stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistip.object(j), connect_IP1_IAe, i, (connIAeip.get((i-nMN-nInt)*nsyn+j)+ 2*ncell+nSens+nSens+nIP), stdpmech, presyns, postsyns)          
     }
 }
 
@@ -115,11 +119,50 @@ for i=pc.id+nMN+nInt+ncell, nMN+nInt+nInt+ncell - 1{
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        affIa = affi1[i-nMN-nInt-ncell][j]+nMN+nInt+nInt+ncell
-        affIb = affi21[i-nMN-nInt-ncell][j]+nMN+nInt+nInt+nAff+ncell
-        minh = minh1[i-nMN-nInt-ncell][j] + nMN + nInt
-        connection(target.synlistaff.object(j), connect_IAf_Ia, affIa)
-        connection(target.synlistaffb.object(j), connect_IAf_Ib, affIb)
-        connectionSTDP(target.synlistinh.object(j), connect_IAf_IAe, i, minh, stdpmech, presyns, postsyns)  
+        connection(target.synlistaff.object(j), connect_IAf_Ia, (affi1.get((i-nMN-nInt-ncell)*nsyn+j)+nMN+nInt+nInt+ncell))
+        connection(target.synlistaffb.object(j), connect_IAf_Ib, (affi21.get((i-nMN-nInt-ncell)*nsyn+j)+nMN+nInt+nInt+nAff+ncell))
+        connectionSTDP(target.synlistinh.object(j), connect_IAf_IAe, i, (minh1.get((i-nMN-nInt-ncell)*nsyn+j)+ nMN + nInt), stdpmech, presyns, postsyns)  
+        connectionSTDP(target.synlistip.object(j), connect_IP0_IAf, i, (connIAfip.get((i-nMN-nInt-ncell)*nsyn+j)+ 2*ncell+nSens), stdpmech, presyns, postsyns)        
+    }
+}
+
+//between sensory neurons and EES
+for i=pc.id+2*ncell, 2*ncell+nSens - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1 {
+        connection(target.synlistsens.object(j), connect_sens0_EES, (2*ncell+nSens+nSens+nIP+nIP))
+    }
+}
+
+for i=pc.id+2*ncell+nSens+nIP, 2*ncell+nSens+nSens+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1 {
+        connection(target.synlistsens.object(j), connect_sens1_EES, (2*ncell+nSens+nSens+nIP+nIP))
+    }
+}
+
+//between IP and sensory neurons (extensor)
+for i=pc.id+2*ncell+nSens, 2*ncell+nSens+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        s0 = i-nSens+j
+        s1 = i+nIP+j
+        connectionSTDP(target.synlistsens.object(j), connect_IP0_sens0, i, s0, stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistsensinh.object(j), connect_IP0_sens1, i, s1, stdpmech, presyns, postsyns)          
+    }
+}
+
+//between IP and sensory neurons (flexor)
+for i=pc.id+2*ncell+nSens+nSens+nIP, 2*ncell+nSens+nSens+nIP+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        s0 = i-nSens-nSens-nIP+j
+        s1 = i-nSens+j
+        connectionSTDP(target.synlistsens.object(j), connect_IP1_sens1, i, s1, stdpmech, presyns, postsyns)
+        connectionSTDP(target.synlistsensinh.object(j), connect_IP1_sens0, i, s0, stdpmech, presyns, postsyns)          
     }
 }

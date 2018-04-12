@@ -5,13 +5,13 @@ create soma, axon, dend[1]
 public presynexlist, presyninhlist
 objref presynexlist, presyninhlist
 objref presynex_      
-objref presyninh_  
+objref presyninh_      
 
-public synlistinh, synlistaff
-objref synlistinh, synlistaff
+public synlistinh, synlistsens, synlistsensinh
+objref synlistinh, synlistsens, synlistsensinh
 objref syninh_
-objref synaff_
-
+objref synsens_
+objref synsensinh_
 
 proc init() {local i, j
 
@@ -39,7 +39,8 @@ proc init() {local i, j
     create soma, axon, dend[ndend] 
 
     synlistinh = new List()
-    synlistaff = new List()
+    synlistsens = new List()
+    synlistsensinh = new List()
     presynexlist = new List()
     presyninhlist = new List()
 
@@ -55,8 +56,8 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(280,350,$1*5,soma_diam) 
-        pt3dadd(280-soma_len,350,$1*5,soma_diam) 
+        pt3dadd(-500,350,$1*5,soma_diam) 
+        pt3dadd(-500-soma_len,350,$1*5,soma_diam) 
     }
 
     axon {
@@ -69,11 +70,10 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(280,350,$1*5,axon_diam) 
-        pt3dadd(280-soma_len-axon_len,350,$1*5,axon_diam) 
+        pt3dadd(-500,350,$1*5,axon_diam) 
+        pt3dadd(-500-soma_len-axon_len,350,$1*5,axon_diam) 
 
     }
-
         presyninh_ = new GABAA_S(0.5) presyninhlist.append(presyninh_)
         presynex_ = new glutamate_syn(0.5) presynexlist.append(presynex_)
 
@@ -83,15 +83,16 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(280+dend_len*i,350,$1*5,diam)
-            pt3dadd(280+dend_len*(i+1),350,$1*5,diam)
+            pt3dadd(-500+dend_len*i,350,$1*5,diam)
+            pt3dadd(-500+dend_len*(i+1),350,$1*5,diam)
         }
 
         for j = 0, nsyn-1{
-            dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
-            synaff_.tau = 0.1
-            synaff_.e=50
+            dend[i] synsens_ = new ExpSyn(0.5)  synlistsens.append(synsens_) /* E */
+            synsens_.tau = 0.1
+            synsens_.e=50
             dend[i] syninh_ = new GABAA_S(0.5) synlistinh.append(syninh_)
+            dend[i] synsensinh_ = new GABAA_S(0.5) synlistsensinh.append(synsensinh_)
         }
 
     }
@@ -109,4 +110,3 @@ obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 r
 }
 
 endtemplate IP1
-

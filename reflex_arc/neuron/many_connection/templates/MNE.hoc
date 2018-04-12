@@ -4,11 +4,12 @@ public soma, axon, dend, postsyn, presyn, connect2target
 create soma, axon, dend[1] 
 objectvar postsyn[1]
 
-public synlistex, synlistinh, synlistaff
-objref synlistex, synlistinh, synlistaff
+public synlistex, synlistinh, synlistaff, synlistip
+objref synlistex, synlistinh, synlistaff, synlistip
     objref synex_
     objref syninh_
     objref synaff_
+    objref synip_
 
 
 proc init() {local i, j
@@ -37,6 +38,7 @@ proc init() {local i, j
     synlistex = new List()
     synlistinh = new List()
     synlistaff = new List()
+    synlistip = new List()
 
 
     soma {
@@ -87,6 +89,9 @@ proc init() {local i, j
             synaff_.e=50
             dend[i] syninh_ = new GABAA_S(0.5)   synlistinh.append(syninh_)
             dend[i] synex_ = new glutamate_syn(0.5)   synlistex.append(synex_)
+            dend[i] synip_ = new ExpSyn(0.5)  synlistip.append(synip_) /* IP */
+            synip_.tau = 0.1
+            synip_.e=50
         }
 
     }

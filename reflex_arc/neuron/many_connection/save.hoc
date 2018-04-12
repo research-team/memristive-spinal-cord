@@ -2,231 +2,85 @@ objectvar f, fok
 
 f = new File()
 
-f.ropen("./a1.txt")
-
-aff = 120
-double fr1[aff]
-
-for i = 0,aff-1 {
-	fr1[i]=f.scanvar()
+proc addSmth(){
+	f.ropen($s1)
+	$o2 = new Vector()
+	$o2.scanf(f)
+	f.close()
 }
-f.close()
+//Spike generator frequency 
+strdef str1, str2, str3, str4
+str1 = "./a1.txt"
+str2 = "./a2.txt"
+str3 = "./a3.txt"
+str4 = "./a4.txt"
+objref fr1, fr2, fr3, fr4
+addSmth(str1, fr1)
+addSmth(str2, fr2)
+addSmth(str3, fr3)
+addSmth(str4, fr4)
+ 
+//Connections between neurons
+strdef str5, str6, str7, str8, str9, str10
+strdef str11, str12, str13, str14, str15, str16, str17, str18
+strdef str19, str20, str21, str22
+str5 = "./connection_matrix/connex.txt"
+str6 = "./connection_matrix/conninh.txt"
+str7 = "./connection_matrix/connex1.txt"
+str8 = "./connection_matrix/conninh1.txt"
+str9 = "./connection_matrix/connaff.txt"
+str10 = "./connection_matrix/connaff1.txt"
+str11 = "./connection_matrix/connminh.txt"
+str12 = "./connection_matrix/connminh1.txt"
+str13 = "./connection_matrix/connaffinh.txt"
+str14 = "./connection_matrix/connaffinh1.txt"
+str15 = "./connection_matrix/connaffex.txt"
+str16 = "./connection_matrix/connaffex1.txt"
+str17 = "./connection_matrix/connaffinh2.txt"
+str18 = "./connection_matrix/connaffinh21.txt"
+str19 = "./connection_matrix/MNeIP.txt"
+str20 = "./connection_matrix/MNfIP.txt"
+str21 = "./connection_matrix/IAeIP.txt"
+str22 = "./connection_matrix/IAfIP.txt"
+objref exconn, inhconn, exconn1, inhconn1, affconn, affconn1
+objref affi, affi1, affex, affex1, minh, minh1, affi2, affi21
+objref connMNeip, connMNfip, connIAeip, connIAfip
+addSmth(str5, exconn)
+addSmth(str6, inhconn)
+addSmth(str7, exconn1)
+addSmth(str8, inhconn1)
+addSmth(str9, affconn)
+addSmth(str10, affconn1)
+addSmth(str11, minh)
+addSmth(str12, minh1)
+addSmth(str13, affi)
+addSmth(str14, affi1)
+addSmth(str15, affex)
+addSmth(str16, affex1)
+addSmth(str17, affi2)
+addSmth(str18, affi21)
+addSmth(str19, connMNeip)
+addSmth(str20, connMNfip)
+addSmth(str21, connIAeip)
+addSmth(str22, connIAeip)
 
-f.ropen("./a2.txt")
 
-double fr2[aff]
+/*//weights
+strdef w1, w2, w3, w4
+w1 = "./connection_matrix/weights.txt"
+w2 = "./connection_matrix/exweights.txt"
+w3 = "./connection_matrix/weights1.txt"
+w4 = "./connection_matrix/exweights1.txt"
+*/
+/*
 
-for i = 0,aff-1 {
-	fr2[i]=f.scanvar()
-}
-f.close()
+f.ropen("./connection_matrix/exweights1.txt")
 
-f.ropen("./a3.txt")
-
-aff = 120
-double fr3[aff]
-
-for i = 0,aff-1 {
-	fr3[i]=f.scanvar()
-}
-f.close()
-
-f.ropen("./a4.txt")
-
-double fr4[aff]
-
-for i = 0,aff-1 {
-	fr4[i]=f.scanvar()
-}
-f.close()
-
-nMN = 169       
-nInt = 196
-nsyn = 100
-
-f.ropen("./connection_matrix/connex.txt")
-
-double exconn[nMN][nsyn]
+double exweights1[nMN][nsyn]
 
 for i = 0,nMN-1 {
 	for j = 0,nsyn-1 {
-		exconn[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/conninh.txt")
-
-double inhconn[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		inhconn[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connex1.txt")
-
-double exconn1[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		exconn1[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/conninh.txt")
-
-double inhconn1[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		inhconn1[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaff.txt")
-
-double affconn[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		affconn[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaff1.txt")
-
-double affconn1[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		affconn1[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connminh.txt")
-
-double minh[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		minh[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connminh1.txt")
-
-double minh1[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		minh1[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaffinh.txt")
-
-double affi[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affi[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaffinh1.txt")
-
-double affi1[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affi1[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaffex.txt")
-
-double affex[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affex[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaffex1.txt")
-
-double affex1[nInt][nsyn]
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affex1[i][j]=f.scanvar()
-	}
-}
-
-f.close()
-
-f.ropen("./connection_matrix/connaffinh2.txt")
-
-double affi2[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affi2[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/connaffinh21.txt")
-
-double affi21[nInt][nsyn]
-
-for i = 0,nInt-1 {
-	for j = 0,nsyn-1 {
-		affi21[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/weights.txt")
-
-double inhweights[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		inhweights[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/exweights.txt")
-
-double exweights[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		exweights[i][j]=f.scanvar()
-	}
-}
-f.close()
-
-f.ropen("./connection_matrix/weights1.txt")
-
-double inhweights1[nMN][nsyn]
-
-for i = 0,nMN-1 {
-	for j = 0,nsyn-1 {
-		inhweights1[i][j]=f.scanvar()
+		exweights1[i][j]=f.scanvar()
 	}
 }
 f.close()
@@ -241,3 +95,26 @@ for i = 0,nMN-1 {
 	}
 }
 f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()*/
+
