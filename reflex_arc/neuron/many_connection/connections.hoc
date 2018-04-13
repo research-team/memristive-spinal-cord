@@ -2,7 +2,7 @@
 
 objref connect_MNe_Aff, connect_MNf_Aff, connect_MNe_IA, connect_MNe_II, connect_MNf_IA, connect_MNf_II
 objref connect_IAf_Ia, connect_IAe_Ia, connect_IAf_Ib, connect_IAe_Ib, connect_IAf_IAe, connect_IAe_IAf
-objref connect_IIf_Ib, connect_IIe_Ib, connect_sens0_EES, connect_sens1_EES
+objref connect_IIf_Ib, connect_IIe_Ib, connect_sens0_EES, connect_sens1_EES, connect_sens0_gen, connect_sens1_gen
 objref connect_IP0_sens0, connect_IP1_sens0, connect_IP0_sens1, connect_IP1_sens1
 objref connect_IP0_MNf, connect_IP1_MNe, connect_IP0_IAf, connect_IP1_IAe
 objref syn, target, stdp, presyn, postsyn, stdpmech, presyns, postsyns
@@ -22,6 +22,8 @@ connect_IAe_IAf = new List()
 connect_IAf_IAe = new List()
 connect_sens0_EES = new List()
 connect_sens1_EES = new List()
+connect_sens0_gen = new List()
+connect_sens1_gen = new List()
 connect_IP0_sens0 = new List()
 connect_IP0_sens1 = new List()
 connect_IP1_sens0 = new List()
@@ -132,6 +134,7 @@ for i=pc.id+2*ncell, 2*ncell+nSens - 1{
     target = pc.gid2cell(i)
     for j = 0,nsyn-1 {
         connection(target.synlistsens.object(j), connect_sens0_EES, (2*ncell+nSens+nSens+nIP+nIP))
+        connection(target.synlistgen.object(j), connect_sens0_gen, (2*ncell+nSens+nSens+nIP+nIP+1))
     }
 }
 
@@ -140,6 +143,7 @@ for i=pc.id+2*ncell+nSens+nIP, 2*ncell+nSens+nSens+nIP - 1{
     target = pc.gid2cell(i)
     for j = 0,nsyn-1 {
         connection(target.synlistsens.object(j), connect_sens1_EES, (2*ncell+nSens+nSens+nIP+nIP))
+        connection(target.synlistgen.object(j), connect_sens1_gen, (2*ncell+nSens+nSens+nIP+nIP+1))
     }
 }
 

@@ -1,5 +1,5 @@
 begintemplate sens0
-public soma, axon, dend, connect2target
+public soma, axon, dend, connect2target, soma_Ra
 
 create soma, axon, dend[1] 
 
@@ -8,10 +8,10 @@ objref presynexlist, presyninhlist
 objref presynex_      
 objref presyninh_      
 
-public synlistsens
-objref synlistsens
+public synlistsens, synlistgen
+objref synlistsens, synlistgen
 objref synsens_
-
+objref syngen_
 
 proc init() {local i, j
 
@@ -39,6 +39,7 @@ proc init() {local i, j
     create soma, axon, dend[ndend] 
 
     synlistsens = new List()
+    synlistgen = new List()
     presynexlist = new List()
     presyninhlist = new List()
 
@@ -90,6 +91,9 @@ proc init() {local i, j
             dend[i] synsens_ = new ExpSyn(0.5)  synlistsens.append(synsens_) /* E */
             synsens_.tau = 0.1
             synsens_.e=50
+            dend[i] syngen_ = new ExpSyn(0.5)  synlistgen.append(syngen_) /* E */
+            syngen_.tau = 0.1
+            syngen_.e=50
         }
 
     }

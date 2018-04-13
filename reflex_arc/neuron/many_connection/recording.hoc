@@ -1,4 +1,4 @@
-num = connect_MNe_II.count/100
+num = connect_sens0_gen.count/100
 objref exsynrec[num][nsyn], flsynrec[num][nsyn]
 recDt = 5
 for i=0,num-1 {
@@ -10,10 +10,11 @@ for i=0,num-1 {
         }
 }
 //running
-tstop = 10
 {pc.set_maxstep(2)}
-run()
-if (t%2 == 1){print(tstop)}
+// $1 is how many epochs
+// each epoch is single step
+{load_file("runningcontrol.hoc")}
+epochrun(2, 50, 40)
 {pc.psolve(tstop)}
 //writing
 objref fok
@@ -36,7 +37,6 @@ for i=0,num-1 {
         fok.close()
     }
 }
-print(tstop)
 {pc.runworker()}
 {pc.done()}
 //quit()
