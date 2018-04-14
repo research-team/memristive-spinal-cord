@@ -240,7 +240,7 @@ class Topology:
             self.ees = Create(
                 model='spike_generator',
                 n=1,
-                params={'spike_times': [25. + i * 100. for i in range(num_spikes)]})
+                params={'spike_times': [25. + i * 25. for i in range(num_spikes)]})
             Connect(
                 pre=self.ees,
                 post=self.sublevels[0].e0,
