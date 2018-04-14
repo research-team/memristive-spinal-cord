@@ -1,0 +1,22 @@
+begintemplate sensorygen
+public connect2target, sensgen
+
+objref sensgen
+
+proc init() {
+
+    sensgen = new SpikeGenerator(0.8)
+        sensgen.freq = 25
+        sensgen.start = 1
+        sensgen.number = 1000000000
+        sensgen.noise = 0.2 
+
+}
+
+obfunc connect2target() { localobj nc
+    nc = new NetCon(sensgen, $o1)
+    if (numarg() == 2) { $o2 = nc }
+    return nc
+}
+
+endtemplate sensorygen
