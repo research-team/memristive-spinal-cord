@@ -3,7 +3,7 @@ from ows.src.tools.multimeter import add_multimeter
 from ows.src.tools.spike_detector import add_spike_detector
 from ows.src.paths import raw_data_path
 from nest import Create, Connect, SetStatus
-from ows.src.params import num_sublevels, num_spikes
+from ows.src.params import num_sublevels, num_spikes, rate, inh_coef
 from random import uniform
 
 
@@ -227,20 +227,22 @@ class Sublevel:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': 1.,
-                'weight': -600.
+                'weight': -600. * inh_coef
                 },
             conn_spec={
                 'rule': 'one_to_one'})
 
 class Topology:
 
-    def connect_ees(self, num_spikes):
+    def connect_ees(self, num_spikes, rate):
+
+        period = round(1000 / rate, 1)
 
         if num_spikes:
             self.ees = Create(
                 model='spike_generator',
                 n=1,
-                params={'spike_times': [25. + i * 25. for i in range(num_spikes)]})
+                params={'spike_times': [period + i * period for i in range(num_spikes)]})
             Connect(
                 pre=self.ees,
                 post=self.sublevels[0].e0,
@@ -271,7 +273,7 @@ class Topology:
         self.sublevels = [Sublevel(index=i) for i in range(num_sublevels)]
         self.pool = Pool()
         self.moto = Motoneuron()
-        self.connect_ees(num_spikes)
+        self.connect_ees(num_spikes, rate)
 
         for i in range(num_sublevels-1):
             Connect(

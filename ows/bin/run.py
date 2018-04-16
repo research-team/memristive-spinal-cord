@@ -26,7 +26,7 @@ Plotter.plot_slices(num_slices=7)
 
 from ows.src.params import num_sublevels
 
-for i in range(num_sublevels):
-	for j in range(5):
-		Plotter.plot_voltage('e{}{}'.format(j, i), label='E{}{}'.format(j, i))
-	Plotter.save_voltage('tier{}'.format(i))
+# for i in range(num_sublevels):
+# 	for j in range(5):
+# 		Plotter.plot_voltage('e{}{}'.format(j, i), label='E{}{}'.format(j, i))
+# 	Plotter.save_voltage('tier{}'.format(i))
