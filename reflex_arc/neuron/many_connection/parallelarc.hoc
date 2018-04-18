@@ -120,9 +120,7 @@ if (pc.id == 0) {
 }
 
 {load_file("connections.hoc")}
-{load_file("3.ses")}
-{load_file("4.ses")}
+//{load_file("3.ses")}
+//{load_file("4.ses")}
 {load_file("recording.hoc")}
-
-//forall psection()
 

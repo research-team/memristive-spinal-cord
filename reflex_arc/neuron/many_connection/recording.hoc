@@ -1,6 +1,6 @@
 num = connect_sens0_gen.count/100
 objref exsynrec[num][nsyn], flsynrec[num][nsyn]
-recDt = 5
+recDt = 25
 for i=0,num-1 {
         for j = 0,nsyn-1 {
                 exsynrec[i][j]= new Vector()
@@ -14,9 +14,12 @@ for i=0,num-1 {
 // $1 is how many epochs
 // each epoch is single step
 {load_file("runningcontrol.hoc")}
+print(tstop)
 epochrun(2, 50, 40)
 {pc.psolve(tstop)}
+print(tstop)
 //writing
+
 objref fok
 fok=new File()
 for i=0,num-1 {
