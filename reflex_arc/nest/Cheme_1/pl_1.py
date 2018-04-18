@@ -2,8 +2,11 @@ import pylab
 import os
 
 names = dict()
-names['flex'] = ['Iai_MnE', 'Mn_F', 'Ia_MnF', 'Ex_MnF', 'II_MnF']
-names['extens'] = ['Iai_MnF', 'Mn_E', 'Ia_MnE', 'Ex_MnE', 'II_MnE']
+names['1'] = ['Iai_0', 'Mn_E', 'Ia_0', 'Ex_0', 'II_0']
+names['2'] = ['Iai_1', 'Mn_F', 'Ia_1', 'Ex_1', 'II_1']
+names['afferents'] = ['II_0', 'Ia_0', 'II_1', 'Ia_1']
+names['interneuron'] = ['Ex_0', 'Ex_1', 'Iai_0', 'Iai_1']
+names['moto'] = ['Mn_E', 'Mn_F']
 
 
 def plot_one(name):
@@ -22,18 +25,10 @@ def plot_one(name):
 
 
 def plot(gen_rate, glu_weight, gaba_weight, static_weight, group: str):
-    for i in range(5):
-        pylab.subplot(5, 1, i + 1)
+    for i in range(len(names[group])):
+        pylab.subplot(len(names[group]), 1, i + 1)
         plot_one(names[group][i])
-    pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('RAB_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight, static_weight),
-                  dpi=120)
+    pylab.subplots_adjust(hspace=0.5 + 0.02 * len(names[group]))
+    pylab.savefig('R_A_1_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight,
+                                                                 static_weight), dpi=120)
     pylab.close('all')
-
-
-def simple_plot(name):
-    for i in range(4):
-        pylab.subplot(4, 1, i + 1)
-        plot_one(names[i])
-    pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('result{}.png'.format(name), dpi=120)
