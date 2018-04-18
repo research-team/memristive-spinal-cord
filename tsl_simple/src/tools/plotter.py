@@ -2,7 +2,7 @@ import pylab
 import os
 from tsl_simple.src.tools.miner import Miner
 from tsl_simple.src.paths import img_path
-from tsl_simple.src.params import num_sublevels, simulation_time
+from tsl_simple.src.params import num_sublevels, simulation_time, rate, inhibition_coeff
 
 
 class Plotter:
@@ -37,14 +37,20 @@ class Plotter:
 
     @staticmethod
     def plot_slices(num_slices: int=7, name: str='moto'):
+        period = 1000 / rate
         step = .1
-        shift = 25
-        interval = 25
+        shift = period
+        interval = period
+        print(period)
         data = Miner.gather_voltage(name)
         num_dots = int(1 / step * num_slices * interval)
         shift_dots = int(1 / step * shift)
-        raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
-        fraction = len(raw_times) / num_slices
+        raw_times = sorted(data.keys())[shift_dots + 1:num_dots + shift_dots]
+        fraction = float(len(raw_times)) / num_slices
+        print(fraction)
+        pylab.subplots_adjust(hspace=.7)
+
+        pylab.suptitle('{}Hz-{}Inh-{}sublayers'.format(rate, inhibition_coeff, num_sublevels), fontsize=14)
 
         for s in range(num_slices):
             pylab.subplot(num_slices, 1, s + 1)
@@ -52,10 +58,12 @@ class Plotter:
             end = int((s + 1) * fraction) if s < num_slices - 1 else len(raw_times) - 1
             times = raw_times[start:end]
             values = [data[time] for time in times]
+            pylab.xlim(int(start / 10 + shift), int(end / 10 + shift))
+            pylab.xticks([i for i in range(int(start / 10 + shift), int(end / 10 + shift), 15)])
             pylab.ylim(-80, 60)
             pylab.plot(times, values)
 
-        Plotter.save_voltage('slices')
+        Plotter.save_voltage('slices-{}Hz-{}Inh-{}sublayers'.format(rate, inhibition_coeff, num_sublevels))
 
 
     @staticmethod
@@ -94,8 +102,8 @@ class Plotter:
     @staticmethod
     def save_voltage(name):
         pylab.xlabel('Time, ms')
-        pylab.rcParams['font.size'] = 4
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.rcParams['font.size'] = 3
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500, fontsize=3)
         pylab.close('all')
 
     @staticmethod

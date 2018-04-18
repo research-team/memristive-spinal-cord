@@ -1,7 +1,8 @@
-num_sublevels = 6
+num_sublevels = 2
 num_spikes = 7
-simulation_time = 250.
-
+simulation_time = 300.
+inhibition_coeff = 1.
+rate = 40
 
 class Params:
 
@@ -73,7 +74,7 @@ class Params:
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 50.,
+                        'mu': 50.,#50
                         'sigma': 2.
                     },
                     'degree': 3
@@ -81,7 +82,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -300.,
+                        'mu': -300. * inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 5
@@ -139,7 +140,7 @@ class Params:
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 80.,
+                        'mu': 80.,#80
                         'sigma': 2.
                     },
                     'degree': 2
@@ -155,7 +156,7 @@ class Params:
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 40.,
+                        'mu': 40.,#40
                         'sigma': 2.
                     },
                     'degree': 4
@@ -163,7 +164,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -500.,
+                        'mu': -500. * inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 7
@@ -221,7 +222,7 @@ class Params:
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 80.,
+                        'mu': 80.,#80
                         'sigma': 2.
                     },
                     'degree': 4
@@ -237,7 +238,7 @@ class Params:
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 30.,
+                        'mu': 30.,#30
                         'sigma': 2.
                     },
                     'degree': 3
@@ -245,7 +246,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -600.,
+                        'mu': -600. *inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 6
@@ -303,7 +304,7 @@ class Params:
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 70.,
+                        'mu': 70.,#70
                         'sigma': 2.
                     },
                     'degree': 3
@@ -319,7 +320,7 @@ class Params:
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 30.,
+                        'mu': 30.,#30
                         'sigma': 2.
                     },
                     'degree': 3
@@ -327,7 +328,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -300.,
+                        'mu': -300. * inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 5
@@ -385,7 +386,7 @@ class Params:
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 70.,
+                        'mu': 70.,#70
                         'sigma': 2.
                     },
                     'degree': 3
@@ -401,7 +402,7 @@ class Params:
                 'hidden_right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 30.,
+                        'mu': 30.,#30
                         'sigma': 2.
                     },
                     'degree': 3
@@ -409,7 +410,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -300.,
+                        'mu': -300. * inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 6
@@ -491,7 +492,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -300.,
+                        'mu': -300. * inhibition_coeff,
                         'sigma': 2.
                     },
                     'degree': 6
@@ -507,232 +508,3 @@ class Params:
             }
         }
     }
-
-
-
-class Connections:
-
-    left_to_right = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    right_to_left = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    hidden_left_to_right = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    hidden_right_to_left = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    right_to_right_up = {
-        'sublayers_4_5' : {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayers_3_4' : {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayers_2_3' : {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayers_1_2' : {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayers_0_1' : {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},}
-
-    right_to_hidden_right_up = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    hidden_right_to_right_up = {
-        'sublayer_4_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    hidden_left_to_left_down = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    left_to_pool = {
-        'sublayer_5': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_4': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_3': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_2': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_1': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1},
-        'sublayer_0': {
-            'weight': {'distribution': 'normal', 'mu': 10., 'sigma': 2.},
-            'degree': 1}}
-
-    pool_to_moto = {
-        'weight': 1000,
-        'degree': 3}
-
-
-class Neurons:
-
-    sublayers = {
-        'sublayer_5': {
-            'left': 20,
-            'right': 20},
-        'sublayer_4': {
-            'left': 20,
-            'right': 20},
-        'sublayer_3': {
-            'left': 20,
-            'right': 20},
-        'sublayer_2': {
-            'left': 20,
-            'right': 20},
-        'sublayer_1': {
-            'left': 20,
-            'right': 20},
-        'sublayer_0': {
-            'left': 20,
-            'right': 20}}
-
-    hidden_sublayers = {
-        'sublayer_5': {
-            'left': 20,
-            'right': 20},
-        'sublayer_4': {
-            'left': 20,
-            'right': 20},
-        'sublayer_3': {
-            'left': 20,
-            'right': 20},
-        'sublayer_2': {
-            'left': 20,
-            'right': 20},
-        'sublayer_1': {
-            'left': 20,
-            'right': 20},
-        'sublayer_0': {
-            'left': 20,
-            'right': 20}}
-
-    pool = 50
-
-    moto = 169
