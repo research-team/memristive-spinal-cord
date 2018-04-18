@@ -13,7 +13,7 @@ nest.SetKernelStatus({"print_time": True,
                      "local_num_threads": 4,
                       "resolution": 0.1})
 
-T = 1000.
+T = 100.
 
 glu_weight = 10.
 # glu_weight_1 = 15.
@@ -72,18 +72,18 @@ Ex_L = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 Ex_E = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 Ex_F = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 Ex_R = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-Ex = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 Ex_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-Ex_2 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 Ex_1 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-Ex_2_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+Ex_2 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+Ex_3 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+Ex_4 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 #Inhibitory
 In_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+In_1 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 In_2 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 In_3 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-In_1 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-In_2_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-In_3_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+In_4 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+In_5 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 #Noc
 Noc = nest.Create("hh_cond_exp_traub", 20, nrn_parameters)
 
@@ -129,29 +129,29 @@ mm_Ex_R = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1,
                         'results/ex_r'})
 mm_Ex_F = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/ex_f'})
-mm_Ex = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ex'})
 mm_Ex_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/ex_0'})
 mm_Ex_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/ex_1'})
 mm_Ex_2 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/ex_2'})
-mm_Ex_2_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ex_2_0'})
+mm_Ex_3 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ex_3'})
+mm_Ex_4 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ex_4'})
 #Inhibitory
 mm_In_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/in_0'})
+mm_In_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/in_1'})
 mm_In_2 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/in_2'})
 mm_In_3 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/in_3'})
-mm_In_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/in_1'})
-mm_In_2_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/in_2_0'})
-mm_In_3_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/in_3_0'})
+mm_In_4 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/in_4'})
+mm_In_5 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/in_5'})
 #Noc
 mm_Noc = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
                         'results/noc'})
@@ -159,24 +159,24 @@ mm_Noc = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 
 
 #Connections neurons
 #Sensory
-nest.Connect(pre=S_0, post=Ex_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+nest.Connect(pre=S_0, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
-# nest.Connect(pre=S_l, post=Ex_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-# nest.Connect(pre=S_l, post=In_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-# nest.Connect(pre=S_t, post=In_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-# nest.Connect(pre=S_h, post=In_2_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-# nest.Connect(pre=S_r, post=Ex_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-# nest.Connect(pre=S_r, post=In_3_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
-nest.Connect(pre=S_1, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+nest.Connect(pre=S_l, post=Ex_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
-# nest.Connect(pre=S_1, post=Ex, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-#              syn_spec=glu)
+nest.Connect(pre=S_l, post=In_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_t, post=In_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_h, post=In_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_r, post=Ex_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_r, post=In_5, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_1, post=Ex_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=S_1, post=Ex_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
 #Afferent
 nest.Connect(pre=I_a_0, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
@@ -195,70 +195,70 @@ nest.Connect(pre=I_a_1, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegre
 nest.Connect(pre=I_a_1, post=In_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
 #Excitatory
-# nest.Connect(pre=Ex, post=Noc, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+# nest.Connect(pre=Ex_0, post=Noc, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
 #              syn_spec=gaba)
-# nest.Connect(pre=Ex_L, post=Mn_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=glu)
+nest.Connect(pre=Ex_L, post=Mn_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
 nest.Connect(pre=Ex_E, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=Ex_F, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
-# nest.Connect(pre=Ex_R, post=Mn_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=glu)
-nest.Connect(pre=Ex_0, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
-nest.Connect(pre=Ex_0, post=Ex_2_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
-nest.Connect(pre=Ex_2, post=In_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu),
-nest.Connect(pre=Ex_2, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
-nest.Connect(pre=Ex_2, post=Ex_2_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
-nest.Connect(pre=Ex_2_0, post=In_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
-nest.Connect(pre=Ex_2_0, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu)
-nest.Connect(pre=Ex_2_0, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
-nest.Connect(pre=Ex_1, post=Ex_2_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+nest.Connect(pre=Ex_R, post=Mn_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=Ex_1, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+# nest.Connect(pre=Ex_1, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+#              syn_spec=gaba)
+nest.Connect(pre=Ex_2, post=In_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+nest.Connect(pre=Ex_2, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+nest.Connect(pre=Ex_2, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
+nest.Connect(pre=Ex_3, post=In_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+nest.Connect(pre=Ex_3, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+nest.Connect(pre=Ex_3, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=Ex_4, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+# nest.Connect(pre=Ex_4, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+#              syn_spec=gaba)
 #Inhibitory
-nest.Connect(pre=In_0, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+nest.Connect(pre=In_0, post=Ex_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=In_0, post=In_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
 nest.Connect(pre=In_0, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
-# nest.Connect(pre=In_2, post=In_2_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_2, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_3, post=In_3_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_3, post=Mn_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-nest.Connect(pre=In_1, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+nest.Connect(pre=In_1, post=Ex_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=In_1, post=In_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
 nest.Connect(pre=In_1, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
-# nest.Connect(pre=In_2_0, post=In_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_2_0, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_3_0, post=In_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
-# nest.Connect(pre=In_3_0, post=Mn_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
+nest.Connect(pre=In_2, post=In_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_2, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_3, post=In_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_3, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_4, post=In_5, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_4, post=Mn_R, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_5, post=In_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=In_5, post=Mn_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 #Noc
-# nest.Connect(pre=Noc, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 20},
-#              syn_spec=glu)
-# nest.Connect(pre=Noc, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 20},
-#              syn_spec=gaba)
+nest.Connect(pre=Noc, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 20},
+             syn_spec=glu)
+nest.Connect(pre=Noc, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 20},
+             syn_spec=gaba)
 
 
 #Create generator
@@ -271,31 +271,29 @@ generator_1 = nest.Create("spike_generator", 1, {'spike_times': spike_times,
 print(spike_times)
 
 
-receptor_toe = DummySensoryReceptor(inversion=True)
-nest.Connect(pre=receptor_toe.receptor_id, post=S_t)
-
-receptor_heel = DummySensoryReceptor()
-nest.Connect(pre=receptor_heel.receptor_id, post=S_h)
-
 receptor_left = DummySensoryReceptor(stand_coef=0.5, inversion=True)
 nest.Connect(pre=receptor_left.receptor_id, post=S_l)
 
-receptor_right = DummySensoryReceptor()
+receptor_toe = DummySensoryReceptor(stand_coef=0.3, inversion=True)
+nest.Connect(pre=receptor_toe.receptor_id, post=S_t)
+
+receptor_heel = DummySensoryReceptor(stand_coef=0.3, inversion=False)
+nest.Connect(pre=receptor_heel.receptor_id, post=S_h)
+
+receptor_right = DummySensoryReceptor(stand_coef=0.5, inversion=False)
 nest.Connect(pre=receptor_right.receptor_id, post=S_r)
 
+receptor_noc = DummySensoryReceptor(stand_coef=0.3, inversion=False)
+nest.Connect(pre=receptor_noc.receptor_id, post=Noc)
 
-#Connect generator
+
+# Connect generator
 nest.Connect(pre=generators, post=S_0, syn_spec=static_syn)
-# nest.Connect(pre=generators, post=S_l, syn_spec=static_syn)
-# nest.Connect(pre=generators, post=S_t, syn_spec=static_syn)
 nest.Connect(pre=generators, post=I_a_0, syn_spec=static_syn)
 nest.Connect(pre=generators, post=I_I_0, syn_spec=static_syn)
 nest.Connect(pre=generators, post=I_I_1, syn_spec=static_syn)
 nest.Connect(pre=generators, post=I_a_1, syn_spec=static_syn)
-# nest.Connect(pre=generators, post=S_h, syn_spec=static_syn)
-# nest.Connect(pre=generators, post=S_r, syn_spec=static_syn)
 nest.Connect(pre=generators, post=S_1, syn_spec=static_syn)
-nest.Connect(pre=generators, post=Noc, syn_spec=static_syn)
 
 
 #Connect multimeter
@@ -322,17 +320,17 @@ nest.Connect(pre=mm_Ex_E, post=Ex_E)
 nest.Connect(pre=mm_Ex_F, post=Ex_F)
 nest.Connect(pre=mm_Ex_R, post=Ex_R)
 nest.Connect(pre=mm_Ex_0, post=Ex_0)
-nest.Connect(pre=mm_Ex_2, post=Ex_2)
-nest.Connect(pre=mm_Ex_2_0, post=Ex_2_0)
 nest.Connect(pre=mm_Ex_1, post=Ex_1)
-nest.Connect(pre=mm_Ex, post=Ex)
+nest.Connect(pre=mm_Ex_2, post=Ex_2)
+nest.Connect(pre=mm_Ex_3, post=Ex_3)
+nest.Connect(pre=mm_Ex_4, post=Ex_4)
 #Inhibitory
 nest.Connect(pre=mm_In_0, post=In_0)
+nest.Connect(pre=mm_In_1, post=In_1)
 nest.Connect(pre=mm_In_2, post=In_2)
 nest.Connect(pre=mm_In_3, post=In_3)
-nest.Connect(pre=mm_In_1, post=In_1)
-nest.Connect(pre=mm_In_2_0, post=In_2_0)
-nest.Connect(pre=mm_In_3_0, post=In_3_0)
+nest.Connect(pre=mm_In_4, post=In_4)
+nest.Connect(pre=mm_In_5, post=In_5)
 #Noc
 nest.Connect(pre=mm_Noc, post=Noc)
 
@@ -345,9 +343,11 @@ else:
 nest.Simulate(T)
 
 
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mn_in')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='s_i')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mn_n')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='in')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='s')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='af')
 plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='r')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex_2')
 
 

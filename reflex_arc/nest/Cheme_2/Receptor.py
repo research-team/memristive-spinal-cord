@@ -3,7 +3,7 @@ import nest
 
 class DummySensoryReceptor:
 
-    def __init__(self, inversion: bool=False, time: float=2000, period: float=1000.,
+    def __init__(self, inversion: bool=False, time: float=200, period: float=100.,
                  stand_coef: float=0.7, rate: float=60):
         spike_times = []
         standing_time = period * stand_coef
@@ -20,7 +20,7 @@ class DummySensoryReceptor:
                 timepoint += periods[i]
                 i = (i + 1) % 2
             else:
-                spikes_at_period = int(periods[i] / 1000 * rate)
+                spikes_at_period = int(periods[i] / 20 * rate)
                 time_between_spikes = round(periods[i] / spikes_at_period, 1)
                 spike_times.extend([timepoint + time_between_spikes * i for i in range(spikes_at_period)])
                 timepoint += periods[i]
