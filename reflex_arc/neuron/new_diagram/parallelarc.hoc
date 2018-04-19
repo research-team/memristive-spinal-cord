@@ -13,10 +13,10 @@ cells = new List()
 
 {load_file("./templates/Ia.hoc")}
 {load_file("./templates/Ib.hoc")}
-{load_file("./templates/IIint1.hoc")}
-{load_file("./templates/IIint2.hoc")}
-{load_file("./templates/IAint1.hoc")}
-{load_file("./templates/IAint2.hoc")}
+{load_file("./templates/IbintE.hoc")}
+{load_file("./templates/IbintF.hoc")}
+{load_file("./templates/IaintE.hoc")}
+{load_file("./templates/IaintF.hoc")}
 {load_file("./templates/IP0.hoc")}
 {load_file("./templates/IP1.hoc")}
 {load_file("./templates/sens0.hoc")}
@@ -46,22 +46,22 @@ for (i=pc.id; i < nMN; i += pc.nhost){
 
 //excitatory interneurons 
 for (i=pc.id+nMN; i < nMN+nInt; i += pc.nhost){
-    addcell(new II1(i-nMN), i, pc.id)
+    addcell(new IbE(i-nMN), i, pc.id)
 }
 
 //inhibitory interneurons
 for (i=pc.id+nMN+nInt; i < nMN+nInt+nInt; i += pc.nhost){
-    addcell(new IA1(i-nMN-nInt), i, pc.id)
+    addcell(new IaE(i-nMN-nInt), i, pc.id)
 }
 
 //afferents Ia
 for (i=pc.id+nMN+nInt+nInt; i < nMN+nInt+nInt+nAff; i += pc.nhost){
-    addcell(new Ia(fr3.get(i-nMN-nInt-nInt)), i, pc.id)
+    addcell(new Ia(fr1.get(i-nMN-nInt-nInt)), i, pc.id)
 }
 
 //afferents Ib
 for (i=pc.id+nMN+nInt+nInt+nAff; i < nMN+nInt+nInt+nAff+nAff; i += pc.nhost){
-    addcell(new Ib(fr1.get(i-nMN-nInt-nInt-nAff)), i, pc.id)   
+    addcell(new Ib(1), i, pc.id)   
 }
 
 //Flexors
@@ -72,22 +72,22 @@ for (i=pc.id+ncell; i < nMN+ncell; i += pc.nhost){
 
 //excitatory interneurons 
 for (i=pc.id+nMN+ncell; i < nMN+nInt+ncell; i += pc.nhost){
-    addcell(new II2(i-nMN-ncell), i, pc.id)
+    addcell(new IbF(i-nMN-ncell), i, pc.id)
 }
 
 //inhibitory interneurons
 for (i=pc.id+nMN+nInt+ncell; i < nMN+nInt+nInt+ncell; i += pc.nhost){
-    addcell(new IA2(i-nMN-nInt-ncell), i, pc.id)
+    addcell(new IaF(i-nMN-nInt-ncell), i, pc.id)
 }
 
 //afferents Ia
 for (i=pc.id+nMN+nInt+nInt+ncell; i < nMN+nInt+nInt+nAff+ncell; i += pc.nhost){
-    addcell(new Ia(fr4.get(i-nMN-nInt-nInt-ncell)), i, pc.id)
+    addcell(new Ia(fr2.get(i-nMN-nInt-nInt-ncell)), i, pc.id)
 }
 
 //afferents Ib
 for (i=pc.id+nMN+nInt+nInt+nAff+ncell; i < nMN+nInt+nInt+nAff+nAff+ncell; i += pc.nhost){
-    addcell(new Ib(fr2.get(i-nMN-nInt-nInt-nAff-ncell)), i, pc.id)
+    addcell(new Ib(1), i, pc.id)
 }
 
 /* building interpool */
@@ -120,7 +120,7 @@ if (pc.id == 0) {
 }
 
 {load_file("connections.hoc")}
-//{load_file("./sessions/3.ses")}
-//{load_file("./sessions/4.ses")}
-{load_file("recording.hoc")}
+//{load_file("3.ses")}
+//{load_file("4.ses")}
+//{load_file("recording.hoc")}
 
