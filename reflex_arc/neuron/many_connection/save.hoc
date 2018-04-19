@@ -10,10 +10,10 @@ proc addSmth(){
 }
 //Spike generator frequency 
 strdef str1, str2, str3, str4
-str1 = "./a1.txt"
-str2 = "./a2.txt"
-str3 = "./a3.txt"
-str4 = "./a4.txt"
+str1 = "./freq/a1.txt"
+str2 = "./freq/a2.txt"
+str3 = "./freq/a3.txt"
+str4 = "./freq/a4.txt"
 objref fr1, fr2, fr3, fr4
 addSmth(str1, fr1)
 addSmth(str2, fr2)

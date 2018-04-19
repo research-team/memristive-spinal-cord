@@ -14,10 +14,8 @@ for i=0,num-1 {
 // $1 is how many epochs
 // each epoch is single step
 {load_file("runningcontrol.hoc")}
-print(tstop)
 epochrun(2, 50, 40)
 {pc.psolve(tstop)}
-print(tstop)
 //writing
 
 objref fok

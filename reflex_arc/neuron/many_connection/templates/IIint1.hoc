@@ -85,7 +85,7 @@ proc init() {local i, j
             dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
             synaff_.tau = 0.1
             synaff_.e=50
-            dend[i] synex_ = new AMPA_S(0.5)   synlistex.append(synex_)
+            dend[i] synex_ = new glutamate_syn(0.5)   synlistex.append(synex_)
         }
 
     }
