@@ -1,13 +1,14 @@
-begintemplate II1
+begintemplate IbE
 public soma, axon, dend, presyn, connect2target
 
 create soma, axon, dend[1] 
 objectvar presyn
 
-public synlistex, synlistaff
-objref synlistex, synlistaff
-objref synex_
+public synlistinh, synlistaff, synlistaffb
+objref synlistinh, synlistaff, synlistaffb
+objref syninh_
 objref synaff_
+objref synaffb_
 
 
 proc init() {local i, j
@@ -35,8 +36,9 @@ proc init() {local i, j
 
     create soma, axon, dend[ndend] 
 
-    synlistex = new List()
+    synlistinh = new List()
     synlistaff = new List()
+    synlistaffb = new List()
 
 
     soma {
@@ -85,7 +87,13 @@ proc init() {local i, j
             dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
             synaff_.tau = 0.1
             synaff_.e=50
-            dend[i] synex_ = new glutamate_syn(0.5)   synlistex.append(synex_)
+            dend[i] synaffb_ = new ExpSyn(0.5)  synlistaffb.append(synaffb_) /* E */
+            synaffb_.tau = 0.5
+            synaffb_.e=0
+            dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
+            syninh_.e = -75
+            syninh_.tau1 = 1.5
+            syninh_.tau2 = 2        
         }
 
     }
@@ -102,4 +110,4 @@ obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 r
   return nc
 }
 
-endtemplate II1
+endtemplate IbE

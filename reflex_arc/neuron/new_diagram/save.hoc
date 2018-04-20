@@ -8,18 +8,13 @@ proc addSmth(){
 	$o2.scanf(f)
 	f.close()
 }
-//Spike generator frequency 
-strdef str1, str2, str3, str4
-str1 = "./freq/a1.txt"
-str2 = "./freq/a2.txt"
-str3 = "./freq/a3.txt"
-str4 = "./freq/a4.txt"
-objref fr1, fr2, fr3, fr4
+strdef str1, str2
+str1 = "./freq/a3.txt"
+str2 = "./freq/a4.txt"
+objref fr1, fr2
 addSmth(str1, fr1)
 addSmth(str2, fr2)
-addSmth(str3, fr3)
-addSmth(str4, fr4)
- 
+
 //Connections between neurons
 strdef str5, str6, str7, str8, str9, str10
 strdef str11, str12, str13, str14, str15, str16, str17, str18

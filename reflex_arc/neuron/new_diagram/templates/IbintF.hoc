@@ -1,13 +1,14 @@
-begintemplate II1
+begintemplate IbF
 public soma, axon, dend, presyn, connect2target
 
 create soma, axon, dend[1] 
 objectvar presyn
 
-public synlistex, synlistaff
-objref synlistex, synlistaff
-objref synex_
+public synlistinh, synlistaff, synlistaffb
+objref synlistinh, synlistaff, synlistaffb
+objref syninh_
 objref synaff_
+objref synaffb_
 
 
 proc init() {local i, j
@@ -35,8 +36,9 @@ proc init() {local i, j
 
     create soma, axon, dend[ndend] 
 
-    synlistex = new List()
+    synlistinh = new List()
     synlistaff = new List()
+    synlistaffb = new List()
 
 
     soma {
@@ -51,8 +53,8 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(-500,100,$1*5,soma_diam) 
-        pt3dadd(-500-soma_len,100,$1*5,soma_diam) 
+        pt3dadd(280,100,$1*5,soma_diam) 
+        pt3dadd(280-soma_len,100,$1*5,soma_diam) 
     }
 
     axon {
@@ -65,8 +67,8 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(-500,100,$1*5,axon_diam) 
-        pt3dadd(-500-soma_len-axon_len,100,$1*5,axon_diam) 
+        pt3dadd(280,100,$1*5,axon_diam) 
+        pt3dadd(280-soma_len-axon_len,100,$1*5,axon_diam) 
     }
 
     presyn = new glutamate_syn(0.5) 
@@ -77,15 +79,21 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,100,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),100,$1*5,diam)
+            pt3dadd(280+dend_len*i,100,$1*5,diam)
+            pt3dadd(280+dend_len*(i+1),100,$1*5,diam)
         }
 
         for j = 0, nsyn-1{
             dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
-            synaff_.tau = 0.1
-            synaff_.e=50
-            dend[i] synex_ = new glutamate_syn(0.5)   synlistex.append(synex_)
+            synaff_.tau = 0.5
+            synaff_.e=0
+            dend[i] synaffb_ = new ExpSyn(0.5)  synlistaffb.append(synaffb_) /* E */
+            synaffb_.tau = 0.5
+            synaffb_.e=0
+            dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
+            syninh_.e = -75
+            syninh_.tau1 = 1.5
+            syninh_.tau2 = 2
         }
 
     }
@@ -102,4 +110,4 @@ obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 r
   return nc
 }
 
-endtemplate II1
+endtemplate IbF
