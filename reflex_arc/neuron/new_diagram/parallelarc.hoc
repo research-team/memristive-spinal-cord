@@ -3,9 +3,10 @@ nMN = 169       /* The number of cells */
 nInt = 196
 nAff = 120
 nSens = 100
+nRC = 196
 nIP = 120
 nsyn = 100
-ncell = nMN+2*nInt+2*nAff
+ncell = nMN+2*nInt+2*nAff+nRC
 
 objref cells, nil, nc
 cells = new List()
@@ -24,6 +25,8 @@ cells = new List()
 {load_file("./templates/MNE.hoc")}
 {load_file("./templates/MNF.hoc")}
 {load_file("./templates/EES.hoc")}
+{load_file("./templates/RcF.hoc")}
+{load_file("./templates/RcE.hoc")}
 {load_file("./templates/sensorygen.hoc")}
 {load_file("save.hoc")}
 
@@ -64,6 +67,11 @@ for (i=pc.id+nMN+nInt+nInt+nAff; i < nMN+nInt+nInt+nAff+nAff; i += pc.nhost){
     addcell(new Ib(1), i, pc.id)   
 }
 
+//add renshaw cells
+for (i=pc.id+nMN+nInt+nInt+nAff+nAff; i < nMN+nInt+nInt+nAff+nAff+nRC; i += pc.nhost){
+    addcell(new RCE(i-nMN-nInt-nInt-nAff-nAff), i, pc.id)   
+}
+
 //Flexors
 //motoneurons
 for (i=pc.id+ncell; i < nMN+ncell; i += pc.nhost){
@@ -88,6 +96,11 @@ for (i=pc.id+nMN+nInt+nInt+ncell; i < nMN+nInt+nInt+nAff+ncell; i += pc.nhost){
 //afferents Ib
 for (i=pc.id+nMN+nInt+nInt+nAff+ncell; i < nMN+nInt+nInt+nAff+nAff+ncell; i += pc.nhost){
     addcell(new Ib(1), i, pc.id)
+}
+
+//add renshaw cells
+for (i=pc.id+nMN+nInt+nInt+nAff+nAff+ncell; i < nMN+nInt+nInt+nAff+nAff+nRC+ncell; i += pc.nhost){
+    addcell(new RCF(i-nMN-nInt-nInt-nAff-nAff-ncell), i, pc.id)   
 }
 
 /* building interpool */
@@ -119,8 +132,9 @@ if (pc.id == 0) {
     {addcell(new sensorygen(),(2*ncell+nSens+nSens+nIP+nIP+1),pc.id)}
 }
 
+
 {load_file("connections.hoc")}
-//{load_file("3.ses")}
-//{load_file("4.ses")}
-//{load_file("recording.hoc")}
+//{load_file("./sessions/3.ses")}
+//{load_file("./sessions/4.ses")}
+{load_file("recording.hoc")}
 

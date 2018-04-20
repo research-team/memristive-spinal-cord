@@ -53,8 +53,8 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(-500,100,$1*5,soma_diam) 
-        pt3dadd(-500-soma_len,100,$1*5,soma_diam) 
+        pt3dadd(-500,200,$1*5,soma_diam) 
+        pt3dadd(-500-soma_len,200,$1*5,soma_diam) 
     }
 
     axon {
@@ -67,8 +67,8 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(-500,100,$1*5,axon_diam) 
-        pt3dadd(-500-soma_len-axon_len,100,$1*5,axon_diam) 
+        pt3dadd(-500,200,$1*5,axon_diam) 
+        pt3dadd(-500-soma_len-axon_len,200,$1*5,axon_diam) 
     }
 
     presyn = new glutamate_syn(0.5) 
@@ -79,8 +79,8 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,100,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),100,$1*5,diam)
+            pt3dadd(-500+dend_len*i,200,$1*5,diam)
+            pt3dadd(-500+dend_len*(i+1),200,$1*5,diam)
         }
 
         for j = 0, nsyn-1{

@@ -1,28 +1,24 @@
 proc epochrun() { local i, n, j
   //running_ = 1
   tstop = $1*$2+$1*$3 // in case some other code needs tstop
+  ns = connect_sens0_gen.count
+  print($1)
+  print($2)
+  print($3)
   stdinit()
   for n=0,$1 - 1 {
-    for i=0, num - 1{
-        for j = 0,nsyn-1 {
-            connect_sens0_gen.object(i*nsyn+j).weight = 0
-        }
+    for i=0, ns - 1{
+        connect_sens0_gen.object(i).weight = 0
     }
-    for i=0, num - 1{
-        for j = 0,nsyn-1 {
-            connect_sens1_gen.object(i*nsyn+j).weight = 1
-        }
+    for i=0, ns - 1{
+        connect_sens1_gen.object(i).weight = 1
     }
     continuerun(t+$2)
-    for i=0, num - 1{
-        for j = 0,nsyn-1 {
-            connect_sens1_gen.object(i*nsyn+j).weight = 0
-        }
+    for i=0, ns - 1{
+        connect_sens1_gen.object(i).weight = 0
     }
-    for i=0, num - 1{
-        for j = 0,nsyn-1 {
-            connect_sens0_gen.object(i*nsyn+j).weight = 1
-        }
+    for i=0, ns - 1{
+        connect_sens0_gen.object(i).weight = 1
     }
     continuerun(t+$3)
   }
