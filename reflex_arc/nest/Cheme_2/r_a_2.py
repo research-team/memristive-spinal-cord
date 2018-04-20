@@ -18,7 +18,7 @@ T = 100.
 glu_weight = 10.
 # glu_weight_1 = 15.
 gaba_weight = -10.
-# gaba_weight_1 = 0.
+gaba_weight_1 = 1.
 static_weight = 60.
 gen_rate = 60.
 
@@ -31,9 +31,9 @@ glu = {'model': 'static_synapse',
 gaba = {'model': 'static_synapse',
         'delay': 1.,
         'weight': gaba_weight}
-# gaba_1 = {'model': 'static_synapse',
-#         'delay': 1.,
-#         'weight': gaba_weight_1}
+gaba_1 = {'model': 'static_synapse',
+        'delay': 1.,
+        'weight': gaba_weight_1}
 static_syn = {'weight': static_weight,
               'delay': 1.}
 nrn_parameters = {
@@ -195,8 +195,8 @@ nest.Connect(pre=I_a_1, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegre
 nest.Connect(pre=I_a_1, post=In_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
 #Excitatory
-# nest.Connect(pre=Ex_0, post=Noc, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
+nest.Connect(pre=Ex_0, post=Noc, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
 nest.Connect(pre=Ex_L, post=Mn_L, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=Ex_E, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
@@ -207,8 +207,8 @@ nest.Connect(pre=Ex_R, post=Mn_R, conn_spec={'rule': 'fixed_indegree', 'indegree
              syn_spec=glu)
 nest.Connect(pre=Ex_1, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
-# nest.Connect(pre=Ex_1, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
+nest.Connect(pre=Ex_1, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba_1)
 nest.Connect(pre=Ex_2, post=In_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
 nest.Connect(pre=Ex_2, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
@@ -223,8 +223,8 @@ nest.Connect(pre=Ex_3, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree
              syn_spec=gaba)
 nest.Connect(pre=Ex_4, post=Ex_3, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
-# nest.Connect(pre=Ex_4, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-#              syn_spec=gaba)
+nest.Connect(pre=Ex_4, post=Ex_2, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba_1)
 #Inhibitory
 nest.Connect(pre=In_0, post=Ex_4, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=glu)
@@ -343,11 +343,15 @@ else:
 nest.Simulate(T)
 
 
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mn_n')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='in')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='s')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='af')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex_2')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mnl_mnr')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mne')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mnf')
+
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='mn_n')
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='in')
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='s')
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='af')
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex')
+# plot(gen_rate, glu_weight, gaba_weight, static_weight, group='ex_2')
 
 

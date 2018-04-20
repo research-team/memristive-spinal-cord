@@ -2,12 +2,16 @@ import pylab
 import os
 
 names = dict()
-names['mn_n'] = ['Mn_L', 'Mn_E', 'Mn_F', 'Mn_R', 'Noc']
-names['in'] = ['In_0', 'In_1', 'In_2', 'In_3', 'In_4', 'In_5']
-names['s'] = ['S_0', 'S_l', 'S_t', 'S_h', 'S_r', 'S_1']
-names['af'] = ['I_a_0', 'I_I_0', 'I_I_1', 'I_a_1']
-names['ex'] = ['Ex_L', 'Ex_E', 'Ex_F', 'Ex_R']
-names['ex_2'] = ['Ex_1', 'Ex_2', 'Ex_3', 'Ex_4']
+names['mnl_mnr'] = ['Ex_L', 'Mn_L', 'In_5', 'Ex_R', 'Mn_R', 'In_4']
+names['mne'] = ['I_a_0', 'Ex_E', 'Ex_2', 'Mn_E', 'In_1', 'In_5']
+names['mnf'] = ['I_a_1', 'Ex_F', 'Ex_3', 'Mn_F', 'In_0', 'In_4']
+
+# names['mn_n'] = ['Mn_L', 'Mn_E', 'Mn_F', 'Mn_R', 'Noc']
+# names['in'] = ['In_0', 'In_1', 'In_2', 'In_3', 'In_4', 'In_5']
+# names['s'] = ['S_0', 'S_l', 'S_t', 'S_h', 'S_r', 'S_1']
+# names['af'] = ['I_a_0', 'I_I_0', 'I_I_1', 'I_a_1']
+# names['ex'] = ['Ex_L', 'Ex_E', 'Ex_F', 'Ex_R']
+# names['ex_2'] = ['Ex_1', 'Ex_2', 'Ex_3', 'Ex_4']
 
 
 def plot_one(name):
