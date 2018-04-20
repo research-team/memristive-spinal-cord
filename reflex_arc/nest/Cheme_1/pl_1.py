@@ -4,9 +4,6 @@ import os
 names = dict()
 names['1'] = ['Iai_0', 'Mn_E', 'Ia_0', 'Ex_0', 'II_0']
 names['2'] = ['Iai_1', 'Mn_F', 'Ia_1', 'Ex_1', 'II_1']
-names['afferents'] = ['II_0', 'Ia_0', 'II_1', 'Ia_1']
-names['interneuron'] = ['Ex_0', 'Ex_1', 'Iai_0', 'Iai_1']
-names['moto'] = ['Mn_E', 'Mn_F']
 
 
 def plot_one(name):

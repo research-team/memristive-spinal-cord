@@ -109,7 +109,3 @@ nest.Simulate(T)
 
 plot(gen_rate, glu_weight, gaba_weight, static_weight, group='1')
 plot(gen_rate, glu_weight, gaba_weight, static_weight, group='2')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='afferents')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='interneuron')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='moto')
-
