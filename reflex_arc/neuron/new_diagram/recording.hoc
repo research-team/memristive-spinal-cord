@@ -1,7 +1,7 @@
 num = connect_MNf_Ib.count/100
-print(num)
 objref exsynrec[num][nsyn], flsynrec[num][nsyn], exsyninh[num][nsyn], flsyninh[num][nsyn]
-recDt = 25
+objref exipsynrec[num][nsyn], flipsynrec[num][nsyn]
+recDt = 5
 for i=0,num-1 {
         for j = 0,nsyn-1 {
                 exsynrec[i][j]= new Vector()
@@ -12,17 +12,19 @@ for i=0,num-1 {
                 exsyninh[i][j].record(&connect_MNe_IA.object(i*nsyn+j).weight, recDt)
                 flsyninh[i][j]= new Vector()
                 flsyninh[i][j].record(&connect_MNf_IA.object(i*nsyn+j).weight, recDt)
+                exipsynrec[i][j]= new Vector()
+                exipsynrec[i][j].record(&connect_IP1_MNe.object(i*nsyn+j).weight, recDt)
+                flipsynrec[i][j]= new Vector()
+                flipsynrec[i][j].record(&connect_IP0_MNf.object(i*nsyn+j).weight, recDt)
         }
 }
 //running
-{pc.set_maxstep(2)}
+//{pc.set_maxstep(2)}
 // $1 is how many epochs
 // each epoch is single step
 {load_file("runningcontrol.hoc")}
-print(tstop)
-epochrun(5, 700, 300)
-{pc.psolve(tstop)}
-print(tstop)
+epochrun(1, 7, 3)
+//{pc.psolve(tstop)}
 //writing
 
 objref fok
@@ -31,10 +33,13 @@ for i=0,num-1 {
     for j = 0,nsyn-1 {
         strdef basename0, basename1, extension, filename0, filename1
         strdef basename3, basename2, filename3, filename2
+        strdef basename4, basename5, filename4, filename5
         basename0 = "./res/ex"
         basename1 = "./res/fl"
         basename2 = "./res/exinh"
         basename3 = "./res/flinh"
+        basename4 = "./res/exip"
+        basename5 = "./res/flip"
         extension = "txt"
 
         sprint(filename0, "%s%dn%dp%d.%s", basename0, i, j, pc.id, extension)
@@ -56,8 +61,18 @@ for i=0,num-1 {
         fok.wopen(filename3)
         flsyninh[i][j].printf(fok)
         fok.close()
+
+        sprint(filename4, "%s%dn%dp%d.%s", basename4, i, j, pc.id, extension)
+        fok.wopen(filename4)
+        exipsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename5, "%s%dn%dp%d.%s", basename5, i, j, pc.id, extension)
+        fok.wopen(filename5)
+        flipsynrec[i][j].printf(fok)
+        fok.close()
     }
 }
 {pc.runworker()}
 {pc.done()}
-//quit()
+quit()
