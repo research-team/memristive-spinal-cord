@@ -23,7 +23,7 @@ for i=0,num-1 {
 // $1 is how many epochs
 // each epoch is single step
 {load_file("runningcontrol.hoc")}
-epochrun(1, 7, 3)
+epochrun(10, 700, 300)
 //{pc.psolve(tstop)}
 //writing
 
