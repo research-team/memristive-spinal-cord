@@ -55,8 +55,8 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(-500,150,$1*5,soma_diam) 
-        pt3dadd(-500-soma_len,150,$1*5,soma_diam) 
+        pt3dadd(-500,250,$1*5,soma_diam) 
+        pt3dadd(-500-soma_len,250,$1*5,soma_diam) 
     }
 
     axon {
@@ -69,8 +69,8 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(-500,150,$1*5,axon_diam) 
-        pt3dadd(-500-soma_len-axon_len,150,$1*5,axon_diam) 
+        pt3dadd(-500,250,$1*5,axon_diam) 
+        pt3dadd(-500-soma_len-axon_len,250,$1*5,axon_diam) 
 
     }
         presyn = new GABAA_S(0.5) 
@@ -82,8 +82,8 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,150,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),150,$1*5,diam)
+            pt3dadd(-500+dend_len*i,250,$1*5,diam)
+            pt3dadd(-500+dend_len*(i+1),250,$1*5,diam)
         }
 
         for j = 0, nsyn-1{

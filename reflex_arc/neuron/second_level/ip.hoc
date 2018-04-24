@@ -7,17 +7,15 @@ objref presynexlist, presyninhlist
 objref presynex_      
 objref presyninh_  
 
-public synlistinh, synlistsens, synlistsensinh
-objref synlistinh, synlistsens, synlistsensinh
-objref syninh_
-objref synsens_
-objref synsensinh_
-
+public synlistees, synlistex
+objref synlistees, synlistex
+objref synees_
+objref synex_
 
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 10
+    nsyn = 6
     
     soma_diam = 10    
     soma_len = 10      
@@ -39,9 +37,8 @@ proc init() {local i, j
 
     create soma, axon, dend[ndend] 
 
-    synlistinh = new List()
-    synlistsens = new List()
-    synlistsensinh = new List()
+    synlistees = new List()
+    synlistex = new List()
     presynexlist = new List()
     presyninhlist = new List()
 
@@ -57,8 +54,11 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(280,300,$1*5,soma_diam) 
-        pt3dadd(280-soma_len,300,$1*5,soma_diam) 
+        pt3dadd(280,350,$1*5,soma_diam) 
+        pt3dadd(280-soma_len,350,$1*5,soma_diam) 
+        insert extracellular
+        xg = 1000
+        xc = 300
     }
 
     axon {
@@ -71,13 +71,13 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(280,300,$1*5,axon_diam) 
-        pt3dadd(280-soma_len-axon_len,300,$1*5,axon_diam) 
+        pt3dadd(280,350,$1*5,axon_diam) 
+        pt3dadd(280-soma_len-axon_len,350,$1*5,axon_diam) 
 
     }
 
         presyninh_ = new GABAA_S(0.5) presyninhlist.append(presyninh_)
-        presynex_ = new glutamate_syn(0.5) presynexlist.append(presynex_)
+        presynex_ = new AMPA_S(0.5) presynexlist.append(presynex_)
 
     for i = 0, ndend-1{
         dend[i] {
@@ -85,16 +85,15 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(280+dend_len*i,300,$1*5,diam)
-            pt3dadd(280+dend_len*(i+1),300,$1*5,diam)
+            pt3dadd(280+dend_len*i,350,$1*5,diam)
+            pt3dadd(280+dend_len*(i+1),350,$1*5,diam)
         }
 
         for j = 0, nsyn-1{
-            dend[i] synsens_ = new ExpSyn(0.5)  synlistsens.append(synsens_) /* E */
-            synsens_.tau = 0.1
-            synsens_.e=50
-            dend[i] syninh_ = new GABAA_S(0.5) synlistinh.append(syninh_)
-            dend[i] synsensinh_ = new GABAA_S(0.5) synlistsensinh.append(synsensinh_)
+            dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
+            dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
+            synees_.tau = 0.1
+            synees_.e=50
         }
 
     }
