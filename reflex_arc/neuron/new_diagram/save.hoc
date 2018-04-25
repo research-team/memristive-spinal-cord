@@ -1,0 +1,127 @@
+objectvar f, fok
+
+f = new File()
+
+proc addSmth(){
+	f.ropen($s1)
+	$o2 = new Vector()
+	$o2.scanf(f)
+	f.close()
+}
+strdef str1, str2
+str1 = "./freq/a3.txt"
+str2 = "./freq/a4.txt"
+objref fr1, fr2
+addSmth(str1, fr1)
+addSmth(str2, fr2)
+
+//Connections between neurons
+strdef str5, str6, str7, str8, str9, str10
+strdef str11, str12, str13, str14, str15, str16, str17, str18
+strdef str19, str20, str21, str22, str23, str24, str25, str26, str27, str28
+str5 = "./connection_matrix/connex.txt"
+str6 = "./connection_matrix/conninh.txt"
+str7 = "./connection_matrix/connex1.txt"
+str8 = "./connection_matrix/conninh1.txt"
+str9 = "./connection_matrix/connaff.txt"
+str10 = "./connection_matrix/connaff1.txt"
+str11 = "./connection_matrix/connminh.txt"
+str12 = "./connection_matrix/connminh1.txt"
+str13 = "./connection_matrix/connaffinh.txt"
+str14 = "./connection_matrix/connaffinh1.txt"
+str15 = "./connection_matrix/connaffex.txt"
+str16 = "./connection_matrix/connaffex1.txt"
+str17 = "./connection_matrix/connaffinh2.txt"
+str18 = "./connection_matrix/connaffinh21.txt"
+str19 = "./connection_matrix/MNeIP.txt"
+str20 = "./connection_matrix/MNfIP.txt"
+str21 = "./connection_matrix/IAeIP.txt"
+str22 = "./connection_matrix/IAfIP.txt"
+str23 = "./connection_matrix/MNeRC.txt"
+str24 = "./connection_matrix/MNfRC.txt"
+str25 = "./connection_matrix/RCeMN.txt"
+str26 = "./connection_matrix/RCfMN.txt"
+str27 = "./connection_matrix/RCeRC.txt"
+str28 = "./connection_matrix/RCfRC.txt"
+objref exconn, inhconn, exconn1, inhconn1, affconn, affconn1
+objref affi, affi1, affex, affex1, minh, minh1, affi2, affi21
+objref connMNeip, connMNfip, connIAeip, connIAfip
+objref connMNeRC, connMNfRC, connRCeMN, connRCfMN, connRCeRC, connRCfRC
+addSmth(str5, exconn)
+addSmth(str6, inhconn)
+addSmth(str7, exconn1)
+addSmth(str8, inhconn1)
+addSmth(str9, affconn)
+addSmth(str10, affconn1)
+addSmth(str11, minh)
+addSmth(str12, minh1)
+addSmth(str13, affi)
+addSmth(str14, affi1)
+addSmth(str15, affex)
+addSmth(str16, affex1)
+addSmth(str17, affi2)
+addSmth(str18, affi21)
+addSmth(str19, connMNeip)
+addSmth(str20, connMNfip)
+addSmth(str21, connIAeip)
+addSmth(str22, connIAfip)
+addSmth(str23, connMNeRC)
+addSmth(str24, connMNfRC)
+addSmth(str25, connRCeMN)
+addSmth(str26, connRCfMN)
+addSmth(str27, connRCeRC)
+addSmth(str28, connRCfRC)
+
+/*//weights
+strdef w1, w2, w3, w4
+w1 = "./connection_matrix/weights.txt"
+w2 = "./connection_matrix/exweights.txt"
+w3 = "./connection_matrix/weights1.txt"
+w4 = "./connection_matrix/exweights1.txt"
+*/
+/*
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()
+
+f.ropen("./connection_matrix/exweights1.txt")
+
+double exweights1[nMN][nsyn]
+
+for i = 0,nMN-1 {
+	for j = 0,nsyn-1 {
+		exweights1[i][j]=f.scanvar()
+	}
+}
+f.close()*/
+

@@ -1,0 +1,22 @@
+proc epochrun() { local i, n, j
+  //running_ = 1
+  //tstop = $1*$2+$1*$3 // in case some other code needs tstop
+  ns = connect_sens0_gen.count
+  stdinit()
+  for n=0,$1 - 1 {
+    for i=0, ns - 1{
+        connect_sens0_gen.object(i).weight = 0
+    }
+    for i=0, ns - 1{
+        connect_sens1_gen.object(i).weight = 1
+    }
+    continuerun(t+$2)
+    for i=0, ns - 1{
+        connect_sens1_gen.object(i).weight = 0
+    }
+    for i=0, ns - 1{
+        connect_sens0_gen.object(i).weight = 1
+    }
+    continuerun(t+$3)
+  }
+}

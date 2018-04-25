@@ -1,0 +1,219 @@
+/* add connections */
+
+objref connect_MNe_Aff, connect_MNf_Aff, connect_MNe_IA, connect_MNe_Ib, connect_MNf_IA, connect_MNf_Ib
+objref connect_IAf_Ia, connect_IAe_Ia, connect_IAf_IAe, connect_IAe_IAf, connect_Ibe_Ibf, connect_Ibf_Ibe
+objref connect_Ibf_Ib, connect_Ibe_Ib, connect_Ibf_Ia, connect_Ibe_Ia, connect_sens0_EES, connect_sens1_EES, connect_sens0_gen, connect_sens1_gen
+objref connect_IP0_sens0, connect_IP1_sens0, connect_IP0_sens1, connect_IP1_sens1
+objref connect_IP0_MNf, connect_IP1_MNe, connect_IP0_IAf, connect_IP1_IAe
+objref connect_MNf_RCf, connect_MNe_RCe, connect_IAf_RCf, connect_IAe_RCe
+objref connect_RCf_RCe, connect_RCe_RCf, connect_RCf_MNf, connect_RCe_MNe
+objref syn, target, stdp, presyn, postsyn, stdpmech, presyns, postsyns
+connect_MNe_Aff = new List()
+connect_MNf_Aff = new List()
+connect_MNe_Ib = new List()
+connect_MNe_IA = new List()
+connect_Ibe_Ib = new List()
+connect_Ibf_Ib = new List()
+connect_MNf_Ib = new List()
+connect_MNf_IA = new List()
+connect_IAe_Ia = new List()
+connect_IAf_Ia = new List()
+connect_Ibe_Ia = new List()
+connect_Ibf_Ia = new List()
+connect_IAe_IAf = new List()
+connect_IAf_IAe = new List()
+connect_Ibe_Ibf = new List()
+connect_Ibf_Ibe = new List()
+connect_sens0_EES = new List()
+connect_sens1_EES = new List()
+connect_sens0_gen = new List()
+connect_sens1_gen = new List()
+connect_IP0_sens0 = new List()
+connect_IP0_sens1 = new List()
+connect_IP1_sens0 = new List()
+connect_IP1_sens1 = new List()
+connect_IP0_MNf = new List()
+connect_IP1_MNe = new List()
+connect_IP0_IAf = new List()
+connect_IP1_IAe = new List()
+connect_MNf_RCf = new List()
+connect_MNe_RCe = new List()
+connect_IAf_RCf = new List()
+connect_IAe_RCe = new List()
+connect_RCf_RCe = new List() 
+connect_RCe_RCf = new List()
+connect_RCf_MNf = new List()
+connect_RCe_MNe = new List()
+presyns = new List()
+postsyns = new List()
+stdpmech = new List()
+
+proc connection(){
+    syn = $o1
+    nc = pc.gid_connect($3, syn)
+    nc.weight = $4
+    nc.delay = 1
+    $o2.append(nc)
+}
+
+proc connectionSTDP(){
+    syn = $o1
+    nc = pc.gid_connect($4, syn)
+    nc.weight = 0.01
+    nc.delay = 1
+    $o2.append(nc)
+    if($8){
+        stdp = new StdpInh(0.5) //inhibitory 
+    }else{
+        stdp = new StdwaSA(0.5)
+        nc.weight = 0.07
+    }
+    presyn = pc.gid_connect($4, stdp)
+    presyn.weight = 1
+    postsyn = pc.gid_connect($3, stdp)
+    postsyn.weight = -1
+    setpointer stdp.wsyn, $o2.object($o2.count-1).weight
+    $o5.append(stdp)
+    $o6.append(presyn)
+    $o7.append(postsyn)
+}
+//MN extensor connections
+for i=pc.id, nMN -1 {
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (affconn.get(i*nsyn+j)+nMN+nInt+nInt), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistex.object(j), connect_MNe_Ib, i, (exconn.get(i*nsyn+j)+ nMN), stdpmech, presyns, postsyns, 1)
+        connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, (inhconn.get(i*nsyn+j)+ nMN + nInt + ncell), stdpmech, presyns, postsyns, 1)        
+        connectionSTDP(target.synlistip.object(j), connect_IP1_MNe, i, (connMNeip.get(i*nsyn+j)+ 2*ncell+nSens+nSens+nIP), stdpmech, presyns, postsyns, 0)  
+        connectionSTDP(target.synlistrc.object(j), connect_MNe_RCe, i, (connMNeRC.get(i*nsyn+j)+nMN+nInt+nInt+nAff+nAff), stdpmech, presyns, postsyns, 1)              
+    }
+}
+
+//MN flexor connections
+for i=pc.id+ncell, nMN+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_MNf_Aff, i, (affconn1.get((i-ncell)*nsyn+j)+nMN+nInt+nInt+ncell), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistex.object(j), connect_MNf_Ib, i, (exconn1.get((i-ncell)*nsyn+j)+ nMN +ncell), stdpmech, presyns, postsyns, 1)
+        connectionSTDP(target.synlistinh.object(j), connect_MNf_IA, i, (inhconn1.get((i-ncell)*nsyn+j)+ nMN + nInt), stdpmech, presyns, postsyns, 1)  
+        connectionSTDP(target.synlistip.object(j), connect_IP0_MNf, i, (connMNfip.get((i-ncell)*nsyn+j)+ 2*ncell+nSens), stdpmech, presyns, postsyns, 0)        
+        connectionSTDP(target.synlistrc.object(j), connect_MNf_RCf, i, (connMNfRC.get((i-ncell)*nsyn+j)+nMN+nInt+nInt+nAff+nAff+ncell), stdpmech, presyns, postsyns, 1)              
+    }
+}
+
+//between Ib extensor and afferents
+//between Ib extensor and Ib flexor 
+for i=pc.id+nMN, nMN+nInt - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_Ibe_Ib, i, (affex.get((i-nMN)*nsyn+j)+nMN+nInt+nInt+nAff), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistaffb.object(j), connect_Ibe_Ia,i, (affi21.get((i-nMN)*nsyn+j)+nMN+nInt+nInt), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_Ibe_Ibf, i, (minh1.get((i-nMN)*nsyn+j)+ nMN + ncell), stdpmech, presyns, postsyns, 1)  
+    }
+}
+
+//between Ib flexor and afferents
+//between Ib flexor and Ib extensor
+for i=pc.id+nMN+ncell, nMN+nInt+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_Ibf_Ib, i, (affex.get((i-nMN-ncell)*nsyn+j)+nMN+nInt+nInt+nAff+ncell), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistaffb.object(j), connect_Ibf_Ia, i, (affi2.get((i-nMN-ncell)*nsyn+j)+nMN+nInt+nInt+ncell), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_Ibf_Ibe, i, (minh.get((i-nMN-ncell)*nsyn+j)+ nMN), stdpmech, presyns, postsyns, 1)  
+    }
+}
+
+//between IA extensor and afferents
+//between IA extensor and IA flexor
+for i=pc.id+nMN+nInt, nMN+nInt+nInt - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_IAe_Ia, i, (affi.get((i-nMN-nInt)*nsyn+j)+nMN+nInt+nInt), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_IAe_IAf, i, (minh.get((i-nMN-nInt)*nsyn+j) + nMN + nInt + ncell), stdpmech, presyns, postsyns, 1)
+        connectionSTDP(target.synlistip.object(j), connect_IP1_IAe, i, (connIAeip.get((i-nMN-nInt)*nsyn+j)+ 2*ncell+nSens+nSens+nIP), stdpmech, presyns, postsyns, 0)          
+        connectionSTDP(target.synlistrc.object(j), connect_IAe_RCe, i, (nsyn+nMN+nInt+nInt+nAff+nAff), stdpmech, presyns, postsyns, 1)              
+    }
+}
+
+//between IA flexor and afferents
+//between IA flexor and IA extensor
+for i=pc.id+nMN+nInt+ncell, nMN+nInt+nInt+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn-1 {
+        connectionSTDP(target.synlistaff.object(j), connect_IAf_Ia, i, (affi1.get((i-nMN-nInt-ncell)*nsyn+j)+nMN+nInt+nInt+ncell), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_IAf_IAe, i, (minh1.get((i-nMN-nInt-ncell)*nsyn+j)+ nMN + nInt), stdpmech, presyns, postsyns, 1)  
+        connectionSTDP(target.synlistip.object(j), connect_IP0_IAf, i, (connIAfip.get((i-nMN-nInt-ncell)*nsyn+j)+ 2*ncell+nSens), stdpmech, presyns, postsyns, 0)        
+        connectionSTDP(target.synlistrc.object(j), connect_IAf_RCf, i, (nsyn+nMN+nInt+nInt+nAff+nAff+ncell), stdpmech, presyns, postsyns, 1)                  
+    }
+}
+
+//between sensory neurons and EES
+for i=pc.id+2*ncell, 2*ncell+nSens - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1 {
+        connection(target.synlistsens.object(j), connect_sens0_EES, (2*ncell+nSens+nSens+nIP+nIP), 3)
+        connection(target.synlistgen.object(j), connect_sens0_gen, (2*ncell+nSens+nSens+nIP+nIP+1), 1)
+    }
+}
+
+for i=pc.id+2*ncell+nSens+nIP, 2*ncell+nSens+nSens+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1 {
+        connection(target.synlistsens.object(j), connect_sens1_EES, (2*ncell+nSens+nSens+nIP+nIP), 3)
+        connection(target.synlistgen.object(j), connect_sens1_gen, (2*ncell+nSens+nSens+nIP+nIP+1), 1)
+    }
+}
+
+//between IP and sensory neurons (extensor)
+for i=pc.id+2*ncell+nSens, 2*ncell+nSens+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        s0 = i-nSens+j
+        s1 = i+nIP+j
+        connection(target.synlistsens.object(j), connect_IP0_sens0, s0, 3)
+        //connection(target.synlistsensinh.object(j), connect_IP0_sens1, s1, stdpmech, presyns, postsyns, 1)          
+    }
+}
+
+//between IP and sensory neurons (flexor)
+for i=pc.id+2*ncell+nSens+nSens+nIP, 2*ncell+nSens+nSens+nIP+nIP - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        s0 = i-nSens-nSens-nIP+j
+        s1 = i-nSens+j
+        connection(target.synlistsens.object(j), connect_IP1_sens1, s1, 3)
+        //connectionSTDP(target.synlistsensinh.object(j), connect_IP1_sens0, i, s0, stdpmech, presyns, postsyns, 1)          
+    }
+}
+
+//between RC extensor and MN 
+//between RC extensor and RC flexor
+for i=pc.id+nMN+nInt+nInt+nAff+nAff, nMN+nInt+nInt+nAff+nAff+nRC - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        connectionSTDP(target.synlistmn.object(j), connect_RCe_MNe, i, (connRCeMN.get((i-nMN-nInt-nInt-nAff-nAff)*nsyn+j)), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_RCe_RCf, i, (connRCeRC.get((i-nMN-nInt-nInt-nAff-nAff)*nsyn+j)+nMN+nInt+nInt+nAff+nAff+ncell), stdpmech, presyns, postsyns, 1)          
+    }
+}
+
+//between RC flexor and MN 
+//between RC flexor and RC extensor
+for i=pc.id+nMN+nInt+nInt+nAff+nAff+ncell, nMN+nInt+nInt+nAff+nAff+nRC+ncell - 1{
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i)
+    for j = 0,nsyn-1{
+        connectionSTDP(target.synlistmn.object(j), connect_RCf_MNf, i, (connRCfMN.get((i-nMN-nInt-nInt-nAff-nAff-ncell)*nsyn+j)+ncell), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistinh.object(j), connect_RCf_RCe, i, (connRCfRC.get((i-nMN-nInt-nInt-nAff-nAff-ncell)*nsyn+j)+nMN+nInt+nInt+nAff+nAff), stdpmech, presyns, postsyns, 1)          
+    }
+}

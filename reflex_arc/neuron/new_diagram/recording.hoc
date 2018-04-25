@@ -1,0 +1,78 @@
+num = connect_MNf_Ib.count/100
+objref exsynrec[num][nsyn], flsynrec[num][nsyn], exsyninh[num][nsyn], flsyninh[num][nsyn]
+objref exipsynrec[num][nsyn], flipsynrec[num][nsyn]
+recDt = 5
+for i=0,num-1 {
+        for j = 0,nsyn-1 {
+                exsynrec[i][j]= new Vector()
+                exsynrec[i][j].record(&connect_MNe_Ib.object(i*nsyn+j).weight, recDt)
+                flsynrec[i][j]= new Vector()
+                flsynrec[i][j].record(&connect_MNf_Ib.object(i*nsyn+j).weight, recDt)
+                exsyninh[i][j]= new Vector()
+                exsyninh[i][j].record(&connect_MNe_IA.object(i*nsyn+j).weight, recDt)
+                flsyninh[i][j]= new Vector()
+                flsyninh[i][j].record(&connect_MNf_IA.object(i*nsyn+j).weight, recDt)
+                exipsynrec[i][j]= new Vector()
+                exipsynrec[i][j].record(&connect_IP1_MNe.object(i*nsyn+j).weight, recDt)
+                flipsynrec[i][j]= new Vector()
+                flipsynrec[i][j].record(&connect_IP0_MNf.object(i*nsyn+j).weight, recDt)
+        }
+}
+//running
+//{pc.set_maxstep(2)}
+// $1 is how many epochs
+// each epoch is single step
+{load_file("runningcontrol.hoc")}
+epochrun(10, 700, 300)
+//{pc.psolve(tstop)}
+//writing
+
+objref fok
+fok=new File()
+for i=0,num-1 {
+    for j = 0,nsyn-1 {
+        strdef basename0, basename1, extension, filename0, filename1
+        strdef basename3, basename2, filename3, filename2
+        strdef basename4, basename5, filename4, filename5
+        basename0 = "./res/ex"
+        basename1 = "./res/fl"
+        basename2 = "./res/exinh"
+        basename3 = "./res/flinh"
+        basename4 = "./res/exip"
+        basename5 = "./res/flip"
+        extension = "txt"
+
+        sprint(filename0, "%s%dn%dp%d.%s", basename0, i, j, pc.id, extension)
+        fok.wopen(filename0)
+        exsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename1, "%s%dn%dp%d.%s", basename1, i, j, pc.id, extension)
+        fok.wopen(filename1)
+        flsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename2, "%s%dn%dp%d.%s", basename2, i, j, pc.id, extension)
+        fok.wopen(filename2)
+        exsyninh[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename3, "%s%dn%dp%d.%s", basename3, i, j, pc.id, extension)
+        fok.wopen(filename3)
+        flsyninh[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename4, "%s%dn%dp%d.%s", basename4, i, j, pc.id, extension)
+        fok.wopen(filename4)
+        exipsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename5, "%s%dn%dp%d.%s", basename5, i, j, pc.id, extension)
+        fok.wopen(filename5)
+        flipsynrec[i][j].printf(fok)
+        fok.close()
+    }
+}
+{pc.runworker()}
+{pc.done()}
+quit()
