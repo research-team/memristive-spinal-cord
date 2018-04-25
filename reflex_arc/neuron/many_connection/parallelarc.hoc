@@ -1,0 +1,126 @@
+load_file("nrngui.hoc")
+nMN = 169       /* The number of cells */
+nInt = 196
+nAff = 120
+nSens = 100
+nIP = 120
+nsyn = 100
+ncell = nMN+2*nInt+2*nAff
+
+objref cells, nil, nc
+cells = new List()
+
+
+{load_file("./templates/Ia.hoc")}
+{load_file("./templates/Ib.hoc")}
+{load_file("./templates/IIint1.hoc")}
+{load_file("./templates/IIint2.hoc")}
+{load_file("./templates/IAint1.hoc")}
+{load_file("./templates/IAint2.hoc")}
+{load_file("./templates/IP0.hoc")}
+{load_file("./templates/IP1.hoc")}
+{load_file("./templates/sens0.hoc")}
+{load_file("./templates/sens1.hoc")}
+{load_file("./templates/MNE.hoc")}
+{load_file("./templates/MNF.hoc")}
+{load_file("./templates/EES.hoc")}
+{load_file("./templates/sensorygen.hoc")}
+{load_file("save.hoc")}
+
+objref pc
+pc = new ParallelContext()
+
+proc addcell(){
+    cells.append($o1)
+    pc.set_gid2node($2, $3)
+    nc = cells.object(cells.count()-1).connect2target(nil)
+    pc.cell($2, nc)
+}
+
+/* building arc */
+//Extesors
+//motoneurons
+for (i=pc.id; i < nMN; i += pc.nhost){
+    addcell(new MNE(i*5), i, pc.id)
+}
+
+//excitatory interneurons 
+for (i=pc.id+nMN; i < nMN+nInt; i += pc.nhost){
+    addcell(new II1(i-nMN), i, pc.id)
+}
+
+//inhibitory interneurons
+for (i=pc.id+nMN+nInt; i < nMN+nInt+nInt; i += pc.nhost){
+    addcell(new IA1(i-nMN-nInt), i, pc.id)
+}
+
+//afferents Ia
+for (i=pc.id+nMN+nInt+nInt; i < nMN+nInt+nInt+nAff; i += pc.nhost){
+    addcell(new Ia(fr3.get(i-nMN-nInt-nInt)), i, pc.id)
+}
+
+//afferents Ib
+for (i=pc.id+nMN+nInt+nInt+nAff; i < nMN+nInt+nInt+nAff+nAff; i += pc.nhost){
+    addcell(new Ib(fr1.get(i-nMN-nInt-nInt-nAff)), i, pc.id)   
+}
+
+//Flexors
+//motoneurons
+for (i=pc.id+ncell; i < nMN+ncell; i += pc.nhost){
+    addcell(new MNF(i*5-ncell), i, pc.id)
+}
+
+//excitatory interneurons 
+for (i=pc.id+nMN+ncell; i < nMN+nInt+ncell; i += pc.nhost){
+    addcell(new II2(i-nMN-ncell), i, pc.id)
+}
+
+//inhibitory interneurons
+for (i=pc.id+nMN+nInt+ncell; i < nMN+nInt+nInt+ncell; i += pc.nhost){
+    addcell(new IA2(i-nMN-nInt-ncell), i, pc.id)
+}
+
+//afferents Ia
+for (i=pc.id+nMN+nInt+nInt+ncell; i < nMN+nInt+nInt+nAff+ncell; i += pc.nhost){
+    addcell(new Ia(fr4.get(i-nMN-nInt-nInt-ncell)), i, pc.id)
+}
+
+//afferents Ib
+for (i=pc.id+nMN+nInt+nInt+nAff+ncell; i < nMN+nInt+nInt+nAff+nAff+ncell; i += pc.nhost){
+    addcell(new Ib(fr2.get(i-nMN-nInt-nInt-nAff-ncell)), i, pc.id)
+}
+
+/* building interpool */
+//Flexors
+for (i=pc.id+2*ncell; i < 2*ncell+nSens; i += pc.nhost){
+    addcell(new sens0(i-2*ncell), i, pc.id)
+}
+
+for (i=pc.id+2*ncell+nSens; i < 2*ncell+nSens+nIP; i += pc.nhost){
+    addcell(new IP0(i-2*ncell-nSens), i, pc.id)
+}
+
+//Extensors
+for (i=pc.id+2*ncell+nSens+nIP; i < 2*ncell+nSens+nSens+nIP; i += pc.nhost){
+    addcell(new sens1(i-2*ncell-nSens-nIP), i, pc.id)
+}
+
+for (i=pc.id+2*ncell+nSens+nSens+nIP; i < 2*ncell+nSens+nSens+nIP+nIP; i += pc.nhost){
+    addcell(new IP1(i-2*ncell-nSens-nSens-nIP), i, pc.id)
+}
+
+//add EES
+if (pc.id == 0) {
+    {addcell(new EES(),(2*ncell+nSens+nSens+nIP+nIP),pc.id)}
+}
+
+//add sensory generator
+if (pc.id == 0) {
+    {addcell(new sensorygen(),(2*ncell+nSens+nSens+nIP+nIP+1),pc.id)}
+}
+
+{load_file("connections.hoc")}
+//{load_file("3.ses")}
+//{load_file("4.ses")}
+{load_file("recording.hoc")}
+
