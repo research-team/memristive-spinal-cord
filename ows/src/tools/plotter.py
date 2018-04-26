@@ -62,8 +62,7 @@ class Plotter:
             pylab.xlim(start / 10 + shift, end / 10 + shift)
             pylab.plot(times, values)
 
-        Plotter.save_voltage('slices{}Hz-{}%Inh-{}sublevels'.format(rate, 100 * inh_coef, num_sublevels))
-
+        Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(rate, 100 * inh_coef, num_sublevels))
 
     @staticmethod
     def plot_all_spikes():

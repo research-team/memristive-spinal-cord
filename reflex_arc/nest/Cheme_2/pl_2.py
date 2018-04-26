@@ -2,10 +2,16 @@ import pylab
 import os
 
 names = dict()
-names['mn_in'] = ['Mn_E', 'Mn_F', 'In_0', 'In_1']
-names['s_i'] = ['S_0', 'S_1', 'I_a_0', 'I_I_0', 'I_a_1', 'I_I_1']
-names['ex'] = ['Ex_E', 'Ex_F', 'Ex_0', 'Ex_2', 'Ex_1', 'Ex_2_0']
-names['r'] = ['S_l', 'S_t', 'S_h', 'S_r']
+names['mnl_mnr'] = ['Ex_L', 'Mn_L', 'In_5', 'Ex_R', 'Mn_R', 'In_4']
+names['mne'] = ['I_a_0', 'Ex_E', 'Ex_2', 'Mn_E', 'In_1', 'In_5']
+names['mnf'] = ['I_a_1', 'Ex_F', 'Ex_3', 'Mn_F', 'In_0', 'In_4']
+
+# names['mn_n'] = ['Mn_L', 'Mn_E', 'Mn_F', 'Mn_R', 'Noc']
+# names['in'] = ['In_0', 'In_1', 'In_2', 'In_3', 'In_4', 'In_5']
+# names['s'] = ['S_0', 'S_l', 'S_t', 'S_h', 'S_r', 'S_1']
+# names['af'] = ['I_a_0', 'I_I_0', 'I_I_1', 'I_a_1']
+# names['ex'] = ['Ex_L', 'Ex_E', 'Ex_F', 'Ex_R']
+# names['ex_2'] = ['Ex_1', 'Ex_2', 'Ex_3', 'Ex_4']
 
 
 def plot_one(name):
@@ -27,15 +33,8 @@ def plot(gen_rate, glu_weight, gaba_weight, static_weight, group: str):
     for i in range(len(names[group])):
         pylab.subplot(len(names[group]), 1, i + 1)
         plot_one(names[group][i])
-    pylab.subplots_adjust(hspace=0.5 + 0.02 * len(names[group]))
+    pylab.subplots_adjust(hspace=0.5 + 0.05 * len(names[group]))
     pylab.savefig('R_A_2_{}_{}Hz_glu{}_gaba{}_stat{}.png'.format(group, gen_rate, glu_weight, gaba_weight,
                                                                  static_weight), dpi=120)
     pylab.close('all')
 
-
-def simple_plot(name):
-    for i in range(4):
-        pylab.subplot(4, 1, i + 1)
-        plot_one(names[i])
-    pylab.subplots_adjust(hspace=0.4)
-    pylab.savefig('result{}.png'.format(name), dpi=120)

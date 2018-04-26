@@ -13,97 +13,59 @@ nest.SetKernelStatus({"print_time": True,
 
 from reflex_arc.nest.Cheme_1.n_m_1 import *
 
+
 T = 100.
 
-glu_weight_ia = 3.3
-glu_weight_ex = 0.
-gaba_weight_iai = -0.
-glu_weight_ii_f = 3.4
-glu_weight_ii_e = 1.04
-
-glu_ia = {'model': 'static_synapse',
-        'delay': 1.,
-        'weight': glu_weight_ia}
-
-glu_ex = {'model': 'static_synapse',
-        'delay': 1.,
-        'weight': glu_weight_ex}
-
-gaba_iai = {'model': 'static_synapse',
-        'delay': 1.,
-        'weight': gaba_weight_iai}
-
-glu_ii_f = {'model': 'static_synapse',
-        'delay': 1.,
-        'weight': glu_weight_ii_f}
-
-glu_ii_e = {'model': 'static_synapse',
-        'delay': 1.,
-        'weight': glu_weight_ii_e}
-
 glu_weight = 5.
-gaba_weight = -15.
+gaba_weight = -5.
 static_weight = 60.
 gen_rate = 40.
 
 glu = {'model': 'static_synapse',
         'delay': 1.,
         'weight': glu_weight}
-
 gaba = {'model': 'static_synapse',
-        'delay': 2.,
+        'delay': 1.,
         'weight': gaba_weight}
-
 static_syn = {'weight': static_weight,
               'delay': 1.}
 
 
-#Conectomes
-# Mn_E
-nest.Connect(pre=II_MnE, post=Ex_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu_ii_e)
-
-nest.Connect(pre=Ex_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu_ex)
-
-nest.Connect(pre=II_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+#Conect neurons
+#Afferents
+nest.Connect(pre=II_0, post=Ex_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
              syn_spec=glu)
-
-nest.Connect(pre=Iai_MnE, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+nest.Connect(pre=II_0, post=Iai_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=Ia_0, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=Ia_0, post=Iai_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=II_1, post=Ex_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=II_1, post=Iai_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=Ia_1, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+nest.Connect(pre=Ia_1, post=Iai_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
+             syn_spec=glu)
+#Excitatory
+nest.Connect(pre=Ex_0, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+nest.Connect(pre=Ex_1, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=glu)
+#Inhibitory
+nest.Connect(pre=Iai_0, post=Iai_1, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=Iai_0, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=Iai_1, post=Iai_0, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
+             syn_spec=gaba)
+nest.Connect(pre=Iai_1, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
              syn_spec=gaba)
 
-nest.Connect(pre=Iai_MnE, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba_iai)
 
-nest.Connect(pre=Ia_MnE, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu_ia)
-
-nest.Connect(pre=Ia_MnE, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
-
-# Mn_F
-nest.Connect(pre=II_MnF, post=Ex_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu_ii_f)
-
-nest.Connect(pre=Ex_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=glu_ex)
-
-nest.Connect(pre=II_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
-
-nest.Connect(pre=Iai_MnF, post=Iai_MnE, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba)
-
-nest.Connect(pre=Iai_MnF, post=Mn_E, conn_spec={'rule': 'fixed_indegree', 'indegree': 196},
-             syn_spec=gaba_iai)
-
-nest.Connect(pre=Ia_MnF, post=Mn_F, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu_ia)
-
-nest.Connect(pre=Ia_MnF, post=Iai_MnF, conn_spec={'rule': 'fixed_indegree', 'indegree': 60},
-             syn_spec=glu)
-
-
+#Create generator
 time_between_spikes = 1000 / gen_rate  # time between spikes
 spike_times = [round(4.5 + i * time_between_spikes, 1) for i in range(int(T / time_between_spikes))]
 generators = nest.Create("spike_generator", 1, {'spike_times': spike_times,
@@ -113,27 +75,28 @@ generator_1 = nest.Create("spike_generator", 1, {'spike_times': spike_times,
 print(spike_times)
 
 
-nest.Connect(pre=generators, post=Ia_MnE, syn_spec=static_syn)
+#Connect generator
+nest.Connect(pre=generators, post=II_0, syn_spec=static_syn)
+nest.Connect(pre=generators, post=Ia_0, syn_spec=static_syn)
+nest.Connect(pre=generators, post=II_1, syn_spec=static_syn)
+nest.Connect(pre=generators, post=Ia_1, syn_spec=static_syn)
 
-nest.Connect(pre=generators, post=II_MnE, syn_spec=static_syn)
 
-nest.Connect(pre=generators, post=Ia_MnF, syn_spec=static_syn)
-
-nest.Connect(pre=generators, post=II_MnF, syn_spec=static_syn)
-
-# Mn_F
-nest.Connect(pre=mm_Ia_MnF, post=Ia_MnF)
-nest.Connect(pre=mm_II_MnF, post=II_MnF)
-nest.Connect(pre=mm_Mn_F, post=Mn_F)
-nest.Connect(pre=mm_Ex_MnF, post=Ex_MnF)
-nest.Connect(pre=mm_Iai_MnF, post=Iai_MnF)
-
-# Mn_E
-nest.Connect(pre=mm_Ia_MnE, post=Ia_MnE)
-nest.Connect(pre=mm_II_MnE, post=II_MnE)
+#Connect multimeter
+#Afferents
+nest.Connect(pre=mm_II_0, post=II_0)
+nest.Connect(pre=mm_Ia_0, post=Ia_0)
+nest.Connect(pre=mm_II_1, post=II_1)
+nest.Connect(pre=mm_Ia_1, post=Ia_1)
+#Excitatory
+nest.Connect(pre=mm_Ex_0, post=Ex_0)
+nest.Connect(pre=mm_Ex_1, post=Ex_1)
+#Inhibitory
+nest.Connect(pre=mm_Iai_0, post=Iai_0)
+nest.Connect(pre=mm_Iai_1, post=Iai_1)
+#Moto
 nest.Connect(pre=mm_Mn_E, post=Mn_E)
-nest.Connect(pre=mm_Ex_MnE, post=Ex_MnE)
-nest.Connect(pre=mm_Iai_MnE, post=Iai_MnE)
+nest.Connect(pre=mm_Mn_F, post=Mn_F)
 
 
 if os.path.isdir('results'):
@@ -144,6 +107,5 @@ else:
 nest.Simulate(T)
 
 
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='flex')
-plot(gen_rate, glu_weight, gaba_weight, static_weight, group='extens')
-
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='1')
+plot(gen_rate, glu_weight, gaba_weight, static_weight, group='2')
