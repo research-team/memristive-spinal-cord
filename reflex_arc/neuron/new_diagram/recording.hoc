@@ -1,7 +1,7 @@
 num = connect_MNf_Ib.count/100
 objref exsynrec[num][nsyn], flsynrec[num][nsyn], exsyninh[num][nsyn], flsyninh[num][nsyn]
-objref exipsynrec[num][nsyn], flipsynrec[num][nsyn]
-recDt = 5
+objref exipsynrec[num][nsyn], flipsynrec[num][nsyn], exrcsynrec[num][nsyn], flrcsynrec[num][nsyn]
+recDt = 25
 for i=0,num-1 {
         for j = 0,nsyn-1 {
                 exsynrec[i][j]= new Vector()
@@ -16,6 +16,10 @@ for i=0,num-1 {
                 exipsynrec[i][j].record(&connect_IP1_MNe.object(i*nsyn+j).weight, recDt)
                 flipsynrec[i][j]= new Vector()
                 flipsynrec[i][j].record(&connect_IP0_MNf.object(i*nsyn+j).weight, recDt)
+                exrcsynrec[i][j]= new Vector()
+                exrcsynrec[i][j].record(&connect_MNe_RCe.object(i*nsyn+j).weight, recDt)
+                flrcsynrec[i][j]= new Vector()
+                flrcsynrec[i][j].record(&connect_MNf_RCf.object(i*nsyn+j).weight, recDt)
         }
 }
 //running
@@ -34,12 +38,15 @@ for i=0,num-1 {
         strdef basename0, basename1, extension, filename0, filename1
         strdef basename3, basename2, filename3, filename2
         strdef basename4, basename5, filename4, filename5
+        strdef basename6, basename7, filename6, filename7
         basename0 = "./res/ex"
         basename1 = "./res/fl"
         basename2 = "./res/exinh"
         basename3 = "./res/flinh"
         basename4 = "./res/exip"
         basename5 = "./res/flip"
+        basename6 = "./res/exrc"
+        basename7 = "./res/flrc"
         extension = "txt"
 
         sprint(filename0, "%s%dn%dp%d.%s", basename0, i, j, pc.id, extension)
@@ -70,6 +77,16 @@ for i=0,num-1 {
         sprint(filename5, "%s%dn%dp%d.%s", basename5, i, j, pc.id, extension)
         fok.wopen(filename5)
         flipsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename6, "%s%dn%dp%d.%s", basename6, i, j, pc.id, extension)
+        fok.wopen(filename6)
+        exrcsynrec[i][j].printf(fok)
+        fok.close()
+
+        sprint(filename7, "%s%dn%dp%d.%s", basename7, i, j, pc.id, extension)
+        fok.wopen(filename7)
+        flrcsynrec[i][j].printf(fok)
         fok.close()
     }
 }
