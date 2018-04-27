@@ -37,7 +37,7 @@ class Plotter:
         Plotter.save_voltage('hidden_tiers')
 
     @staticmethod
-    def plot_slices(num_slices: int=7, name: str='moto'):
+    def plot_slices(num_slices: int=7, name: str='extensor_moto'):
         period = 1000 / rate
         step = .1
         shift = period
@@ -102,7 +102,7 @@ class Plotter:
         pylab.xlabel('Time, ms')
         pylab.rcParams['font.size'] = 4
         pylab.legend()
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod
@@ -117,7 +117,7 @@ class Plotter:
         pylab.rcParams['font.size'] = 4
         pylab.xlabel('Time, ms')
         pylab.subplots_adjust(hspace=0.7)
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod

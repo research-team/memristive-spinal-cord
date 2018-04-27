@@ -110,7 +110,7 @@ class Topology:
         connect(pre=self.rybak.s1.gids, post=self.sublevels[0].e0, weight=0)
 
         for i in range(num_sublevels):
-            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_flexor.gids, weight=0)
+            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_flexor.gids, weight=50)
             connect(pre=self.sublevels[i].e2, post=self.rybak.pool_extensor.gids, weight=0)
 
         self.connect_ees(num_spikes, rate)
