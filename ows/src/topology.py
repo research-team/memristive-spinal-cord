@@ -49,7 +49,7 @@ class Topology:
                     },
                     conn_spec={
                         'rule': 'fixed_outdegree',
-                        'outdegree': 100,
+                        'outdegree': 120,
                         'multapses': False})
 
     def __init__(self):
@@ -103,14 +103,14 @@ class Topology:
                     'weight': 1},
                 conn_spec={
                     'rule': 'fixed_outdegree',
-                    'outdegree': 100,
+                    'outdegree': 40,
                     'multapses': False
                 })
 
         connect(pre=self.rybak.s1.gids, post=self.sublevels[0].e0, weight=0)
 
         for i in range(num_sublevels):
-            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_flexor.gids, weight=50)
-            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_extensor.gids, weight=0)
+            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_flexor.gids, weight=100)
+            connect(pre=self.sublevels[i].e2, post=self.rybak.pool_extensor.gids, weight=100)
 
         self.connect_ees(num_spikes, rate)
