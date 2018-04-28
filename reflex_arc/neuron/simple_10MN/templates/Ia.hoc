@@ -1,0 +1,22 @@
+begintemplate Ia
+public connect2target, spgenIa
+
+objref spgenIa
+
+proc init() {local i
+
+    spgenIa = new SpikeGenerator(0.8)
+        spgenIa.freq = $1
+        spgenIa.start = 1
+        spgenIa.number = 1000000000
+        spgenIa.noise = 0.2 
+
+}
+
+obfunc connect2target() { localobj nc
+    nc = new NetCon(spgenIa, $o1)
+    if (numarg() == 2) { $o2 = nc }
+    return nc
+}
+
+endtemplate Ia
