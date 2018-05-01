@@ -64,7 +64,6 @@ class Plotter:
 
         Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(rate, 100 * inh_coef, num_sublevels))
 
-
     @staticmethod
     def plot_all_spikes():
         for sublevel in range(num_sublevels):

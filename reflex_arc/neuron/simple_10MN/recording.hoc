@@ -1,0 +1,119 @@
+num = connect_MNf_Aff.count/nsyn
+print(num)
+objref flsynrec[num][nsyn], flsyninh[num][nsyn], flaffrec[num][nsyn]
+objref flipsynrec[num][nsyn], flrcsynrec[num][nsyn]
+objref mnVol[num], IaVol[num], IbVol[num], RcVol[num], IpVol[num]
+
+recDt = 25
+proc recWeight(){
+    $o1= new Vector()
+    $o1.record(&$o2.weight, $3)
+}
+
+proc recVol(){
+    $o1= new Vector()
+    $o1.record(&$o2.soma.v(0.5))
+}
+
+proc printFile(){
+    sprint($s1, "%s%dn%dp%d.%s", $s2, $5, $6, $7, $s3)
+    fok.wopen($s1)
+    $o4.printf(fok)
+    fok.close()
+}
+
+for i=0,num-1 {
+        for j = 0,nsyn-1 {
+            recWeight(flsynrec[i][j], connect_MNf_Ib.object(i*nsyn+j), recDt)
+            recWeight(flsyninh[i][j], connect_MNf_IA.object(i*nsyn+j), recDt)
+            recWeight(flipsynrec[i][j], connect_IP0_MNf.object(i*nsyn+j), recDt)
+            recWeight(flrcsynrec[i][j], connect_MNf_RCf.object(i*nsyn+j), recDt)
+            recWeight(flaffrec[i][j], connect_MNf_Aff.object(i*nsyn+j), recDt)
+        }
+}
+for i=0,num-1 {
+        recVol(mnVol[i], MNF[i])   
+        recVol(IpVol[i], IP0[i])         
+        recVol(IbVol[i], IbF[i])         
+        recVol(IaVol[i], IaE[i])         
+        recVol(RcVol[i], RCF[i])         
+}
+
+proc allRec(){
+    objref fok
+    fok=new File()
+    strdef basename0, basename1, extension, filename0, filename1
+    strdef basename3, filename3
+    strdef basename5, filename5
+    strdef basename7, filename7
+    strdef basenamev1, filenamev1
+    strdef basenamev2, filenamev2
+    strdef basenamev3, filenamev3
+    strdef basenamev4, filenamev4
+    strdef basenamev5, filenamev5
+    basename0 = "./res/flaff"
+    basename1 = "./res/fl"
+    basename3 = "./res/flinh"
+    basename5 = "./res/flip"
+    basename7 = "./res/flrc"
+    basenamev1 = "./res/mnV"
+    basenamev2 = "./res/IpV"
+    basenamev3 = "./res/IbV"
+    basenamev4 = "./res/IaV"
+    basenamev5 = "./res/RcV"
+    extension = "txt"
+    for i=0,$1-1 {
+        for j = 0,$2-1 {
+            printFile(filename0, basename0, extension, flaffrec[i][j], i, j, pc.id)
+            printFile(filename1, basename1, extension, flsynrec[i][j], i, j, pc.id)
+            printFile(filename3, basename3, extension, flsyninh[i][j], i, j, pc.id)
+            printFile(filename5, basename5, extension, flipsynrec[i][j], i, j, pc.id)
+            printFile(filename7, basename7, extension, flrcsynrec[i][j], i, j, pc.id)
+        }
+    }
+
+    for i=0,$1-1 {
+        printFile(filenamev1, basenamev1, extension, mnVol[i], i, 0, pc.id)
+        printFile(filenamev2, basenamev2, extension, IpVol[i], i, 0, pc.id)
+        printFile(filenamev3, basenamev3, extension, IbVol[i], i, 0, pc.id)
+        printFile(filenamev4, basenamev4, extension, IaVol[i], i, 0, pc.id)
+        printFile(filenamev5, basenamev5, extension, RcVol[i], i, 0, pc.id)
+
+    }
+}
+
+proc epochrun() { local i, n, j
+    running_ = 1
+    tstop = $1*$2+$1*$3 // in case some other code needs tstop
+    ns = connect_sens0_gen.count
+    stdinit()
+    for n=0,$1 - 1 {
+        for i=0, ns - 1{
+            connect_sens0_gen.object(i).weight = 0
+        }
+        for i=0, ns - 1{
+            connect_sens1_gen.object(i).weight = 1
+        }
+        allRec(num, nsyn)
+        print(t)
+        continuerun(t+$2)
+        for i=0, ns - 1{
+            connect_sens1_gen.object(i).weight = 0
+        }
+        for i=0, ns - 1{
+            connect_sens0_gen.object(i).weight = 1
+        }
+        allRec(num, nsyn)
+        print(t)
+        continuerun(t+$3)
+    }
+}
+//running
+{pc.set_maxstep(2)}
+// $1 is how many epochs
+// each epoch is single step
+epochrun(20, 700, 300)
+{pc.psolve(tstop)}
+{pc.runworker()}
+{pc.done()}
+quit()

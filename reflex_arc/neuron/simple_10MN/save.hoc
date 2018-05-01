@@ -1,0 +1,16 @@
+objectvar f, fok
+
+f = new File()
+
+proc addSmth(){
+	f.ropen($s1)
+	$o2 = new Vector()
+	$o2.scanf(f)
+	f.close()
+}
+strdef str1, str2
+str1 = "./freq/a3.txt"
+str2 = "./freq/a4.txt"
+objref fr1, fr2
+addSmth(str1, fr1)
+addSmth(str2, fr2)

@@ -13,51 +13,45 @@ nrn_parameters = {
     'tau_syn_in': 2.0}  # Time of inhibitory action (ms)
 
 
-# Neuron
-# Mn_F
-Ia_MnF = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
-
-II_MnF = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
-
+# Create neurons
+#Afferents
+II_0 = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
+Ia_0 = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
+II_1 = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
+Ia_1 = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
+#Excitatory
+Ex_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+Ex_1 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+#Inhibitory
+Iai_0 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+Iai_1 = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
+#Moto
+Mn_E = nest.Create("hh_cond_exp_traub", 169, nrn_parameters)
 Mn_F = nest.Create("hh_cond_exp_traub", 169, nrn_parameters)
 
-Ex_MnF = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
 
-Iai_MnF = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-
-# Mn_E
-Ia_MnE = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
-
-II_MnE = nest.Create("hh_cond_exp_traub", 60, nrn_parameters)
-
-Mn_E = nest.Create("hh_cond_exp_traub", 169, nrn_parameters)
-
-Ex_MnE = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-
-Iai_MnE = nest.Create("hh_cond_exp_traub", 196, nrn_parameters)
-
-
-# Multimeter
-# Mn_F
-mm_Ia_MnF = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ia_mnf'})
-mm_II_MnF = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ii_mnf'})
-mm_Mn_F = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                      'results/mn_f'})
-mm_Ex_MnF = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ex_mnf'})
-mm_Iai_MnF = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                         'results/iai_mnf'})
-
-# Mn_E
-mm_Ia_MnE = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ia_mne'})
-mm_II_MnE = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ii_mne'})
+#Create multimeter
+#Afferents
+mm_II_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ii_0'})
+mm_Ia_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ia_0'})
+mm_II_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ii_1'})
+mm_Ia_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ia_1'})
+#Excitatory
+mm_Ex_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ex_0'})
+mm_Ex_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/ex_1'})
+#Inhibitory
+mm_Iai_0 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/iai_0'})
+mm_Iai_1 = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/iai_1'})
+#Moto
 mm_Mn_E = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                      'results/mn_e'})
-mm_Ex_MnE = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                        'results/ex_mne'})
-mm_Iai_MnE = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
-                         'results/iai_mne'})
+                        'results/mn_e'})
+mm_Mn_F = nest.Create("multimeter", 1, {'record_from': ['V_m'], "interval": 0.1, 'to_file': True, 'label':
+                        'results/mn_f'})
