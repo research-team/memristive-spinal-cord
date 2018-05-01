@@ -40,7 +40,7 @@ class Plotter:
     def plot_slices(num_slices: int=7, name: str='moto'):
         period = 1000 / rate
         step = .1
-        shift = period
+        shift = period + 1
         interval = period
         data = Miner.gather_voltage(name)
         num_dots = int(1 / step * num_slices * interval)

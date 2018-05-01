@@ -9,26 +9,29 @@ def connect(pre, post, weight, num_synapses=500):
             post=post,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
+                'delay': .1,
                 'weight': weight
             },
             conn_spec={
-                'rule': 'fixed_total_number',
-                'N': num_synapses
+                'rule': 'fixed_indegree',
+                'indegree': num_synapses
             })
 
 class Motoneuron:
     def __init__(self, name: str):
+        # self.gids = Create(
+        #     model='hh_cond_exp_traub',
+        #     n=169,
+        #     params={
+        #         'C_m': 500.,
+        #         'V_m': -70.,
+        #         'E_L': -70.,
+        #         't_ref': 1.,
+        #         'tau_syn_ex': 0.2,
+        #         'tau_syn_in': 1.0})
         self.gids = Create(
-            model='hh_cond_exp_traub',
-            n=169,
-            params={
-                'C_m': 500.,
-                'V_m': -70.,
-                'E_L': -70.,
-                't_ref': 1.,
-                'tau_syn_ex': 0.2,
-                'tau_syn_in': 1.0})
+            model='hh_moto_5ht',
+            n=169)
         Connect(
             pre=add_multimeter(name),
             post=self.gids)
@@ -46,7 +49,7 @@ class Interneuron:
                 'E_L': -70.,
                 't_ref': 1.,
                 'tau_syn_ex': 0.2,
-                'tau_syn_in': 0.3})
+                'tau_syn_in': 1.})
         Connect(
             pre=add_multimeter(name),
             post=self.gids)
@@ -84,42 +87,50 @@ class Rybak:
         self.set_connections()
 
     def set_connections(self):
-        connect(pre=self.sensory_flexor.gids, post=self.s0.gids, weight=50)
-        connect(pre=self.sensory_extensor.gids, post=self.s1.gids, weight=50)
+        connect(pre=self.sensory_flexor.gids, post=self.s0.gids, weight=2)
+        connect(pre=self.sensory_extensor.gids, post=self.s1.gids, weight=2)
 
-        connect(pre=self.s0.gids, post=self.pool_flexor.gids, weight=50)
-        connect(pre=self.s1.gids, post=self.pool_extensor.gids, weight=50)
+        connect(pre=self.s0.gids, post=self.pool_flexor.gids, weight=0)
+        connect(pre=self.s1.gids, post=self.pool_extensor.gids, weight=0)
 
-        connect(pre=self.pool_flexor.gids, post=self.pool_extensor.gids, weight=-100)
-        connect(pre=self.pool_flexor.gids, post=self.moto_flexor.gids, weight=50)
-        connect(pre=self.pool_flexor.gids, post=self.ia_flexor.gids, weight=50)
+        connect(pre=self.s1.gids, post=self.pool_flexor.gids, weight=-25)
+        connect(pre=self.s0.gids, post=self.pool_extensor.gids, weight=-25)
 
-        connect(pre=self.pool_extensor.gids, post=self.pool_flexor.gids, weight=-50)
-        connect(pre=self.pool_extensor.gids, post=self.moto_extensor.gids, weight=50)
-        connect(pre=self.pool_extensor.gids, post=self.ia_extensor.gids, weight=50)
+        connect(pre=self.s1.gids, post=self.ia_extensor.gids, weight=10)
+        connect(pre=self.s0.gids, post=self.ia_flexor.gids, weight=10)
 
-        connect(pre=self.aff_ia_flexor.gids, post=self.moto_flexor.gids, weight=50)
-        connect(pre=self.aff_ia_flexor.gids, post=self.ia_flexor.gids, weight=50)
-        connect(pre=self.aff_ia_flexor.gids, post=self.ib_flexor.gids, weight=50)
+        connect(pre=self.pool_flexor.gids, post=self.pool_extensor.gids, weight=0)
+        connect(pre=self.pool_flexor.gids, post=self.moto_flexor.gids, weight=7.)
+        connect(pre=self.pool_flexor.gids, post=self.ia_flexor.gids, weight=0)
 
-        connect(pre=self.aff_ia_extensor.gids, post=self.moto_extensor.gids, weight=50)
-        connect(pre=self.aff_ia_extensor.gids, post=self.ia_extensor.gids, weight=50)
-        connect(pre=self.aff_ia_extensor.gids, post=self.ib_extensor.gids, weight=50)
+        connect(pre=self.pool_extensor.gids, post=self.pool_flexor.gids, weight=0)
+        connect(pre=self.pool_extensor.gids, post=self.moto_extensor.gids, weight=7.)
+        connect(pre=self.pool_extensor.gids, post=self.ia_extensor.gids, weight=0)
 
-        connect(pre=self.ib_flexor.gids, post=self.ib_extensor.gids, weight=-50)
-        connect(pre=self.ib_extensor.gids, post=self.ib_flexor.gids, weight=-50)
-        connect(pre=self.ib_flexor.gids, post=self.moto_flexor.gids, weight=-50)
-        connect(pre=self.ib_extensor.gids, post=self.moto_extensor.gids, weight=-50)
+        connect(pre=self.aff_ia_flexor.gids, post=self.moto_flexor.gids, weight=19)
+        connect(pre=self.aff_ia_flexor.gids, post=self.ia_flexor.gids, weight=5)
+        connect(pre=self.aff_ia_flexor.gids, post=self.ib_flexor.gids, weight=0)
 
-        connect(pre=self.ia_flexor.gids, post=self.ia_extensor.gids, weight=-50)
-        connect(pre=self.ia_extensor.gids, post=self.ia_flexor.gids, weight=-50)
-        connect(pre=self.ia_flexor.gids, post=self.moto_flexor.gids, weight=-50)
-        connect(pre=self.ia_extensor.gids, post=self.moto_extensor.gids, weight=-50)
+        connect(pre=self.aff_ia_extensor.gids, post=self.moto_extensor.gids, weight=19)
+        connect(pre=self.aff_ia_extensor.gids, post=self.ia_extensor.gids, weight=5)
+        connect(pre=self.aff_ia_extensor.gids, post=self.ib_extensor.gids, weight=5)
 
-        connect(pre=self.rc_flexor.gids, post=self.rc_extensor.gids, weight=-50)
-        connect(pre=self.rc_flexor.gids, post=self.ia_flexor.gids, weight=-50)
-        connect(pre=self.rc_flexor.gids, post=self.moto_flexor.gids, weight=-50)
+        connect(pre=self.ib_flexor.gids, post=self.ib_extensor.gids, weight=0)
+        connect(pre=self.ib_extensor.gids, post=self.ib_flexor.gids, weight=0)
+        connect(pre=self.ib_flexor.gids, post=self.moto_flexor.gids, weight=0)
+        connect(pre=self.ib_extensor.gids, post=self.moto_extensor.gids, weight=0)
 
-        connect(pre=self.rc_extensor.gids, post=self.rc_flexor.gids, weight=-50)
-        connect(pre=self.rc_extensor.gids, post=self.ia_extensor.gids, weight=-50)
-        connect(pre=self.rc_extensor.gids, post=self.moto_extensor.gids, weight=-50)
+        connect(pre=self.ia_flexor.gids, post=self.ia_extensor.gids, weight=-5)
+        connect(pre=self.ia_extensor.gids, post=self.ia_flexor.gids, weight=-5)
+        connect(pre=self.ia_flexor.gids, post=self.pool_extensor.gids, weight=-1)
+        connect(pre=self.ia_extensor.gids, post=self.pool_flexor.gids, weight=-1)
+        connect(pre=self.ia_flexor.gids, post=self.moto_extensor.gids, weight=-5)
+        connect(pre=self.ia_extensor.gids, post=self.moto_flexor.gids, weight=-5)
+
+        connect(pre=self.rc_flexor.gids, post=self.rc_extensor.gids, weight=0)
+        connect(pre=self.rc_flexor.gids, post=self.ia_flexor.gids, weight=0)
+        connect(pre=self.rc_flexor.gids, post=self.moto_flexor.gids, weight=0)
+
+        connect(pre=self.rc_extensor.gids, post=self.rc_flexor.gids, weight=0)
+        connect(pre=self.rc_extensor.gids, post=self.ia_extensor.gids, weight=0)
+        connect(pre=self.rc_extensor.gids, post=self.moto_extensor.gids, weight=0)

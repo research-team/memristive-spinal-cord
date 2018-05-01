@@ -113,7 +113,7 @@ class Sublevel:
             syn_spec={
                 'model': 'static_synapse',
                 'delay': .1,
-                'weight': 150.
+                'weight': 130.
                 },
             conn_spec={
                 'rule': 'one_to_one'})
