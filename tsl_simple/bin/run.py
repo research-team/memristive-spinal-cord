@@ -22,3 +22,4 @@ from tsl_simple.src.tools.plotter import Plotter
 
 Plotter.plot_all_spikes()
 Plotter.plot_all_voltages()
+Plotter.plot_slices()

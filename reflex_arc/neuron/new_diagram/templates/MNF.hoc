@@ -1,0 +1,123 @@
+begintemplate MNF
+public soma, axon, dend, postsyn, presyn, connect2target
+
+create soma, axon, dend[1] 
+objectvar postsyn[1]
+
+public synlistex, synlistinh, synlistaff, synlistip, synlistrc
+objref synlistex, synlistinh, synlistaff, synlistip, synlistrc
+    objref synex_
+    objref syninh_
+    objref synaff_
+    objref synip_
+    objref synrc_
+
+
+proc init() {local i, j
+    ndend = 10          
+    nsyn = 10
+    soma_diam = 20     
+    soma_len = 20      
+    soma_nseg = 1
+    soma_cm = 2
+    soma_Ra = 200     
+
+    axon_diam = 2      
+    axon_len = 200     
+    axon_nseg = 50 
+    axon_cm = 2
+    axon_Ra = 0.002        
+
+    dend_diam = 1      
+    dend_len = 50      
+    dend_nseg = 1
+    dend_cm = 2
+    dend_Ra = 200         
+
+    create soma, axon, dend[ndend] 
+
+    synlistex = new List()
+    synlistinh = new List()
+    synlistaff = new List()
+    synlistip = new List()
+    synlistrc = new List()
+
+    soma {
+        nseg = soma_nseg    
+        diam = soma_diam    
+        L = soma_len 
+        cm = soma_cm
+        Ra = soma_Ra
+        //insert motoneuron_5ht
+        insert hh
+        gnabar_hh=0.25
+        gl_hh = .0001666
+        el_hh = -60.0
+
+
+        pt3dclear()
+        pt3dadd(280,150,$1,soma_diam) 
+        pt3dadd(280-soma_len,150,$1,soma_diam) 
+    }
+
+    axon {
+        nseg = axon_nseg    
+        diam = axon_diam    
+        L = axon_len 
+        cm = axon_cm
+        Ra = axon_Ra       
+
+        insert hh
+
+        pt3dclear()     
+        pt3dadd(280,150,$1,axon_diam) 
+        pt3dadd(280-soma_len-axon_len,150,$1,axon_diam) 
+    }
+
+
+    for i = 0, ndend-1{
+        dend[i] {
+            nseg = dend_nseg    
+            diam = dend_diam    
+            L = dend_len        
+            pt3dclear()     
+            pt3dadd(280+dend_len*i,150,$1,diam)
+            pt3dadd(280+dend_len*(i+1),150,$1,diam)
+        }
+
+        for j = 0, nsyn-1{
+            dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
+            synaff_.tau = 0.5
+            synaff_.e=0
+            dend[i] syninh_ = new  Exp2Syn (0.5)   synlistinh.append(syninh_)
+            syninh_.e = -75
+            syninh_.tau1 = 1.5
+            syninh_.tau2 = 2
+            dend[i] synex_ = new  Exp2Syn (0.5)   synlistex.append(synex_)
+            synex_.e = -75
+            synex_.tau1 = 1.5
+            synex_.tau2 = 2
+            dend[i] synrc_ = new  Exp2Syn (0.5)   synlistrc.append(synex_)
+            synrc_.e = -75
+            synrc_.tau1 = 1.5
+            synrc_.tau2 = 2
+            dend[i] synip_ = new ExpSyn(0.5)  synlistip.append(synip_) /* IP */
+            synip_.tau = 0.1
+            synip_.e=50
+        }
+
+    }
+
+    connect axon(0), soma(1)    
+    connect dend[0](0), soma(1)
+    for i = 1, ndend-1 connect dend[i](0), dend[i-1](1)
+}
+
+obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
+  soma nc = new NetCon(&v(1), $o1)
+  nc.threshold = 10
+  if (numarg() == 2) { $o2 = nc } // for backward compatibility
+  return nc
+}
+
+endtemplate MNF

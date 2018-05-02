@@ -1,0 +1,115 @@
+begintemplate IP0
+public soma, axon, dend, connect2target
+
+create soma, axon, dend[1] 
+public presynexlist, presyninhlist
+objref presynexlist, presyninhlist
+objref presynex_      
+objref presyninh_  
+
+public synlistinh, synlistsens, synlistsensinh
+objref synlistinh, synlistsens, synlistsensinh
+objref syninh_
+objref synsens_
+objref synsensinh_
+
+
+proc init() {local i, j
+
+    ndend = 10
+    nsyn = 10
+    
+    soma_diam = 10    
+    soma_len = 10      
+    soma_nseg = 1
+    soma_cm = 2
+    soma_Ra = 200     
+
+    axon_diam = 2      
+    axon_len = 150 + $1*0.5     
+    axon_nseg = 50 
+    axon_cm = 2
+    axon_Ra = 0.002        
+
+    dend_diam = 1      
+    dend_len = 40     
+    dend_nseg = 1
+    dend_cm = 2
+    dend_Ra = 200          
+
+    create soma, axon, dend[ndend] 
+
+    synlistinh = new List()
+    synlistsens = new List()
+    synlistsensinh = new List()
+    presynexlist = new List()
+    presyninhlist = new List()
+
+    soma {
+        nseg = soma_nseg    
+        diam = soma_diam    
+        L = soma_len 
+        cm = soma_cm
+        Ra = soma_Ra
+        insert hh
+        gnabar_hh=0.25
+        gl_hh = .0001666
+        el_hh = -60.0
+
+        pt3dclear()
+        pt3dadd(280,300,$1*5,soma_diam) 
+        pt3dadd(280-soma_len,300,$1*5,soma_diam) 
+    }
+
+    axon {
+        nseg = axon_nseg    
+        diam = axon_diam    
+        L = axon_len 
+        cm = axon_cm
+        Ra = axon_Ra       
+
+        insert hh
+
+        pt3dclear()     
+        pt3dadd(280,300,$1*5,axon_diam) 
+        pt3dadd(280-soma_len-axon_len,300,$1*5,axon_diam) 
+
+    }
+
+        presyninh_ = new GABAA_S(0.5) presyninhlist.append(presyninh_)
+        presynex_ = new glutamate_syn(0.5) presynexlist.append(presynex_)
+
+    for i = 0, ndend-1{
+        dend[i] {
+            nseg = dend_nseg    
+            diam = dend_diam    
+            L = dend_len        
+            pt3dclear()     
+            pt3dadd(280+dend_len*i,300,$1*5,diam)
+            pt3dadd(280+dend_len*(i+1),300,$1*5,diam)
+        }
+
+        for j = 0, nsyn-1{
+            dend[i] synsens_ = new ExpSyn(0.5)  synlistsens.append(synsens_) /* E */
+            synsens_.tau = 0.1
+            synsens_.e=50
+            dend[i] syninh_ = new GABAA_S(0.5) synlistinh.append(syninh_)
+            dend[i] synsensinh_ = new GABAA_S(0.5) synlistsensinh.append(synsensinh_)
+        }
+
+    }
+
+    connect axon(0), soma(1)    
+    connect dend[0](0), soma(1)
+    for i = 1, ndend-1 connect dend[i](0), dend[i-1](1)
+}
+
+obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
+  soma nc = new NetCon(&v(1), $o1)
+  nc.threshold = 10
+  if (numarg() == 2) { $o2 = nc } // for backward compatibility
+  return nc
+}
+
+endtemplate IP0
+
