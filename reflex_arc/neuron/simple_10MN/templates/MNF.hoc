@@ -1,5 +1,5 @@
 begintemplate MNF
-public soma, axon, dend, postsyn, presyn, connect2target
+public soma, axon, dend, postsyn, presyn, connect2target, axon_len
 
 create soma, axon, dend[1] 
 objectvar postsyn[1]

@@ -1,5 +1,5 @@
 begintemplate sens0
-public soma, axon, dend, connect2target, soma_Ra
+public soma, axon, dend, connect2target, axon_len
 
 create soma, axon, dend[1] 
 
