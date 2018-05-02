@@ -1,9 +1,8 @@
 import pylab
 import os
-from ows.src.tools.miner import Miner
-from ows.src.paths import img_path
-from ows.src.params import num_sublevels, simulation_time, rate, inh_coef
-import logging
+from two_sublayers.src.tools.miner import Miner
+from two_sublayers.src.paths import img_path
+from two_sublayers.src.params import num_sublevels, simulation_time
 
 
 class Plotter:
@@ -38,31 +37,26 @@ class Plotter:
 
     @staticmethod
     def plot_slices(num_slices: int=7, name: str='moto'):
-        period = 1000 / rate
         step = .1
-        shift = period + 1
-        interval = period
+        shift = 25
+        interval = 25
         data = Miner.gather_voltage(name)
         num_dots = int(1 / step * num_slices * interval)
         shift_dots = int(1 / step * shift)
         raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
-        fraction = float(len(raw_times)) / num_slices
-
-        pylab.suptitle('Rate = {}Hz, Inh = {}%'.format(rate, 100 * inh_coef), fontsize=14)
+        fraction = len(raw_times) / num_slices
 
         for s in range(num_slices):
-            logging.warning('Plotting slice {}'.format(s))
             pylab.subplot(num_slices, 1, s + 1)
             start = int(s * fraction)
             end = int((s + 1) * fraction) if s < num_slices - 1 else len(raw_times) - 1
-            logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
             times = raw_times[start:end]
             values = [data[time] for time in times]
             pylab.ylim(-80, 60)
-            pylab.xlim(start / 10 + shift, end / 10 + shift)
             pylab.plot(times, values)
 
-        Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(rate, 100 * inh_coef, num_sublevels))
+        Plotter.save_voltage('slices')
+
 
     @staticmethod
     def plot_all_spikes():
@@ -102,7 +96,7 @@ class Plotter:
         pylab.xlabel('Time, ms')
         pylab.rcParams['font.size'] = 4
         pylab.legend()
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod
@@ -117,7 +111,7 @@ class Plotter:
         pylab.rcParams['font.size'] = 4
         pylab.xlabel('Time, ms')
         pylab.subplots_adjust(hspace=0.7)
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod

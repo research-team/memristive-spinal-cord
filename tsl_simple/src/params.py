@@ -1,5 +1,5 @@
 num_sublevels = 6
-num_spikes = 2
+num_spikes = 6
 simulation_time = 200.
 
 
@@ -25,81 +25,77 @@ class Params:
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 155.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 155.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 155.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 155.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'right_to_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 35.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 7
                 },
                 'right_to_hidden_right_up': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 100.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_right_to_right_up': {
-                    'weight': {
-                        'distribution': 'normal',
-                        'mu': 10.,
-                        'sigma': 2.
-                    },
-                    'degree': 1
+                    'weight': 0.,
+                    'degree': 9
                 },
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -300.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 10
                 },
                 'left_to_pool': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 }
             }
         },
         'sublayer_2': {
             'num_neurons': {
                 'left': 20,
-                'right': 20,
+                'right': 25,
                 'hidden_left': 20,
                 'hidden_right': 20
             },
@@ -107,18 +103,18 @@ class Params:
                 'left_to_right': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'right_to_left': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': 10.,
+                        'mu': 90.,
                         'sigma': 2.
                     },
-                    'degree': 1
+                    'degree': 5
                 },
                 'hidden_left_to_right': {
                     'weight': {
@@ -163,7 +159,7 @@ class Params:
                 'hidden_left_to_left_down': {
                     'weight': {
                         'distribution': 'normal',
-                        'mu': -10.,
+                        'mu': -30.,
                         'sigma': 2.
                     },
                     'degree': 1

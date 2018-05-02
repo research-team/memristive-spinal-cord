@@ -1,9 +1,9 @@
 import os
-from tsl_simple.src.tools.multimeter import add_multimeter
-from tsl_simple.src.tools.spike_detector import add_spike_detector
-from tsl_simple.src.paths import raw_data_path
+from lcr_complex.src.tools.multimeter import add_multimeter
+from lcr_complex.src.tools.spike_detector import add_spike_detector
+from lcr_complex.src.paths import raw_data_path
 from nest import Create, Connect, SetStatus
-from tsl_simple.src.params import num_sublevels, num_spikes
+from lcr_complex.src.params import num_sublevels, num_spikes
 from random import uniform
 
 
@@ -57,8 +57,8 @@ class Sublevel:
                 'V_m': -70.,
                 'E_L': -70.,
                 't_ref': 1.,
-                'tau_syn_ex': 0.2,
-                'tau_syn_in': 0.3})
+                'tau_syn_ex': .5,
+                'tau_syn_in': .5})
         self.left = Create(
             model='hh_cond_exp_traub',
             n=20,
@@ -66,8 +66,8 @@ class Sublevel:
                 'V_m': -70.,
                 'E_L': -70.,
                 't_ref': 1.,
-                'tau_syn_ex': 0.2,
-                'tau_syn_in': 0.3})
+                'tau_syn_ex': .5,
+                'tau_syn_in': .5})
 
         Connect(
             pre=add_multimeter('{}{}'.format(name_right, index)),
@@ -87,12 +87,12 @@ class Sublevel:
             post=self.left,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1,
-                'weight': 0.
-                }
+                'delay': .1,
+                'weight': 2.
+                },
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 4})
+                'outdegree': 3})
 
 class HiddenSublevel:
 
@@ -104,8 +104,8 @@ class HiddenSublevel:
                 'V_m': -70.,
                 'E_L': -70.,
                 't_ref': 1.,
-                'tau_syn_ex': 0.2,
-                'tau_syn_in': 0.3})
+                'tau_syn_ex': .5,
+                'tau_syn_in': .5})
         self.left = Create(
             model='hh_cond_exp_traub',
             n=10,
@@ -113,8 +113,8 @@ class HiddenSublevel:
                 'V_m': -70.,
                 'E_L': -70.,
                 't_ref': 1.,
-                'tau_syn_ex': 0.2,
-                'tau_syn_in': 0.3})
+                'tau_syn_ex': .5,
+                'tau_syn_in': .5})
 
         Connect(
             pre=add_multimeter('{}{}'.format(name_right, index)),
@@ -134,8 +134,8 @@ class HiddenSublevel:
             post=self.left,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1,
-                'weight': 10.},
+                'delay': .1,
+                'weight': 0.},
             conn_spec={
                 'rule': 'fixed_outdegree',
                 'outdegree': 5})
@@ -144,8 +144,8 @@ class HiddenSublevel:
             post=self.right,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1,
-                'weight': 10.},
+                'delay': 0.1,
+                'weight': 0.},
             conn_spec={
                 'rule': 'fixed_outdegree',
                 'outdegree': 5})  
@@ -166,11 +166,12 @@ class Topology:
                 syn_spec={
                     'model': 'static_synapse',
                     'delay': 0.1,
-                    'weight': 75.
+                    'weight': 200.
                 },
                 conn_spec={
                     'rule': 'fixed_outdegree',
-                    'outdegree': 50})
+                    'outdegree': 10,
+                    'multapses': False})
             Connect(
                 pre=self.ees,
                 post=self.moto.gids,
@@ -201,17 +202,17 @@ class Topology:
                 post=self.sublevels[i+1].left,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
+                    'delay': 0.1,
                     'weight': 0.},
                 conn_spec={
                     'rule': 'fixed_outdegree',
-                    'outdegree': 1})
+                    'outdegree': 5})
             Connect(
                 pre=self.sublevels[i].right,
                 post=self.sublevels[i+1].right,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
+                    'delay': 0.1,
                     'weight': 0.},
                 conn_spec={
                     'rule': 'fixed_outdegree',
@@ -221,28 +222,38 @@ class Topology:
                 post=self.sublevels[i+1].right,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
-                    'weight': 0},
+                    'delay': 0.1,
+                    'weight': 0.},
                 conn_spec={
                     'rule': 'fixed_outdegree',
                     'outdegree': 1})
+            Connect(
+                pre=self.sublevels[i].left,
+                post=self.sublevels[i+1].left,
+                syn_spec={
+                    'model': 'static_synapse',
+                    'delay': 0.1,
+                    'weight': 0.},
+                conn_spec={
+                    'rule': 'fixed_outdegree',
+                    'outdegree': 5})
         for i in range(num_sublevels):
             Connect(
                 pre=self.sublevels[i].right,
                 post=self.hidden_sublevels[i].right,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
-                    'weight': 0},
+                    'delay': 0.1,
+                    'weight': 0.},
                 conn_spec={
                     'rule': 'fixed_outdegree',
-                    'outdegree': 1})
+                    'outdegree': 5})
             Connect(
                 pre=self.hidden_sublevels[i].left,
                 post=self.sublevels[i].left,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
+                    'delay': 0.1,
                     'weight': 0},
                 conn_spec={
                     'rule': 'fixed_indegree',
@@ -257,11 +268,11 @@ class Topology:
                 post=self.pool.gids,
                 syn_spec={
                     'model': 'static_synapse',
-                    'delay': 1.,
-                    'weight': 0.},
+                    'delay': 0.1,
+                    'weight': 150.},
                 conn_spec={
                     'rule': 'fixed_outdegree',
-                    'outdegree': 1
+                    'outdegree': 5
                 })
 
         Connect(
@@ -269,8 +280,8 @@ class Topology:
             post=self.moto.gids,
             syn_spec={
                 'model': 'static_synapse',
-                'delay': 1.,
-                'weight': 0.},
+                'delay': 0.1,
+                'weight': 500.},
             conn_spec={
                 'rule': 'fixed_outdegree',
-                'outdegree': 1})
+                'outdegree': 7})
