@@ -64,11 +64,12 @@ proc connectionSTDP(){
     nc = pc.gid_connect($4, syn)
     nc.weight = 0.01
     nc.delay = 1
+    stdp = new StdwaSA(0.5)
     $o2.append(nc)
     if($8){
-        stdp = new StdpInh(0.5) //inhibitory 
+        stdp.aLTD = -0.001 //inhibitory 
+        stdp.aLTP = -0.001
     }else{
-        stdp = new StdwaSA(0.5)
         nc.weight = 0.07
     }
     presyn = pc.gid_connect($4, stdp)
