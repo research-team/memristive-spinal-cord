@@ -3,8 +3,8 @@ print(num)
 print(nsyn)
 objref flsynrec[num][nsyn], flsyninh[num][nsyn], flaffrec[num][nsyn]
 objref flipsynrec[num][nsyn], flrcsynrec[num][nsyn], id
-objref IaVol[num][nsyn], IbVol[num][nsyn], RcVol[num][nsyn], IpVol[num][nsyn]
-objref IaVol1[num][nsyn], IbVol1[num][nsyn], RcVol1[num][nsyn], IpVol1[num][nsyn]
+objref IaVol[num][nsyn], IbVol[num][nsyn], RcVol[num][nsyn], IpVol[num][nsyn], mnVol[num][nsyn]
+objref IaVol1[num][nsyn], IbVol1[num][nsyn], RcVol1[num][nsyn], IpVol1[num][nsyn], mnVol1[num][nsyn]
 objref emp
 emp = new Vector()
 
@@ -38,11 +38,12 @@ for i=0,num-1 {
             recWeight(flipsynrec[i][j], connect_IP0_MNf.object(i*nsyn+j), recDt)
             recWeight(flrcsynrec[i][j], connect_MNf_RCf.object(i*nsyn+j), recDt)
             recWeight(flaffrec[i][j], connect_MNf_Aff.object(i*nsyn+j), recDt)
-            recVol(IaVol[i][j], connect_MNe_IA.object(i*nsyn+j), IaVol1[i][j])
-            recVol(IbVol[i][j], connect_MNe_Ib.object(i*nsyn+j), IbVol1[i][j])
-            recVol(IpVol[i][j], connect_IP1_MNe.object(i*nsyn+j), IpVol1[i][j])
-            recVol(RcVol[i][j], connect_MNe_RCe.object(i*nsyn+j), RcVol1[i][j])
-            //recVol(mnVol[i][j], connect_MNe_Aff.object(i*nsyn+j))
+            
+            recVol(IaVol[i][j], connect_MNf_IA.object(i*nsyn+j), IaVol1[i][j])
+            recVol(IbVol[i][j], connect_MNf_Ib.object(i*nsyn+j), IbVol1[i][j])
+            recVol(IpVol[i][j], connect_IP0_MNf.object(i*nsyn+j), IpVol1[i][j])
+            recVol(RcVol[i][j], connect_MNf_RCf.object(i*nsyn+j), RcVol1[i][j])
+            //recVol(mnVol[i][j], connect_IP0_MNf.object(i*nsyn+j), mnVol1[i][j])
         }
 }
 
@@ -78,7 +79,7 @@ proc allRec(){
             printFile(filename5, basename5, extension, emp, flipsynrec[i][j], i, j, pc.id)
             printFile(filename7, basename7, extension, emp, flrcsynrec[i][j], i, j, pc.id)
 
-            //printFile(filenamev1, basenamev1, extension, mnVol[i][j], i, j, pc.id)
+            //printFile(filenamev1, basenamev1, extension, mnVol1[i][j], mnVol[i][j], i, j, pc.id)
             printFile(filenamev2, basenamev2, extension, IpVol1[i][j], IpVol[i][j], i, j, pc.id)
             printFile(filenamev3, basenamev3, extension, IbVol1[i][j], IbVol[i][j], i, j, pc.id)
             printFile(filenamev4, basenamev4, extension, IaVol1[i][j], IaVol[i][j], i, j, pc.id)

@@ -5,7 +5,7 @@ nAff = 10
 nSens = 10
 nRC = 10
 nIP = 10
-nsyn = 5
+nsyn = 4
 ncell = nMN+2*nInt+2*nAff+nRC
 
 objref cells, nil, nc
