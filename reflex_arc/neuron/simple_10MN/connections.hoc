@@ -64,6 +64,7 @@ proc connectionSTDP(){
     nc = pc.gid_connect($4, syn)
     nc.weight = 0.01
     nc.delay = 1
+    stdp = new StdwaSA(0.5)
     $o2.append(nc)
     if($8){
         stdp.aLTD = -0.001 //inhibitory 
