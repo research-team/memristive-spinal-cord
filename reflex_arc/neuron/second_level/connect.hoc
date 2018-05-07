@@ -1,7 +1,7 @@
 load_file("nrngui.hoc")
 ncell = 20       /* The number of cells */
 ncells = 20*25
-nsyn = 10
+nsyn = 2
 
 {load_file("EES.hoc")}
 {load_file("ex.hoc")}
@@ -58,7 +58,7 @@ r = new Random()
 proc connection(){
     syn = $o1
     nc = pc.gid_connect($3, syn)
-	r.uniform(1, 1.5)
+	r.uniform(1, 2)
     nc.weight = r.repick()
     r.uniform(1, 2)
     nc.delay = r.repick()
@@ -66,15 +66,18 @@ proc connection(){
 }
 
 proc connectionSTDP(){
-	r.uniform(0.01, 0.02)
+	//r.uniform(0.01, 0.02)
     syn = $o1
     nc = pc.gid_connect($4, syn)
-    nc.weight = r.repick()
-    r.uniform(1, 2)
-    nc.delay = r.repick()
-    $o2.append(nc)
+    //nc.weight = r.repick()
+    nc.delay = 1
     stdp = new StdwaSA(0.5)
-    if($8){stdp.aLTD = -0.001} // inhibitory 
+    $o2.append(nc)
+    nc.weight = $9
+    if($8){
+        stdp.aLTD = -0.001//inhibitory
+        //nc.weight = 0.08
+    }//else{}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
     postsyn = pc.gid_connect($3, stdp)
@@ -90,20 +93,23 @@ for i=pc.id, 18*ncell -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-    	f=0
+    	f=1
     	if (i < 20){connection(target.synlistees.object(j), connect_ex_ees, ncells)} //add ees
     	if (i >= 20 && i < 120){
-    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 0)
+    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 0, 0.01)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i+100), stdpmech, presyns, postsyns, 0, 0.01)
     	}
     	if (i >= 120 && i < 240){
-    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-120), stdpmech, presyns, postsyns, 0)
-    		connectionSTDP(target.synlistinh.object(j), connect_ex_inh, i, (i + 240), stdpmech, presyns, postsyns, f)
+    		//connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-120), stdpmech, presyns, postsyns, 0)
+    		connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 240), stdpmech, presyns, postsyns, 0, 0.06)
     	}
 		if (i >= 240 && i < 360){
-			connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-120), stdpmech, presyns, postsyns, 0)
+			connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-240), stdpmech, presyns, postsyns, 0, 0.06)
+            connectionSTDP(target.synlistinh.object(j), connect_ex_inh, i, (i + 120), stdpmech, presyns, postsyns, f, 0.01)
+            connectionSTDP(target.synlistinh1.object(j), connect_ex_inh, i, (i - 120), stdpmech, presyns, postsyns, f, 0.01)
     	}
     	if (i >= 260 && i < 360){
-			connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 0)
+			connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 0, 0.05)
     	}
 	}
 }
@@ -113,7 +119,7 @@ for i=pc.id+18*ncell, 24*ncell -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn-1 {
-        connectionSTDP(target.synlistex.object(j), connect_inh_ex, i, (i - 360), stdpmech, presyns, postsyns, 0)
+        connectionSTDP(target.synlistex.object(j), connect_inh_ex, i, (i - 360), stdpmech, presyns, postsyns, 0, 0.05)
         //f=0
         //if (nsyn > 10){f = 1}
         //connectionSTDP(target.synlistinh.object(j), connect_inh_inh, i, i, stdpmech, presyns, postsyns, f)        
@@ -124,11 +130,23 @@ for i=pc.id+18*ncell, 24*ncell -1 {
 for i=pc.id+24*ncell, 25*ncell -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
-    for j = 0,nsyn*6-1 {
-        connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (i - 240 + int(j/10)*20), stdpmech, presyns, postsyns, 0)
-        connection(target.synlistex.object(j), connect_ip_ex, ncells)
+    r.uniform(0, 20)
+    for j = 0,nsyn*30-1 {
+        connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (i - 240 + int(j/10)*20 + r.repick()), stdpmech, presyns, postsyns, 0, 0.04)
+        //connection(target.synlistex.object(j), connect_ip_ex, ncells)
     }
 }
 
-{load_file("1.ses")}
+objref vol
+vol = new Vector()
+vol.record(&IP0[0].soma.vext[1]( 0.5 ))
+
+tstop=200
+
+run()
+
+fok.wopen("./vol.txt")
+vol.printf(fok)
+fok.close()
+
 

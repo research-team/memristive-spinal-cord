@@ -7,6 +7,8 @@ nRC = 196
 nIP = 120
 nsyn = 100
 ncell = nMN+2*nInt+2*nAff+nRC
+FLncells = 2*ncell+nSens+nSens+nIP+nIP+2
+SLncell = 20
 
 objref cells, nil, nc
 cells = new List()
@@ -27,6 +29,8 @@ cells = new List()
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/RcF.hoc")}
 {load_file("./templates/RcE.hoc")}
+{load_file("./templates/ex.hoc")}
+{load_file("./templates/inh.hoc")}
 {load_file("./templates/sensorygen.hoc")}
 {load_file("save.hoc")}
 
@@ -40,6 +44,7 @@ proc addcell(){
     pc.cell($2, nc)
 }
 
+// FIRST LAYER
 /* building arc */
 //Extesors
 //motoneurons
@@ -132,9 +137,17 @@ if (pc.id == 0) {
     {addcell(new sensorygen(),(2*ncell+nSens+nSens+nIP+nIP+1),pc.id)}
 }
 
+// SECOND LAYER
+for (i=pc.id + FLncells; i < FLncells + SLncell*18; i += pc.nhost){
+    addcell(new Ex(i - FLncells), i, pc.id)
+}
+
+for (i=pc.id+SLncell*18+FLncells; i < FLncells + SLncell*24; i += pc.nhost){
+    addcell(new Inh((i - FLncells - 18*SLncell)*2), i, pc.id)
+}
 
 {load_file("connections.hoc")}
 {load_file("./sessions/3.ses")}
 {load_file("./sessions/4.ses")}
-{load_file("recording.hoc")}
+//{load_file("recording.hoc")}
 

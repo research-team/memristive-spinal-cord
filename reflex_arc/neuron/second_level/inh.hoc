@@ -14,7 +14,7 @@ objref synex_
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 1
+    nsyn = 2
     
     soma_diam = 10    
     soma_len = 10      
@@ -53,8 +53,8 @@ proc init() {local i, j
         el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(-500,150,$1*5,soma_diam) 
-        pt3dadd(-500-soma_len,150,$1*5,soma_diam) 
+        pt3dadd(-200,450,$1*5,soma_diam) 
+        pt3dadd(-200-soma_len,450,$1*5,soma_diam) 
     }
 
     axon {
@@ -67,8 +67,8 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(-500,150,$1*5,axon_diam) 
-        pt3dadd(-500-soma_len-axon_len,150,$1*5,axon_diam) 
+        pt3dadd(-200,450,$1*5,axon_diam) 
+        pt3dadd(-200-soma_len-axon_len,450,$1*5,axon_diam) 
 
     }
         presyn = new GABAA_S(0.5) 
@@ -80,17 +80,17 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,150,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),150,$1*5,diam)
+            pt3dadd(-200+dend_len*i,450,$1*5,diam)
+            pt3dadd(-200+dend_len*(i+1),450,$1*5,diam)
         }
 
         for j = 0, nsyn-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
-            synex_.tau = 0.1
-            synex_.e=50
+            //synex_.tau = 0.1
+            //synex_.e=50
             dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
-            synees_.tau = 0.1
-            synees_.e=50
+            //synees_.tau = 0.1
+            //synees_.e=50
             dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
         }
 
