@@ -1,0 +1,63 @@
+load_file("nrngui.hoc")
+ncell = 20       /* The number of cells */
+ncells = 20*26
+nsyn = 2
+
+{load_file("./templates/EES.hoc")}
+{load_file("./templates/ex.hoc")}
+{load_file("./templates/inh.hoc")}
+{load_file("./templates/ip.hoc")}
+{load_file("./templates/MNE.hoc")}
+{load_file("./templates/Ia.hoc")}
+{load_file("./templates/IaintE.hoc")}
+{load_file("./templates/RCE.hoc")}
+
+objref cells, nil, nc
+cells = new List()
+
+objref pc, r
+pc = new ParallelContext()
+
+proc addcell(){
+    cells.append($o1)
+    pc.set_gid2node($2, $3)
+    nc = cells.object(cells.count()-1).connect2target(nil)
+    pc.cell($2, nc)
+}
+
+for (i=pc.id; i < ncell*12; i += pc.nhost){
+    addcell(new Ex(i), i, pc.id)
+}
+
+for (i=pc.id+ncell*12; i < ncell*21; i += pc.nhost){
+    addcell(new Inh((i - ncell)*2), i, pc.id)
+}
+
+for (i=pc.id+ncell*21; i < ncell*22; i += pc.nhost){
+    addcell(new IP0(i - 21*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*22; i < ncell*23; i += pc.nhost){
+    addcell(new MNE(i - 22*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*23; i < ncell*24; i += pc.nhost){
+    addcell(new Ia(), i, pc.id)
+}
+
+for (i=pc.id+ncell*24; i < ncell*25; i += pc.nhost){
+    addcell(new IaE(i - 24*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*25; i < ncell*26; i += pc.nhost){
+    addcell(new RCE(i - 25*ncell), i, pc.id)
+}
+
+//add EES
+if (pc.id == 0) {
+    {addcell(new EES(), ncells, pc.id)}
+}
+
+{load_file("connections.hoc")}
+{load_file("recording.hoc")}
+

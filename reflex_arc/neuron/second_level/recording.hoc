@@ -1,0 +1,29 @@
+objref vol[ncell]
+
+for i=0, 20 - 1{
+    vol[i] = new Vector()
+    vol[i].record(&MNE[i].soma.v( 0.5 ))
+}
+
+tstop=200
+
+{load_file("./ses/3.ses")}
+run()
+
+objref fok
+fok=new File()
+for i=0, 20 - 1{
+    strdef basename0, extension, filename0
+    basename0 = "./res/volM"
+    extension = "txt"
+    sprint(filename0, "%sn%d.%s", basename0, i, extension)
+    fok.wopen(filename0)
+    vol[i].printf(fok)
+    fok.close()
+}
+
+{pc.psolve(tstop)}
+{pc.runworker()}
+{pc.done()}
+
+
