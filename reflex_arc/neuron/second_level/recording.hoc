@@ -1,8 +1,15 @@
 objref vol[ncell]
+objref vol1[ncell]
+objref vol2[ncell]
+
 
 for i=0, 20 - 1{
     vol[i] = new Vector()
     vol[i].record(&MNE[i].soma.v( 0.5 ))
+    vol1[i] = new Vector()
+    vol1[i].record(&IP0[i].soma.vext[1]( 0.5 ))
+    vol2[i] = new Vector()
+    vol2[i].record(&MNE[i].soma.vext[1]( 0.5 ))
 }
 
 tstop=200
@@ -19,6 +26,18 @@ for i=0, 20 - 1{
     sprint(filename0, "%sn%d.%s", basename0, i, extension)
     fok.wopen(filename0)
     vol[i].printf(fok)
+    fok.close()
+    strdef basename1, filename1
+    basename1 = "./res/vol"
+    sprint(filename1, "%sn%d.%s", basename1, i, extension)
+    fok.wopen(filename1)
+    vol1[i].printf(fok)
+    fok.close()
+    strdef basename2, filename2
+    basename2 = "./res/volMN"
+    sprint(filename2, "%sn%d.%s", basename2, i, extension)
+    fok.wopen(filename2)
+    vol2[i].printf(fok)
     fok.close()
 }
 

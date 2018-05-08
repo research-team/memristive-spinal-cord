@@ -14,6 +14,7 @@ postsyns = new List()
 stdpmech = new List()
 r = new Random()
 
+
 proc connection(){
     syn = $o1
     nc = pc.gid_connect($3, syn)
