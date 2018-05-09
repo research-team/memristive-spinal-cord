@@ -1,0 +1,64 @@
+objref vol[120]
+objref vol1[120]
+objref vol2[120]
+
+
+for i=0, 120 - 1{
+    vol[i] = new Vector()
+    vol[i].record(&MNE[i].soma.v( 0.5 ))
+    vol1[i] = new Vector()
+    vol1[i].record(&IP0[i].soma.vext[1]( 0.5 ))
+    vol2[i] = new Vector()
+    vol2[i].record(&MNE[i].soma.vext[1]( 0.5 ))
+}
+
+{load_file("./ses/3.ses")}
+proc epochrun() { local i, n, j
+    running_ = 1
+    tstop = $1*$2+$1*$3 // in case some other code needs tstop
+    ns = connect_ex_ees.count
+    stdinit()
+    for n=0,$1 - 1 {
+        for i=0, ns - 1{
+            connect_ex_ees.object(i).weight = 1
+        }
+        print(t)
+        continuerun(t+$2)
+        for i=0, ns - 1{
+            connect_ex_ees.object(i).weight = 0
+        }
+        print(t)
+        continuerun(t+$3)
+    }
+}
+epochrun(1, 100, 0)
+
+objref fok
+fok=new File()
+for i=0, 120 - 1{
+    strdef basename0, extension, filename0
+    basename0 = "./res/volM"
+    extension = "txt"
+    sprint(filename0, "%sn%d.%s", basename0, i, extension)
+    fok.wopen(filename0)
+    vol[i].printf(fok)
+    fok.close()
+    strdef basename1, filename1
+    basename1 = "./res/vol"
+    sprint(filename1, "%sn%d.%s", basename1, i, extension)
+    fok.wopen(filename1)
+    vol1[i].printf(fok)
+    fok.close()
+    strdef basename2, filename2
+    basename2 = "./res/volMN"
+    sprint(filename2, "%sn%d.%s", basename2, i, extension)
+    fok.wopen(filename2)
+    vol2[i].printf(fok)
+    fok.close()
+}
+
+{pc.psolve(tstop)}
+{pc.runworker()}
+{pc.done()}
+
+

@@ -1,1 +1,0 @@
-../inhstdp.mod
