@@ -13,6 +13,9 @@
 ![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membraneVMN.png)
 
 ### EES 40Hz 50% inhibitory
+
+Only first and second sublayer are inhibited.
+
 #### Extracellular potential
 
 ![exIP1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different%20inhibitory%20level/extraIP_50.png)
