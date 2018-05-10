@@ -4,7 +4,7 @@
 
 Topology with a hidden layer between inhibitory neurons. The hidden layer consists of a sequence of 10 neurons.
 
-![top1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/2ndLayer.png)
+![top1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/2ndLayer.png)
 
 ### Extracellular potential
 
@@ -17,7 +17,7 @@ Topology with a hidden layer between inhibitory neurons. The hidden layer consis
 
 ## Topology 2
 
-![top2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/modelV2.png)
+![top2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/modelV2.png)
 
 ### Extracellular potential
 
@@ -32,7 +32,7 @@ Topology with a hidden layer between inhibitory neurons. The hidden layer consis
 
 Topology with a generator on hidden layer. 
 
-![top3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/modelV3.png)
+![top3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/modelV3.png)
 
 ### Extracellular potential
 

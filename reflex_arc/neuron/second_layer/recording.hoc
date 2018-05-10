@@ -17,11 +17,11 @@ for i=0, 120 - 1{
     vol2[i] = new Vector()
     vol3[i] = new Vector()
     vol[i].record(&MNE[i].soma.v(0.5))
-    vol1[i].record(&IP0[i].soma.vext[1](0.5))
-    vol2[i].record(&MNE[i].soma.vext[1](0.5))
-    vol3[i].record(&IP0[i].soma.v(0.5))
+    //vol1[i].record(&IP0[i].soma.vext[1](0.5))
+    //vol2[i].record(&MNE[i].soma.vext[1](0.5))
+    //vol3[i].record(&IP0[i].soma.v(0.5))
 }
-
+/*
 for i=0, 20 - 1{
     l1[i] = new Vector()
     l2[i] = new Vector()
@@ -35,7 +35,7 @@ for i=0, 20 - 1{
     l4[i].record(&Ex[180+i].soma.v(0.5))
     l5[i].record(&Ex[200+i].soma.v(0.5))
     l6[i].record(&Ex[220+i].soma.v(0.5))
-}
+}*/
 
 {load_file("./ses/3.ses")}
 proc epochrun() { local i, n, j
@@ -71,6 +71,7 @@ for i=0, 120 - 1{
     strdef basename3, filename3
     basename3 = "./res/volIP"
     printFile(filename0, basename0, extension, vol[i], i)
+    /*
     printFile(filename1, basename1, extension, vol1[i], i)
     printFile(filename2, basename2, extension, vol2[i], i)
     printFile(filename3, basename3, extension, vol3[i], i)
@@ -91,7 +92,7 @@ for i=0, 120 - 1{
     printFile(filename6, basename6, extension, l3[i], i)
     printFile(filename7, basename7, extension, l4[i], i)
     printFile(filename8, basename8, extension, l5[i], i)
-    printFile(filename9, basename9, extension, l6[i], i)
+    printFile(filename9, basename9, extension, l6[i], i)*/
 }
 
 {pc.set_maxstep(0.5)}

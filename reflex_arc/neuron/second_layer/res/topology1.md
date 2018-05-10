@@ -1,6 +1,6 @@
 ## Topology 1
 
-![top1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/2ndLayer.png)
+![top1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/2ndLayer.png)
 
 ### EES 40Hz 100% inhibitory
 #### Extracellular potential
