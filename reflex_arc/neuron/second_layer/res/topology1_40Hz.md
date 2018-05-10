@@ -17,3 +17,6 @@ With sensory and afferent activities.
 
 ![SL1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membSL40Hz.png)
 
+#### Only Afferent activity
+
+![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membMN_Aff.png)
