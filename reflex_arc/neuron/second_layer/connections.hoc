@@ -32,7 +32,6 @@ connect_ip_ees = new List()
 presyns = new List()
 postsyns = new List()
 stdpmech = new List()
-r = new Random()
 
 
 proc connection(){
@@ -152,7 +151,7 @@ for i=pc.id+ncell*21+nIP, ncell*21+nIP+nMN -1 {
         r.uniform(0, nIP)
         connectionSTDP(target.synlistip.object(j), connect_IP0_MNe, i, (21*ncell + r.repick()), stdpmech, presyns, postsyns, 0)
         r.uniform(0, nAff)
-        connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*21+nIP+nMN+nAff + r.repick()), stdpmech, presyns, postsyns, 1)
+        connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*21+nIP+nMN+nAff + r.repick()), stdpmech, presyns, postsyns, 0)
         r.uniform(0, nInt)
         connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, (ncell*21+nIP+nMN+nAff + r.repick()), stdpmech, presyns, postsyns, 1)        
         r.uniform(0, nInt)
@@ -206,6 +205,7 @@ for i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt+nRC, ncell*21+nIP+nMN+nAff+2*nInt+nRC+n
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*50-1 {
         connection(target.synlistsens.object(j), connect_sens1_EES, ncells)
+        connection(target.synlistgen.object(j), connect_sens1_EES, ncells+1)
     }
 }
 

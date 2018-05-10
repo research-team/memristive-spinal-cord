@@ -19,6 +19,7 @@ ncells = ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens
 {load_file("./templates/IbintE.hoc")}
 {load_file("./templates/RCE.hoc")}
 {load_file("./templates/sens1.hoc")}
+{load_file("./templates/sensorygen.hoc")}
 {load_file("save.hoc")}
 
 
@@ -27,6 +28,7 @@ cells = new List()
 
 objref pc, r
 pc = new ParallelContext()
+r = new Random()
 
 proc addcell(){
     cells.append($o1)
@@ -51,8 +53,9 @@ for (i=pc.id+ncell*21+nIP; i < ncell*21+nIP+nMN; i += pc.nhost){
     addcell(new MNE(i - 22*ncell), i, pc.id)
 }
 
+r.uniform(0, 40)
 for (i=pc.id+ncell*21+nIP+nMN; i < ncell*21+nIP+nMN+nAff; i += pc.nhost){
-    addcell(new Ia(fr1.get(i-(ncell*21+nIP+nMN))), i, pc.id)
+    addcell(new Ia(65 + r.repick()), i, pc.id)
 }
 
 for (i=pc.id+ncell*21+nIP+nMN+nAff; i < ncell*21+nIP+nMN+nAff+nInt; i += pc.nhost){
@@ -74,6 +77,11 @@ for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt+nRC; i < ncell*21+nIP+nMN+nAff+2*nInt+
 //add EES
 if (pc.id == 0) {
     {addcell(new EES(), ncells, pc.id)}
+}
+
+//add sensory generator
+if (pc.id == 0) {
+    {addcell(new sensorygen(),ncells+1,pc.id)}
 }
 
 {load_file("connections.hoc")}
