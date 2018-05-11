@@ -1,24 +1,33 @@
 num = connect_MNf_Aff.count/nsyn
 print(num)
+print(nsyn)
 objref flsynrec[num][nsyn], flsyninh[num][nsyn], flaffrec[num][nsyn]
-objref flipsynrec[num][nsyn], flrcsynrec[num][nsyn]
-objref mnVol[num], IaVol[num], IbVol[num], RcVol[num], IpVol[num]
+objref flipsynrec[num][nsyn], flrcsynrec[num][nsyn], id
+objref IaVol[num][nsyn], IbVol[num][nsyn], RcVol[num][nsyn], IpVol[num][nsyn], mnVol[num][nsyn]
+objref IaVol1[num][nsyn], IbVol1[num][nsyn], RcVol1[num][nsyn], IpVol1[num][nsyn], mnVol1[num][nsyn]
+objref emp
+emp = new Vector()
 
 recDt = 25
+
 proc recWeight(){
     $o1= new Vector()
     $o1.record(&$o2.weight, $3)
 }
 
 proc recVol(){
-    $o1= new Vector()
-    $o1.record(&$o2.soma.v(0.5))
+    $o1 = new Vector()
+    id = new Vector()
+    $o3 = new Vector()
+    $o3.append($o2.srcgid())
+    pc.spike_record($o2.srcgid(), $o1, id)
 }
 
 proc printFile(){
-    sprint($s1, "%s%dn%dp%d.%s", $s2, $5, $6, $7, $s3)
+    sprint($s1, "%s%dn%dp%d.%s", $s2, $6, $7, $8, $s3)
     fok.wopen($s1)
     $o4.printf(fok)
+    $o5.printf(fok)
     fok.close()
 }
 
@@ -29,15 +38,15 @@ for i=0,num-1 {
             recWeight(flipsynrec[i][j], connect_IP0_MNf.object(i*nsyn+j), recDt)
             recWeight(flrcsynrec[i][j], connect_MNf_RCf.object(i*nsyn+j), recDt)
             recWeight(flaffrec[i][j], connect_MNf_Aff.object(i*nsyn+j), recDt)
+            
+            recVol(IaVol[i][j], connect_MNf_IA.object(i*nsyn+j), IaVol1[i][j])
+            recVol(IbVol[i][j], connect_MNf_Ib.object(i*nsyn+j), IbVol1[i][j])
+            recVol(IpVol[i][j], connect_IP0_MNf.object(i*nsyn+j), IpVol1[i][j])
+            recVol(RcVol[i][j], connect_MNf_RCf.object(i*nsyn+j), RcVol1[i][j])
+            //recVol(mnVol[i][j], connect_IP0_MNf.object(i*nsyn+j), mnVol1[i][j])
         }
 }
-for i=0,num-1 {
-        recVol(mnVol[i], MNF[i])   
-        recVol(IpVol[i], IP0[i])         
-        recVol(IbVol[i], IbF[i])         
-        recVol(IaVol[i], IaE[i])         
-        recVol(RcVol[i], RCF[i])         
-}
+
 
 proc allRec(){
     objref fok
@@ -64,22 +73,20 @@ proc allRec(){
     extension = "txt"
     for i=0,$1-1 {
         for j = 0,$2-1 {
-            printFile(filename0, basename0, extension, flaffrec[i][j], i, j, pc.id)
-            printFile(filename1, basename1, extension, flsynrec[i][j], i, j, pc.id)
-            printFile(filename3, basename3, extension, flsyninh[i][j], i, j, pc.id)
-            printFile(filename5, basename5, extension, flipsynrec[i][j], i, j, pc.id)
-            printFile(filename7, basename7, extension, flrcsynrec[i][j], i, j, pc.id)
+            printFile(filename0, basename0, extension, emp, flaffrec[i][j], i, j, pc.id)
+            printFile(filename1, basename1, extension, emp, flsynrec[i][j], i, j, pc.id)
+            printFile(filename3, basename3, extension, emp, flsyninh[i][j], i, j, pc.id)
+            printFile(filename5, basename5, extension, emp, flipsynrec[i][j], i, j, pc.id)
+            printFile(filename7, basename7, extension, emp, flrcsynrec[i][j], i, j, pc.id)
+
+            //printFile(filenamev1, basenamev1, extension, mnVol1[i][j], mnVol[i][j], i, j, pc.id)
+            printFile(filenamev2, basenamev2, extension, IpVol1[i][j], IpVol[i][j], i, j, pc.id)
+            printFile(filenamev3, basenamev3, extension, IbVol1[i][j], IbVol[i][j], i, j, pc.id)
+            printFile(filenamev4, basenamev4, extension, IaVol1[i][j], IaVol[i][j], i, j, pc.id)
+            printFile(filenamev5, basenamev5, extension, RcVol1[i][j], RcVol[i][j], i, j, pc.id)
         }
     }
 
-    for i=0,$1-1 {
-        printFile(filenamev1, basenamev1, extension, mnVol[i], i, 0, pc.id)
-        printFile(filenamev2, basenamev2, extension, IpVol[i], i, 0, pc.id)
-        printFile(filenamev3, basenamev3, extension, IbVol[i], i, 0, pc.id)
-        printFile(filenamev4, basenamev4, extension, IaVol[i], i, 0, pc.id)
-        printFile(filenamev5, basenamev5, extension, RcVol[i], i, 0, pc.id)
-
-    }
 }
 
 proc epochrun() { local i, n, j
@@ -112,8 +119,8 @@ proc epochrun() { local i, n, j
 {pc.set_maxstep(2)}
 // $1 is how many epochs
 // each epoch is single step
-epochrun(20, 700, 300)
+epochrun(10, 700, 300)
 {pc.psolve(tstop)}
 {pc.runworker()}
 {pc.done()}
-quit()
+//quit()

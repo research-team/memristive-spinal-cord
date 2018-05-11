@@ -1,0 +1,119 @@
+objref vol[120]
+objref vol1[120]
+objref vol2[120]
+objref vol3[120]
+objref vol4[120]
+objref vol5[120]
+objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
+
+proc printFile(){
+    sprint($s1, "%s%dn.%s", $s2, $5, $s3)
+    fok.wopen($s1)
+    $o4.printf(fok)
+    fok.close()
+}
+
+for i=0, 120 - 1{
+    vol[i] = new Vector()
+    vol1[i] = new Vector()
+    vol2[i] = new Vector()
+    vol3[i] = new Vector()
+    vol4[i] = new Vector()
+    vol5[i] = new Vector()
+    vol[i].record(&MNE[i].soma.v(0.5))
+    vol1[i].record(&IP0[i].soma.vext[1](0.5))
+    vol2[i].record(&MNE[i].soma.vext[1](0.5))
+    vol3[i].record(&IP0[i].soma.v(0.5))
+    vol4[i].record(&sens1[i].soma.v(0.5))
+    vol5[i].record(&IaAff[i].soma.v(0.5))
+
+}
+
+for i=0, ncell - 1{
+    l1[i] = new Vector()
+    l2[i] = new Vector()
+    l3[i] = new Vector()
+    l4[i] = new Vector()
+    l5[i] = new Vector()
+    l6[i] = new Vector()
+    l1[i].record(&Ex[120+i].soma.v(0.5))
+    l2[i].record(&Ex[140+i].soma.v(0.5))
+    l3[i].record(&Ex[160+i].soma.v(0.5))
+    l4[i].record(&Ex[180+i].soma.v(0.5))
+    l5[i].record(&Ex[200+i].soma.v(0.5))
+    l6[i].record(&Ex[220+i].soma.v(0.5))
+}
+
+{load_file("./ses/3.ses")}
+proc epochrun() { local i, n, j
+    running_ = 1
+    tstop = $1*$2+$1*$3 // in case some other code needs tstop
+    ns = connect_ex_ees.count
+    stdinit()
+    for n=0,$1 - 1 {
+        for i=0, ns - 1{
+            connect_ex_ees.object(i).weight = 1
+        }
+        print(t)
+        continuerun(t+$2)
+        for i=0, ns - 1{
+            connect_ex_ees.object(i).weight = 0
+        }
+        print(t)
+        continuerun(t+$3)
+    }
+}
+epochrun(1, 150, 0)
+
+objref fok
+fok=new File()
+for i=0, 120 - 1{
+    strdef basename0, extension, filename0
+    basename0 = "./res/volM"
+    extension = "txt"
+    strdef basename1, filename1
+    basename1 = "./res/vol"
+    strdef basename2, filename2
+    basename2 = "./res/volMN"
+    strdef basename3, filename3
+    basename3 = "./res/volIP"
+    strdef basename4, filename4
+    basename4 = "./res/volSens"
+    strdef basename5, filename5
+    basename5 = "./res/volAff"
+    printFile(filename0, basename0, extension, vol[i], i)
+    printFile(filename1, basename1, extension, vol1[i], i)
+    printFile(filename2, basename2, extension, vol2[i], i)
+    printFile(filename3, basename3, extension, vol3[i], i)
+    printFile(filename4, basename4, extension, vol4[i], i)
+    printFile(filename5, basename5, extension, vol5[i], i)
+
+}
+for i=0, ncell - 1{
+    strdef basename4, filename4
+    basename4 = "./res/l1"
+    strdef basename5, filename5
+    basename5 = "./res/l2"
+    strdef basename6, filename6
+    basename6 = "./res/l3"
+    strdef basename7, filename7
+    basename7 = "./res/l4"
+    strdef basename8, filename8
+    basename8 = "./res/l5"
+    strdef basename9, filename9
+    basename9 = "./res/l6"
+    printFile(filename4, basename4, extension, l1[i], i)
+    printFile(filename5, basename5, extension, l2[i], i)
+    printFile(filename6, basename6, extension, l3[i], i)
+    printFile(filename7, basename7, extension, l4[i], i)
+    printFile(filename8, basename8, extension, l5[i], i)
+    printFile(filename9, basename9, extension, l6[i], i)
+
+}
+
+{pc.set_maxstep(0.5)}
+{pc.psolve(tstop)}
+{pc.runworker()}
+{pc.done()}
+
+

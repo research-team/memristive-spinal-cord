@@ -1,5 +1,5 @@
 begintemplate IP0
-public soma, axon, dend, connect2target
+public soma, axon, dend, connect2target, axon_len
 
 create soma, axon, dend[1] 
 public presynexlist, presyninhlist
