@@ -70,7 +70,7 @@ With sensory and afferent activities.
 
 ![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/WithoutSL.png)
 
-## Compare
+## Сomparison of model with second layer and model without second layer
 
 ![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/SL_MembCompare1.png)
 
@@ -82,3 +82,7 @@ With sensory and afferent activities.
 
 ![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraCompare.png)
 
+## Сomparison with experimental data
+
+![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraCompare_copy.png)
+ 
