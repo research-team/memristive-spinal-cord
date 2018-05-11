@@ -6,8 +6,8 @@ nInt = 196
 nAff = 120
 nRC = 196
 nIP = 120
-nSens = 100
-ncells = ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens
+nSens = 120
+ncells = ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
 
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/ex.hoc")}
@@ -20,6 +20,7 @@ ncells = ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens
 {load_file("./templates/RCE.hoc")}
 {load_file("./templates/sens1.hoc")}
 {load_file("./templates/sensorygen.hoc")}
+{load_file("./templates/IaAff.hoc")}
 {load_file("save.hoc")}
 
 
@@ -53,9 +54,9 @@ for (i=pc.id+ncell*21+nIP; i < ncell*21+nIP+nMN; i += pc.nhost){
     addcell(new MNE(i - 22*ncell), i, pc.id)
 }
 
-r.uniform(0, 40)
+r.uniform(0, 50)
 for (i=pc.id+ncell*21+nIP+nMN; i < ncell*21+nIP+nMN+nAff; i += pc.nhost){
-    addcell(new Ia(65 + r.repick()), i, pc.id)
+    addcell(new Ia(70 + r.repick()), i, pc.id)
 }
 
 for (i=pc.id+ncell*21+nIP+nMN+nAff; i < ncell*21+nIP+nMN+nAff+nInt; i += pc.nhost){
@@ -72,6 +73,10 @@ for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC;
 
 for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt+nRC; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens; i += pc.nhost){
     addcell(new sens1(i - 28*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff; i += pc.nhost){
+    addcell(new IaAff(i - 30*ncell), i, pc.id)
 }
 
 //add EES
