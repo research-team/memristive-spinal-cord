@@ -28,7 +28,7 @@ for i=0, 120 - 1{
     vol5[i].record(&IaAff[i].soma.vext[1](0.5))
 
 }
-/*
+
 for i=0, ncell - 1{
     l1[i] = new Vector()
     l2[i] = new Vector()
@@ -43,7 +43,7 @@ for i=0, ncell - 1{
     l5[i].record(&Ex[200+i].soma.v(0.5))
     l6[i].record(&Ex[220+i].soma.v(0.5))
 }
-*/
+
 {load_file("./ses/3.ses")}
 proc epochrun() { local i, n, j
     running_ = 1
@@ -81,15 +81,15 @@ for i=0, 120 - 1{
     basename4 = "./res/volSens"
     strdef basename5, filename5
     basename5 = "./res/volAff"
-    //printFile(filename0, basename0, extension, vol[i], i)
-    //printFile(filename1, basename1, extension, vol1[i], i)
+    printFile(filename0, basename0, extension, vol[i], i)
+    printFile(filename1, basename1, extension, vol1[i], i)
     printFile(filename2, basename2, extension, vol2[i], i)
-    //printFile(filename3, basename3, extension, vol3[i], i)
+    printFile(filename3, basename3, extension, vol3[i], i)
     printFile(filename4, basename4, extension, vol4[i], i)
     printFile(filename5, basename5, extension, vol5[i], i)
 
 }
-/*
+
 for i=0, ncell - 1{
     strdef basename4, filename4
     basename4 = "./res/l1"
@@ -111,7 +111,7 @@ for i=0, ncell - 1{
     printFile(filename9, basename9, extension, l6[i], i)
 
 }
-*/
+
 {pc.set_maxstep(0.5)}
 {pc.psolve(tstop)}
 {pc.runworker()}
