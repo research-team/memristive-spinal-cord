@@ -31,16 +31,7 @@ xpanel(23,213)
 }
 {
 save_window_ = new Graph(0)
-save_window_.size(-10,140,-5.8e-10,9e-11)
-scene_vector_[2] = save_window_
-{save_window_.view(0, -5.8e-10, 500, 6.7e-10, 447, 131, 733.44, 487.36)}
-graphList[1].append(save_window_)
-save_window_.save_name("graphList[1].")
-save_window_.addvar("IP0[0].soma.vext[1]( 0.5 )", 1, 1, 0.8, 0.9, 2)
-}
-{
-save_window_ = new Graph(0)
-save_window_.size(0,500,-80,50)
+save_window_.size(0,150,-80,50)
 scene_vector_[3] = save_window_
 {save_window_.view(0, -80, 500, 130, 416, 68, 824.64, 557.44)}
 graphList[0].append(save_window_)
@@ -55,7 +46,7 @@ save_window_.addexpr("Ex[230].soma.v( 0.5 )", 1, 1, 0.8, 0.9, 2)
 }
 {
 save_window_ = new Graph(0)
-save_window_.size(0,500,-80,40)
+save_window_.size(0,150,-80,40)
 scene_vector_[4] = save_window_
 {save_window_.view(0, -80, 500, 120, 315, 115, 550.08, 333.76)}
 graphList[0].append(save_window_)
