@@ -74,7 +74,7 @@ sudo apt-get install unzip --assume-yes
 sudo apt-get autoremove --assume-yes
 
 NEST_NAME="nest-${NEST_VERSION}"
-TMP_FOLDER=${NEST_PATH}/tmp
+TMP_FOLDER=/tmp
 sudo mkdir -p ${TMP_FOLDER}
 sudo wget -c https://github.com/research-team/neucogar-nest/archive/master.zip -O ${TMP_FOLDER}/"$NEST_NAME".zip
 sudo mkdir -p ${NEST_PATH}
@@ -88,12 +88,15 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=${NEST_PATH}/${NEST_NAME} ${NEST_PATH}/src/${N
 make --jobs 8
 make install
 # make installcheck
-NEST_VARS=${NEST_PATH}/${NEST_NAME}/bin/nest_vars.sh
-${NEST_VARS}
-bash ${NEST_VARS}
-if ! grep -q -F "source '$NEST_VARS'" ~/.profile ; then
-  echo '# NEST env\n[ -f '${NEST_VARS}' ] && source '${NEST_VARS} >> ~/.profile
-fi
+# NEST_VARS=${NEST_PATH}/${NEST_NAME}/bin/nest_vars.sh
+# ${NEST_VARS}
+# bash ${NEST_VARS}
+# if ! grep -q -F "source '$NEST_VARS'" ~/.profile ; then
+#   echo '# NEST env\n[ -f '${NEST_VARS}' ] && source '${NEST_VARS} >> ~/.profile
+# fi
+cat ${NEST_PATH}/${NEST_NAME}/bin/nest_vars.sh >> ~/.bashrc
+sudo rm -rf ${TMP_FOLDER}/"$NEST_NAME".zip
+
 
 # hh-moto-5ht model installation
 sudo apt-get install openjdk-8-jdk --assume-yes
@@ -116,6 +119,7 @@ cd mpmath-1.0.0
 sudo python setup.py install
 
 # sympy installation
+sudo apt-get install git --assume-yes
 cd /opt/
 sudo git clone git://github.com/sympy/sympy.git
 sudo chown -R ${USER} /opt/sympy
