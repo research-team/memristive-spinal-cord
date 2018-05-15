@@ -142,7 +142,7 @@ cd hh-moto-5ht
 java -jar /opt/nestml/target/nestml.jar research_team_models --target build
 cd build
 cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
-make -- jobs `nproc` all
+make --jobs `nproc` all
 make install
 
 # removing temp
