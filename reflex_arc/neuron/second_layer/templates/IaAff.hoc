@@ -55,6 +55,10 @@ proc init() {local i, j
         gl_hh = .0001666
         el_hh = -60.0
 
+        insert extracellular
+        xg = 1000
+        xc = 300
+
         pt3dclear()
         pt3dadd(-600,350,$1*5,soma_diam) 
         pt3dadd(-600-soma_len,350,$1*5,soma_diam) 

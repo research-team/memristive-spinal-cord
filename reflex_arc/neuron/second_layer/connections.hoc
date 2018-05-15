@@ -57,7 +57,7 @@ proc connectionSTDP(){
         //nc.weight = 0.08
     }else if($8 == 2){
         stdp.aLTD = -0.001
-        nc.weight = 0.07
+        nc.weight = 0.012
     }else{nc.weight = 0.07}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
@@ -137,9 +137,9 @@ for i=pc.id+21*ncell, ncell*21+nIP -1 {
     target = pc.gid2cell(i) //target cell
     r.uniform(0, 20)
     for j = 0,nsyn*30-1 {
-        //connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (120 + int(j/10)*20 + r.repick()), stdpmech, presyns, postsyns, 0)
-        r.uniform(0, nSens)
-        connection(target.synlistex.object(j), connect_ip_ees, (ncell*21+nIP+nMN+nAff+2*nInt+nRC+r.repick()))
+        connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (120 + int(j/10)*20 + r.repick()), stdpmech, presyns, postsyns, 0)
+        //r.uniform(0, nSens)
+        //connection(target.synlistex.object(j), connect_ip_ees, (ncell*21+nIP+nMN+nAff+2*nInt+nRC+r.repick()))
     }
 }
 

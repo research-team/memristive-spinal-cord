@@ -34,7 +34,9 @@ proc init() {local i, j
     dend_len = 40     
     dend_nseg = 1
     dend_cm = 2
-    dend_Ra = 200          
+    dend_Ra = 200 
+
+
 
     create soma, axon, dend[ndend] 
 
@@ -54,6 +56,10 @@ proc init() {local i, j
         gnabar_hh=0.25
         gl_hh = .0001666
         el_hh = -60.0
+
+        insert extracellular
+        xg = 1000
+        xc = 300 
 
         pt3dclear()
         pt3dadd(-500,350,$1*5,soma_diam) 
