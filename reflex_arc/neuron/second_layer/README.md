@@ -1,44 +1,24 @@
-# Second layer
+## Second layer
 
-## Topology 1
+### Topology 1
 
 Topology with a hidden layer between inhibitory neurons. The hidden layer consists of a sequence of 10 neurons.
 
-![top1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/2ndLayer.png)
+##### Plots and description 
 
-### Extracellular potential
+https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/topology1.md
 
-![exIP1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraIP.png)
-![exMN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraVMNs.png)
+### Topology 2
 
-### Membrane potential
+##### Plots and description 
 
-![MN1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membraneVMN.png)
+https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/topology2.md
 
-## Topology 2
-
-![top2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/modelV2.png)
-
-### Extracellular potential
-
-![exIP2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraIPv2.png)
-![exMN2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraMNv2.png)
-
-### Membrane potential
-
-![MN2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membraneVMNv2.png)
-
-## Topology 3
+### Topology 3
 
 Topology with a generator on hidden layer. 
 
-![top3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/modelV3.png)
+##### Plots and description 
 
-### Extracellular potential
+https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/topology3.md
 
-![exIP3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraIPv3.png)
-![exMN3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/extraMNv3.png)
-
-### Membrane potential
-
-![MN3](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/membraneMNv3.png)
