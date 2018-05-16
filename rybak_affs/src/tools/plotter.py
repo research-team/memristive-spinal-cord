@@ -2,7 +2,7 @@ import pylab
 import os
 from rybak_affs.src.tools.miner import Miner
 from rybak_affs.src.paths import img_path
-from rybak_affs.src.params import num_sublevels, simulation_time, rate, inh_coef
+from rybak_affs.src.params import num_sublevels, simulation_time, rate, inh_coef, plot_slices_shift
 import logging
 
 
@@ -40,7 +40,7 @@ class Plotter:
     def plot_slices(num_slices: int=7, name: str='moto'):
         period = 1000 / rate
         step = .1
-        shift = 25
+        shift = plot_slices_shift
         interval = period
         data = Miner.gather_voltage(name)
         num_dots = int(1 / step * num_slices * interval)
@@ -51,18 +51,18 @@ class Plotter:
         pylab.suptitle('Rate = {}Hz, Inh = {}%'.format(rate, 100 * inh_coef), fontsize=14)
 
         for s in range(num_slices):
-            logging.warning('Plotting slice {}'.format(s))
+            # logging.warning('Plotting slice {}'.format(s))
             pylab.subplot(num_slices, 1, s + 1)
             start = int(s * fraction)
             end = int((s + 1) * fraction) if s < num_slices - 1 else len(raw_times) - 1
-            logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
+            # logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
             times = raw_times[start:end]
             values = [data[time] for time in times]
             pylab.ylim(-80, 60)
             pylab.xlim(start / 10 + shift, end / 10 + shift)
-            pylab.plot(times, values)
+            pylab.plot(times, values, label='moto')
 
-        Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(rate, 100 * inh_coef, num_sublevels))
+        Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(rate, inh_coef, num_sublevels))
 
     @staticmethod
     def plot_all_spikes():
