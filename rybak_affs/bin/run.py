@@ -25,8 +25,10 @@ Plotter.save_voltage('ia_aff')
 Plotter.plot_voltage('moto', 'Moto')
 Plotter.save_voltage('moto')
 
-Plotter.plot_voltage('rc', 'Moto')
+Plotter.plot_voltage('rc', 'RC')
 Plotter.save_voltage('rc')
 
 Plotter.plot_voltage('ia_int', 'Ia Interneurons')
 Plotter.save_voltage('ia_int')
+
+Plotter.plot_slices(num_slices=7, name='moto')

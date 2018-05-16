@@ -105,9 +105,9 @@ JAVA_HOME=/usr/lib/jvm/`ls /usr/lib/jvm/ | grep java-8-openjdk`
 # maven installation
 sudo mkdir /opt/maven
 cd /opt/maven
-sudo wget http://mirror.linux-ia64.org/apache/maven/maven-3/3.5.2/binaries/apache-maven-3.5.2-bin.tar.gz
+sudo wget http://mirror.linux-ia64.org/apache/maven/maven-3/3.5.3/binaries/apache-maven-3.5.3-bin.tar.gz
 sudo chown -R ${USER} /opt/maven
-tar xzvf apache-maven-3.5.2-bin.tar.gz
+tar xzvf apache-maven-3.5.3-bin.tar.gz
 # PATH=/opt/maven/apache-maven-3.5.2/bin/:${PATH}
 
 # mpmath installation
@@ -132,7 +132,7 @@ cd /opt/
 sudo git clone https://github.com/nest/nestml.git
 sudo chown -R ${USER} /opt/nestml
 cd /opt/nestml
-sudo /opt/maven/apache-maven-3.5.2/bin/mvn clean install
+sudo /opt/maven/apache-maven-3.5.3/bin/mvn clean install
 
 # hh-moto-5ht installation
 cd /opt/
@@ -142,7 +142,7 @@ cd hh-moto-5ht
 java -jar /opt/nestml/target/nestml.jar research_team_models --target build
 cd build
 cmake -Dwith-nest=${NEST_PATH}/${NEST_NAME}/bin/nest-config .
-make -- jobs `nproc` all
+make --jobs `nproc` all
 make install
 
 # removing temp
