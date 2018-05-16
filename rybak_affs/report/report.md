@@ -13,17 +13,17 @@ This question have to be duscused.
 
 ## Switching rate
 
-![120](img/Hzs/slices120Hz-1.0Inh-6sublevels.png)
-![110](img/Hzs/slices110Hz-1.0Inh-6sublevels.png)
-![100](img/Hzs/slices100Hz-1.0Inh-6sublevels.png)
-![90](img/Hzs/slices90Hz-1.0Inh-6sublevels.png)
-![80](img/Hzs/slices80Hz-1.0Inh-6sublevels.png)
-![70](img/Hzs/slices70Hz-1.0Inh-6sublevels.png)
-![60](img/Hzs/slices60Hz-1.0Inh-6sublevels.png)
-![50](img/Hzs/slices50Hz-1.0Inh-6sublevels.png)
-![40](img/Hzs/slices40Hz-1.0Inh-6sublevels.png)
-![30](img/Hzs/slices30Hz-1.0Inh-6sublevels.png)
 ![20](img/Hzs/slices20Hz-1.0Inh-6sublevels.png)
+![30](img/Hzs/slices30Hz-1.0Inh-6sublevels.png)
+![40](img/Hzs/slices40Hz-1.0Inh-6sublevels.png)
+![50](img/Hzs/slices50Hz-1.0Inh-6sublevels.png)
+![60](img/Hzs/slices60Hz-1.0Inh-6sublevels.png)
+![70](img/Hzs/slices70Hz-1.0Inh-6sublevels.png)
+![80](img/Hzs/slices80Hz-1.0Inh-6sublevels.png)
+![90](img/Hzs/slices90Hz-1.0Inh-6sublevels.png)
+![100](img/Hzs/slices100Hz-1.0Inh-6sublevels.png)
+![110](img/Hzs/slices110Hz-1.0Inh-6sublevels.png)
+![120](img/Hzs/slices120Hz-1.0Inh-6sublevels.png)
 
 ## Changing inhibitory force
 
