@@ -130,6 +130,7 @@ In sixth slice, first spike is triggered by second layer.
 ##### Second layer activity
 
 All spikes are triggered by EES.
+
 ![sl](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_frequency/topology1/membSL60Hz.png)
 
 #### EES 70Hz
@@ -298,7 +299,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra20.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb20.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb20.png)
 
 ##### Second layer activity
 
@@ -327,7 +328,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra30.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb30.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb30.png)
 
 ##### Second layer activity
 
@@ -366,7 +367,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra40.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb40.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb40.png)
 
 ##### Second layer activity
 
@@ -405,7 +406,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra50.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb50.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb50.png)
 
 ##### Second layer activity
 
@@ -444,7 +445,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra60.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb60.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb60.png)
 
 ##### Second layer activity
 
@@ -484,7 +485,7 @@ In sixth slice, first spike is triggered by EES, second small activity is trigge
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra70.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb70.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb70.png)
 
 ##### Second layer activity
 
@@ -523,7 +524,7 @@ In sixth slice, first spike is triggered by EES, second spike by second layer.
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra80.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb80.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb80.png)
 
 ##### Second layer activity
 
@@ -562,7 +563,7 @@ In sixth slice, first spike is triggered by EES, second spike by second layer.
 ![ex](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/extra90.png)
 
 ##### Membrane potential
-![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb90.pngg)
+![memb](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/res/different_inhibitory/topology1/memb90.png)
 
 ##### Second layer activity
 
