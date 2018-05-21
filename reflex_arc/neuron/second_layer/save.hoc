@@ -12,3 +12,4 @@ strdef str1
 str1 = "./freq/a3.txt"
 objref fr1
 addSmth(str1, fr1)
+

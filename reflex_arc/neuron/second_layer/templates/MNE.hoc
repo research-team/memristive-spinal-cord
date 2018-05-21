@@ -49,10 +49,9 @@ proc init() {local i, j
         cm = soma_cm
         Ra = soma_Ra
         insert hh
-        gnabar_hh=0.4
-        gl_hh = .0001666
+        gnabar_hh=0.25
+        gl_hh = .0004
         el_hh = -60.0
-
         pt3dclear()
         pt3dadd(-500,150,$1,soma_diam) 
         pt3dadd(-500-soma_len,150,$1,soma_diam) 

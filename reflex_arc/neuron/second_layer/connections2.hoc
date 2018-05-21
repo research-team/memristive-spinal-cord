@@ -57,7 +57,12 @@ proc connectionSTDP(){
         //nc.weight = 0.08
     }else if($8 == 2){
         stdp.aLTD = -0.001
-        nc.weight = 0.02
+        nc.weight = 0.05
+    }else if($8 == 3){
+        nc.weight = 0.001
+    }else if($8 == 4){
+        nc.weight = 0.05
+        nc.delay = 4
     }else{nc.weight = 0.07}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
@@ -73,14 +78,15 @@ proc connectionSTDP(){
 for i=pc.id, 18*ncell -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
-    for j = 0,nsyn-1 {
+    for j = 0,nsyn*3-1 {
         if (i < 20){connection(target.synlistees.object(j), connect_ex_ees, ncells)} //add ees
         if (i >= 20 && i < 120){
-            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 0)
-            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i+100), stdpmech, presyns, postsyns, 0)
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-20), stdpmech, presyns, postsyns, 3)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i+100), stdpmech, presyns, postsyns, 3)
         }
         if (i >= 120 && i < 240){
             connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-120), stdpmech, presyns, postsyns, 0)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i+240), stdpmech, presyns, postsyns, 4)
         }
         if (i >= 240 && i < 360){
             connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i-240), stdpmech, presyns, postsyns, 0)
@@ -96,8 +102,8 @@ for i=pc.id, 18*ncell -1 {
 for i=pc.id+18*ncell, 24*ncell -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
-    for j = 0,nsyn-1 {
-        connectionSTDP(target.synlistex.object(j), connect_inh_ex, i, (i - 240), stdpmech, presyns, postsyns, 0)
+    for j = 0,nsyn*3-1 {
+        connectionSTDP(target.synlistex.object(j), connect_inh_ex, i, (i - 240), stdpmech, presyns, postsyns, 4)
         //f=0
         //if (nsyn > 10){f = 1}
         //connectionSTDP(target.synlistinh.object(j), connect_inh_inh, i, i, stdpmech, presyns, postsyns, f)        
