@@ -28,7 +28,7 @@ for i=0, 120 - 1{
     //vol5[i].record(&IaAff[i].soma.vext[1](0.5))
 
 }
-
+/*
 for i=0, ncell - 1{
     l1[i] = new Vector()
     l2[i] = new Vector()
@@ -36,15 +36,14 @@ for i=0, ncell - 1{
     l4[i] = new Vector()
     l5[i] = new Vector()
     l6[i] = new Vector()
-    l1[i].record(&Ex[240+i].soma.v(0.5))
-    l2[i].record(&Ex[260+i].soma.v(0.5))
-    l3[i].record(&Ex[280+i].soma.v(0.5))
-    l4[i].record(&Ex[300+i].soma.v(0.5))
-    l5[i].record(&Ex[320+i].soma.v(0.5))
-    l6[i].record(&Ex[340+i].soma.v(0.5))
+    l1[i].record(&Ex[120+i].soma.v(0.5))
+    l2[i].record(&Ex[140+i].soma.v(0.5))
+    l3[i].record(&Ex[160+i].soma.v(0.5))
+    l4[i].record(&Ex[180+i].soma.v(0.5))
+    l5[i].record(&Ex[200+i].soma.v(0.5))
+    l6[i].record(&Ex[220+i].soma.v(0.5))
 }
-
-{load_file("./ses/3.ses")}
+*/
 
 proc epochrun() { local i, n, j
     running_ = 1
@@ -64,7 +63,7 @@ proc epochrun() { local i, n, j
         continuerun(t+$3)
     }
 }
-epochrun(1, 150, 0)
+epochrun(1, 48, 0)
 
 objref fok
 fok=new File()
@@ -90,7 +89,7 @@ for i=0, 120 - 1{
     //printFile(filename5, basename5, extension, vol5[i], i)
 
 }
-
+/*
 for i=0, ncell - 1{
     strdef basename4, filename4
     basename4 = "./res/l1"
@@ -112,7 +111,7 @@ for i=0, ncell - 1{
     printFile(filename9, basename9, extension, l6[i], i)
 
 }
-
+*/
 {pc.set_maxstep(0.5)}
 {pc.psolve(tstop)}
 {pc.runworker()}
