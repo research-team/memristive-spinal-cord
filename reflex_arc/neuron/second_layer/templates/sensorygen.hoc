@@ -6,7 +6,7 @@ objref sensgen
 proc init() {
 
     sensgen = new SpikeGenerator(0.8)
-        sensgen.freq = 60
+        sensgen.freq = 100
         sensgen.start = 1
         sensgen.number = 1000000000
         sensgen.noise = 0.2 

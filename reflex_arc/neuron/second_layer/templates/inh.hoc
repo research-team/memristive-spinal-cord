@@ -25,8 +25,8 @@ proc init() {local i, j
     axon_diam = 2      
     axon_len = 150 + $1*0.5     
     axon_nseg = 50 
-    axon_cm = 2
-    axon_Ra = 0.002        
+    axon_cm = 3
+    axon_Ra = 100        
 
     dend_diam = 1      
     dend_len = 40     
@@ -49,7 +49,7 @@ proc init() {local i, j
         Ra = soma_Ra
         insert hh
         gnabar_hh=0.25
-        gl_hh = .0001666
+        gl_hh = .0004
         el_hh = -60.0
 
         pt3dclear()
@@ -82,15 +82,16 @@ proc init() {local i, j
             pt3dclear()     
             pt3dadd(-200+dend_len*i,450,$1*5,diam)
             pt3dadd(-200+dend_len*(i+1),450,$1*5,diam)
+
         }
 
         for j = 0, nsyn-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
-            //synex_.tau = 0.1
-            //synex_.e=50
+            synex_.tau = 0.1
+            synex_.e=50
             dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
-            //synees_.tau = 0.1
-            //synees_.e=50
+            synees_.tau = 0.1
+            synees_.e=50
             dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
         }
 
@@ -102,7 +103,7 @@ proc init() {local i, j
 }
 
 obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
-  soma nc = new NetCon(&v(1), $o1)
+  axon nc = new NetCon(&v(1), $o1)
   nc.threshold = 10
   if (numarg() == 2) { $o2 = nc } // for backward compatibility
   return nc

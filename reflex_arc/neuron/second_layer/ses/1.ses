@@ -8,16 +8,16 @@ objectvar ocbox_, ocbox_list_, scene_, scene_list_
 save_window_ = new Graph(0)
 save_window_.size(0,150,-80,50)
 scene_vector_[3] = save_window_
-{save_window_.view(0, -80, 150, 130, 691, 148, 453.92, 296.64)}
+{save_window_.view(0, -80, 500, 130, 416, 68, 824.64, 557.44)}
 graphList[0].append(save_window_)
 save_window_.save_name("graphList[0].")
 save_window_.addexpr("v(.5)", 0, 1, 0.8, 0.9, 2)
-save_window_.addvar("Ex[240].soma.v( 0.5 )", 2, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[270].soma.v( 0.5 )", 3, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[290].soma.v( 0.5 )", 4, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[310].soma.v( 0.5 )", 5, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[330].soma.v( 0.5 )", 7, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[350].soma.v( 0.5 )", 1, 1, 0.8, 0.9, 2)
+save_window_.addvar("Ex[130].soma.v( 0.5 )", 2, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[150].soma.v( 0.5 )", 3, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[170].soma.v( 0.5 )", 4, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[190].soma.v( 0.5 )", 5, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[210].soma.v( 0.5 )", 7, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[230].soma.v( 0.5 )", 1, 1, 0.8, 0.9, 2)
 }
 objectvar scene_vector_[1]
 {doNotify()}

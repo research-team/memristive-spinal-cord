@@ -111,7 +111,7 @@ proc init() {local i, j
 }
 
 obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
-  soma nc = new NetCon(&v(1), $o1)
+  axon nc = new NetCon(&v(1), $o1)
   nc.threshold = 10
   if (numarg() == 2) { $o2 = nc } // for backward compatibility
   return nc

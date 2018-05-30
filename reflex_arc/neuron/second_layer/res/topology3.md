@@ -1,4 +1,4 @@
-## Topology 1
+## Topology 3
 
 ![top2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/second_layer/topologies/modelV3.png)
 
