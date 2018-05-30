@@ -29,10 +29,13 @@ class Plotter:
                 if aff_count <= 60:
                     freqs = [float(value) for value in line.split()]
                     times = [20 * i for i in range(len(freqs))]
+                    freqs = freqs[:150]
+                    times = times[:150]
                     print('Plotting {}: afferent {}'.format(filename, aff_count))
                     pylab.plot(times, freqs)
                     pylab.xlabel('Time (ms)')
                     pylab.ylabel('Frequency (Hz)')
+                    pylab.ylim(20, 150)
                     pylab.savefig('{}/{}aff{}.png'.format(
                         os.path.join(self.path_to_images_dir, filename.split('.')[0]),
                         filename.split('.')[0], aff_count))

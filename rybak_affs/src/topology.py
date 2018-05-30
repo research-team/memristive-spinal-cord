@@ -72,7 +72,7 @@ class Level2:
                 post=self.sublayers[i+1].general_left,
                 weight=16., degree=40)
 
-ia_aff = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
+# ia_aff = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
 try:
     type(ia_aff)
 except NameError:
@@ -88,19 +88,19 @@ ees = Create(
         'spike_weights': [300. for i in range(num_spikes)]
     })
 
-# Connect(
-#     pre=ees,
-#     post=ia_aff.neuron_ids,
-#     syn_spec={
-#         'model': 'static_synapse',
-#         'weight': 1.,
-#         'delay': .1},
-#     conn_spec={
-#         'rule': 'fixed_outdegree',
-#         'outdegree': 60,
-#         'multapses': False,
-#         'autapses': False
-#     })
+Connect(
+    pre=ees,
+    post=ia_aff,
+    syn_spec={
+        'model': 'static_synapse',
+        'weight': 1.,
+        'delay': .1},
+    conn_spec={
+        'rule': 'fixed_outdegree',
+        'outdegree': 60,
+        'multapses': False,
+        'autapses': False
+    })
 
 moto = create(n=169)
 Connect(pre=add_multimeter('moto'), post=moto)
@@ -113,13 +113,13 @@ level2 = Level2()
 for i in range(num_sublevels):
     connect(pre=level2.sublayers[i].general_left, post=moto, weight=15., degree=100)
 
-connect(ia_aff.neuron_ids, level2.sublayers[0].general_right, 20., 20, 3.)
-connect(ia_aff.neuron_ids, moto, 7., 196)
-connect(ia_aff.neuron_ids, ia_int, 3., 196)
+# connect(ia_aff.neuron_ids, level2.sublayers[0].general_right, 20., 20, 3.)
+# connect(ia_aff.neuron_ids, moto, 7., 196)
+# connect(ia_aff.neuron_ids, ia_int, 3., 196)
 
-# connect(ia_aff, level2.sublayers[0].general_right, 30., 20, 3.)
-# connect(ia_aff, moto, 7., 196)
-# connect(ia_aff, ia_int, 3., 196)
+connect(ia_aff, level2.sublayers[0].general_right, 30., 20, 3.)
+connect(ia_aff, moto, 7., 196)
+connect(ia_aff, ia_int, 3., 196)
 connect(moto, rc, 7., 100)
 connect(rc, moto, -7., 100)
 connect(ia_int, moto, -7., 100)
