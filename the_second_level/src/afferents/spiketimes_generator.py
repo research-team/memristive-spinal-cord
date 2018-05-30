@@ -1,4 +1,4 @@
-from rybak_affs.src.namespace import Afferent, Muscle, Interval, Speed
+from the_second_level.src.namespace import Afferent, Muscle, Interval, Speed
 from pkg_resources import resource_filename
 import os
 

@@ -1,7 +1,7 @@
 import nest
-from rybak_affs.src.namespace import Muscle, Afferent
-from rybak_affs.src.tools.multimeter import add_multimeter
-from rybak_affs.src.afferents.receptor import Receptor, DummySensoryReceptor
+from the_second_level.src.namespace import Muscle, Afferent
+from the_second_level.src.tools.multimeter import add_multimeter
+from the_second_level.src.afferents.receptor import Receptor, DummySensoryReceptor
 from random import randint
 
 

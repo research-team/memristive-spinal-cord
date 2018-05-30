@@ -1,7 +1,6 @@
-
 import os
 import logging
-from rybak_affs.src.paths import raw_data_path
+from the_second_level.src.paths import raw_data_path
 
 
 class Miner:

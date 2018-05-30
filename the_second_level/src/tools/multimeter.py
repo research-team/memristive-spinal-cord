@@ -1,6 +1,6 @@
 import nest
 import os
-from rybak_affs.src.paths import raw_data_path
+from the_second_level.src.paths import raw_data_path
 
 
 def add_multimeter(name):

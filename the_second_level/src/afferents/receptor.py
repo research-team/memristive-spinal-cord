@@ -1,6 +1,6 @@
 import nest
-from rybak_affs.src.afferents.spiketimes_generator import AfferentSpikeTimeGenerator
-from rybak_affs.src.namespace import Afferent, Muscle, Interval, Speed
+from the_second_level.src.afferents.spiketimes_generator import AfferentSpikeTimeGenerator
+from the_second_level.src.namespace import Afferent, Muscle, Interval, Speed
 
 
 class Receptor:

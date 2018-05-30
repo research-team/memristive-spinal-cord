@@ -1,8 +1,8 @@
 import pylab
 import os
-from rybak_affs.src.tools.miner import Miner
-from rybak_affs.src.paths import img_path
-from rybak_affs.src.params import num_sublevels, simulation_time, rate, inh_coef, plot_slices_shift
+from the_second_level.src.tools.miner import Miner
+from the_second_level.src.paths import img_path
+from the_second_level.src.params import num_sublevels, simulation_time, rate, inh_coef, plot_slices_shift
 import logging
 
 

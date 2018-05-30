@@ -10,15 +10,15 @@ import sys
 import os
 sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-3]))
 
-from rybak_affs.src.tools.cleaner import Cleaner
+from the_second_level.src.tools.cleaner import Cleaner
 Cleaner.clean()
 Cleaner.create_structure()
 
-import rybak_affs.src.topology
-from rybak_affs.src.params import simulation_time, num_sublevels
-nest.Simulate(simulation_time)
+import the_second_level.src.topology
+from the_second_level.src.topology import Params
+nest.Simulate(Params.SIMULATION_TIME.value)
 
-from rybak_affs.src.tools.plotter import Plotter
+from the_second_level.src.tools.plotter import Plotter
 
 # Plotter.plot_voltage('afferent', 'Ia Aff')
 # Plotter.save_voltage('ia_aff')

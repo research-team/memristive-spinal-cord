@@ -1,6 +1,6 @@
 import os
 import shutil
-from rybak_affs.src.paths import results_path
+from the_second_level.src.paths import results_path
 
 class Cleaner:
     dirs_to_create = ['img', 'raw_data']

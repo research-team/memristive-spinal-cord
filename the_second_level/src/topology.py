@@ -1,8 +1,17 @@
+from enum import Enum
 from nest import Create, Connect
-from rybak_affs.src.afferents.afferent_fiber import AfferentFiber
-from rybak_affs.src.namespace import Muscle, Afferent
-from rybak_affs.src.tools.multimeter import add_multimeter
-from rybak_affs.src.params import num_sublevels, inh_coef, rate, num_spikes
+from the_second_level.src.afferents.afferent_fiber import AfferentFiber
+from the_second_level.src.namespace import Muscle, Afferent
+from the_second_level.src.tools.multimeter import add_multimeter
+from the_second_level.src.params import num_sublevels, inh_coef, rate, num_spikes
+
+class Params(Enum):
+    NUM_SUBLEVELS = 6
+    NUM_SPIKES = 7
+    RATE = 40
+    SIMULATION_TIME = round(1000 / rate * 8, 1)
+    INH_COEF = .4
+    PLOT_SLICES_SHIFT = 12. # ms
 
 
 def create(n: int):
@@ -32,6 +41,21 @@ def connect(pre, post, weight, degree, delay=1.):
             'multapses': True,
             'autapses': True
         })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Sublayer:
     def __init__(self, index: int):
