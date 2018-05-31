@@ -7,7 +7,7 @@ class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 7
     RATE = 40
-    SIMULATION_TIME = 50.
+    SIMULATION_TIME = 150.
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 12. # ms
 
