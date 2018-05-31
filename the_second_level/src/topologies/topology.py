@@ -1,15 +1,12 @@
 from enum import Enum
 from nest import Create, Connect
-from the_second_level.src.afferents.afferent_fiber import AfferentFiber
-from the_second_level.src.namespace import Muscle, Afferent
 from the_second_level.src.tools.multimeter import add_multimeter
-from the_second_level.src.params import num_sublevels, inh_coef, rate, num_spikes
 
 class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 7
     RATE = 40
-    SIMULATION_TIME = round(1000 / rate * 8, 1)
+    SIMULATION_TIME = 50.
     INH_COEF = .4
     PLOT_SLICES_SHIFT = 12. # ms
 
@@ -19,12 +16,12 @@ def create(n: int):
 		model='hh_cond_exp_traub',
 		n=n,
 		params={
-                't_ref': 2.,
-                'V_m': -70.0,
-                'E_L': -70.0,
-                'g_L': 50.0,
-                'tau_syn_ex': .2,
-                'tau_syn_in': 1.})
+            't_ref': 2.,
+            'V_m': -70.0,
+            'E_L': -70.0,
+            'g_L': 50.0,
+            'tau_syn_ex': .2,
+            'tau_syn_in': 1.})
 
 def connect(pre, post, weight, degree, delay=1.):
     Connect(
@@ -42,7 +39,13 @@ def connect(pre, post, weight, degree, delay=1.):
             'autapses': True
         })
 
+to_plot = {
+    'moto': 'Moto'
+}
 
+to_plot_with_slices = {
+    'moto': 7,
+}
 
 
 
@@ -71,7 +74,7 @@ class Sublayer:
 
         connect(pre=self.general_right, post=self.hidden_right, weight=10., degree=40)
         connect(pre=self.hidden_left, post=self.inh, weight=16., degree=40)
-        connect(pre=self.inh, post=self.general_left, weight=-13. * inh_coef, degree=80)
+        connect(pre=self.inh, post=self.general_left, weight=-13. * Params.INH_COEF.value, degree=80)
 
         Connect(pre=add_multimeter('general_right{}'.format(index)), post=self.general_right)
         Connect(pre=add_multimeter('general_left{}'.format(index)), post=self.general_left)
@@ -81,8 +84,8 @@ class Sublayer:
 
 class Level2:
     def __init__(self):
-        self.sublayers = [Sublayer(i) for i in range(num_sublevels)]
-        for i in range(num_sublevels-1):
+        self.sublayers = [Sublayer(i) for i in range(Params.NUM_SUBLEVELS.value)]
+        for i in range(Params.NUM_SUBLEVELS.value-1):
             connect(
                 pre=self.sublayers[i].general_right,
                 post=self.sublayers[i+1].general_right,
@@ -103,13 +106,13 @@ except NameError:
     ia_aff = create(60)
     Connect(pre=add_multimeter('afferent'), post=ia_aff)
 
-period = round(1000. / rate, 1)
+period = round(1000. / Params.RATE.value, 1)
 
 ees = Create(
     model='spike_generator',
     params={
-        'spike_times': [10. + i * period for i in range(num_spikes)],
-        'spike_weights': [300. for i in range(num_spikes)]
+        'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
+        'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]
     })
 
 Connect(
@@ -134,7 +137,7 @@ rc = create(196)
 Connect(add_multimeter('rc'), post=rc)
 level2 = Level2()
 
-for i in range(num_sublevels):
+for i in range(Params.NUM_SUBLEVELS.value):
     connect(pre=level2.sublayers[i].general_left, post=moto, weight=15., degree=100)
 
 # connect(ia_aff.neuron_ids, level2.sublayers[0].general_right, 20., 20, 3.)

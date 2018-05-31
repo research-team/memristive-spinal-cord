@@ -5,7 +5,6 @@ nest.SetKernelStatus({
     'print_time': True,
     'resolution': 0.1})
 nest.Install('research_team_models')
-
 import sys
 import os
 sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-3]))
@@ -14,11 +13,20 @@ from the_second_level.src.tools.cleaner import Cleaner
 Cleaner.clean()
 Cleaner.create_structure()
 
-import the_second_level.src.topology
-from the_second_level.src.topology import Params
+from the_second_level.src.paths	import topologies_path
+# print('{}.{}'.format(topologies_path, sys.argv[1]))
+topology = __import__('{}.{}'.format(topologies_path, sys.argv[1]), globals(), locals(), ['Params'], 0)
+Params = topology.Params
+to_plot = topology.to_plot
+to_plot_with_slices = topology.to_plot_with_slices
+# from the_second_level.src.topology import Params
 nest.Simulate(Params.SIMULATION_TIME.value)
 
 from the_second_level.src.tools.plotter import Plotter
+
+for key in to_plot.keys():
+	Plotter.plot_voltage(key, to_plot[key])
+	Plotter.save_voltage(key)
 
 # Plotter.plot_voltage('afferent', 'Ia Aff')
 # Plotter.save_voltage('ia_aff')
@@ -44,4 +52,5 @@ from the_second_level.src.tools.plotter import Plotter
 # 	Plotter.plot_voltage('inh{}'.format(i), 'Inhibitory')
 # 	Plotter.save_voltage('hidden{}'.format(i))
 
-Plotter.plot_slices(num_slices=7, name='moto')
+for key in to_plot_with_slices.keys():
+	Plotter.plot_slices(num_slices=to_plot_with_slices[key], name=key)
