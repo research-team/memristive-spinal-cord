@@ -17,16 +17,21 @@ class Params(Enum):
 
 
 def create(n: int):
-	return Create(
-		model='hh_cond_exp_traub',
-		n=n,
-		params={
+    return Create(
+        model='hh_cond_exp_traub',
+        n=n,
+        params={
             't_ref': 2.,
             'V_m': -70.0,
             'E_L': -70.0,
             'g_L': 50.0,
             'tau_syn_ex': .2,
             'tau_syn_in': 1.})
+
+def create_with_mmeter(n: int, name: str):
+    gids = create(n)
+    Connect(pre=add_multimeter(name), post=gids)
+    return gids
 
 
 def connect(pre, post, weight, degree, delay=1.):
@@ -47,13 +52,17 @@ def connect(pre, post, weight, degree, delay=1.):
 
 class Topology():
     def __init__(self):
-        neurons = create(100)
+        self.sublevels = [Sublevel(i) for i in range(Params.NUM_SUBLEVELS.value)]
+        ees = Create(
+            model='spike_generator',
+            params={
+                'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
+                'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]})
+
+        neurons = create_with_mmeter(100, 'Neuron')
         poisson_gen = Create(
             model='poisson_generator', params={'rate': 100.})
         Connect(
             pre=poisson_gen,
             post=neurons,
             syn_spec={'weight': 300.})
-        Connect(
-            pre=add_multimeter('neurons'),
-            post=neurons)
