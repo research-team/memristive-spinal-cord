@@ -2,6 +2,7 @@ from enum import Enum
 from nest import Create, Connect
 from the_second_level.src.tools.multimeter import add_multimeter
 
+
 class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 7
@@ -9,6 +10,14 @@ class Params(Enum):
     SIMULATION_TIME = 50.
     INH_COEF = .4
     PLOT_SLICES_SHIFT = 12. # ms
+
+    TO_PLOT = {
+        'moto': 'Moto'
+    }
+
+    TO_PLOT_WITH_SLICES = {
+        'moto': 7,
+    }
 
 
 def create(n: int):
@@ -22,6 +31,7 @@ def create(n: int):
             'g_L': 50.0,
             'tau_syn_ex': .2,
             'tau_syn_in': 1.})
+
 
 def connect(pre, post, weight, degree, delay=1.):
     Connect(
@@ -38,26 +48,6 @@ def connect(pre, post, weight, degree, delay=1.):
             'multapses': True,
             'autapses': True
         })
-
-to_plot = {
-    'moto': 'Moto'
-}
-
-to_plot_with_slices = {
-    'moto': 7,
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class Sublayer:
@@ -99,54 +89,56 @@ class Level2:
                 post=self.sublayers[i+1].general_left,
                 weight=16., degree=40)
 
-# ia_aff = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
-try:
-    type(ia_aff)
-except NameError:
-    ia_aff = create(60)
-    Connect(pre=add_multimeter('afferent'), post=ia_aff)
+class Topology:
+    def __init__(self):
+        # ia_aff = AfferentFiber(muscle=Muscle.EXTENS, afferent=Afferent.IA)
+        try:
+            type(ia_aff)
+        except NameError:
+            ia_aff = create(60)
+            Connect(pre=add_multimeter('afferent'), post=ia_aff)
 
-period = round(1000. / Params.RATE.value, 1)
+        period = round(1000. / Params.RATE.value, 1)
 
-ees = Create(
-    model='spike_generator',
-    params={
-        'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
-        'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]
-    })
+        ees = Create(
+            model='spike_generator',
+            params={
+                'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
+                'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]
+            })
 
-Connect(
-    pre=ees,
-    post=ia_aff,
-    syn_spec={
-        'model': 'static_synapse',
-        'weight': 1.,
-        'delay': .1},
-    conn_spec={
-        'rule': 'fixed_outdegree',
-        'outdegree': 60,
-        'multapses': False,
-        'autapses': False
-    })
+        Connect(
+            pre=ees,
+            post=ia_aff,
+            syn_spec={
+                'model': 'static_synapse',
+                'weight': 1.,
+                'delay': .1},
+            conn_spec={
+                'rule': 'fixed_outdegree',
+                'outdegree': 60,
+                'multapses': False,
+                'autapses': False
+            })
 
-moto = create(n=169)
-Connect(pre=add_multimeter('moto'), post=moto)
-ia_int = create(n=196)
-Connect(pre=add_multimeter('ia_int'), post=ia_int)
-rc = create(196)
-Connect(add_multimeter('rc'), post=rc)
-level2 = Level2()
+        moto = create(n=169)
+        Connect(pre=add_multimeter('moto'), post=moto)
+        ia_int = create(n=196)
+        Connect(pre=add_multimeter('ia_int'), post=ia_int)
+        rc = create(196)
+        Connect(add_multimeter('rc'), post=rc)
+        level2 = Level2()
 
-for i in range(Params.NUM_SUBLEVELS.value):
-    connect(pre=level2.sublayers[i].general_left, post=moto, weight=15., degree=100)
+        for i in range(Params.NUM_SUBLEVELS.value):
+            connect(pre=level2.sublayers[i].general_left, post=moto, weight=15., degree=100)
 
-# connect(ia_aff.neuron_ids, level2.sublayers[0].general_right, 20., 20, 3.)
-# connect(ia_aff.neuron_ids, moto, 7., 196)
-# connect(ia_aff.neuron_ids, ia_int, 3., 196)
+        # connect(ia_aff.neuron_ids, level2.sublayers[0].general_right, 20., 20, 3.)
+        # connect(ia_aff.neuron_ids, moto, 7., 196)
+        # connect(ia_aff.neuron_ids, ia_int, 3., 196)
 
-connect(ia_aff, level2.sublayers[0].general_right, 30., 20, 3.)
-connect(ia_aff, moto, 7., 196)
-connect(ia_aff, ia_int, 3., 196)
-connect(moto, rc, 7., 100)
-connect(rc, moto, -7., 100)
-connect(ia_int, moto, -7., 100)
+        connect(ia_aff, level2.sublayers[0].general_right, 30., 20, 3.)
+        connect(ia_aff, moto, 7., 196)
+        connect(ia_aff, ia_int, 3., 196)
+        connect(moto, rc, 7., 100)
+        connect(rc, moto, -7., 100)
+        connect(ia_int, moto, -7., 100)
