@@ -7,7 +7,7 @@ class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 7
     RATE = 40
-    SIMULATION_TIME = 50.
+    SIMULATION_TIME = 150.
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 12. # ms
 
@@ -23,7 +23,7 @@ def create(n: int):
             't_ref': 2.,
             'V_m': -70.0,
             'E_L': -70.0,
-            'g_L': 50.0,
+            'g_L': 100.0,
             'tau_syn_ex': .2,
             'tau_syn_in': 1.})
 
@@ -70,7 +70,7 @@ class Topology():
             model='spike_generator',
             params={
                 'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
-                'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]})
+                'spike_weights': [500. for i in range(Params.NUM_SPIKES.value)]})
 
         level2 = Level2()
         sensory = create_with_mmeter(60, 'sensory')
@@ -80,4 +80,17 @@ class Topology():
         for sublevel in level2.sublevels:
             connect(pre=sublevel.left, post=inter_pool, weight=10., degree=15)
         connect(pre=sensory, post=level2.sublevels[0].right, weight=10., degree=15)
-        connect(pre=ees, post=sensory, weight=20., degree=15)
+        Connect(
+            pre=ees,
+            post=sensory,
+            syn_spec={
+                'model': 'static_synapse',
+                'weight': 1.,
+                'delay': .1
+            },
+            conn_spec={
+                'rule': 'fixed_outdegree',
+                'outdegree': 60,
+                'autapses': False,
+                'multapses': False
+            })
