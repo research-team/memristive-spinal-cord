@@ -50,19 +50,33 @@ def connect(pre, post, weight, degree, delay=1.):
             'autapses': True
         })
 
-class Topology():
+
+class EES:
     def __init__(self):
-        self.sublevels = [Sublevel(i) for i in range(Params.NUM_SUBLEVELS.value)]
-        ees = Create(
+        self.ees = Create(
             model='spike_generator',
             params={
-                'spike_times': [10. + i * period for i in range(Params.NUM_SPIKES.value)],
-                'spike_weights': [300. for i in range(Params.NUM_SPIKES.value)]})
+                'spike_times': [10. + i * round(1000. / Params.RATE.value, 1) for i in range(Params.NUM_SPIKES.value)],
+                'spike_weights': [500. for i in range(Params.NUM_SPIKES.value)]})
 
-        neurons = create_with_mmeter(100, 'Neuron')
-        poisson_gen = Create(
-            model='poisson_generator', params={'rate': 100.})
+    def connect_ees(cls, post):
         Connect(
-            pre=poisson_gen,
-            post=neurons,
-            syn_spec={'weight': 300.})
+            pre=cls.ees,
+            post=post,
+            syn_spec={
+                'model': 'static_synapse',
+                'weight': 1.,
+                'delay': .1
+            },
+            conn_spec={
+                'rule': 'fixed_outdegree',
+                'outdegree': len(post),
+                'autapses': False,
+                'multapses': False
+            })
+
+class Topology():
+    def __init__(self):
+        neurons = create_with_mmeter(100, 'neurons')
+        ees = EES()
+        ees.connect_ees(neurons)
