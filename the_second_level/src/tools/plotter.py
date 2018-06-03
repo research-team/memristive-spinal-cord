@@ -104,7 +104,7 @@ class Plotter:
         pylab.xlabel('Time, ms')
         pylab.rcParams['font.size'] = 4
         pylab.legend()
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod
@@ -119,7 +119,7 @@ class Plotter:
         pylab.rcParams['font.size'] = 4
         pylab.xlabel('Time, ms')
         pylab.subplots_adjust(hspace=0.7)
-        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=500)
+        pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
 
     @staticmethod
