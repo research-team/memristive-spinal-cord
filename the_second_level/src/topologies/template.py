@@ -75,7 +75,7 @@ class EES:
                 'multapses': False
             })
 
-class Topology():
+class Topology:
     def __init__(self):
         neurons = create_with_mmeter(100, 'neurons')
         ees = EES()
