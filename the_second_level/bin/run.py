@@ -1,10 +1,10 @@
 import nest
+nest.ResetKernel()
 nest.SetKernelStatus({
-    'total_num_virtual_procs': 7,
+    'total_num_virtual_procs': 2,
     'print_time': True,
     'resolution': 0.1})
 nest.Install('research_team_models')
-
 import sys
 import os
 sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-3]))
@@ -13,53 +13,21 @@ from the_second_level.src.tools.cleaner import Cleaner
 Cleaner.clean()
 Cleaner.create_structure()
 
-from the_second_level.src.topology import Topology
-topology = Topology(int(sys.argv[1]))
-nest.Simulate(300.)
+from the_second_level.src.paths	import topologies_path
+topology = __import__('{}.{}'.format(topologies_path, sys.argv[1]), globals(), locals(), ['Params', 'Topology'], 0)
+Params = topology.Params
+topology.Topology()
+
+nest.Simulate(Params.SIMULATION_TIME.value)
 
 from the_second_level.src.tools.plotter import Plotter
 
-# sublayers_num = 3
+to_plot = Params.TO_PLOT.value
+to_plot_with_slices = Params.TO_PLOT_WITH_SLICES.value
 
-# groups = []
-# names = []
-# for i in range(1, sublayers_num+1):
-#     for name in ['right', 'left']:
-#         groups.append('{}_{}'.format(name, i))
-#     for name in ['Right', 'Left']:
-#         names.append('{} {}'.format(name, i))
-# colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
+for key in to_plot.keys():
+	Plotter.plot_voltage(key, to_plot[key])
+	Plotter.save_voltage(key)
 
-# for group, name, color in zip(groups, names, colors):
-#     Plotter.plot_voltage(group, name, color)
-# Plotter.save_voltage('voltages')
-
-# for group, color in zip(groups, colors):
-#     if Plotter.has_spikes(group):
-#         Plotter.plot_spikes(group, color)
-# Plotter.save_spikes('spikes')
-
-
-    
-for tier in range(1, 7):
-    for group in range(5):
-        Plotter.plot_voltage(
-            'tier{}e{}'.format(tier, group),
-            'Tier{}E{}'.format(tier, group))
-# Plotter.plot_voltage('left_2', 'Left 2')
-# Plotter.plot_voltage('right_3', 'Right 3')
-    Plotter.save_voltage('Tier{}'.format(tier))
-
-# for tier in range(1, 7):
-#     for group in range(5):
-#         if Plotter.has_spikes('tier{}e{}'.format(tier, group)):
-#             Plotter.plot_spikes(name='tier{}e{}'.format(tier, group))
-# if Plotter.has_spikes('right_2'):
-#     Plotter.plot_spikes(name='right_2', colors=['red'])
-# if Plotter.has_spikes('left_1'):
-#     Plotter.plot_spikes(name='left_1', colors=['green'])
-    # Plotter.save_spikes('tier{}_spikes'.format(tier))
-
-Plotter.plot_voltage('moto', 'Moto')
-Plotter.plot_voltage('pool', 'Pool')
-Plotter.save_voltage('moto-pool')
+for key in to_plot_with_slices.keys():
+	Plotter.plot_slices(num_slices=to_plot_with_slices[key], name=key)
