@@ -11,7 +11,19 @@ class Params(Enum):
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 12. # ms
 
-    TO_PLOT = {'neurons': 'Neurons'}
+    TO_PLOT = {
+        'node1.1': 'Node 1.1',
+        'node1.2': 'Node 1.2',
+        'node1.3': 'Node 1.3',
+        'node2.1': 'Node 2.1',
+        'node2.2': 'Node 2.2',
+        'node2.3': 'Node 2.3',
+        'node2.4': 'Node 2.4',
+        'node2.5': 'Node 2.5',
+        'node2.6': 'Node 2.6',
+        'pool': 'Pool',
+        'moto': 'Moto'
+        }
 
     TO_PLOT_WITH_SLICES = {}
 
@@ -44,8 +56,8 @@ def connect(pre, post, weight, degree, delay=1.):
             'weight': weight,
         },
         conn_spec={
-            'rule': 'fixed_outdegree',
-            'outdegree': degree,
+            'rule': 'fixed_indegree',
+            'indegree': degree,
             'multapses': True,
             'autapses': True
         })
@@ -77,17 +89,17 @@ class EES:
 
 class Node:
     def __init__(self, index):
-        self.node1 = create_with_mmeter('40', 'node{}.1'.format(index))
-        self.node2 = create_with_mmeter('40', 'node{}.2'.format(index))
-        self.node3 = create_with_mmeter('40', 'node{}.3'.format(index))
-        self.node4 = create_with_mmeter('40', 'node{}.4'.format(index))
-        self.node5 = create_with_mmeter('40', 'node{}.5'.format(index))
-        self.node6 = create_with_mmeter('40', 'node{}.6'.format(index))
+        self.node1 = create_with_mmeter(40, 'node{}.1'.format(index))
+        self.node2 = create_with_mmeter(40, 'node{}.2'.format(index))
+        self.node3 = create_with_mmeter(40, 'node{}.3'.format(index))
+        self.node4 = create_with_mmeter(40, 'node{}.4'.format(index))
+        self.node5 = create_with_mmeter(40, 'node{}.5'.format(index))
+        self.node6 = create_with_mmeter(40, 'node{}.6'.format(index))
 
-        connect(self.node1, self.node2, 10., 30)
-        connect(self.node2, self.node1, 10., 30)
+        connect(self.node1, self.node2, 15., 30)
+        connect(self.node2, self.node1, 15., 30)
         connect(self.node1, self.node3, 10., 30)
-        connect(self.node2, self.node3, -10, 40)
+        connect(self.node2, self.node3, -10., 40)
         connect(self.node3, self.node4, 10., 30)
         connect(self.node4, self.node5, 10., 30)
         connect(self.node5, self.node6, 10., 30)
@@ -95,17 +107,22 @@ class Node:
 class Topology:
     def __init__(self):
 
-        pool = create_with_mmeter('100', 'pool')
-        moto = create_with_mmeter('169', 'moto')
+        pool = create_with_mmeter(100, 'pool')
+        moto = create_with_mmeter(169, 'moto')
         connect(pool, moto, 3, 100)
 
-        node11 = create_with_mmeter('40', 'node1.1')
-        node12 = create_with_mmeter('40', 'node1.2')
-        node13 = create_with_mmeter('40', 'node1.3')
+        node11 = create_with_mmeter(40, 'node1.1')
+        node12 = create_with_mmeter(40, 'node1.2')
+        node13 = create_with_mmeter(40, 'node1.3')
 
         nodes = [0, 0]
         nodes.extend([Node(i) for i in range(2, 6)])
 
+
+        connect(node11, node12, 10., 30)
+        connect(node12, node13, 10., 30)
+        connect(node11, nodes[2].node1, 10., 30)
+        connect(node11, nodes[2].node3, 10., 30)
 
         node61 = create_with_mmeter(40, 'node6.1')
         node62 = create_with_mmeter(40, 'node6.2')
@@ -116,7 +133,7 @@ class Topology:
         connect(node61, node62, 10., 30)
         connect(node62, node62, 10., 30)
         connect(node61, node63, 10., 30)
-        connect(node62, node63, -10, 40)
+        connect(node62, node63, -10., 40)
         connect(node63, node64, 10., 30)
         connect(node64, node65, 10., 30)
 
@@ -139,11 +156,11 @@ class Topology:
         connect(nodes[5].node3, node61, 4., 30)
         connect(nodes[5].node3, node63, 4., 30)
 
-        connect(nodes[3].node3, node13 -10, 40)
-        connect(nodes[4].node3, nodes[2].node4, -10, 40)
-        connect(nodes[5].node3, nodes[3].node5, -10, 40)
-        connect(nodes[5].node4, nodes[3].node6, -10, 40)
-        connect(node63, nodes[5].node4, -10, 40)
+        connect(nodes[3].node3, node13, -10., 40)
+        connect(nodes[4].node3, nodes[2].node4, -10., 40)
+        connect(nodes[5].node3, nodes[3].node5, -10., 40)
+        connect(nodes[5].node4, nodes[3].node6, -10., 40)
+        connect(node63, nodes[5].node4, -10., 40)
 
         ees = EES()
         ees.connect_ees(node11)
