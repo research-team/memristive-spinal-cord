@@ -7,7 +7,7 @@ nAff = 120
 nRC = 196
 nIP = 120
 nSens = 120
-ncells = ncell*17+nIP+nMN+nSens
+ncells = ncell*32+nIP+nMN+nSens
 
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/ex.hoc")}
@@ -38,7 +38,7 @@ proc addcell(){
     pc.cell($2, nc)
 }
 
-for (i=pc.id; i < ncell*17; i += pc.nhost){
+for (i=pc.id; i < ncell*32; i += pc.nhost){
     addcell(new Ex(i), i, pc.id)
 }
 
@@ -47,11 +47,11 @@ for (i=pc.id+ncell*6; i < ncell*12; i += pc.nhost){
     addcell(new Inh((i - ncell)*2), i, pc.id)
 }*/
 
-for (i=pc.id+ncell*17; i < ncell*17+nIP; i += pc.nhost){
+for (i=pc.id+ncell*32; i < ncell*32+nIP; i += pc.nhost){
     addcell(new IP0(i - 12*ncell), i, pc.id)
 }
 
-for (i=pc.id+ncell*17+nIP; i < ncell*17+nIP+nMN; i += pc.nhost){
+for (i=pc.id+ncell*32+nIP; i < ncell*32+nIP+nMN; i += pc.nhost){
     addcell(new MNE(i - 14*ncell), i, pc.id)
 }
 /*
@@ -72,7 +72,7 @@ for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC;
     addcell(new RCE(i - 25*ncell), i, pc.id)
 }*/
 
-for (i=pc.id+ncell*17+nIP+nMN; i < ncell*17+nIP+nMN+nSens; i += pc.nhost){
+for (i=pc.id+ncell*32+nIP+nMN; i < ncell*32+nIP+nMN+nSens; i += pc.nhost){
     addcell(new sens1(i - 15*ncell), i, pc.id)
 }
 
@@ -93,9 +93,7 @@ if (pc.id == 0) {
 }
 
 {load_file("./ses/3.ses")}
-{load_file("./ses/2.ses")}
-
 
 {load_file("connections.hoc")}
-{load_file("recording.hoc")}
+//{load_file("recording.hoc")}
 

@@ -1,3 +1,5 @@
+cvode.cache_efficient (1)
+pc.nrnbbcore_write("/Users/sulgod/Desktop")
 num = connect_sens0_gen.count/100
 objref exsynrec[num][nsyn], flsynrec[num][nsyn]
 recDt = 25

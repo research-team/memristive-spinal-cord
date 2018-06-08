@@ -32,6 +32,8 @@ cells = new List()
 
 objref pc
 pc = new ParallelContext()
+cvode.cache_efficient (1)
+pc.nrnbbcore_write("/Users/sulgod/Desktop/img")
 
 proc addcell(){
     cells.append($o1)
@@ -134,7 +136,7 @@ if (pc.id == 0) {
 
 
 {load_file("connections.hoc")}
-{load_file("./sessions/3.ses")}
-{load_file("./sessions/4.ses")}
-{load_file("recording.hoc")}
+//{load_file("./sessions/3.ses")}
+//{load_file("./sessions/4.ses")}
+//{load_file("recording.hoc")}
 

@@ -1,22 +1,20 @@
-begintemplate IA2
+begintemplate Inh
 public soma, axon, dend, presyn, connect2target
 
 create soma, axon, dend[1] 
-objectvar presyn      
+objectvar presyn       
 
-public synlistinh, synlistaff, synlistaffb, synlistip
-objref synlistinh, synlistaff, synlistaffb, synlistip
+public synlistinh, synlistees, synlistex
+objref synlistinh, synlistees, synlistex
 objref syninh_ 
-objref synaff_
-objref synaffb_
-objref synip_
-
+objref synees_
+objref synex_
 
 
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 10
+    nsyn = 2
     
     soma_diam = 10    
     soma_len = 10      
@@ -27,8 +25,8 @@ proc init() {local i, j
     axon_diam = 2      
     axon_len = 150 + $1*0.5     
     axon_nseg = 50 
-    axon_cm = 2
-    axon_Ra = 0.002        
+    axon_cm = 3
+    axon_Ra = 100        
 
     dend_diam = 1      
     dend_len = 40     
@@ -39,9 +37,8 @@ proc init() {local i, j
     create soma, axon, dend[ndend] 
 
     synlistinh = new List()
-    synlistaff = new List()
-    synlistaffb = new List()
-    synlistip = new List()
+    synlistees = new List()
+    synlistex = new List()
 
 
     soma {
@@ -50,14 +47,14 @@ proc init() {local i, j
         L = soma_len 
         cm = soma_cm
         Ra = soma_Ra
-        insert hhc
-        gnabar_hhc=0.25
-        gl_hhc = .0001666
-        el_hhc = -60.0
+        insert hh
+        gnabar_hh=0.25
+        gl_hh = .0004
+        el_hh = -60.0
 
         pt3dclear()
-        pt3dadd(280,150,$1*5,soma_diam) 
-        pt3dadd(280-soma_len,150,$1*5,soma_diam) 
+        pt3dadd(-200,450,$1*5,soma_diam) 
+        pt3dadd(-200-soma_len,450,$1*5,soma_diam) 
     }
 
     axon {
@@ -67,14 +64,13 @@ proc init() {local i, j
         cm = axon_cm
         Ra = axon_Ra       
 
-        insert hhc
+        insert hh
 
         pt3dclear()     
-        pt3dadd(280,150,$1*5,axon_diam) 
-        pt3dadd(280-soma_len-axon_len,150,$1*5,axon_diam) 
+        pt3dadd(-200,450,$1*5,axon_diam) 
+        pt3dadd(-200-soma_len-axon_len,450,$1*5,axon_diam) 
 
     }
-
         presyn = new GABAA_S(0.5) 
 
 
@@ -84,21 +80,19 @@ proc init() {local i, j
             diam = dend_diam    
             L = dend_len        
             pt3dclear()     
-            pt3dadd(280+dend_len*i,150,$1*5,diam)
-            pt3dadd(280+dend_len*(i+1),150,$1*5,diam)
+            pt3dadd(-200+dend_len*i,450,$1*5,diam)
+            pt3dadd(-200+dend_len*(i+1),450,$1*5,diam)
+
         }
 
         for j = 0, nsyn-1{
-            dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
-            synaff_.tau = 0.1
-            synaff_.e=50
-            dend[i] synaffb_ = new ExpSyn(0.5)  synlistaffb.append(synaffb_) /* E */
-            synaffb_.tau = 0.1
-            synaffb_.e=50
-            dend[i] synip_ = new ExpSyn(0.5)  synlistip.append(synip_) /* IP */
-            synip_.tau = 0.1
-            synip_.e=50
-            dend[i] syninh_ = new GABAA_S(0.5) synlistinh.append(syninh_)
+            dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
+            synex_.tau = 0.1
+            synex_.e=50
+            dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
+            synees_.tau = 0.1
+            synees_.e=50
+            dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
         }
 
     }
@@ -109,11 +103,10 @@ proc init() {local i, j
 }
 
 obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
-  soma nc = new NetCon(&v(1), $o1)
+  axon nc = new NetCon(&v(1), $o1)
   nc.threshold = 10
   if (numarg() == 2) { $o2 = nc } // for backward compatibility
   return nc
 }
 
-endtemplate IA2
-
+endtemplate Inh
