@@ -55,8 +55,8 @@ proc connectionSTDP(){
     $o2.append(nc)
     if($8 == 1){
         stdp.aLTD = -0.001//inhibitory
-        //r.uniform(0.03, 0.05)
-        nc.weight = 0.001 + i*0.0001
+        r.uniform(0.03, 0.05)
+        nc.weight = r.repick()
         //nc.delay = 2
     }else if($8 == 2){
         nc.weight = 0.03
