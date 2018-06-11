@@ -31,3 +31,7 @@ for key in to_plot.keys():
 
 for key in to_plot_with_slices.keys():
 	Plotter.plot_slices(num_slices=to_plot_with_slices[key], name=key)
+
+# for i in range(Params.NUM_SUBLEVELS.value):
+# 	Plotter.plot_voltage('left{}'.format(i), 'Left {}'.format(i))
+# Plotter.save_voltage('summary')
