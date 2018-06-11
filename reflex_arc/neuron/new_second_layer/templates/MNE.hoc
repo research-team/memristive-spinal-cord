@@ -48,6 +48,7 @@ proc init() {local i, j
         L = soma_len 
         cm = soma_cm
         Ra = soma_Ra
+        insert motoneuron_5ht
         insert hh
         gnabar_hh=0.25
         gl_hh = .0004
