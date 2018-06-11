@@ -60,7 +60,7 @@ class Plotter:
             # logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
             times = raw_times[start:end]
             values = [data[time] for time in times]
-            pylab.ylim(-80, 60)
+            pylab.ylim(-90, 60)
             pylab.xlim(start / 10 + shift, end / 10 + shift)
             pylab.plot(times, values, label='moto')
 
@@ -103,6 +103,7 @@ class Plotter:
     def save_voltage(name):
         pylab.xlabel('Time, ms')
         pylab.rcParams['font.size'] = 4
+        pylab.ylim(-90, 50)
         pylab.legend()
         pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=120)
         pylab.close('all')
