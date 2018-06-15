@@ -49,10 +49,11 @@ proc init() {local i, j
         cm = soma_cm
         Ra = soma_Ra
         insert motoneuron_5ht
+        //gnabar_motoneuron_5ht  = 0.08
         insert hh
-        gnabar_hh=0.25
-        gl_hh = .0004
-        el_hh = -60.0
+        gnabar_hh=0.35
+        //gl_hh = .0004
+        //el_hh = -60.0
         pt3dclear()
         pt3dadd(-500,150,$1,soma_diam) 
         pt3dadd(-500-soma_len,150,$1,soma_diam) 
@@ -85,6 +86,9 @@ proc init() {local i, j
             pt3dclear()     
             pt3dadd(-500+dend_len*i,150,$1,diam)
             pt3dadd(-500+dend_len*(i+1),150,$1,diam)
+            insert pas
+            g_pas = 7.7e-6 //FLESHMAN ET AL 1988 - cells 35/4
+            e_pas = -70.0
         }
 
         for j = 0, nsyn-1{
@@ -105,7 +109,7 @@ proc init() {local i, j
             synrc_.tau2 = 2
             dend[i] synip_ = new ExpSyn(0.5)  synlistip.append(synip_) /* IP */
             synip_.tau = 0.1
-            synip_.e=55
+            synip_.e=50
         }
 
     }

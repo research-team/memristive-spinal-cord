@@ -1,0 +1,130 @@
+load_file("nrngui.hoc")
+ncell = 20      /* The number of cells */
+nsyn = 2
+nSens = 120
+ncells = ncell*4+nSens
+
+{load_file("./templates/EES.hoc")}
+{load_file("./templates/ex.hoc")}
+{load_file("./templates/sens1.hoc")}
+
+objref cells, nil, nc
+cells = new List()
+
+objref pc, r, ra
+pc = new ParallelContext()
+r = new Random()
+ra = new Random()
+
+proc addcell(){
+    cells.append($o1)
+    pc.set_gid2node($2, $3)
+    nc = cells.object(cells.count()-1).connect2target(nil)
+    pc.cell($2, nc)
+}
+
+for (i=pc.id; i < ncell*4; i += pc.nhost){
+    addcell(new Ex(i), i, pc.id)
+}
+
+for (i=pc.id+ncell*4; i < ncell*4+nSens; i += pc.nhost){
+    addcell(new sens1(i - 3*ncell), i, pc.id)
+}
+//add EES
+if (pc.id == 0) {
+    {addcell(new EES(), ncells, pc.id)}
+}
+
+objref connect_ex_ex, connect_ex_inh
+
+objref syn, target, stdp, presyn, postsyn, stdpmech, presyns, postsyns
+
+connect_ex_ex = new List()
+connect_ex_inh = new List()
+
+presyns = new List()
+postsyns = new List()
+stdpmech = new List()
+
+
+proc connection(){
+    syn = $o1
+    nc = pc.gid_connect($3, syn)
+	r.uniform(1, 2)
+    nc.weight = r.repick()
+    r.uniform(1, 2)
+    nc.delay = r.repick()
+    $o2.append(nc)
+}
+
+proc connectionSTDP(){
+	r.uniform(0.01, 0.02)
+    syn = $o1
+    nc = pc.gid_connect($4, syn)
+    nc.weight = r.repick()
+    //r.uniform(1, 2)
+    nc.delay = $9
+    stdp = new StdwaSA(0.5)
+    $o2.append(nc)
+    if($8 == 1){
+        //stdp.aLTD = -0.001//inhibitory
+        r.uniform(0.0001, 0.0004)
+        nc.weight = r.repick()
+        //nc.delay = 2
+    }else if($8 == 2){
+        nc.weight = 0.05
+        nc.delay = 2
+    }else if($8 == 3){
+    	r.uniform(0.00005, 0.00035)
+        nc.weight = r.repick()
+    }else{nc.weight = 0.04}
+    presyn = pc.gid_connect($4, stdp)
+    presyn.weight = 1
+    postsyn = pc.gid_connect($3, stdp)
+    postsyn.weight = -1
+    setpointer stdp.wsyn, $o2.object($o2.count-1).weight
+    $o5.append(stdp)
+    $o6.append(presyn)
+    $o7.append(postsyn)
+}
+
+//connection excitatory
+for i=pc.id, 4*ncell-1 {
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn*23-1 {
+        r.uniform(0, nSens)
+    	if (i < ncell){
+            connection(target.synlistees.object(j), connect_ex_ex, (ncell*4+r.repick())) //add ees
+        } 
+        r.uniform(1, 1.5)
+    	if (i >= ncell && i < ncell*2){
+    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 1, 1)
+    		ra.uniform(ncell*2, ncell*3)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 3, 1)
+            ra.uniform(ncell*3, ncell*4)
+            connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 2*ncell), stdpmech, presyns, postsyns, 3, 1)
+        }
+        
+        if (i >= ncell*2 && i < ncell*3){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 2, 1)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i - 2*ncell), stdpmech, presyns, postsyns, 0, 1)
+        }
+        	//ra.uniform(ncell*2, ncell*3)
+        if (i >= ncell*3 && i < ncell*4){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 2, 1)
+        }
+	}
+}
+
+for i=pc.id+ncell*4, ncell*4+nSens -1 {
+    if (!pc.gid_exists(i)) { continue }
+    target = pc.gid2cell(i) //target cell
+    for j = 0,nsyn*50-1 {
+        connection(target.synlistsens.object(j), connect_ex_ex, ncells)
+        //if(i%30 == 0, 1){connection(target.synlistgen.object(j), connect_sens1_EES, ncells+1)}
+    }
+}
+
+{load_file("./ses/1.ses")}
+
