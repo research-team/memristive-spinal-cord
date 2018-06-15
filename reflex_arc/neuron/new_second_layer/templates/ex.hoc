@@ -98,9 +98,9 @@ proc init() {local i, j
             synees_.tau = 0.1
             synees_.e=50
             dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_) //Exp2Syn(0.5)
-            syninh_.tau1 = 1.5
-            syninh_.tau2 = 2
-            syninh_.e = -75
+            //syninh_.tau1 = 1.5
+            //syninh_.tau2 = 2
+            syninh_.e = -80
         }
 
     }
