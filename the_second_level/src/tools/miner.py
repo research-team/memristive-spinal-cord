@@ -64,4 +64,4 @@ class Miner:
                     with open(os.path.join(raw_data_path, datafile)) as data:
                         spikes.write('{}\n'.format(name))
                         for line in data:
-                            spikes.write('{}\n'.format(line))
+                            spikes.write('{}'.format(line))
