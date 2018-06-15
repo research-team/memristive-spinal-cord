@@ -1,6 +1,6 @@
 import os
 import logging
-from the_second_level.src.paths import raw_data_path
+from the_second_level.src.paths import raw_data_path, spiketimes_path
 
 
 class Miner:
@@ -52,3 +52,16 @@ class Miner:
                             return True
         logging.warning('{}: spikes not found'.format(name))
         return False
+
+    @staticmethod
+    def gather_spiketimes(name: str):
+        logging.warning('Gathering spikes for {}'.format(name))
+        for datafile in os.listdir(raw_data_path):
+            if name in datafile \
+                and '.gdf' in datafile \
+                and os.path.getsize(os.path.join(raw_data_path, datafile)) > 0:
+                with open(spiketimes_path, 'a') as spikes:
+                    with open(os.path.join(raw_data_path, datafile)) as data:
+                        spikes.write('{}\n'.format(name))
+                        for line in data:
+                            spikes.write('{}\n'.format(line))
