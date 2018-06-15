@@ -9,6 +9,6 @@ def add_spike_detector(name):
         n=1,
         params={
             'label': os.path.join(raw_data_path, name),
-            'withgid': True,
+            'withgid': False,
             'to_file': True,
             'to_memory': False})

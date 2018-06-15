@@ -25,9 +25,18 @@ from the_second_level.src.tools.plotter import Plotter
 to_plot = Params.TO_PLOT.value
 to_plot_with_slices = Params.TO_PLOT_WITH_SLICES.value
 
-for key in to_plot.keys():
-	Plotter.plot_voltage(key, to_plot[key])
-	Plotter.save_voltage(key)
+for name in to_plot:
+	Plotter.plot_voltage(name, name)
+	Plotter.save_voltage(name)
 
 for key in to_plot_with_slices.keys():
 	Plotter.plot_slices(num_slices=to_plot_with_slices[key], name=key)
+
+# for i in range(Params.NUM_SUBLEVELS.value):
+# 	Plotter.plot_voltage('left{}'.format(i), 'Left {}'.format(i))
+# Plotter.save_voltage('summary')
+
+from the_second_level.src.tools.miner import Miner
+
+for name in to_plot:
+	Miner.gather_spiketimes(name)

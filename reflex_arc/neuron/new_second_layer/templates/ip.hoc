@@ -15,7 +15,7 @@ objref synex_
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 6
+    nsyn = 10
     
     soma_diam = 10    
     soma_len = 10      
@@ -87,17 +87,15 @@ proc init() {local i, j
             pt3dclear()     
             pt3dadd(280+dend_len*i,350,$1*5,diam)
             pt3dadd(280+dend_len*(i+1),350,$1*5,diam)
-
-            insert hh
         }
 
         for j = 0, nsyn-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
-            //synex_.tau = 0.1
-            //synex_.e=50
+            synex_.tau = 0.1
+            synex_.e=50
             dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
-            //synees_.tau = 0.1
-            //synees_.e=50
+            synees_.tau = 0.1
+            synees_.e=50
         }
 
     }
