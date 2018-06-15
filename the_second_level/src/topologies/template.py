@@ -11,7 +11,7 @@ class Params(Enum):
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 12. # ms
 
-    TO_PLOT = {'neurons': 'Neurons'}
+    TO_PLOT = ['neurons']
 
     TO_PLOT_WITH_SLICES = {}
 
