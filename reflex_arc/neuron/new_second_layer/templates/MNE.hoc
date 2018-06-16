@@ -51,7 +51,7 @@ proc init() {local i, j
         //insert motoneuron_5ht
         //gnabar_motoneuron_5ht  = 0.08
         insert hh
-        gnabar_hh=0.35
+        gnabar_hh=0.25
         gl_hh = .0004
         el_hh = -60.0
         pt3dclear()

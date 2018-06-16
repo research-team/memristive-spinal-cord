@@ -24,7 +24,7 @@ proc init() {local i, j
     soma_Ra = 200     
 
     axon_diam = 1     
-    axon_len = 150 + $1*0.5     
+    axon_len = 150 //+ $1*0.5     
     axon_nseg = 50 
     axon_cm = 3
     axon_Ra = 150        

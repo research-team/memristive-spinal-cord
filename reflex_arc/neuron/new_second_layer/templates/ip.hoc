@@ -15,7 +15,7 @@ objref synex_
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 10
+    nsyn = 12
     
     soma_diam = 10    
     soma_len = 10      
@@ -106,7 +106,7 @@ proc init() {local i, j
 }
 
 obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
-  soma nc = new NetCon(&v(1), $o1)
+  axon nc = new NetCon(&v(1), $o1)
   nc.threshold = 10
   if (numarg() == 2) { $o2 = nc } // for backward compatibility
   return nc
