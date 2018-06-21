@@ -69,14 +69,14 @@ proc connectionSTDP(){
     if($8 == 1){
         //stdp.aLTD = -0.001//inhibitory
         r.uniform(0.0001, 0.0004)
-        nc.weight = r.repick()
+        nc.weight = 0.0004 //r.repick()
         //nc.delay = 2
     }else if($8 == 2){
         nc.weight = 0.05
         nc.delay = 2
     }else if($8 == 3){
     	r.uniform(0.00005, 0.00035)
-        nc.weight = r.repick()
+        nc.weight = 0.00025 //r.repick()
     }else{nc.weight = 0.04}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
@@ -92,7 +92,7 @@ proc connectionSTDP(){
 for i=pc.id, 4*ncell-1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
-    for j = 0,nsyn*23-1 {
+    for j = 0,nsyn*27-1 {
         r.uniform(0, nSens)
     	if (i < ncell){
             connection(target.synlistees.object(j), connect_ex_ex, (ncell*4+r.repick())) //add ees
