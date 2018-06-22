@@ -6,7 +6,7 @@
 
 #### Myogram
 
-![m](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/miog.png)
+![m](https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/myogram.png)
 
 #### Results
 

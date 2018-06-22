@@ -2,7 +2,7 @@ load_file("nrngui.hoc")
 ncell = 20      /* The number of cells */
 nsyn = 2
 nSens = 120
-ncells = ncell*4+nSens
+ncells = ncell*7+nSens
 
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/ex.hoc")}
@@ -23,11 +23,11 @@ proc addcell(){
     pc.cell($2, nc)
 }
 
-for (i=pc.id; i < ncell*4; i += pc.nhost){
+for (i=pc.id; i < ncell*7; i += pc.nhost){
     addcell(new Ex(i), i, pc.id)
 }
 
-for (i=pc.id+ncell*4; i < ncell*4+nSens; i += pc.nhost){
+for (i=pc.id+ncell*7; i < ncell*7+nSens; i += pc.nhost){
     addcell(new sens1(i - 3*ncell), i, pc.id)
 }
 //add EES
@@ -114,10 +114,26 @@ for i=pc.id, 4*ncell-1 {
         if (i >= ncell*3 && i < ncell*4){
             connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 2, 1)
         }
+        if (i >= ncell*4 && i < ncell*5){
+    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - 3*ncell), stdpmech, presyns, postsyns, 1, 1)
+    		ra.uniform(ncell*2, ncell*3)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 3, 1)
+            ra.uniform(ncell*3, ncell*4)
+            connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 2*ncell), stdpmech, presyns, postsyns, 3, 1)
+        }
+        
+        if (i >= ncell*5 && i < ncell*6){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 2, 1)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i - 2*ncell), stdpmech, presyns, postsyns, 0, 1)
+        }
+        	//ra.uniform(ncell*2, ncell*3)
+        if (i >= ncell*6 && i < ncell*7){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 2, 1)
+        }
 	}
 }
 
-for i=pc.id+ncell*4, ncell*4+nSens -1 {
+for i=pc.id+ncell*7, ncell*7+nSens -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*50-1 {
