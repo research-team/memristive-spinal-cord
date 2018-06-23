@@ -48,7 +48,7 @@ IP - MN - low weight
 ###### 0%
 
 ![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_0inh.png)
-![r2]https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_0inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_0inh.png)
 
 ###### 20%
 
