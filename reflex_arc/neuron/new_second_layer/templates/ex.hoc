@@ -80,10 +80,10 @@ proc init() {local i, j
             nseg = dend_nseg    
             diam = dend_diam    
             L = dend_len  
-            insert hh  
-            gnabar_hh=0.4
-            gl_hh = .00017
-            el_hh = -60.0  
+            //insert hh  
+            //gnabar_hh=0.4
+            //gl_hh = .00017
+            //el_hh = -60.0  
             insert pas  
             pt3dclear()     
             pt3dadd(-500+dend_len*i+(i%2)*soma_len,400,$1*5,diam)
@@ -99,7 +99,7 @@ proc init() {local i, j
             synees_.e=50
             dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_) //Exp2Syn(0.5)
             syninh_.tau1 = 1.5
-            syninh_.tau2 = 5
+            syninh_.tau2 = 20
             syninh_.e = -80
         }
 

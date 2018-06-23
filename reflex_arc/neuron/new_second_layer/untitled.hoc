@@ -2,7 +2,7 @@ load_file("nrngui.hoc")
 ncell = 20      /* The number of cells */
 nsyn = 2
 nSens = 120
-ncells = ncell*7+nSens
+ncells = ncell*16+nSens
 
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/ex.hoc")}
@@ -23,11 +23,11 @@ proc addcell(){
     pc.cell($2, nc)
 }
 
-for (i=pc.id; i < ncell*7; i += pc.nhost){
+for (i=pc.id; i < ncell*16; i += pc.nhost){
     addcell(new Ex(i), i, pc.id)
 }
 
-for (i=pc.id+ncell*7; i < ncell*7+nSens; i += pc.nhost){
+for (i=pc.id+ncell*16; i < ncell*16+nSens; i += pc.nhost){
     addcell(new sens1(i - 3*ncell), i, pc.id)
 }
 //add EES
@@ -68,15 +68,15 @@ proc connectionSTDP(){
     $o2.append(nc)
     if($8 == 1){
         //stdp.aLTD = -0.001//inhibitory
-        r.uniform(0.0001, 0.0004)
-        nc.weight = 0.0004 //r.repick()
+        r.uniform(0.0003, 0.0005)
+        nc.weight = r.repick()
         //nc.delay = 2
     }else if($8 == 2){
         nc.weight = 0.05
         nc.delay = 2
     }else if($8 == 3){
-    	r.uniform(0.00005, 0.00035)
-        nc.weight = 0.00025 //r.repick()
+    	r.uniform(0.0002, 0.00035)
+        nc.weight = r.repick()
     }else{nc.weight = 0.04}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
@@ -89,51 +89,35 @@ proc connectionSTDP(){
 }
 
 //connection excitatory
-for i=pc.id, 4*ncell-1 {
+for i=pc.id, 16*ncell-1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*27-1 {
         r.uniform(0, nSens)
     	if (i < ncell){
-            connection(target.synlistees.object(j), connect_ex_ex, (ncell*4+r.repick())) //add ees
+            connection(target.synlistees.object(j), connect_ex_ex, (ncell*16+r.repick())) //add ees
         } 
         r.uniform(1, 1.5)
-    	if (i >= ncell && i < ncell*2){
+    	if (i >= ncell && i < ncell*6){
     		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 1, 1)
-    		ra.uniform(ncell*2, ncell*3)
-            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 3, 1)
-            ra.uniform(ncell*3, ncell*4)
-            connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 2*ncell), stdpmech, presyns, postsyns, 3, 1)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i + 5*ncell), stdpmech, presyns, postsyns, 3, 1)
+            connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 10*ncell), stdpmech, presyns, postsyns, 3, 1)
         }
         
-        if (i >= ncell*2 && i < ncell*3){
-            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 2, 1)
-            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i - 2*ncell), stdpmech, presyns, postsyns, 0, 1)
+        if (i >= ncell*6 && i < ncell*11){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i + 5*ncell), stdpmech, presyns, postsyns, 2, 1)
+            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i - 6*ncell), stdpmech, presyns, postsyns, 0, 1)
+            connectionSTDP(target.synlistinh.object(j), connect_ex_ex, i, (i - 5*ncell), stdpmech, presyns, postsyns, 0, 2)
         }
         	//ra.uniform(ncell*2, ncell*3)
-        if (i >= ncell*3 && i < ncell*4){
-            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 2, 1)
-        }
-        if (i >= ncell*4 && i < ncell*5){
-    		connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - 3*ncell), stdpmech, presyns, postsyns, 1, 1)
-    		ra.uniform(ncell*2, ncell*3)
-            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 3, 1)
-            ra.uniform(ncell*3, ncell*4)
-            connectionSTDP(target.synlistees.object(j), connect_ex_inh, i, (i + 2*ncell), stdpmech, presyns, postsyns, 3, 1)
-        }
-        
-        if (i >= ncell*5 && i < ncell*6){
-            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i + ncell), stdpmech, presyns, postsyns, 2, 1)
-            connectionSTDP(target.synlistees.object(j), connect_ex_ex, i, (i - 2*ncell), stdpmech, presyns, postsyns, 0, 1)
-        }
-        	//ra.uniform(ncell*2, ncell*3)
-        if (i >= ncell*6 && i < ncell*7){
-            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - ncell), stdpmech, presyns, postsyns, 2, 1)
+        if (i >= ncell*11 && i < ncell*16){
+            connectionSTDP(target.synlistex.object(j), connect_ex_ex, i, (i - 5*ncell), stdpmech, presyns, postsyns, 2, 1)
+            connectionSTDP(target.synlistinh.object(j), connect_ex_ex, i, (i - 10*ncell), stdpmech, presyns, postsyns, 0, 2)
         }
 	}
 }
 
-for i=pc.id+ncell*7, ncell*7+nSens -1 {
+for i=pc.id+ncell*16, ncell*16+nSens -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*50-1 {
@@ -142,5 +126,5 @@ for i=pc.id+ncell*7, ncell*7+nSens -1 {
     }
 }
 
-{load_file("./ses/1.ses")}
+{load_file("./ses/3.ses")}
 
