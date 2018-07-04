@@ -15,7 +15,7 @@ objref synex_
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 12
+    nsyn = 16
     
     soma_diam = 10    
     soma_len = 10      

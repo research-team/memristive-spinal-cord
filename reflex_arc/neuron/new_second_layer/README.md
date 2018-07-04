@@ -6,37 +6,121 @@
 
 #### Myogram
 
-![m](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/myog.png)
+![m](https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/myogram.png)
 
 #### Results
 
-2nd layer - 0.0005-0.0025
+##### Random weights and sum
 
-![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/memb.jpg)
-![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra.jpg)
+2nd level - 0.00035 - 0.0004
 
-##### Random weights
+Every sublevel has connection with its own IP
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_new.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_new.png)
+
+##### Different inhibitory level
+
+###### 0%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r0inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r0inh.png)
+
+###### 20%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r20inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r20inh.png)
+
+###### 40%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r40inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r40inh.png)
+
+###### 50%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r50inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r50inh.png)
+
+###### 60%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r60inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r60inh.png)
 
 
-2nd layer - 0.001-0.003
+##### Different frequency
 
-2nd layer - IP - low weight
+###### 20 Hz
 
-IP - MN - low weight
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r20.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r20.png)
+
+###### 30 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r30.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r30.png)
+
+###### 50 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r50.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r50.png)
+
+###### 60 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r60.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r60.png)
+
+###### 80 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r80.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r80.png)
+
+###### 100 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_r100.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_r100.png)
 
 
-![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_v1.png)
-![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_v1.png)
 
-2nd layer - 0.0015-0.003
+#### Static weights
 
-![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_v2.png)
-![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_v2.png)
+##### Different inhibitory level
+
+###### 0%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_0inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_0inh.png)
+
+###### 20%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_20inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_20inh.png)
+
+###### 50%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_50inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_50inh.png)
+
+###### 100%
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_100inh.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_100inh.png)
+
+##### Different frequency
+
+###### 20 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_20.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_20.png)
+
+###### 60 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_60.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_60.png)
+
+###### 100 Hz
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_100.png)
+![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_100.png)
 
 
-2nd layer - 0.0015-0.0025
 
-IP - MN - low weight
-
-![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_v3.png)
-![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_v3.png)

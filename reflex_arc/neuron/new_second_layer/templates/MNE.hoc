@@ -14,7 +14,7 @@ objref synlistex, synlistinh, synlistaff, synlistip, synlistrc
 
 proc init() {local i, j
     ndend = 10          
-    nsyn = 10
+    nsyn = 16
     soma_diam = 20     
     soma_len = 20      
     soma_nseg = 1

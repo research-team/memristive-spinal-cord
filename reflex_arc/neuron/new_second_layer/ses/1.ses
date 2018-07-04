@@ -6,9 +6,9 @@ objectvar ocbox_, ocbox_list_, scene_, scene_list_
 {pwman_place(0,0,0)}
 {
 save_window_ = new Graph(0)
-save_window_.size(0,35,-80,50)
+save_window_.size(0,70,-80,50)
 scene_vector_[2] = save_window_
-{save_window_.view(0, -80, 35, 130, 416, 68, 824.64, 557.44)}
+{save_window_.view(0, -80, 70, 130, 416, 68, 824.64, 557.44)}
 graphList[0].append(save_window_)
 save_window_.save_name("graphList[0].")
 save_window_.addexpr("v(.5)", 0, 1, 0.8, 0.9, 2)
@@ -16,7 +16,7 @@ save_window_.addvar("Ex[0].soma.v( 0.5 )", 2, 1, 0.8, 0.9, 2)
 save_window_.addexpr("Ex[30].soma.v( 0.5 )", 4, 1, 0.8, 0.9, 2)
 save_window_.addexpr("Ex[30].dend[1].v( 0.5 )", 3, 1, 0.8, 0.9, 2)
 save_window_.addexpr("Ex[60].soma.v( 0.5 )", 7, 1, 0.8, 0.9, 2)
-save_window_.addexpr("Ex[80].soma.v( 0.5 )", 1, 1, 0.8, 0.9, 2)
+save_window_.addexpr("Ex[90].soma.v( 0.5 )", 1, 1, 0.8, 0.9, 2)
 }
 {
 xpanel("RunControl", 0)
@@ -31,7 +31,7 @@ xvalue("Continue for","runStopIn", 1,"{continuerun(t + runStopIn) stoprun=1}", 1
 xbutton("Single Step","steprun()")
 t = 0
 xvalue("t","t", 2 )
-tstop = 35
+tstop = 70
 xvalue("Tstop","tstop", 1,"tstop_changed()", 0, 1 )
 dt = 0.025
 xvalue("dt","dt", 1,"setdt()", 0, 1 )

@@ -92,7 +92,7 @@ if (pc.id == 0) {
     {addcell(new EES(), ncells, pc.id)}
 }
 
-{load_file("./ses/3.ses")}
+//{load_file("./ses/3.ses")}
 
 {load_file("connections.hoc")}
 //forall psection()
