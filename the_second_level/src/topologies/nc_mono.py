@@ -10,18 +10,19 @@ class Params(Enum):
     SIMULATION_TIME = 100.
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 10. # ms
-    NUM_NEURONS = 40
+    NUM_NEURONS = 1
     DEGREE = 3
+    DEFAULT_WEIGHT = 100
 
-    TO_PLOT_SUB_0 = ['node0.{}'.format(i) for i in range(6)]
-    TO_PLOT_SUB_1 = ['node1.{}'.format(i) for i in range(7)]
-    TO_PLOT_SUB_2 = ['node2.{}'.format(i) for i in range(7)]
+    TO_PLOT_SUB_0 = ['node0.{}'.format(i) for i in range(8)]
+    # TO_PLOT_SUB_1 = ['node1.{}'.format(i) for i in range(7)]
+    # TO_PLOT_SUB_2 = ['node2.{}'.format(i) for i in range(7)]
     TO_PLOT_POOL = ['pool{}'.format(i) for i in range(6)]
     TO_PLOT_MOTO = ['moto{}'.format(i) for i in range(6)]
     TO_PLOT = ['sensory', 'ia_aff']
     TO_PLOT.extend(TO_PLOT_SUB_0)
-    TO_PLOT.extend(TO_PLOT_SUB_1)
-    TO_PLOT.extend(TO_PLOT_SUB_2)
+    # TO_PLOT.extend(TO_PLOT_SUB_1)
+    # TO_PLOT.extend(TO_PLOT_SUB_2)
     TO_PLOT.extend(TO_PLOT_POOL)
     TO_PLOT.extend(TO_PLOT_MOTO)
 
@@ -29,6 +30,7 @@ class Params(Enum):
 
 
 def create(n: int):
+    print(n)
     return Create(
         model='hh_cond_exp_traub',
         n=n,
@@ -46,7 +48,7 @@ def create_with_mmeter(n: int, name: str):
     return gids
 
 
-def connect(pre, post, weight, degree, delay=1.):
+def connect(pre, post, weight=Params.DEFAULT_WEIGHT.value, delay=1.):
     Connect(
         pre=pre,
         post=post,
@@ -56,8 +58,7 @@ def connect(pre, post, weight, degree, delay=1.):
             'weight': weight,
         },
         conn_spec={
-            'rule': 'fixed_indegree',
-            'indegree': degree,
+            'rule': 'one_to_one',
             'multapses': True,
             'autapses': True
         })
@@ -100,19 +101,17 @@ class EES:
 
 class Topology:
     def __init__(self):
-        fi = Params.DEGREE.value # fixed indegree
-        we = 175 # weight
 
-        sensory = create_with_mmeter(60, 'sensory')
-        ia_aff = create_with_mmeter(196, 'ia_aff')
-        moto = [create_with_mmeter(25, 'moto{}'.format(i)) for i in range(6)]
-        pool = [create_with_mmeter(Params.NUM_NEURONS.value, 'pool{}'.format(i)) for i in range(6)]
+        sensory = create_with_mmeter(1, 'sensory')
+        ia_aff = create_with_mmeter(1, 'ia_aff')
+        moto = [create_with_mmeter(1, 'moto{}'.format(i)) for i in range(6)]
+        pool = [create_with_mmeter(1, 'pool{}'.format(i)) for i in range(6)]
 
         for i in range(6):
-            connect(pool[i], moto[i], we, fi)
+            connect(pool[i], moto[i])
 
         for m in moto:
-            connect(ia_aff, m, we, fi)
+            connect(ia_aff, m)
 
         ees = EES()
         ees.connect_ees(sensory)
@@ -124,62 +123,18 @@ class Topology:
 
         sublevels[0].add_nodes(6)
         n = sublevels[0].nodes
-        connect(sensory, n[0], we, fi)
+        connect(sensory, n[0])
 
-        connect(n[0], n[1], we, fi)
-        connect(n[1], n[2], we, fi)
-        connect(n[2], n[3], we, fi, 4.)
-        connect(n[3], n[4], we, fi, 2.)
-        connect(n[4], n[5], we, fi, 2.)
+        connect(n[0], n[1])
+        connect(n[1], n[2])
+        connect(n[2], n[3])
+        connect(n[3], n[4])
+        connect(n[4], n[5])
+        connect(n[5], n[6])
+        connect(n[6], n[7])
 
-        connect(n[2], pool[0], we, fi, 2.)
-        connect(n[2], pool[1], we, fi, 2.)
-
-        connect(n[3], pool[2], we, fi, 2.)
-        connect(n[4], pool[3], we, fi, 2.)
-        connect(n[5], pool[4], we, fi, 2.)
-
-        # The second sublevel
-
-        sublevels[1].add_nodes(7)
-        n = sublevels[1].nodes
-
-        connect(n[0], n[1], we, fi)
-        connect(n[1], n[0], we, fi)
-        connect(n[0], n[2], we * 0.5, fi)
-        connect(sublevels[0].nodes[0], n[2], we * 0.45, fi, 0.1)
-        connect(sublevels[0].nodes[0], n[0], we, fi)
-
-        connect(n[2], n[3], we, fi)
-        connect(n[3], n[4], we, fi)
-        connect(n[4], n[5], we, fi)
-        connect(n[5], n[6], we, fi)
-
-        connect(n[4], pool[1], we, fi)
-        connect(n[5], pool[2], we, fi)
-        connect(n[6], pool[3], we, fi)
-        connect(n[4], pool[4], we, fi)
-        connect(n[3], pool[5], we, fi)
-
-        # The third sublevel
-
-        sublevels[2].add_nodes(7)
-        n = sublevels[2].nodes
-
-        connect(n[0], n[1], we, fi)
-        connect(n[1], n[0], we, fi)
-        connect(n[0], n[2], we * 0.45, fi)
-        connect(sublevels[1].nodes[1], n[2], we * 0.45, fi, 0.1)
-        connect(sublevels[1].nodes[1], n[0], we, fi)
-
-        connect(n[2], n[3], we, fi)
-        connect(n[3], n[4], we, fi)
-        connect(n[4], n[5], we, fi)
-        connect(n[5], n[6], we, fi)
-
-        connect(n[4], pool[1], we, fi)
-        connect(n[5], pool[2], we, fi)
-        connect(n[6], pool[3], we, fi)
-        connect(n[4], pool[4], we, fi)
-        connect(n[3], pool[5], we, fi)
-        connect(n[0], sublevels[0].nodes[2], -we, fi)
+        connect(n[3], pool[5])
+        connect(n[3], pool[4])
+        connect(n[5], pool[3])
+        connect(n[6], pool[2])
+        connect(n[7], pool[1])

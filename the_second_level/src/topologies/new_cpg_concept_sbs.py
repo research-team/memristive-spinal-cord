@@ -6,8 +6,8 @@ from the_second_level.src.tools.multimeter import add_multimeter
 class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 6
-    RATE = 20
-    SIMULATION_TIME = 350.
+    RATE = 40
+    SIMULATION_TIME = 175.
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 8. # ms
 
@@ -45,7 +45,12 @@ class Params(Enum):
         'node6.3': 'Node 6.3',
         'node6.4': 'Node 6.4',
         'node6.5': 'Node 6.5',
-        'pool': 'Pool',
+        'pool1': 'Pool1',
+        'pool2': 'Pool2',
+        'pool3': 'Pool3',
+        'pool4': 'Pool4',
+        'pool5': 'Pool5',
+        'pool6': 'Pool6',
         'moto': 'Moto',
         }
 
@@ -135,23 +140,46 @@ class Topology:
 
         sensory = create_with_mmeter(60, 'sensory')
         ia_aff = create_with_mmeter(169, 'ia_aff')
-        pool = create_with_mmeter(100, 'pool')
+        pool = [create_with_mmeter(40, 'pool{}'.format(i)) for i in range(1, 7)]
         moto = create_with_mmeter(169, 'moto')
         ees = EES()
         ees.connect_ees(sensory)
         ees.connect_ees(moto)
 
-        connect(pool, moto, 25, 20)
+        for pool_nucleus in pool:
+            connect(pool_nucleus, moto, 25, 20)
         connect(ia_aff, moto, 25, 20)
 
         node11 = create_with_mmeter(40, 'node1.1')
         node12 = create_with_mmeter(40, 'node1.2')
         node13 = create_with_mmeter(40, 'node1.3')
+        node14 = create_with_mmeter(40, 'node1.4')
+        node15 = create_with_mmeter(40, 'node1.5')
+        node16 = create_with_mmeter(40, 'node1.6')
+        node17 = create_with_mmeter(40, 'node1.7')
+        node18 = create_with_mmeter(40, 'node1.8')
+        node19 = create_with_mmeter(40, 'node1.9')
+        node0110 = create_with_mmeter(40, 'node1.010')
+        node0111 = create_with_mmeter(40, 'node1.011')
 
-        connect(node13, pool, 80., 30)
+        connect(node13, pool[0], 40., 30)
+        connect(node14, pool[0], 40., 30)
+        connect(node15, pool[0], 40., 30)
+        connect(node16, pool[0], 40., 30)
+        connect(node17, pool[0], 40., 30)
+        connect(node18, pool[0], 40., 30)
+        connect(node19, pool[0], 40., 30)
         connect(sensory, node11, 10., 40)
         connect(node11, node12, 15., 40, 2.)
         connect(node12, node13, 15., 40, 2.)
+        connect(node13, node14, 15., 40, 2.)
+        connect(node14, node15, 15., 40, 2.)
+        connect(node15, node16, 15., 40, 2.)
+        connect(node16, node17, 15., 40, 2.)
+        connect(node17, node18, 15., 40, 2.)
+        connect(node18, node19, 15., 40, 2.)
+        connect(node19, node0110, 15., 40, 2.)
+        connect(node0110, node0111, 15., 40, 2.)
 
         hidden_nuclei_1 = create_with_mmeter(40, 'hidden_1')
         node21 = create_with_mmeter(40, 'node2.1')
@@ -171,9 +199,9 @@ class Topology:
         connect(node25, node26, 15., 40)
 
         connect(node11, node23, 7., 40, 0.1)
-        connect(node24, pool, 80., 40)
-        connect(node25, pool, 80., 40)
-        connect(node26, pool, 80., 40)
+        connect(node24, pool[1], 80., 40)
+        connect(node25, pool[1], 80., 40)
+        connect(node26, pool[1], 80., 40)
 
         hidden_nuclei_2 = create_with_mmeter(40, 'hidden_2')
         node31 = create_with_mmeter(40, 'node3.1') # Why?
@@ -193,9 +221,9 @@ class Topology:
         connect(node34, node35, 15., 40)
         connect(node35, node36, 15., 40)
 
-        connect(node34, pool, 80., 40)
-        connect(node35, pool, 80., 40)
-        connect(node36, pool, 80., 40)
+        connect(node34, pool[2], 80., 40)
+        connect(node35, pool[2], 80., 40)
+        connect(node36, pool[2], 80., 40)
 
         connect(node33, node13, Params.INH_COEF.value * -40, 80, .1)
 
@@ -217,9 +245,9 @@ class Topology:
         connect(node44, node45, 15., 40)
         connect(node45, node46, 15., 40)
 
-        connect(node44, pool, 40., 60)
-        connect(node45, pool, 60., 60)
-        connect(node46, pool, 80., 60)
+        connect(node44, pool[3], 40., 60)
+        connect(node45, pool[3], 60., 60)
+        connect(node46, pool[3], 80., 60)
 
         connect(node43, node24, Params.INH_COEF.value * -30, 60, .1)
 
@@ -239,9 +267,9 @@ class Topology:
         connect(node54, node55, 15., 40)
         connect(node55, node56, 15., 40)
 
-        connect(node54, pool, 40., 40)
-        connect(node55, pool, 60., 40)
-        connect(node56, pool, 80., 40)
+        connect(node54, pool[4], 40., 40)
+        connect(node55, pool[4], 60., 40)
+        connect(node56, pool[4], 80., 40)
 
         connect(node53, node34, Params.INH_COEF.value * -30, 60, .1)
 
@@ -259,8 +287,8 @@ class Topology:
         connect(node63, node64, 15., 40, 2.)
         connect(node64, node65, 15., 40, 2.)
 
-        connect(node64, pool, 60., 40)
-        connect(node65, pool, 80., 40)
+        connect(node64, pool[5], 60., 40)
+        connect(node65, pool[5], 80., 40)
 
         connect(node63, node45, Params.INH_COEF.value * -25, 60, .1)
         connect(node63, node54, Params.INH_COEF.value * -25, 60, .1)

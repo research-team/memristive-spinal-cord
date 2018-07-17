@@ -8,7 +8,7 @@ class Params(Enum):
     NUM_SUBLEVELS = 6
     NUM_SPIKES = 2
     RATE = 40
-    SIMULATION_TIME = 75.
+    SIMULATION_TIME = 100.
     INH_COEF = 1.
     PLOT_SLICES_SHIFT = 12. # ms
 
@@ -19,6 +19,12 @@ class Params(Enum):
         'node1.3',
         'node1.4',
         'node2.1',
+        'node2.2',
+        'node2.3',
+        'node2.4',
+        'node2.5',
+        'node2.6',
+        'node2.7',
         'pool',
         'moto'
     ]
@@ -112,5 +118,19 @@ class Topology:
 
         #the second sublevel
         node21 = create_with_mmeter(1, 'node2.1')
+        node22 = create_with_mmeter(1, 'node2.2')
+        node23 = create_with_mmeter(1, 'node2.3')
+        node24 = create_with_mmeter(1, 'node2.4')
+        node25 = create_with_mmeter(1, 'node2.5')
+        node26 = create_with_mmeter(1, 'node2.6')
+        node27 = create_with_mmeter(1, 'node2.7')
 
         connect(node11, node21, 200.)
+        connect(node11, node23, 120., .1)
+        connect(node21, node22, 205.)
+        connect(node22, node21, 205.)
+        connect(node22, node23, 100.)
+        connect(node23, node24, 200.)
+        connect(node24, node25, 200.)
+        connect(node25, node26, 200.)
+        connect(node26, node27, 200.)
