@@ -3,7 +3,7 @@ from random import randint, random
 
 
 class ProkhazkaAfferentFiber:
-	def __init__(self, n: int=60, weight: float=500., stepcycle: float=1000., step: float=5.):
+	def __init__(self, n: int=60, weight: float=500., stepcycle: float=1000., step: float=10.):
 		self.num_afferents = n
 		self.cur_time = 0.
 		self.fiber = Create('spike_generator', self.num_afferents)
@@ -13,12 +13,13 @@ class ProkhazkaAfferentFiber:
 		self.startpoint = .3
 		self.endpoint = .5
 		self.maxpoint = .45
-		self.spikes_per_step = 2
+		self.spikes_per_step = 3
+		self.step = step
 		self.total_steps = int(stepcycle / step)
 		self.generate_spiketimes(stepcycle, step)
 		spike_weights = [[weight for _ in self.spiketimes[i]] for i in range(self.num_afferents)]
 		for i in range(len(self.fiber)):
-			SetStatus([self.fiber[i],], {'spike_times': self.spiketimes[i], 'spike_weights': spike_weights[i]})
+			SetStatus([self.fiber[i],], {'spike_times': sorted(self.spiketimes[i]), 'spike_weights': spike_weights[i]})
 
 		self.neurons = Create(
 			model='hh_cond_exp_traub',
@@ -38,19 +39,25 @@ class ProkhazkaAfferentFiber:
 		self.base_spiketimes = [spike_interval / 2. + spike_interval * i for i in range(self.spikes_per_step)]
 		for i in range(self.total_steps):
 			self.generate_noise()
-			self.generate_activity()
+			# self.generate_activity()
 			self.cur_time += step
 
 
 	def generate_noise(self):
-		freq = self.base_freq + self.base_freq * .5 * random()
+		freq = self.base_freq + self.base_freq * .5 * random() * 10
+		print(freq)
 		num_spikes = 1000. / freq
 		activated_fibers = int(num_spikes / self.spikes_per_step)
 		cur_spiketimes = [round(self.cur_time + spiketime, 1) for spiketime in self.base_spiketimes]
+		# cur_spiketimes = []
+		# for i in range(self.spikes_per_step):
+		# 	cur_spiketimes.append(round(self.cur_time + random() * self.step, 1))
 		for i in range(activated_fibers):
 			self.spiketimes[i].extend(cur_spiketimes)
 
 	def generate_activity(self):
+		# We use function f(x) = x - startpoint * stepcycle for x in range from startpoint to endpoint
+		# if self.startpoint * self.< self.cur_time < 
 		pass
 
 
@@ -71,6 +78,7 @@ def test_freq():
 
 	paf = ProkhazkaAfferentFiber()
 	sd = Create('spike_detector', params={'withgid': True, 'withtime': True})
+	mm = Create('')
 	print(sd)
 	Connect(paf.neurons, sd)
 	Simulate(1000.)
