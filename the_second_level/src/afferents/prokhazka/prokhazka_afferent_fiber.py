@@ -4,7 +4,7 @@ import pylab
 
 
 class ProkhazkaAfferentFiber:
-	def __init__(self, n: int=60, weight: float=300., stepcycle: float=1000., step: float: 5.):
+	def __init__(self, n: int=60, weight: float=300., stepcycle: float=1000., step: float=5.):
 		self.num_afferents = n
 		self.cur_time = 0.
 		self.fiber = Create('spike_generator', self.num_afferents)
