@@ -38,7 +38,7 @@ class ProkhazkaAfferents:
     def calculate_activated_fibers(self):
         x = 0
         if self.cur_time < 250 or self.cur_time > 600:
-            rate = 50 + 4 * random()
+            rate = 50 + 0 * random()
             x = 1
         elif 250 < self.cur_time < 500:
             rate = 0.75 * self.cur_time - 125.
@@ -46,7 +46,7 @@ class ProkhazkaAfferents:
         else:
             rate = -1.5 * self.cur_time + 950 
             x = 3
-        spikes = rate * self.step / 1000. * 15
+        spikes = rate * self.step / 1000. * 30
         activated_fibers = min(int(spikes / self.spikes_per_step), 60) 
         print('Activated fibers on time {} for rate {}: {} where x = {}'.format(self.cur_time, rate, activated_fibers, x))
         return activated_fibers
@@ -67,7 +67,7 @@ def test_afferents(interval: float=10., time: float=1000.):
             for spike_time in generator:
                 if a < spike_time < b:
                     num_spikes += 1
-        rates[(a + b) / 2] = round(num_spikes / interval * 1000., 1)
+        rates[(a + b) / 2] = round(num_spikes / interval * 1000. / pa.n * 2, 1)
         a += interval
         b += interval
 
