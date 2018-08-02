@@ -19,6 +19,10 @@ Every sublevel has connection with its own IP
 ![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/extra_new.png)
 ![r2](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/mem_new.png)
 
+##### With afferents
+
+![r1](https://github.com/research-team/memristive-spinal-cord/blob/master/reflex_arc/neuron/new_second_layer/res/with_afferents/afferents.png)
+
 ##### Different inhibitory level
 
 ###### 0%

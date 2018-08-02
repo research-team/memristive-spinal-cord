@@ -225,7 +225,7 @@ for i=pc.id+ncell*32+nIP, ncell*32+nIP+nMN -1 {
     if (!pc.gid_exists(i)) { continue }
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*5-1 {
-        //if(j%2 == 0){
+        if(i%3 == 0){
             r.uniform(0, 10)
             connectionSTDP(target.synlistip.object(j), connect_IP0_MNe, i, (32*ncell + r.repick()), stdpmech, presyns, postsyns, 5, 1)
             r.uniform(10, 20)
@@ -259,10 +259,11 @@ for i=pc.id+ncell*32+nIP, ncell*32+nIP+nMN -1 {
             r.uniform(110, nIP)
             connectionSTDP(target.synlistip.object(j), connect_IP0_MNe, i, (32*ncell + r.repick()), stdpmech, presyns, postsyns, 5, 1)
         
-        //}
-        r.uniform(0, nAff)
-        connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+r.repick()), stdpmech, presyns, postsyns, 0, 1)
-        //r.uniform(0, nInt)
+        }
+        if(j%3 == 0){
+            r.uniform(0, nAff)
+            connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+r.repick()), stdpmech, presyns, postsyns, 0, 1)
+        }//r.uniform(0, nInt)
         //connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, (ncell*32+nIP+nMN+nAff + r.repick()), stdpmech, presyns, postsyns, 0, 1)        
         //r.uniform(0, nInt)
         //connectionSTDP(target.synlistex.object(j), connect_MNe_Ib, i, (ncell*32+nIP+nMN+nAff+nInt + r.repick()), stdpmech, presyns, postsyns, 0, 1)        
@@ -315,9 +316,8 @@ for i=pc.id+ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*32+nIP+nMN+nAff+2*nInt
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*50-1 {
         r.uniform(0, nAff)
-        //if(i%2 == 1){
-            connection(target.synlistsens.object(j), connect_sens1_EES, ncells)//}
-        if(i%6 == 0){connection(target.synlistgen.object(j), connect_sens1_EES, (ncell*32+nIP+nMN + r.repick()))}
+        if(i%2 == 0){connection(target.synlistsens.object(j), connect_sens1_EES, ncells)}
+        if(i%11 == 0){connection(target.synlistgen.object(j), connect_sens1_EES, (ncell*32+nIP+nMN + r.repick()))}
     }
 }
 

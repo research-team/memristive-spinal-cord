@@ -51,15 +51,15 @@ proc epochrun() { local i, n, j
     stdinit()
     for n=0,$1 - 1 {
         print(Ia[0].spgenIa.freq)
-        for j=0, 8{
+        for j=0, 7{
             for i=0, nAff - 1{
-            r.uniform(15, 20)
+            r.uniform(10, 20)
             Ia[i].spgenIa.freq = Ia[i].spgenIa.freq + r.repick()
         }
         print(Ia[0].spgenIa.freq)
         continuerun(t+$2)
         }
-        for j=0, 5{
+        for j=0, 6{
             for i=0, nAff - 1{
             r.uniform(15, 30)
             Ia[i].spgenIa.freq = Ia[i].spgenIa.freq - r.repick()
