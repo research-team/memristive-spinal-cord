@@ -87,7 +87,7 @@ celerybeat-schedule
 .venv
 venv/
 ENV/
-
+.idea/
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -104,3 +104,5 @@ ENV/
 # raw_data files
 *.dat
 *.gdf
+
+cmake-build-debug/

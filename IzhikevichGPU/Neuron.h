@@ -1,7 +1,7 @@
 #ifndef IZHIKEVICHGPU_NEURON_H
 #define IZHIKEVICHGPU_NEURON_H
 
-//#include <openacc.h>
+#include <openacc.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -52,7 +52,9 @@ private:
 
 
 public:
-	Neuron() {
+	Neuron(int id, float I) {
+		this->id = id;
+		this->I = I;
 		///Neuron object constructor
 		this->ref_t = ms_to_step(3.0f);
 		mm_record_step = ms_to_step(0.1f);
@@ -65,16 +67,7 @@ public:
 	float step_to_ms(int step){ return step * ms_in_1step; }
 	/// Convert milliseconds to step
 	int ms_to_step(float ms){ return (int)(ms * steps_in_1ms); }
-
-	void setID(int id){ this->id = id; }
 	int getID(){ return this->id; }
-
-	void setI(float I){ this->I = I; }
-	float getI(){ return this->I; }
-
-	void setH(float h){ this->h = h; }
-	float getH(){ return this->h; }
-
 	float* get_spikes() { return spike_times; }
 	float* get_mm() { return membrane_potential; }
 	int get_mm_size() { return (ms_to_step(T_sim) / mm_record_step); }
@@ -86,10 +79,8 @@ public:
 	//#pragma acc routine vector
 	void update_state() {
 		/// Invoked every simulation step, update the neuron state
-
 		V_m = V_old + ms_in_1step * (k * (V_old - V_rest) * (V_old - V_th) - U_old + I) / C;
 		U_m = U_old + ms_in_1step * a * (b * (V_old - V_rest) - U_old);
-
 
 		// save the membrane potential value every 0.1 ms
 		if (simulation_iter % mm_record_step == 0) {
@@ -97,8 +88,6 @@ public:
 		}
 
 		// threshold crossing
-		//printf("%.1fms | ID: %d, V_m= %f, U_m= %f ", step_to_ms(simulation_iter), id, V_m, U_m);
-
 		if (V_m >= V_peak){
 			V_old = c;
 			U_old += d;
@@ -107,7 +96,6 @@ public:
 			V_old = V_m;
 			U_old = U_m;
 		}
-
 		simulation_iter++;
 	}
 
