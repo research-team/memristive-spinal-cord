@@ -58,12 +58,12 @@ private:
 	float h{};// simulation_iter * ms_in_1step;
 
     struct Synapse {
-        unsigned int id;
+        int id;
         float syn_delay;
         float weight;
 
         Synapse() = default;
-        Synapse(unsigned int id, float syn_delay, float weight) : id(id), syn_delay(syn_delay), weight(weight) {};
+        Synapse(int id, float syn_delay, float weight) : id(id), syn_delay(syn_delay), weight(weight) {};
     };
 
 
@@ -118,8 +118,8 @@ public:
 		simulation_iter++;
 	}
 
-	void add_neighbor(unsigned int neighbor_id, float weight, float syn_delay) {
-	    Synapse* syn = new Synapse(id, weight, syn_delay);
+	void add_neighbor(int neighbor_id, float weight, float syn_delay) {
+	    Synapse* syn = new Synapse(neighbor_id, weight, syn_delay);
 	    neighbors[n_neighbors] = *syn;
 	    n_neighbors++;
 
@@ -130,8 +130,9 @@ public:
             for (int i = 0; i < n_neighbors; ++i) {
                 new_neighbors[i] = neighbors[i];
             }
-            
+
             neighbors = new_neighbors;
+	    neighbors_capacity = new_neighbors_capacity;
             delete[] new_neighbors;
 	    }
 	}
