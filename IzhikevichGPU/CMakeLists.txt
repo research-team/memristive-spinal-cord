@@ -3,4 +3,4 @@ project(IzhikevichGPU)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(IzhikevichGPU Neuron.h Neuron.cpp main.cpp Synapse.cpp Synapse.h)
+add_executable(IzhikevichGPU Neuron.h Neuron.cpp main.cpp)

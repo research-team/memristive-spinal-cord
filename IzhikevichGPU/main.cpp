@@ -1,31 +1,34 @@
+#include <openacc.h>
 #include <cstdlib>
 #include <iostream>
-#include <openacc.h>
-#include "Neuron.h"
-//#include "Synapse.h"
-
 #include <iostream>
 #include <fstream>
+#include <random>
+#include "Neuron.h"
+
 using namespace std;
 
-
-unsigned int neuron_number = 200;
+const unsigned int neuron_number = 200;
 
 // Init the neuron objects
 typedef Neuron* nrn;
 nrn * neurons = new nrn[neuron_number];
 
-float T_sim = 1000.0;
-float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
-short steps_in_1ms = (short)(1 / ms_in_1step);
+static float T_sim = 1000.0;
+static float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
+static short steps_in_1ms = (short)(1 / ms_in_1step);
 
+// random
+random_device rd;
+mt19937 mt(rd());
+uniform_real_distribution<float> ref_t_rand(1.0f, 3.0f);
 
-void show_results(){
+void show_results() {
 	/// Printing results function
 	ofstream myfile;
 	myfile.open ("/home/alex/sim_results.txt");
 
-	for (int nrn_id = 0; nrn_id < 10; nrn_id++) {
+	for (int nrn_id = 0; nrn_id < 2; nrn_id++) {
 		myfile << "ID: "<< neurons[nrn_id]->getID() << "\n";
 		myfile << "Obj: "<< neurons[nrn_id]->getThis() << "\n";
 		myfile << "Iter: "<< neurons[nrn_id]->getSimIter() << "\n";
@@ -47,21 +50,18 @@ void show_results(){
 	myfile.close();
 }
 
-void init_neurons(){
+void init_neurons() {
 	/// Neurons initialization function
 	for (int i = 0; i < neuron_number; ++i) {
-		neurons[i] = new Neuron(i, rand() / float(RAND_MAX) * 70.f + 1.f);
+		neurons[i] = new Neuron(i, 3.0f); // Float pointrand() / float(RAND_MAX) * 70.f + 1.f);
 	}
+	neurons[0]->makeGenerator(70.f);
 }
 
-
-/*
-void init_synapses(){
+void init_synapses() {
 	/// Synapse initialization function
-	new Synapse(&neurons[0], &neurons[1], 10.0, 1.0);
+	neurons[0]->add_neighbor(neurons[1], 3.0, 300.0);
 }
-*/
-
 
 void simulate() {
 	/// Simulation main loop function
@@ -85,7 +85,7 @@ void simulate() {
 
 int main(int argc, char *argv[]) {
 	init_neurons();
-	//init_synapses(neurons);
+	init_synapses();
 	simulate();
 	show_results();
 	return 0;
