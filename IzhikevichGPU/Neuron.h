@@ -5,15 +5,22 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
+#include <utility>
 
 using namespace std;
 
 class Neuron {
+
+    typedef struct Synapse;
 private:
 	/// Idetification and recordable variables
 	int id{};
 	float *spike_times;
 	float *membrane_potential;
+
+	Synapse* neighbors = new Synapse[50];
+	int n_neighbors{0};
+	int neighbors_capacity = 50;
 
 	int mm_record_step;
 
@@ -50,6 +57,15 @@ private:
 
 	float h{};// simulation_iter * ms_in_1step;
 
+    struct Synapse {
+        unsigned int id;
+        float syn_delay;
+        float weight;
+
+        Synapse() = default;
+        Synapse(unsigned int id, float syn_delay, float weight) : id(id), syn_delay(syn_delay), weight(weight) {};
+    };
+
 
 public:
 	Neuron(int id, float I) {
@@ -64,7 +80,9 @@ public:
 	}
 
 	/// Convert steps to milliseconds
-	float step_to_ms(int step){ return step * ms_in_1step; }
+	float step_to_ms (int step) {
+	    return step * ms_in_1step;
+	}
 	/// Convert milliseconds to step
 	int ms_to_step(float ms){ return (int)(ms * steps_in_1ms); }
 	int getID(){ return this->id; }
@@ -88,10 +106,11 @@ public:
 		}
 
 		// threshold crossing
-		if (V_m >= V_peak){
+		if (V_m >= V_peak) {
 			V_old = c;
 			U_old += d;
 			spike_times[iterS++] = step_to_ms(simulation_iter);
+
 		} else {
 			V_old = V_m;
 			U_old = U_m;
@@ -99,10 +118,29 @@ public:
 		simulation_iter++;
 	}
 
+	void add_neighbor(unsigned int neighbor_id, float weight, float syn_delay) {
+	    Synapse* syn = new Synapse(id, weight, syn_delay);
+	    neighbors[n_neighbors] = *syn;
+	    n_neighbors++;
+
+	    if (n_neighbors == neighbors_capacity) {
+	        int new_neighbors_capacity = static_cast<int>(neighbors_capacity * 1.5 + 1);
+	        Synapse* new_neighbors = new Synapse[new_neighbors_capacity];
+
+            for (int i = 0; i < n_neighbors; ++i) {
+                new_neighbors[i] = neighbors[i];
+            }
+            
+            neighbors = new_neighbors;
+            delete[] new_neighbors;
+	    }
+	}
+
 	~Neuron() {
 		#pragma acc exit data delete(this)
-		delete spike_times;
-		delete membrane_potential;
+		delete[] spike_times;
+		delete[] membrane_potential;
+		delete[] neighbors;
 	}
 };
 
