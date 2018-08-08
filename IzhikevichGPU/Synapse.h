@@ -1,7 +1,3 @@
-//
-// Created by alex on 03.08.18.
-//
-
 #ifndef IZHIKEVICHGPU_SYNAPSE_H
 #define IZHIKEVICHGPU_SYNAPSE_H
 
@@ -17,6 +13,7 @@ public:
 	float weight;
 	float syn_delay;
 	float timer; // simulation iteration
+	float tau_ex = 3.0f;
 	const float sim_step = 0.1;
 
 	Synapse(Neuron* origin, Neuron* target, float synaptic_weight, float synaptic_delay){
