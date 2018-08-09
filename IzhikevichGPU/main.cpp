@@ -8,43 +8,52 @@
 
 using namespace std;
 
-const unsigned int neuron_number = 200;
+const unsigned int neuron_number = 4;
 
 // Init the neuron objects
 typedef Neuron* nrn;
 nrn * neurons = new nrn[neuron_number];
 
-static float T_sim = 1000.0;
-static float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
-static short steps_in_1ms = (short)(1 / ms_in_1step);
+const float T_sim = 500.0;
+const float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
+const short steps_in_1ms = (short)(1 / ms_in_1step);
 
 // random
-random_device rd;
-mt19937 mt(rd());
-uniform_real_distribution<float> ref_t_rand(1.0f, 3.0f);
+//random_device rd;
+//mt19937 gen(rd());
+//uniform_real_distribution<int> randomID(0, neuron_number-1);
 
 void show_results() {
 	/// Printing results function
 	ofstream myfile;
 	myfile.open ("/home/alex/sim_results.txt");
 
-	for (int nrn_id = 0; nrn_id < 2; nrn_id++) {
+	for (int nrn_id = 0; nrn_id < neuron_number; nrn_id++) {
 		myfile << "ID: "<< neurons[nrn_id]->getID() << "\n";
 		myfile << "Obj: "<< neurons[nrn_id]->getThis() << "\n";
-		myfile << "Iter: "<< neurons[nrn_id]->getSimIter() << "\n";
+		myfile << "Iter: "<< neurons[nrn_id]->getSimulationIter() << "\n";
 
-		// print spikes
-		myfile << "Spikes: [";
-		for(int j = 0; j < 100; j++) {
-			myfile << neurons[nrn_id]->get_spikes()[j] << ", ";
+		if (neurons[nrn_id]->withSpikedetector()) {
+			myfile << "Spikes: [";
+			for (int j = 0; j < 100; j++) {
+				myfile << neurons[nrn_id]->getSpikes()[j] << ", ";
+			}
+			myfile << "]\n";
 		}
-		myfile << "]\n";
 
-		// print V_m
-		myfile << "Voltage: [";
-		for(int k = 0; k < neurons[nrn_id]->get_mm_size(); k++){
-			myfile << neurons[nrn_id]->get_mm()[k] << ", ";
+		if (neurons[nrn_id]->withMultimeter()) {
+			myfile << "Voltage: [";
+			for (int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++) {
+				myfile << neurons[nrn_id]->getVoltage()[k] << ", ";
+			}
+			myfile << "]\n";
+
+			myfile << "I_potential: [";
+			for(int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++){
+				myfile << neurons[nrn_id]->getCurrents()[k] << ", ";
+			}
 		}
+
 		myfile << "]\n---------------\n";
 	}
 	myfile.close();
@@ -53,14 +62,42 @@ void show_results() {
 void init_neurons() {
 	/// Neurons initialization function
 	for (int i = 0; i < neuron_number; ++i) {
-		neurons[i] = new Neuron(i, 3.0f); // Float pointrand() / float(RAND_MAX) * 70.f + 1.f);
+		neurons[i] = new Neuron(i, 2.0f);
 	}
-	neurons[0]->makeGenerator(70.f);
+
+	// additional devices to the neurons
+	for (int i = 0; i < 4; ++i) {
+		neurons[i]->addSpikedetector();
+		neurons[i]->addMultimeter();
+	}
+
+	// TEST connections
+	//for (int i = 0; i < neuron_number; ++i) {
+	//	for (int j = 0; j < 30; ++j) {
+	//		neurons[i]->connectWith( neurons[rand() % neuron_number], 1.0, (rand() % 2)? 300 : -300); // neuronID, delay, weight
+	//	}
+	//}
+	//for(int i = 0; i < neuron_number; i+=10)
+	neurons[0]->addGenerator(180.f);
+
 }
+
+/*
+Neuron* formGroup() {
+	return
+}
+
+void connectFixedOutdegree(){
+
+}
+*/
 
 void init_synapses() {
 	/// Synapse initialization function
-	neurons[0]->add_neighbor(neurons[1], 3.0, 300.0);
+	neurons[0]->connectWith(neurons[1], 3.0, 300.0);
+	neurons[0]->connectWith(neurons[2], 3.0, 300.0);
+	neurons[1]->connectWith(neurons[3], 3.0, 300.0);
+	neurons[2]->connectWith(neurons[3], 3.0, 300.0);
 }
 
 void simulate() {
