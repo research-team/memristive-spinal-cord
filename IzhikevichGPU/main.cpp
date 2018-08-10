@@ -1,150 +1,129 @@
+#include <openacc.h>
 #include <cstdlib>
 #include <iostream>
-#include <openacc.h>
-#include <vector>
+#include <iostream>
+#include <fstream>
+#include <random>
+#include "Neuron.h"
 
 using namespace std;
 
-class Neuron {
-	public:
-		short id;
-		vector<float> spike_times;
-		vector<float> membrane_potential;
-		vector<Neuron*> neighbors;
-		/*
-		a		[ms]	time scale of the recovery variable u
-		b		[?]		sensitivity of u to the subthreshold fluctuations of the membrane potential v
-		c		[mV]	after-spike reset value of v
-		d		[?]		after-spike reset of u
-		V_m		[mV]	initial membrane potential
-		U_m		[?]		ToDO ????
-		V_th	[mV]	threshold variable
-		ref_t	[ms]	refractory period time
-		*/
+const unsigned int neuron_number = 4;
 
-		const float sim_step = 0.1; // ms in step
-		float a = 0.02;
-		float b = 0.2;
-		float c = -65.0f;
-		float d = 2.0;
-		float V_m = -70.0f;
-		float U_m = 10.0;
-		float V_th = -55.0f;
-		float ref_t = 3.0;
-		float I_stim;
-		unsigned short simulation_iter = 0;
+// Init the neuron objects
+typedef Neuron* nrn;
+nrn * neurons = new nrn[neuron_number];
 
-		Neuron() {
-			//nData = _nData;
-			//data = new int[nData];
-			//#pragma acc enter data create(this)
-			//// The following pragma copies the all the data in the class to the device
-			//#pragma acc update device(this)
-			//// Alternatively, the following pragma copies just nData
-			////#pragma acc update device(nData)
-			//#pragma acc enter data create(data[0:nData])
-		}
-		//#pragma acc routine worker
-		void update_state() {
-			// Save the membrane potential value
-			if (simulation_iter % 100 == 0) {
-				membrane_potential.push_back(V_m);
+const float T_sim = 500.0;
+const float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
+const short steps_in_1ms = (short)(1 / ms_in_1step);
+
+// random
+//random_device rd;
+//mt19937 gen(rd());
+//uniform_real_distribution<int> randomID(0, neuron_number-1);
+
+void show_results() {
+	/// Printing results function
+	ofstream myfile;
+	myfile.open ("/home/alex/sim_results.txt");
+
+	for (int nrn_id = 0; nrn_id < neuron_number; nrn_id++) {
+		myfile << "ID: "<< neurons[nrn_id]->getID() << "\n";
+		myfile << "Obj: "<< neurons[nrn_id]->getThis() << "\n";
+		myfile << "Iter: "<< neurons[nrn_id]->getSimulationIter() << "\n";
+
+		if (neurons[nrn_id]->withSpikedetector()) {
+			myfile << "Spikes: [";
+			for (int j = 0; j < 100; j++) {
+				myfile << neurons[nrn_id]->getSpikes()[j] << ", ";
 			}
-			const float h = simulation_iter * sim_step;
+			myfile << "]\n";
+		}
 
-			// If in refractory period
-			// todo check ref and non-ref
-			if (ref_t > 0) {
-				/*float V_old = V_m;
-				float U_old = U_m;
-
-				V_m += h * ( 0.04 * V_old * V_old + 5.0 * V_old + 140.0 - U_old + S_.I_ + P_.I_e_ )  + I_syn;
-				U_m += h * a * ( b * V_old - U_old );*/
-
-
-			// If not in refractory period
-			} else {
-				V_m += 5;
-				// V_m += h * 0.5 * ( 0.04 * V_m * V_m + 5.0 * V_m + 140.0 - U_m + S_.I_ + P_.I_e_ + I_syn );
-				// V_m += h * 0.5 * ( 0.04 * V_m * V_m + 5.0 * V_m + 140.0 - U_m + S_.I_ + P_.I_e_ + I_syn );
-				// U_m += h * a * ( b * V_m - U_m );
+		if (neurons[nrn_id]->withMultimeter()) {
+			myfile << "Voltage: [";
+			for (int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++) {
+				myfile << neurons[nrn_id]->getVoltage()[k] << ", ";
 			}
+			myfile << "]\n";
 
-			// Spike
-			if (V_m >= V_th){
-				// send event
-				// TODO send function
-				spike_times.push_back( simulation_iter * sim_step );
-				V_m = -70;
+			myfile << "I_potential: [";
+			for(int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++){
+				myfile << neurons[nrn_id]->getCurrents()[k] << ", ";
 			}
-
-			simulation_iter++;
-		};
-
-		~Neuron() {
-			//delete [] data;
-			//#pragma acc exit data delete(data[0:nData])
-			//#pragma acc exit data delete(this)
-		}
-};
-
-
-class Synapse {
-	public:
-		Neuron* origin;
-		Neuron* target;
-		float weight;
-		float syn_delay;
-		float timer; // simulation iteration
-		const float sim_step = 0.1;
-
-		Synapse(Neuron* origin, Neuron* target, float synaptic_weight, float synaptic_delay){
-			this->origin = origin;
-			this->target = target;
-			this->weight = synaptic_weight;
-			ms_to_step(synaptic_delay);
 		}
 
-		void ms_to_step(float synaptic_delay) {
-			this->timer = synaptic_delay * (1 / sim_step);
-		}
-};
+		myfile << "]\n---------------\n";
+	}
+	myfile.close();
+}
 
+void init_neurons() {
+	/// Neurons initialization function
+	for (int i = 0; i < neuron_number; ++i) {
+		neurons[i] = new Neuron(i, 2.0f);
+	}
+
+	// additional devices to the neurons
+	for (int i = 0; i < 4; ++i) {
+		neurons[i]->addSpikedetector();
+		neurons[i]->addMultimeter();
+	}
+
+	// TEST connections
+	//for (int i = 0; i < neuron_number; ++i) {
+	//	for (int j = 0; j < 30; ++j) {
+	//		neurons[i]->connectWith( neurons[rand() % neuron_number], 1.0, (rand() % 2)? 300 : -300); // neuronID, delay, weight
+	//	}
+	//}
+	//for(int i = 0; i < neuron_number; i+=10)
+	neurons[0]->addGenerator(180.f);
+
+}
+
+/*
+Neuron* formGroup() {
+	return
+}
+
+void connectFixedOutdegree(){
+
+}
+*/
+
+void init_synapses() {
+	/// Synapse initialization function
+	neurons[0]->connectWith(neurons[1], 3.0, 300.0);
+	neurons[0]->connectWith(neurons[2], 3.0, 300.0);
+	neurons[1]->connectWith(neurons[3], 3.0, 300.0);
+	neurons[2]->connectWith(neurons[3], 3.0, 300.0);
+}
+
+void simulate() {
+	/// Simulation main loop function
+	int id = 0;
+	int iter = 0;
+	clock_t t = clock();
+
+	#pragma acc data copy(neurons)
+	#pragma acc parallel vector_length(200)
+	{
+		#pragma acc loop gang worker seq
+		for (iter = 0; iter < T_sim * steps_in_1ms; iter++) {
+			#pragma acc loop vector
+			for (id = 0; id < neuron_number; id++) {
+				neurons[id]->update_state();
+			}
+		}
+	}
+	printf ("Time: %f s\n", (float)t / CLOCKS_PER_SEC);
+}
 
 int main(int argc, char *argv[]) {
-	const float sim_step = 0.1;	// sim_step
-
-	vector<Neuron*> neurons;
-
-	unsigned int network_size = 2;
-	neurons.reserve(network_size);
-
-	// Neuron initialization
-	for (int i=0; i < network_size; i++){
-		neurons.push_back(new Neuron());
-	}
-
-	// Synapse initialization
-	new Synapse(neurons[0], neurons[1], 10.0, 1.0);
-
-	float T_sim = 100.0;
-	int step_in_ms = 10;
-
-	// Start simulation
-	for(int iter = 0; iter < step_in_ms * T_sim; iter++ ){
-		//#pragma acc kernels loop gang(100) vector(128)
-		//for (int neuron_index = 0; neuron_index < neurons.size(); neuron_index++)
-		//
-	}
-
-	// Get the results
-	for (int i = 0; i < neurons.size(); i++){
-		printf("%d ");
-		for (int j = 0; j < neurons.size(); j++){
-			printf("  ");
-		}
-	}
-
-
+	init_neurons();
+	init_synapses();
+	simulate();
+	show_results();
 	return 0;
 }

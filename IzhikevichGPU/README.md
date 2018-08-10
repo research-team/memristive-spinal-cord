@@ -7,7 +7,7 @@ Real time simulation of neural topology for [Memristive spinal cord project](htt
 --
 
 ### Task list:
-- [ ] Implement one Izhikevich neuron model by OpenACC
+- [x] Implement one Izhikevich neuron model by OpenACC
+- [x] Add spike generators and spike recorders
 - [ ] Add the topology and static synapses
-- [ ] Add spike generators and spike recorders
 - [ ] Implement STDP connection
