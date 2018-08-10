@@ -9,7 +9,7 @@ proc init() {local i
         spgenIa.freq = $1
         spgenIa.start = 0
         spgenIa.number = 1000000000
-        spgenIa.noise = 0 //0.2 
+        spgenIa.noise = 0.2 
 
 }
 

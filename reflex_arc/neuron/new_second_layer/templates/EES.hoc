@@ -6,7 +6,7 @@ objref ees
 proc init() {
 
     ees = new NetStim(0.8)
-        ees.interval = 17
+        ees.interval = 25
         ees.start = 1
         ees.number = 1000000000
         ees.noise = 0
