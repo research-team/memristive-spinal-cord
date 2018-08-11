@@ -2,7 +2,7 @@ objref vol2[nMN]
 objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
 
 proc printFile(){
-    sprint($s1, "%s%dn.%s", $s2, $5, $s3)
+    sprint($s1, "%s%dv0.%s", $s2, $5, $s3)
     fok.wopen($s1)
     $o4.printf(fok)
     fok.close()
@@ -64,7 +64,7 @@ for i=0, nMN - 1{
     strdef extension
     extension = "txt"
     strdef basename2, filename2
-    basename2 = "./res/volMN"
+    basename2 = "/Users/sulgod/Desktop/res/volMN"
     printFile(filename2, basename2, extension, vol2[i], i)
 }
 /*

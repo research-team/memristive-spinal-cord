@@ -54,23 +54,24 @@ proc connectionSTDP(){
     stdp = new StdwaSA(0.5)
     $o2.append(nc)
     if($8 == 1){
-        r.uniform(0.0001, 0.0004)
-        nc.weight = 0.0004 //r.repick()
+        r.uniform(0.00038, 0.0004)
+        nc.weight = r.repick()
         //nc.delay = 2
     }else if($8 == 2){
         nc.weight = 0.05
         nc.delay = 2
     }else if($8 == 3){
-        r.uniform(0.00005, 0.00035)
-        nc.weight = 0.00035 //r.repick()
+        r.uniform(0.00034, 0.00035)
+        nc.weight = r.repick()
         if($3 > 3*ncell && $3 < 4*ncell){
             nc.weight = 0.0003501
         }
     }else if($8 == 4){
         stdp.aLTD = -0.001//inhibitory
-        nc.weight = 0.08
+        r.uniform(0.04, 0.08)
+        nc.weight = r.repick()
     }else if($8 == 5){
-        r.uniform(0.01, 0.5)
+        r.uniform(0.005, 0.3)
         nc.weight = r.repick()
     }else{nc.weight = 0.04}
     presyn = pc.gid_connect($4, stdp)
@@ -190,10 +191,10 @@ for (i=pc.id+ncell*32; i < ncell*32+nIP; i += pc.nhost){
             r.uniform(ncell*25, ncell*26)
             connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (r.repick()), stdpmech, presyns, postsyns, 5, 1)
         }
-        //if((i-32*ncell) > 75 && (i-32*ncell) < 80){
-        //    r.uniform(ncell*30, ncell*31)
-        //    connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (r.repick()), stdpmech, presyns, postsyns, 0, 1)
-        //}
+        if((i-32*ncell) > 75 && (i-32*ncell) < 80){
+            r.uniform(ncell*30, ncell*31)
+            connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (r.repick()), stdpmech, presyns, postsyns, 5, 1)
+        }
         if((i-32*ncell) > 80 && (i-32*ncell) < 90){
             r.uniform(ncell*20, ncell*32)
             connectionSTDP(target.synlistex.object(j), connect_ip_ex, i, (r.repick()), stdpmech, presyns, postsyns, 5, 1)
@@ -262,7 +263,7 @@ for (i=pc.id+ncell*32+nIP; i < ncell*32+nIP+nMN; i += pc.nhost){
         }
         if(j%2 == 0){
             r.uniform(0, nAff)
-            connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+r.repick()), stdpmech, presyns, postsyns, 0, 1)
+            connectionSTDP(target.synlistaff.object(j), connect_MNe_Aff, i, (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+r.repick()), stdpmech, presyns, postsyns, 5, 1)
         }
         //r.uniform(0, nInt)
         //connectionSTDP(target.synlistinh.object(j), connect_MNe_IA, i, (ncell*32+nIP+nMN+nAff + r.repick()), stdpmech, presyns, postsyns, 0, 1)        
@@ -317,8 +318,8 @@ for (i=pc.id+ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens; i < ncell*32+nIP+nMN+nAff+2
     target = pc.gid2cell(i) //target cell
     for j = 0,nsyn*50-1 {
         r.uniform(0, nAff)
-        connection(target.synlistsens.object(j), connect_sens1_EES, ncells)
-        if(i%9 == 0){connection(target.synlistgen.object(j), connect_sens1_EES, (ncell*32+nIP+nMN + r.repick()))}
+        if(i%2 == 0){connection(target.synlistsens.object(j), connect_sens1_EES, ncells)}
+        if(i%10 == 0){connection(target.synlistgen.object(j), connect_sens1_EES, (ncell*32+nIP+nMN + r.repick()))}
     }
 }
 
