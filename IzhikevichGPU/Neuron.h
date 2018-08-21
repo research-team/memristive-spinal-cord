@@ -1,7 +1,7 @@
 #ifndef IZHIKEVICHGPU_NEURON_H
 #define IZHIKEVICHGPU_NEURON_H
 
-#include <openacc.h>
+//#include <openacc.h>
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -181,6 +181,7 @@ public:
 			// "send spike"
 			if (synapses[i].timer == 0) {
 				// change the I (currents) of the post neuron
+				// synapses[i].weight = updateSTDP()
 				synapses[i].post_neuron->changeCurrent( synapses[i].weight );
 				// set timer to -1 (thats mean no need to update timer in future without spikes)
 				synapses[i].timer = -1;
