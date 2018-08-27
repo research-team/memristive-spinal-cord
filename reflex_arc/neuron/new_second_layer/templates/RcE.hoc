@@ -4,10 +4,10 @@ public soma, axon, dend, presyn, connect2target, axon_len
 create soma, axon, dend[1] 
 objectvar presyn       
 
-public synlistinh, synlistmn
-objref synlistinh, synlistmn
-objref syninh_ 
-objref synmn_
+public synlistex, synlistinh
+objref synlistex, synlistinh
+    objref synex_
+    objref syninh_
 
 
 proc init() {local i, j
@@ -36,7 +36,7 @@ proc init() {local i, j
     create soma, axon, dend[ndend] 
 
     synlistinh = new List()
-    synlistmn = new List()
+    synlistex = new List()
 
 
     soma {
@@ -83,13 +83,13 @@ proc init() {local i, j
         }
 
         for j = 0, nsyn-1{
-            dend[i] synmn_ = new ExpSyn(0.5)  synlistmn.append(synmn_) /* E */
-            synmn_.tau = 0.1
-            synmn_.e=50
-            dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_)
-            syninh_.e = -75
+            dend[i] syninh_ = new  Exp2Syn (0.5)   synlistinh.append(syninh_)
+            syninh_.e = -70
             syninh_.tau1 = 1.5
             syninh_.tau2 = 2
+            dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_)
+            synex_.tau = 0.1
+            synex_.e=50
         }
 
     }
