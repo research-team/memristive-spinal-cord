@@ -2,7 +2,7 @@ objref vol2[nMN]
 objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
 
 proc printFile(){
-    sprint($s1, "%s%dv0.%s", $s2, $5, $s3)
+    sprint($s1, "%s%dv10.%s", $s2, $5, $s3)
     fok.wopen($s1)
     $o4.printf(fok)
     fok.close()
