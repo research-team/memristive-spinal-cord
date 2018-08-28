@@ -5,6 +5,7 @@
 #include <fstream>
 #include <random>
 #include "Neuron.h"
+#include "time.h"
 
 using namespace std;
 
