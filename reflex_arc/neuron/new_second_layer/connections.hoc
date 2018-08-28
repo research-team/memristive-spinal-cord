@@ -69,9 +69,9 @@ proc connectionSTDP(){
         r.uniform(0.04, 0.08)
         nc.weight = r.repick()
     }else if($8 == 5){
-        r.uniform(0.003, 0.03)
+        r.uniform(0.005, 0.05)
         nc.weight = r.repick()
-        r.uniform(1, 1.5)
+        r.uniform(1, 2)
         nc.delay = r.repick()
     }else{nc.weight = 0.04}
     presyn = pc.gid_connect($4, stdp)
@@ -124,14 +124,14 @@ for n =1, 5{
     //addConnection(ncell*(i+10), ncell*(i+11), 27, ncell*(i+5), ncell*(i+6), connect_ex_ex, 0, 0)
 }
 
-addConnection(ncell*16, ncell*17, 27, 0, ncell, connect_ex_ex, 0, 0)
-addConnection(ncell*21, ncell*22, 27, ncell*5, ncell*6, connect_ex_ex, 0, 0)
-addConnection(ncell*22, ncell*23, 27, ncell*16, ncell*17, connect_ex_ex, 0, 0)
-addConnection(ncell*27, ncell*28, 27, ncell*21, ncell*22, connect_ex_ex, 0, 0)
+addConnection(ncell*16, ncell*17, 27, 0, ncell, connect_ex_ex, 5, 0)
+addConnection(ncell*21, ncell*22, 27, ncell*5, ncell*6, connect_ex_ex, 5, 0)
+addConnection(ncell*22, ncell*23, 27, ncell*16, ncell*17, connect_ex_ex, 5, 0)
+addConnection(ncell*27, ncell*28, 27, ncell*21, ncell*22, connect_ex_ex, 5, 0)
 
 //generators
 for n = 1, 4{
-    addConnection(ncell*(n+16), ncell*(n+17), 27, ncell*n, ncell*(n+1), connect_ex_ex, 0, 0)
+    addConnection(ncell*(n+16), ncell*(n+17), 27, ncell*n, ncell*(n+1), connect_ex_ex, 5, 0)
     addConnection(ncell*(n+16), ncell*(n+17), 27, ncell*(n+22), ncell*(n+23), connect_ex_ex, 2, 0)
     //addConnection(ncell*(n+16), ncell*(n+17), 27, ncell*(n+27), ncell*(n+28), connect_ex_inh, 4, 1)
     addConnection(ncell*(n+22), ncell*(n+23), 27, ncell*(n+16), ncell*(n+17), connect_ex_ex, 0, 0)
