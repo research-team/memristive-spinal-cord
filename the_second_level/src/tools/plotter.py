@@ -1,16 +1,22 @@
 import os
 import sys
 import pylab
-import logging
+import logging as log
 import numpy as np
+from nest import GetStatus
+from ..data import *
 from the_second_level.src.tools.miner import Miner
 from the_second_level.src.paths import img_path, topologies_path
+
 
 topology = __import__('{}.{}'.format(topologies_path, "new_cpg_concept_NEW"), globals(), locals(), ['Params'], 0)
 Params = topology.Params
 
 thickline = 0.7
 boldline = 3
+
+log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
+logger = log.getLogger('Plotter')
 
 class Plotter:
 	@staticmethod
@@ -42,13 +48,19 @@ class Plotter:
 		Plotter.save_voltage('hidden_tiers')
 
 	@staticmethod
-	def plot_slices(num_slices: int=7, name: str='moto'):
+	def plot_slices(num_slices=6, name='moto'):
+		"""
+		Args:
+			num_slices (int):
+			name (str):
+		"""
 		pylab.figure(figsize=(9, 12))
 		period = 1000 / Params.RATE.value
 		step = .1
 		shift = Params.PLOT_SLICES_SHIFT.value
 		interval = period
-		data = Miner.gather_voltage(name)
+		# get data from memory/hard disk
+		data = Miner.gather_voltage(name, from_memory=True)
 		num_dots = int(1 / step * num_slices * interval)
 		shift_dots = int(1 / step * shift)
 		raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
@@ -58,11 +70,11 @@ class Plotter:
 		                                                            100 * Params.INH_COEF.value), fontsize=10)
 		# im = pylab.imread('/home/alex/Downloads/HTR1 -_ Membrane Transport.png')
 		# pylab.imshow(im) #, zorder=0, extent=[0.5, 8.0, 1.0, 7.0])
-		for s in range(num_slices):
+		for slice_n in range(num_slices):
 			# logging.warning('Plotting slice {}'.format(s))
-			pylab.subplot(num_slices, 1, s + 1)
-			start = int(s * fraction)
-			end = int((s + 1) * fraction) if s < num_slices - 1 else len(raw_times) - 1
+			pylab.subplot(num_slices, 1, slice_n + 1)
+			start = int(slice_n * fraction)
+			end = int((slice_n + 1) * fraction) if slice_n < num_slices - 1 else len(raw_times) - 1
 			# logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
 			times = raw_times[start:end]
 			values = [data[time] for time in times]
@@ -72,27 +84,61 @@ class Plotter:
 			ticks = np.arange(start_xlim, end_xlim, step=1.0)
 			# Draw vertical lines
 			pylab.axvline(x=start_xlim + 5, linewidth=thickline, color='r')
-			if s in [0, 1]:
+			if slice_n in [0, 1]:
 				pylab.axvline(x=start_xlim + 13, linewidth=boldline, color='r')
-			if s in [2, 3, 4, 5]:
-				pylab.axvline(x=start_xlim + 15, linewidth=boldline if s == 2 else thickline, color='r')
-			if s in [3, 4, 5]:
-				pylab.axvline(x=start_xlim + 17, linewidth=boldline if s in [3, 4] else thickline, color='r')
-			if s == 5:
+			if slice_n == 2:
+				pylab.axvline(x=start_xlim + 15, linewidth=boldline, color='r')
+			if slice_n in [3, 4]:
+				pylab.axvline(x=start_xlim + 17, linewidth=boldline, color='r')
+			if slice_n == 5:
 				pylab.axvline(x=start_xlim + 21, linewidth=boldline, color='r')
-			if s == num_slices-1:
+			if slice_n == num_slices-1:
 				pylab.xticks(ticks, range(26))
 			else:
 				pylab.xticks(ticks, ["" for _ in ticks])
 			pylab.grid()
+			pylab.ylabel("{}".format(slice_n+1), fontsize=14, rotation='horizontal')
 			pylab.xlim(round(start_xlim), round(end_xlim))
 			pylab.ylim(-100, 60)
 			pylab.gca().invert_yaxis()
 			pylab.plot(times, values, label='moto')
 
-		pylab.subplots_adjust(left=0.03, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
-		pylab.show()
-		Plotter.save_voltage('slices{}Hz-{}Inh-{}sublevels'.format(Params.RATE.value, Params.INH_COEF.value, Params.NUM_SUBLEVELS.value))
+		pylab.subplots_adjust(left=0.07, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
+		#pylab.show()
+		name = 'slices{}Hz-{}Inh-{}sublevels'.format(Params.RATE.value, Params.INH_COEF.value, Params.NUM_SUBLEVELS.value)
+		pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=200)
+		pylab.close('all')
+		logger.info('saved to "{}"'.format(os.path.join(img_path, '{}.png'.format(name))))
+		#Plotter.save_voltage()
+
+	@staticmethod
+	def plot_voltage(group_name, label, with_spikes=False):
+		pylab.figure(figsize=(12, 5))
+		try:
+			GetStatus(multimeters_dict[group_name])
+			GetStatus(spikedetectors_dict[group_name])
+		except Exception:
+			print("Not found devices with this name", group_name)
+			return
+		voltage_values = Miner.gather_voltage(group_name, from_memory=True)
+		pylab.plot(voltage_values.keys(), voltage_values.values(), label=label)
+
+		if with_spikes:
+			spike_values = GetStatus(spikedetectors_dict[group_name])[0]['events']['times']
+			pylab.plot(spike_values, [0 for _ in spike_values], ".", color='r')
+
+	@staticmethod
+	def save_voltage(name):
+		pylab.xlabel('Time, ms')
+		pylab.xlim(0, Params.SIMULATION_TIME.value + 1)
+		for i in np.arange(0, Params.SIMULATION_TIME.value, 5):
+			pylab.axvline(x=i, linewidth=thickline, color='gray')
+		pylab.ylim(-90, 50)
+		pylab.legend()
+		pylab.subplots_adjust(left=0.05, bottom=0.05, right=0.98, top=0.98)
+		pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=200)
+		pylab.close('all')
+		logger.info('saved to "{}"'.format(os.path.join(img_path, '{}.png'.format(name))))
 
 	@staticmethod
 	def plot_all_spikes():
@@ -119,33 +165,6 @@ class Plotter:
 			Plotter.plot_spikes('moto', color='r')
 			pylab.legend()
 		Plotter.save_spikes('spikes')
-
-	@staticmethod
-	def plot_voltage(name, label):
-		pylab.figure(figsize=(12, 5))
-		events = []
-		results = Miner.gather_voltage(name)
-		all_spikes = Miner.gather_spikes(name)
-		gids = sorted(list(all_spikes.keys()))
-		for gid in gids:
-			events += all_spikes[gid]
-		times = sorted(results.keys())
-		values = [results[time] for time in times]
-		pylab.plot(times, values, label=label)
-		pylab.plot(events, [0 for _ in events], ".", color='r')
-
-
-	@staticmethod
-	def save_voltage(name):
-		pylab.xlabel('Time, ms')
-		pylab.xlim(0, Params.SIMULATION_TIME.value+1)
-		for i in np.arange(0, Params.SIMULATION_TIME.value, 5):
-			pylab.axvline(x=i, linewidth=thickline, color='gray')
-		pylab.ylim(-90, 50)
-		pylab.legend()
-		pylab.subplots_adjust(left=0.05, bottom=0.05, right=0.98, top=0.98)
-		pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=300)
-		pylab.close('all')
 
 	@staticmethod
 	def plot_spikes(name, color):
