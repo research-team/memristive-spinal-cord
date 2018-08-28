@@ -15,6 +15,7 @@ class Neuron {
         int syn_delay;		 // [steps] synaptic delay. Converts from ms to steps
         float weight;		 // [pA] synaptic weight
         int timer;			 // [steps] changeable value of synaptic delay
+        float changing_weight;
 
         Synapse() = default;
         Synapse(Neuron* post_neuron, float syn_delay, float weight) {
@@ -22,6 +23,7 @@ class Neuron {
             this-> syn_delay = ms_to_step(syn_delay);
             this-> weight = weight;
             this-> timer = -1;
+            this-> changing_weight = weight;
         }
     };
 private:
@@ -30,7 +32,6 @@ private:
     float *spike_times{};					// array of spike time
     float *membrane_potential{};			// array of membrane potential values
     float *I_potential{};					// array of I
-
 
     int mm_record_step = ms_to_step(0.1f); 	// step of recording membrane potential
     int iterSpikesArray = 0;				// current index of array of the spikes
@@ -81,7 +82,7 @@ public:
         this->ref_t = ms_to_step(ref_t);
     }
 
-    void changeCurrent(float I){
+    void changeCurrent(float I) {
         if (!hasGenerator){
             this->I += I;
         }
@@ -107,11 +108,11 @@ public:
         this->I = I;
     }
 
-    bool withMultimeter(){
+    bool withMultimeter() {
         return hasMultimeter;
     }
 
-    bool withSpikedetector(){
+    bool withSpikedetector() {
         return hasSpikedetector;
     }
 
@@ -119,17 +120,37 @@ public:
         return step * ms_in_1step;	// convert steps to milliseconds
     }
 
-    static int ms_to_step(float ms){
+    static int ms_to_step(float ms) {
         return (int)(ms * steps_in_1ms);	// convert milliseconds to step
     }
 
-    Neuron* getThis(){ return this; }
-    int getID(){ return this->id; }
-    float* getSpikes() { return spike_times; }
-    float* getVoltage() { return membrane_potential; }
-    float* getCurrents() { return I_potential; }
-    int getVoltageArraySize() { return (ms_to_step(T_sim) / mm_record_step); }
-    unsigned int getSimulationIter(){ return simulation_iter;}
+    Neuron* getThis() {
+        return this;
+    }
+
+    int getID() {
+        return this->id;
+    }
+
+    float* getSpikes() {
+        return spike_times;
+    }
+
+    float* getVoltage() {
+        return membrane_potential;
+    }
+
+    float* getCurrents() {
+        return I_potential;
+    }
+
+    int getVoltageArraySize() {
+        return (ms_to_step(T_sim) / mm_record_step);
+    }
+
+    unsigned int getSimulationIter() {
+        return simulation_iter;
+    }
 
     //#pragma acc routine vector
     /// Invoked every simulation step, update the neuron state
@@ -182,7 +203,7 @@ public:
         }
 
         // update timers in all neuron synapses
-        for (int i = 0; i < num_synapses; i++ ){
+        for (int i = 0; i < num_synapses; i++ ) {
             // decrement timer
 
             if (synapses[i].timer > 0) {
@@ -190,13 +211,20 @@ public:
             }
             // "send spike"
             if (synapses[i].timer == 0) {
-
                 // change the I (currents) of the post neuron
-                // synapses[i].weight = updateSTDP()
-                printf("!!!!%p",  synapses[i].post_neuron );
-                for(int i = 0; i < 1000000; i++)
+
+                synapses[i].changing_weight += updateSTDP(synapses[i]);
+
+                // 300ms update delay
+                if (step_to_ms(simulation_iter) == 300) {
+                    synapses[i].weight = synapses[i].changing_weight;
+                }
+
+                printf("!!!!%p", synapses[i].post_neuron);
+                for(int j = 0; j < 1000000; j++) {
                     printf("_");
-                synapses[i].post_neuron->changeCurrent( synapses[i].weight );
+                }
+                synapses[i].post_neuron->changeCurrent(synapses[i].weight);
 
                 // set timer to -1 (thats mean no need to update timer in future without spikes)
                 synapses[i].timer = -1;
@@ -225,9 +253,36 @@ public:
         simulation_iter++;
     }
 
+    // STDP function (learning window)
+    float W(float delta) {
+        float result = 0.0;
+
+        float Aplus = 0.001;
+        float Aminus = 0.001;
+        int Tplus = 20;
+        int Tminus = 20;
+        if (delta >= 0) {
+            result += Aplus * exp(delta/Tplus);
+        } else {
+            result += -Aminus * exp(delta/Tminus);
+        }
+
+        return result;
+    }
+
+    float updateSTDP(Synapse syn) {
+        float change = 0.0;
+
+        for (int i = 0; i < iterSpikesArray; ++i) {
+            for (int j = 0; j < syn.post_neuron->iterSpikesArray; ++j) {
+                change += W(syn.post_neuron->spike_times[j] - this->spike_times[i]);
+            }
+        }
+    }
+
     void connectWith(Neuron *post_neuron, float syn_delay, float weight) {
         /// adding the new synapse to the neuron
-        Synapse* syn = new Synapse(post_neuron, syn_delay, weight);
+        auto* syn = new Synapse(post_neuron, syn_delay, weight);
         synapses[num_synapses] = *syn;
 
         num_synapses++;
@@ -235,7 +290,7 @@ public:
         // increase array size if near to the limit
         if (num_synapses == synapse_array_capacity) {
             int new_neighbors_capacity = static_cast<int>(synapse_array_capacity * 1.5 + 1);
-            Synapse* new_neighbors = new Synapse[new_neighbors_capacity];
+            auto* new_neighbors = new Synapse[new_neighbors_capacity];
             // copying
             for (int i = 0; i < num_synapses; ++i) {
                 new_neighbors[i] = synapses[i];
