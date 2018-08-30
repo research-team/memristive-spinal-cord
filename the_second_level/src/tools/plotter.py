@@ -12,8 +12,8 @@ from the_second_level.src.paths import img_path, topologies_path
 topology = __import__('{}.{}'.format(topologies_path, "new_cpg_concept_NEW"), globals(), locals(), ['Params'], 0)
 Params = topology.Params
 
-thickline = 0.7
-boldline = 3
+thickline = 0.8
+boldline = 1.5
 
 log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
 logger = log.getLogger('Plotter')
@@ -48,13 +48,13 @@ class Plotter:
 		Plotter.save_voltage('hidden_tiers')
 
 	@staticmethod
-	def plot_slices(num_slices=6, name='moto'):
+	def plot_slices(num_slices=6, name='moto', show=False):
 		"""
 		Args:
 			num_slices (int):
 			name (str):
 		"""
-		pylab.figure(figsize=(9, 12))
+		pylab.figure(figsize=(9, 9))
 		period = 1000 / Params.RATE.value
 		step = .1
 		shift = Params.PLOT_SLICES_SHIFT.value
@@ -78,10 +78,9 @@ class Plotter:
 			# logging.warning('starting = {} ({}); end = {} ({})'.format(start, start / 10, end, end / 10))
 			times = raw_times[start:end]
 			values = [data[time] for time in times]
-
-			start_xlim = start / 10 + shift
-			end_xlim = end / 10 + shift
-			ticks = np.arange(start_xlim, end_xlim, step=1.0)
+			start_xlim = round(start / 10 + shift)
+			end_xlim = round(end / 10 + shift)
+			ticks = np.arange(start_xlim, end_xlim+0.1, step=1.0)
 			# Draw vertical lines
 			pylab.axvline(x=start_xlim + 5, linewidth=thickline, color='r')
 			if slice_n in [0, 1]:
@@ -93,27 +92,28 @@ class Plotter:
 			if slice_n == 5:
 				pylab.axvline(x=start_xlim + 21, linewidth=boldline, color='r')
 			if slice_n == num_slices-1:
-				pylab.xticks(ticks, range(26))
+				pylab.xticks(ticks, [str(i) if i % 5 == 0 else "" for i in range(26)])
 			else:
 				pylab.xticks(ticks, ["" for _ in ticks])
 			pylab.grid()
 			pylab.ylabel("{}".format(slice_n+1), fontsize=14, rotation='horizontal')
-			pylab.xlim(round(start_xlim), round(end_xlim))
+			pylab.xlim(start_xlim, end_xlim)
 			pylab.ylim(-100, 60)
 			pylab.gca().invert_yaxis()
 			pylab.plot(times, values, label='moto')
 
 		pylab.subplots_adjust(left=0.07, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
-		#pylab.show()
-		name = 'slices{}Hz-{}Inh-{}sublevels'.format(Params.RATE.value, Params.INH_COEF.value, Params.NUM_SUBLEVELS.value)
-		pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=200)
-		pylab.close('all')
-		logger.info('saved to "{}"'.format(os.path.join(img_path, '{}.png'.format(name))))
-		#Plotter.save_voltage()
+		if show:
+			pylab.show()
+		else:
+			name = 'slices{}Hz-{}Inh-{}sublevels'.format(Params.RATE.value, Params.INH_COEF.value, Params.NUM_SUBLEVELS.value)
+			pylab.savefig(os.path.join(img_path, '{}.png'.format(name)), dpi=200)
+			pylab.close('all')
+			logger.info('saved to "{}"'.format(os.path.join(img_path, '{}.png'.format(name))))
 
 	@staticmethod
 	def plot_voltage(group_name, label, with_spikes=False):
-		pylab.figure(figsize=(12, 5))
+		pylab.figure(figsize=(9, 5))
 		try:
 			GetStatus(multimeters_dict[group_name])
 			GetStatus(spikedetectors_dict[group_name])

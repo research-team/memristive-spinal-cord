@@ -21,7 +21,7 @@ nest.SetKernelStatus({
 Cleaner.clean()
 Cleaner.create_structure()
 
-# topology
+# create topology
 topology = __import__('{}.{}'.format(topologies_path, "new_cpg_concept_NEW"),
                       globals(), locals(),
                       ['Params', 'Topology'], 0)
@@ -31,7 +31,7 @@ topology.Topology()
 # simulate the topology
 nest.Simulate(Params.SIMULATION_TIME.value)
 
-# visualie results
+# visualize results
 to_plot = Params.TO_PLOT.value
 to_plot_with_slices = Params.TO_PLOT_WITH_SLICES.value
 

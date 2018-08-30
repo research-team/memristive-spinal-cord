@@ -155,11 +155,11 @@ class Topology:
 		connect(node11, node12, 15., delay=2)
 		connect(node11, node21, 15., delay=2)
 		connect(node11, node23, 7., delay=0.1)
-		connect(node12, node13, 15., delay=2)
+		connect(node12, node13, 15., delay=2.5)
 		connect(node13, node14, 15., delay=2) # delay 0.1 for ONE impulse on slice 1
 		# connect to the IP
-		connect(node13, pool[0], weight=40, degree=30)
-		connect(node14, pool[0], weight=40, degree=30)
+		connect(node13, pool[0], weight=80, degree=30)
+		connect(node14, pool[0], weight=80, degree=30)
 
 		# node level 2
 		connect(node21, node22, 20.)
@@ -168,8 +168,8 @@ class Topology:
 		# connect(node22, node23, -1.)
 		connect(node23, node31, 15.)
 		connect(node23, node33, 6., delay=0.1)
-		connect(node23, node24, 15., delay=2)
-		connect(node24, node25, 15., delay=2)
+		connect(node23, node24, 15., delay=2.5)
+		connect(node24, node25, 15., delay=2.5)
 		connect(node25, node27, 15., delay=0.1)
 		# connect(node25, node26, 8., delay=1)
 		# connect(node26, node25, -15., delay=1)
@@ -189,9 +189,9 @@ class Topology:
 		connect(node33, node14, Params.INH_COEF.value * -40, 80, delay=1)
 		connect(node33, node41, 15.)
 		connect(node33, node43, 6, delay=0.1)
-		connect(node33, node34, 15, delay=2)
-		connect(node34, node35, 35, delay=2)
-		connect(node35, node37, 30)
+		connect(node33, node34, 15, delay=3) #d 2.5
+		connect(node34, node35, 35, delay=3) # 35 d2.5
+		connect(node35, node37, 25, delay=1.5) # 30 d 2
 		# connect(node35, node36, 8., delay=1)
 		# connect(node36, node35, -15., delay=1)
 		# connect(node36, node37, -15., delay=1)
@@ -208,10 +208,10 @@ class Topology:
 		# connect(node42, node43, -4)
 		connect(node43, node25, Params.INH_COEF.value * -30, 60, delay=.1)
 		connect(node43, node27, Params.INH_COEF.value * -30, 60, delay=.1)
-		connect(node43, node51, 15)
-		connect(node43, node53, 9, delay=0.1)
-		connect(node43, node44, 15, delay=2)
-		connect(node44, node45, 15, delay=2)
+		connect(node43, node51, 10, delay=1) #d 1 w 15
+		connect(node43, node53, 9, delay=1) # 0.1
+		connect(node43, node44, 15, delay=2.5)
+		connect(node44, node45, 15, delay=2.5)
 		connect(node45, node47, 15)
 		# connect(node45, node46, 8., delay=1)
 		# connect(node46, node45, -15., delay=1)
@@ -220,18 +220,18 @@ class Topology:
 		# connect(node47, node46, 8., delay=1)
 		# connect to the IP
 		connect(node45, pool[3], weight=60, degree=60)
-		connect(node47, pool[3], weight=80, degree=60)
+		connect(node47, pool[3], weight=60, degree=60) #w 80
 
 		# node level 5
 		connect(node51, node52, 17)
 		connect(node51, node53, 4, delay=2)
 		connect(node52, node51, 17)
 		# connect(node52, node53, -4)
-		connect(node53, node35, Params.INH_COEF.value * -30, 60, delay=1) # weight = -30 de 0.1
-		connect(node53, node37, Params.INH_COEF.value * -30, 60, delay=1) # weight = -30 de 0.1
+		connect(node53, node35, Params.INH_COEF.value * -30, 60, delay=1.5) # weight = -30 de 0.1
+		connect(node53, node37, Params.INH_COEF.value * -30, 60, delay=1.5) # weight = -30 de 0.1
 		connect(node53, node61, 15)
 		connect(node53, node63, 6, delay=0.1)
-		connect(node53, node54, 15, delay=2)
+		connect(node53, node54, 15, delay=2.5) #2
 		connect(node54, node56, 20, delay=1.5) # d 0.1
 		# connect(node54, node55, 8, delay=1)
 		# connect(node55, node54, -15, delay=1)
@@ -256,10 +256,10 @@ class Topology:
 		# to the group 5
 		connect(node63, node54, Params.INH_COEF.value * -25, 60, delay=0.1)
 		connect(node63, node56, Params.INH_COEF.value * -25, 60, delay=0.1)
-		connect(node63, node64, 20., delay=3) # 15 d 2
-		connect(node64, node65, 20., delay=3) # 15 d 2
+		connect(node63, node64, 20., delay=3.5) # 15 d 2
+		connect(node64, node65, 20., delay=2) # 15 d 2
 		# connect to the IP
-		connect(node64, pool[5], weight=60)
+		connect(node64, pool[5], weight=80)
 		connect(node65, pool[5], weight=80)
 
 
