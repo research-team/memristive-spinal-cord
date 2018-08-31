@@ -13,7 +13,6 @@ class Params(Enum):
 	SIMULATION_TIME = 175.
 	INH_COEF = 1.
 	PLOT_SLICES_SHIFT = 8.  # ms
-
 	TO_PLOT = {
 		'node1.1': 'Node 1.1',
 		'node1.2': 'Node 1.2',
@@ -58,8 +57,7 @@ class Params(Enum):
 		'pool5': 'Pool5',
 		'pool6': 'Pool6',
 		'moto': 'Moto',
-		}
-
+	}
 	TO_PLOT_WITH_SLICES = {
 		'moto': 6
 	}
@@ -192,7 +190,7 @@ class Topology:
 		self.connect(node33, node14, Params.INH_COEF.value * -40, 80, delay=1)
 		self.connect(node33, node41, 15.)
 		self.connect(node33, node43, 6, delay=0.1)
-		self.connect(node33, node34, 15, delay=3) #d 2.5
+		self.connect(node33, node34, 15, delay=3) # d 2.5
 		self.connect(node34, node35, 35, delay=3) # 35 d2.5
 		self.connect(node35, node37, 25, delay=1.5) # 30 d 2
 		# connect(node35, node36, 8., delay=1)
@@ -211,7 +209,7 @@ class Topology:
 		# connect(node42, node43, -4)
 		self.connect(node43, node25, Params.INH_COEF.value * -30, 60, delay=.1)
 		self.connect(node43, node27, Params.INH_COEF.value * -30, 60, delay=.1)
-		self.connect(node43, node51, 10, delay=1) #d 1 w 15
+		self.connect(node43, node51, 10, delay=1) # d 1 w 15
 		self.connect(node43, node53, 9, delay=1) # 0.1
 		self.connect(node43, node44, 15, delay=2.5)
 		self.connect(node44, node45, 15, delay=2.5)
@@ -265,6 +263,8 @@ class Topology:
 		self.connect(node64, pool[5], weight=80)
 		self.connect(node65, pool[5], weight=80)
 
+	def rand(self, a, b):
+		return random.uniform(a, b)
 
 	def create(self, neuron_number):
 		"""
@@ -277,12 +277,12 @@ class Topology:
 			model='hh_cond_exp_traub',
 			n=neuron_number,
 			params={
-				't_ref': random.uniform(1.9, 2.1),       # [ms] refractory period
+				't_ref': self.rand(1.9, 2.1) if self.multitest else 2.0,   # [ms] refractory period
 				'V_m': -70.0,       # [mV] starting value of membrane potential
-				'E_L': random.uniform(-70.5, -69.5),       # [mV] leak reversal potential
+				'E_L': self.rand(-70.5, -69.5) if self.multitest else -70.0, # [mV] leak reversal potential
 				'g_L': 75.0,        # [nS] leak conductance
-				'tau_syn_ex': .2,   # [ms]
-				'tau_syn_in': 3.    # [ms]
+				'tau_syn_ex': 0.2,  # [ms]
+				'tau_syn_in': 3.0   # [ms]
 			})
 
 	def create_with_mmeter(self, name, n=40):
@@ -297,12 +297,12 @@ class Topology:
 		if self.multitest:
 			name = "{}-{}".format(self.iteration, name)
 		gids = self.create(n)
-		# decrease useless data recording
+		# decrease useless data recording for 'multitest' case
 		if self.multitest and "moto" not in name:
 			return gids
+
 		mm_id = add_multimeter(name)
 		sd_id = add_spike_detector(name)
-
 		spikedetectors_dict[name] = sd_id
 		multimeters_dict[name] = mm_id
 

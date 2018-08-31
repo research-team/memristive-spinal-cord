@@ -19,7 +19,6 @@ def cleaner():
 
 def simulate(topology_name, multitest=False, iteration=None):
 	"""
-	aaaaaaaa
 	Args:
 		topology_name:
 		multitest:
@@ -76,18 +75,20 @@ def multi_simulation(topology_name):
 	Args:
 		topology_name:
 	"""
-	#cleaner()
-	#for test_number in range(10):
-	#	print("Test number", test_number)
-	#	simulate(topology_name, multitest=True, iteration=test_number)
-	## plot slices
+	cleaner()
+	for test_number in range(10):
+		print("Test number", test_number)
+		simulate(topology_name, multitest=True, iteration=test_number)
+	# plot slices
 	Plotter.plot_10test(num_slices=6, name="moto", plot_mean=False)
 
 
 def main(argv):
-	print(argv)
 	topology_name = argv[0]
-	is_test = argv[1] == "test"
+	if len(argv) >= 2:
+		is_test = argv[1] == "test"
+	else:
+		is_test = False
 
 	if is_test:
 		multi_simulation(topology_name)

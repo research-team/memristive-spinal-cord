@@ -26,8 +26,7 @@ class Plotter:
 			pylab.subplot(Params.NUM_SUBLEVELS.value + 2, 1, Params.NUM_SUBLEVELS.value - sublevel)
 			for group in ['right', 'left']:
 				pylab.ylim([-80., 60.])
-				Plotter.plot_voltage('{}{}'.format(group, sublevel),
-					'{}{}'.format(group, sublevel+1))
+				Plotter.plot_voltage('{}{}'.format(group, sublevel), '{}{}'.format(group, sublevel+1))
 			pylab.legend()
 			pylab.grid()
 		pylab.subplot(Params.NUM_SUBLEVELS.value + 2, 1, Params.NUM_SUBLEVELS.value + 1)
@@ -50,22 +49,29 @@ class Plotter:
 
 	@staticmethod
 	def plot_10test(num_slices=6, name='moto', plot_mean=False):
+		"""
+		Method for search and plotting test data
+		Args:
+			num_slices (int): number of slices
+			name (str): neuron group name
+			plot_mean (bool): choose what to plot: mean (True) or all tests (False)
+		"""
 		times = []
 		all_data = defaultdict(list)
 		mean_data = defaultdict(list)
 		step = 0.1
+		raw_times = 0
+		test_number = 10
 		period = 1000 / Params.RATE.value
 		shift = Params.PLOT_SLICES_SHIFT.value
-		raw_times = 0
-
 		# create the main body of the figure and it's subplots
-		fig = pylab.figure()
+		fig = pylab.figure(figsize=(9, 9))
 		subplots = [fig.add_subplot(num_slices, 1, slice_number + 1) for slice_number in range(num_slices)]
-		fig.suptitle('Rate {}Hz, Inh {}%'.format(Params.RATE.value, 100 * Params.INH_COEF.value), fontsize=11)
-
+		fig.suptitle("Rate {}Hz, Inh {}%".format(Params.RATE.value, 100 * Params.INH_COEF.value), fontsize=11)
 		# collect data from each test
-		for name in ["{}-{}".format(n, name) for n in range(10)]:
-			data = Miner.gather_voltage(name)
+		test_names = ["{}-{}".format(test_n, name) for test_n in range(test_number)]
+		for test_name in test_names:
+			data = Miner.gather_mean_voltage(test_name)
 			num_dots = int(1 / step * num_slices * period)
 			shift_dots = int(1 / step * shift)
 			raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
@@ -76,7 +82,7 @@ class Plotter:
 				end_time = int((slice_number + 1) * fraction) if slice_number < num_slices - 1 else len(raw_times) - 1
 				times.append(raw_times[start_time:end_time])
 				values = [data[time] for time in raw_times[start_time:end_time]]
-				all_data[name].append(values)
+				all_data[test_name].append(values)
 
 		# setting plot for each slice
 		for slice_number in range(num_slices):
@@ -90,7 +96,7 @@ class Plotter:
 			xticks = np.arange(start_xlim, end_xlim + 0.1, step=1.0)
 			subplots[slice_number].set_xticks(xticks)
 			subplots[slice_number].set_xticklabels([index if index % 5 == 0 else "" for index in range(len(xticks))]
-			                                       if slice_number == num_slices - 1 else
+			                                       if slice_number == num_slices-1 else
 			                                       ["" for _ in xticks])
 			subplots[slice_number].set_ylabel("{}".format(slice_number + 1), fontsize=14, rotation='horizontal')
 			subplots[slice_number].set_xlim(start_xlim, end_xlim)
@@ -101,15 +107,8 @@ class Plotter:
 		if plot_mean:
 			# get data from each SLICE and calculate their mean in each TEST for INDEX by INDEX
 			for slice_n in range(num_slices):
-				# prepare the list for filling data
-				tmp_slice = [0 for _ in all_data[all_data.keys()[0]][slice_n]]
-				# sum elements to the tmp_slice by each index
-				for test_number, test_value in all_data.items():
-					for index_element in range(len(test_value[slice_n])):
-						tmp_slice[index_element] += test_value[slice_n][index_element]
-				# divide by 6
-				tmp_slice = [elem / 10 for elem in tmp_slice]
-				mean_data[slice_n] = list(tmp_slice)
+				mean_data[slice_n] = list(map(lambda elements: sum(elements) / test_number,
+				                              zip(*[all_data[test_name][slice_n] for test_name in test_names])))
 		# plot each slice
 		for slice_number in range(num_slices):
 			# Draw vertical lines
@@ -128,8 +127,8 @@ class Plotter:
 			if plot_mean:
 				subplots[slice_number].plot(times[slice_number], mean_data[slice_number])
 			else:
-				for test_name in ["{}-{}".format(n, "moto") for n in range(10)]:
-					subplots[slice_number].plot(times[slice_number], all_data[test_name][slice_number], linewidth=0.7)
+				for test_name in ["{}-{}".format(n, name) for n in range(test_number)]:
+					subplots[slice_number].plot(times[slice_number], all_data[test_name][slice_number], linewidth=2)
 		pylab.subplots_adjust(left=0.07, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
 		# save the plot
 		fig_name = 'slices{}Hz-{}Inh-{}sublevels_mean'.format(Params.RATE.value,
@@ -154,7 +153,7 @@ class Plotter:
 		shift = Params.PLOT_SLICES_SHIFT.value
 		interval = period
 		# get data from memory/hard disk
-		data = Miner.gather_voltage(name, from_memory=True)
+		data = Miner.gather_mean_voltage(name, from_memory=True)
 		num_dots = int(1 / step * num_slices * interval)
 		shift_dots = int(1 / step * shift)
 		raw_times = sorted(data.keys())[shift_dots:num_dots + shift_dots]
@@ -214,7 +213,7 @@ class Plotter:
 		except Exception:
 			print("Not found devices with this name", group_name)
 			return
-		voltage_values = Miner.gather_voltage(group_name, from_memory=True)
+		voltage_values = Miner.gather_mean_voltage(group_name, from_memory=True)
 		pylab.plot(voltage_values.keys(), voltage_values.values(), label=label)
 
 		if with_spikes:
