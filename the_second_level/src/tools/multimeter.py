@@ -14,4 +14,4 @@ def add_multimeter(name):
             'withtime': True,
             'interval': 0.1,
             'to_file': True,
-            'to_memory': False})
+            'to_memory': True})
