@@ -5,7 +5,6 @@
 #include <fstream>
 #include <random>
 #include "Neuron.h"
-#include "time.h"
 
 using namespace std;
 
@@ -17,7 +16,7 @@ Neuron* neurons[neuron_number];
 
 const float T_sim = 500.0;
 const float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
-const short steps_in_1ms = (short)(1 / ms_in_1step);
+const short steps_in_1ms = (short) (1 / ms_in_1step);
 
 unsigned int groups_number = 0;
 
@@ -75,7 +74,7 @@ void show_results() {
 
         if (neurons[nrn_id]->withSpikedetector()) {
             myfile << "Spikes: [";
-            for (int j = 0; j < 100; j++) {
+            for (int j = 0; j < neurons[nrn_id]->getIterSpikesArray(); j++) {
                 myfile << neurons[nrn_id]->getSpikes()[j] << ", ";
             }
             myfile << "]\n";
@@ -107,7 +106,7 @@ void init_neurons() {
 
     // additional devices to the neurons
     for (int i = 0; i < neuron_number; ++i) {
-        //neurons[i]->addSpikedetector();
+        neurons[i]->addSpikedetector();
         //neurons[i]->addMultimeter();}
         // TEST connections
         //for (int i = 0; i < neuron_number; ++i) {
@@ -125,19 +124,16 @@ void formGroup(int index, Neuron* group[], char* name) {
     for (int i = index; i < index + neurons_in_group; ++i){
         group[j] = neurons[i];
         neurons[i]->name = name;
-        printf("%s %d %d\n", name, i, j);
-        printf("i = %d j = %d, obj: %p, id(%d)\n", i, j, group[j]->getThis(), group[j]->getID());
+        ///printf("%s %d %d\n", name, i, j);
+        ///printf("i = %d j = %d, obj: %p, id(%d)\n", i, j, group[j]->getThis(), group[j]->getID());
         j++;
-        //cout << neurons[i]->getID() << endl;
     }
-    //group12[0]->getID();
 }
 
 void connectFixedOutDegree(Neuron* a[], Neuron* b[], float syn_delay, float weight) {
-
-    for(int i = 0; i < neurons_in_group; i++) {
+    for (int i = 0; i < neurons_in_group; i++) {
         for(int j = 0; j < synapses_number; j++) {
-            int b_index = rand() % 40;
+            int b_index = rand() % neurons_in_group;
             a[i]->connectWith(b[b_index], syn_delay, weight);
         }
     }
@@ -194,82 +190,82 @@ void init_groups() {
 
 void init_synapses() {
     /// Synapse initialization function
-    connectFixedOutDegree(group11, group12, 2., 15.);
-    connectFixedOutDegree(group11, group21, 2., 15.);
-    connectFixedOutDegree(group11, group23, 0.1, 7.);
-    connectFixedOutDegree(group12, group13, 1., 15.);
-    connectFixedOutDegree(group12, group14, 1., 15.);
-    connectFixedOutDegree(group13, group14, 1., 15.);
+    connectFixedOutDegree(group11, group12, 2.0, 15.0);
+    connectFixedOutDegree(group11, group21, 2.0, 15.0);
+    connectFixedOutDegree(group11, group23, 0.1, 7.0);
+    connectFixedOutDegree(group12, group13, 1.0, 15.0);
+    connectFixedOutDegree(group12, group14, 1.0, 15.0);
+    connectFixedOutDegree(group13, group14, 1.0, 15.0);
 
-    connectFixedOutDegree(group21, group22, 1., 20.);
-    connectFixedOutDegree(group21, group23, 1., 4.);
-    connectFixedOutDegree(group22, group21, 1., 20.);
-    connectFixedOutDegree(group23, group24, 2., 15.);
-    connectFixedOutDegree(group23, group31, 1., 15.);
-    connectFixedOutDegree(group23, group33, .1, 6.);
-    connectFixedOutDegree(group24, group25, 1., 15.);
-    connectFixedOutDegree(group24, group26, 1., 15.);
-    connectFixedOutDegree(group24, group27, 1., 15.);
-    connectFixedOutDegree(group25, group26, 1., 15.);
-    connectFixedOutDegree(group26, group27, 1., 15.);
+    connectFixedOutDegree(group21, group22, 1.0, 20.0);
+    connectFixedOutDegree(group21, group23, 1.0, 4.0);
+    connectFixedOutDegree(group22, group21, 1.0, 20.0);
+    connectFixedOutDegree(group23, group24, 2.0, 15.0);
+    connectFixedOutDegree(group23, group31, 1.0, 15.0);
+    connectFixedOutDegree(group23, group33, 0.1, 6.0);
+    connectFixedOutDegree(group24, group25, 1.0, 15.0);
+    connectFixedOutDegree(group24, group26, 1.0, 15.0);
+    connectFixedOutDegree(group24, group27, 1.0, 15.0);
+    connectFixedOutDegree(group25, group26, 1.0, 15.0);
+    connectFixedOutDegree(group26, group27, 1.0, 15.0);
 
-    connectFixedOutDegree(group31, group32, 1., 17.);
-    connectFixedOutDegree(group31, group33, 1.5, 4.);
-    connectFixedOutDegree(group32, group31, 1., 20.);
-    connectFixedOutDegree(group33, group34, 2., 17.);
-    connectFixedOutDegree(group33, group41, 1., 15.);
-    connectFixedOutDegree(group33, group43, .1, 6.);
-    connectFixedOutDegree(group34, group35, 1., 15.);
-    connectFixedOutDegree(group34, group36, 1., 15.);
-    connectFixedOutDegree(group34, group37, 1., 15.);
-    connectFixedOutDegree(group35, group36, 1., 15.);
-    connectFixedOutDegree(group36, group37, 1., 15.);
+    connectFixedOutDegree(group31, group32, 1.0, 17.0);
+    connectFixedOutDegree(group31, group33, 1.5, 4.0);
+    connectFixedOutDegree(group32, group31, 1.0, 20.0);
+    connectFixedOutDegree(group33, group34, 2.0, 17.0);
+    connectFixedOutDegree(group33, group41, 1.0, 15.0);
+    connectFixedOutDegree(group33, group43, 0.1, 6.0);
+    connectFixedOutDegree(group34, group35, 1.0, 15.0);
+    connectFixedOutDegree(group34, group36, 1.0, 15.0);
+    connectFixedOutDegree(group34, group37, 1.0, 15.0);
+    connectFixedOutDegree(group35, group36, 1.0, 15.0);
+    connectFixedOutDegree(group36, group37, 1.0, 15.0);
 
-    connectFixedOutDegree(group41, group42, 1., 17.);
-    connectFixedOutDegree(group41, group43, 1.5, 4.);
-    connectFixedOutDegree(group42, group41, 1., 20.);
-    connectFixedOutDegree(group43, group44, 2., 17.);
-    connectFixedOutDegree(group43, group51, 1., 15.);
-    connectFixedOutDegree(group43, group53, .1, 9.);
-    connectFixedOutDegree(group44, group45, 1., 15.);
-    connectFixedOutDegree(group44, group46, 1., 15.);
-    connectFixedOutDegree(group44, group47, 1., 15.);
-    connectFixedOutDegree(group45, group46, 1., 15.);
-    connectFixedOutDegree(group46, group47, 1., 15.);
+    connectFixedOutDegree(group41, group42, 1.0, 17.0);
+    connectFixedOutDegree(group41, group43, 1.5, 4.0);
+    connectFixedOutDegree(group42, group41, 1.0, 20.0);
+    connectFixedOutDegree(group43, group44, 2.0, 17.0);
+    connectFixedOutDegree(group43, group51, 1.0, 15.0);
+    connectFixedOutDegree(group43, group53, 0.1, 9.0);
+    connectFixedOutDegree(group44, group45, 1.0, 15.0);
+    connectFixedOutDegree(group44, group46, 1.0, 15.0);
+    connectFixedOutDegree(group44, group47, 1.0, 15.0);
+    connectFixedOutDegree(group45, group46, 1.0, 15.0);
+    connectFixedOutDegree(group46, group47, 1.0, 15.0);
 
-    connectFixedOutDegree(group51, group52, 1., 17.);
-    connectFixedOutDegree(group51, group53, 1.5, 4.);
-    connectFixedOutDegree(group52, group51, 1., 20.);
-    connectFixedOutDegree(group53, group54, 2., 17.);
-    connectFixedOutDegree(group53, group55, 1., 15.);
-    connectFixedOutDegree(group53, group56, 1., 15.);
-    connectFixedOutDegree(group53, group61, 1., 15.);
-    connectFixedOutDegree(group53, group63, .1, 6.);
-    connectFixedOutDegree(group54, group55, 1., 15.);
-    connectFixedOutDegree(group55, group56, 1., 15.);
+    connectFixedOutDegree(group51, group52, 1.0, 17.0);
+    connectFixedOutDegree(group51, group53, 1.5, 4.0);
+    connectFixedOutDegree(group52, group51, 1.0, 20.0);
+    connectFixedOutDegree(group53, group54, 2.0, 17.0);
+    connectFixedOutDegree(group53, group55, 1.0, 15.0);
+    connectFixedOutDegree(group53, group56, 1.0, 15.0);
+    connectFixedOutDegree(group53, group61, 1.0, 15.0);
+    connectFixedOutDegree(group53, group63, 0.1, 6.0);
+    connectFixedOutDegree(group54, group55, 1.0, 15.0);
+    connectFixedOutDegree(group55, group56, 1.0, 15.0);
 
-    connectFixedOutDegree(group61, group62, 1., 17.);
-    connectFixedOutDegree(group61, group63, 1.5, 4.);
-    connectFixedOutDegree(group62, group61, 1., 20.);
-    connectFixedOutDegree(group63, group64, 2., 15.);
-    connectFixedOutDegree(group63, group65, 1., 15.);
-    connectFixedOutDegree(group64, group65, 1., 15.);
+    connectFixedOutDegree(group61, group62, 1.0, 17.0);
+    connectFixedOutDegree(group61, group63, 1.5, 4.0);
+    connectFixedOutDegree(group62, group61, 1.0, 20.0);
+    connectFixedOutDegree(group63, group64, 2.0, 15.0);
+    connectFixedOutDegree(group63, group65, 1.0, 15.0);
+    connectFixedOutDegree(group64, group65, 1.0, 15.0);
 }
 
 void simulate() {
     /// Simulation main loop function
     int id = 0;
     int iter = 0;
-    printf("Start sim");
+    printf("Start sim\n");
 
     clock_t t = clock();
 
-#pragma acc data copy(neurons)
-#pragma acc parallel vector_length(200)
+//#pragma acc data copy(neurons)
+//#pragma acc parallel vector_length(200)
     {
-#pragma acc loop gang worker seq
+//#pragma acc loop gang worker seq
         for (iter = 0; iter < T_sim * steps_in_1ms; iter++) {
-#pragma acc loop vector
+//#pragma acc loop vector
             for (id = 0; id < neuron_number; id++) {
                 neurons[id]->update_state();
             }
@@ -283,7 +279,7 @@ int main(int argc, char *argv[]) {
     init_groups();
     init_synapses();
     debug();
-    //simulate();
+    simulate();
     show_results();
     return 0;
 }
