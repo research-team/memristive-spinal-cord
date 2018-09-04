@@ -4,13 +4,10 @@ public soma, axon, dend, postsyn, presyn, connect2target
 create soma, axon, dend[1] 
 objectvar postsyn[1]
 
-public synlistex, synlistinh, synlistaff, synlistip, synlistrc
-objref synlistex, synlistinh, synlistaff, synlistip, synlistrc
+public synlistex, synlistinh
+objref synlistex, synlistinh
     objref synex_
     objref syninh_
-    objref synaff_
-    objref synip_
-    objref synrc_
 
 proc init() {local i, j
     ndend = 10          
@@ -37,10 +34,6 @@ proc init() {local i, j
 
     synlistex = new List()
     synlistinh = new List()
-    synlistaff = new List()
-    synlistip = new List()
-    synlistrc = new List()
-
 
     soma {
         nseg = soma_nseg    
@@ -91,25 +84,14 @@ proc init() {local i, j
             e_pas = -70.0
         }
 
-        for j = 0, nsyn-1{
-            dend[i] synaff_ = new ExpSyn(0.5)  synlistaff.append(synaff_) /* E */
-            synaff_.tau = 0.5
-            synaff_.e=0
+        for j = 0, nsyn*3-1{
             dend[i] syninh_ = new  Exp2Syn (0.5)   synlistinh.append(syninh_)
             syninh_.e = -70
             syninh_.tau1 = 1.5
             syninh_.tau2 = 2
-            dend[i] synex_ = new  Exp2Syn (0.5)   synlistex.append(synex_)
-            synex_.e = -70
-            synex_.tau1 = 1.5
-            synex_.tau2 = 2
-            dend[i] synrc_ = new  Exp2Syn (0.5)   synlistrc.append(synrc_)
-            synrc_.e = -70
-            synrc_.tau1 = 1.5
-            synrc_.tau2 = 2
-            dend[i] synip_ = new ExpSyn(0.5)  synlistip.append(synip_) /* IP */
-            synip_.tau = 0.1
-            synip_.e=50
+            dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_)
+            synex_.tau = 0.1
+            synex_.e=50
         }
 
     }

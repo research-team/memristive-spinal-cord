@@ -90,7 +90,7 @@ proc init() {local i, j
             pt3dadd(-500+dend_len*(i+1)+(i%2)*soma_len,400,$1*5,diam)
         }
 
-        for j = 0, nsyn-1{
+        for j = 0, nsyn*10-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
             synex_.tau = 0.1
             synex_.e=50

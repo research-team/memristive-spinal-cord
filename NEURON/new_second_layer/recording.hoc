@@ -2,7 +2,7 @@ objref vol2[nMN]
 objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
 
 proc printFile(){
-    sprint($s1, "%s%dv0.%s", $s2, $5, $s3)
+    sprint($s1, "%s%dv6.%s", $s2, $5, $s3)
     fok.wopen($s1)
     $o4.printf(fok)
     fok.close()
@@ -33,30 +33,30 @@ for i=0, ncell - 1{
 */
 proc epochrun() { local i, n, j
     running_ = 1
-    tstop = 150 //$1*$2+$1*$3 // in case some other code needs tstop
+    tstop = $1*$2+$1*$3 // in case some other code needs tstop
     ns = connect_ex_ees.count
     stdinit()
     for n=0,$1 - 1 {
-        print(Ia[0].spgenIa.freq)
-        for j=0, 7{
-            for i=0, nAff - 1{
-            r.uniform(10, 20)
+        //print(Ia[0].spgenIa.freq)
+        //for j=0, 3{
+            /*for i=0, nAff - 1{
+            r.uniform(10, 25)
             Ia[i].spgenIa.freq = Ia[i].spgenIa.freq + r.repick()
-        }
-        print(Ia[0].spgenIa.freq)
+        }*/
+        //print(Ia[0].spgenIa.freq)
         continuerun(t+$2)
-        }
-        for j=0, 6{
-            for i=0, nAff - 1{
+        //}
+        //for j=0, 2{
+            /*for i=0, nAff - 1{
             r.uniform(15, 25)
             Ia[i].spgenIa.freq = Ia[i].spgenIa.freq - r.repick()
-        }
-        print(Ia[0].spgenIa.freq)
-        continuerun(t+$2)
-        }
+        }*/
+        //print(Ia[0].spgenIa.freq)
+        continuerun(t+$3)
+        //}
     }
 }
-epochrun(1, 10, 10)
+epochrun(1, 100, 25)
 
 objref fok
 fok=new File()
@@ -64,7 +64,7 @@ for i=0, nMN - 1{
     strdef extension
     extension = "txt"
     strdef basename2, filename2
-    basename2 = "/Users/sulgod/Desktop/res/volMN"
+    basename2 = "/Users/sulgod/Desktop/img/res1/volMN"
     printFile(filename2, basename2, extension, vol2[i], i)
 }
 /*

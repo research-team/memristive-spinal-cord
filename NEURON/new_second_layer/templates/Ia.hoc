@@ -7,9 +7,9 @@ proc init() {local i
 
     spgenIa = new SpikeGenerator(0.8)
         spgenIa.freq = $1
-        spgenIa.start = 0
+        spgenIa.start = 1
         spgenIa.number = 1000000000
-        spgenIa.noise = 0
+        spgenIa.noise = 0.1
 
 }
 
