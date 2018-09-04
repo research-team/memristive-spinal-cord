@@ -66,14 +66,15 @@ proc connectionSTDP(){
         nc.weight = r.repick()
     }else if($8 == 4){
         stdp.aLTD = -0.001//inhibitory
-        r.uniform(0.04, 0.08)
+        r.uniform(0.004, 0.04)
         nc.weight = r.repick()
     }else if($8 == 5){
         r.uniform(0.005, 0.05)
         nc.weight = r.repick()
         r.uniform(1, 2)
         nc.delay = r.repick()
-    }else{nc.weight = 0.04}
+    }else{r.uniform(0.005, 0.05)
+        nc.weight = r.repick()}
     presyn = pc.gid_connect($4, stdp)
     presyn.weight = 1
     postsyn = pc.gid_connect($3, stdp)
@@ -109,14 +110,14 @@ proc addConnection(){
 //1 - inhibitory
 //3 - EES
 
-addConnection(0, ncell, 27, (ncell*32+nIP+nMN+nAff+2*nInt+nRC), (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
-addConnection(ncell*9, ncell*10, 27, (ncell*32+nIP+nMN+nAff+2*nInt+nRC), (ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+addConnection(0, ncell, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+addConnection(ncell*9, ncell*10, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
 
 //delays
 for n =0, 2{
     addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex, 2, 0)
     addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
-    addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+9), ncell*(n+10), connect_ex_inh, 4, 1)
+    addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+9), ncell*(n+10), connect_ex_inh, 0, 1)
     addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex, 5, 0)
     addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*n, ncell*(n+1), connect_ex_ex, 5, 0)
 }
@@ -168,7 +169,7 @@ for n = 12, 15{
 
 //connection IP
 for n = 0, 9 {
-    addConnection(ncell*39+10*n, ncell*39+10*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
+    addConnection(ncell*39+15*n, ncell*39+15*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
 }
 
 //connection MNE

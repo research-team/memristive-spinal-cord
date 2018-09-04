@@ -66,7 +66,7 @@ proc connectionSTDP(){
         nc.weight = r.repick()
     }else if($8 == 4){
         stdp.aLTD = -0.001//inhibitory
-        r.uniform(0.04, 0.08)
+        r.uniform(0.003, 0.03)
         nc.weight = r.repick()
     }else if($8 == 5){
         r.uniform(0.005, 0.05)
@@ -163,7 +163,7 @@ addConnection(ncell*32+nIP, ncell*32+nIP+nMN, 10, ncell*32+nIP+nMN+nAff+2*nInt+n
 
 //connection Ia Afferent
 addConnection(ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff, 50, ncells, ncells, connect_sens1_EES, 5, 3)
-addConnection(ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff/3, 20, ncell*32+nIP+nMN, ncell*32+nIP+nMN+nAff, connect_sens1_EES, 5, 3)
+//addConnection(ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff/3, 20, ncell*32+nIP+nMN, ncell*32+nIP+nMN+nAff, connect_sens1_EES, 5, 3)
 
 //connection sens
 addConnection(ncell*32+nIP+nMN+nAff+2*nInt+nRC, ncell*32+nIP+nMN+nAff+2*nInt+nRC+nSens, 50, ncells, ncells, connect_sens1_EES, 5, 3)
