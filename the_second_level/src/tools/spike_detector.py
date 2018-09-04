@@ -2,6 +2,7 @@ import os
 from nest import Create
 from the_second_level.src.paths import raw_data_path
 
+
 def add_spike_detector(name):
 	"""
 	Args:

@@ -1,10 +1,10 @@
-import nest
 import os
+from nest import Create
 from the_second_level.src.paths import raw_data_path
 
 
 def add_multimeter(name):
-    return nest.Create(
+    return Create(
         model='multimeter',
         n=1,
         params={

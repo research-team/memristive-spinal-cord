@@ -20,7 +20,7 @@ class Miner:
 		"""
 		log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
 		logger = log.getLogger('Miner')
-		logger.info('[{}] searching for "{}"'.format("MEM" if from_memory else "FILE", group_name))
+		logger.info('[{}] from "{}"'.format("MEM" if from_memory else "FILE", group_name))
 
 		data = {}
 
