@@ -7,20 +7,20 @@ nAff = 120
 nRC = 196
 nIP = 120
 nSens = 120
-ncells = ncell*17+nIP+nMN+nSens
+ncells = ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
 
 {load_file("./templates/EES.hoc")}
 {load_file("./templates/ex.hoc")}
 {load_file("./templates/inh.hoc")}
 {load_file("./templates/ip.hoc")}
 {load_file("./templates/MNE.hoc")}
-//{load_file("./templates/Ia.hoc")}
-//{load_file("./templates/IaintE.hoc")}
-//{load_file("./templates/IbintE.hoc")}
-//{load_file("./templates/RCE.hoc")}
+{load_file("./templates/Ia.hoc")}
+{load_file("./templates/IaintE.hoc")}
+{load_file("./templates/IbintE.hoc")}
+{load_file("./templates/RCE.hoc")}
 {load_file("./templates/sens1.hoc")}
-//{load_file("./templates/sensorygen.hoc")}
-//{load_file("./templates/IaAff.hoc")}
+{load_file("./templates/sensorygen.hoc")}
+{load_file("./templates/IaAff.hoc")}
 {load_file("save.hoc")}
 
 
@@ -38,7 +38,7 @@ proc addcell(){
     pc.cell($2, nc)
 }
 
-for (i=pc.id; i < ncell*17; i += pc.nhost){
+for (i=pc.id; i < ncell*39; i += pc.nhost){
     addcell(new Ex(i), i, pc.id)
 }
 
@@ -47,45 +47,45 @@ for (i=pc.id+ncell*6; i < ncell*12; i += pc.nhost){
     addcell(new Inh((i - ncell)*2), i, pc.id)
 }*/
 
-for (i=pc.id+ncell*17; i < ncell*17+nIP; i += pc.nhost){
+for (i=pc.id+ncell*39; i < ncell*39+nIP; i += pc.nhost){
     addcell(new IP0(i - 12*ncell), i, pc.id)
 }
 
-for (i=pc.id+ncell*17+nIP; i < ncell*17+nIP+nMN; i += pc.nhost){
+for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
     addcell(new MNE(i - 14*ncell), i, pc.id)
 }
 /*
-r.uniform(0, 50)
-for (i=pc.id+ncell*21+nIP+nMN; i < ncell*21+nIP+nMN+nAff; i += pc.nhost){
-    addcell(new Ia(70 + r.repick()), i, pc.id)
+r.uniform(50, 55)
+for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
+    addcell(new Ia(r.repick()), i, pc.id)
 }
-
-for (i=pc.id+ncell*21+nIP+nMN+nAff; i < ncell*21+nIP+nMN+nAff+nInt; i += pc.nhost){
+/*
+for (i=pc.id+ncell*39+nIP+nMN+nAff; i < ncell*39+nIP+nMN+nAff+nInt; i += pc.nhost){
     addcell(new IaE(i - 24*ncell), i, pc.id)
 }
 
-for (i=pc.id+ncell*21+nIP+nMN+nAff+nInt; i < ncell*21+nIP+nMN+nAff+2*nInt; i += pc.nhost){
+for (i=pc.id+ncell*39+nIP+nMN+nAff+nInt; i < ncell*39+nIP+nMN+nAff+2*nInt; i += pc.nhost){
     addcell(new IbE(i - 24*ncell), i, pc.id)
 }
 
-for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC; i += pc.nhost){
+for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC; i += pc.nhost){
     addcell(new RCE(i - 25*ncell), i, pc.id)
-}*/
-
-for (i=pc.id+ncell*17+nIP+nMN; i < ncell*17+nIP+nMN+nSens; i += pc.nhost){
+}
+*/
+for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt+nRC; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens; i += pc.nhost){
     addcell(new sens1(i - 15*ncell), i, pc.id)
 }
 
-/*
-for (i=pc.id+ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens; i < ncell*21+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff; i += pc.nhost){
+
+for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff; i += pc.nhost){
     addcell(new IaAff(i - 30*ncell), i, pc.id)
 }
 
 //add sensory generator
-if (pc.id == 0) {
+/*if (pc.id == 0) {
     {addcell(new sensorygen(),ncells+1,pc.id)}
-}
-*/
+}*/
+
 
 //add EES
 if (pc.id == 0) {
@@ -93,9 +93,8 @@ if (pc.id == 0) {
 }
 
 {load_file("./ses/3.ses")}
-{load_file("./ses/2.ses")}
 
-
-{load_file("connections.hoc")}
+{load_file("connectionFlexor.hoc")}
+//forall psection()
 {load_file("recording.hoc")}
 

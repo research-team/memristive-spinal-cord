@@ -15,7 +15,7 @@ objref synex_
 proc init() {local i, j
 
     ndend = 10
-    nsyn = 1
+    nsyn = 10
     
     soma_diam = 10    
     soma_len = 10      
@@ -24,7 +24,7 @@ proc init() {local i, j
     soma_Ra = 200     
 
     axon_diam = 1     
-    axon_len = 150 + $1*0.5     
+    axon_len = 150 //+ $1*0.5     
     axon_nseg = 50 
     axon_cm = 3
     axon_Ra = 150        
@@ -49,9 +49,10 @@ proc init() {local i, j
         cm = soma_cm
         Ra = soma_Ra
         insert hh
-        gnabar_hh=0.25
-        gl_hh = .0004
+        gnabar_hh=0.3
+        gl_hh = .00017
         el_hh = -60.0
+        //ena_hh=-55.0
 
         pt3dclear()
         pt3dadd(-500,400,$1*5,soma_diam) 
@@ -78,15 +79,18 @@ proc init() {local i, j
         dend[i] {
             nseg = dend_nseg    
             diam = dend_diam    
-            L = dend_len        
+            L = dend_len  
+            //insert hh  
+            //gnabar_hh=0.4
+            //gl_hh = .00017
+            //el_hh = -60.0  
+            insert pas  
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,400,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),400,$1*5,diam)
-            insert nap
-            insert nafast
+            pt3dadd(-500+dend_len*i+(i%2)*soma_len,400,$1*5,diam)
+            pt3dadd(-500+dend_len*(i+1)+(i%2)*soma_len,400,$1*5,diam)
         }
 
-        for j = 0, nsyn-1{
+        for j = 0, nsyn*10-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
             synex_.tau = 0.1
             synex_.e=50
@@ -94,8 +98,8 @@ proc init() {local i, j
             synees_.tau = 0.1
             synees_.e=50
             dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_) //Exp2Syn(0.5)
-            //syninh_.tau1 = 1.5
-            //syninh_.tau2 = 2
+            syninh_.tau1 = 1.5
+            syninh_.tau2 = 4
             syninh_.e = -80
         }
 

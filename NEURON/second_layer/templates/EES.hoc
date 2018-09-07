@@ -9,7 +9,7 @@ proc init() {
         ees.interval = 25
         ees.start = 1
         ees.number = 1000000000
-        ees.noise = 0 
+        ees.noise = 0
 
 }
 
