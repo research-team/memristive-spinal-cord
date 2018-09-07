@@ -54,7 +54,7 @@ proc connectionSTDP(){
     stdp = new StdwaSA(0.5)
     $o2.append(nc)
     if($8 == 1){
-        r.uniform(0.00027, 0.00032)
+        r.uniform(0.00025, 0.00028)
         nc.weight = r.repick()
         //nc.delay = 2
     }else if($8 == 2){
@@ -63,7 +63,7 @@ proc connectionSTDP(){
         r.uniform(2, 2.5)
         nc.delay = r.repick()
     }else if($8 == 3){
-        r.uniform(0.00027, 0.0003)
+        r.uniform(0.00025, 0.00028)
         nc.weight = r.repick()
     }else if($8 == 4){
         stdp.aLTD = -0.001//inhibitory
@@ -120,8 +120,8 @@ addConnection(ncell*9, ncell*10, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*
 for n =0, 2{
     addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex, 2, 0)
     addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
-    addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+6), ncell*(n+7), connect_ex_ex, 4, 1)
-    addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*(n+6), ncell*(n+7), connect_ex_ex, 4, 1)
+    addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh, 4, 1)
+    addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh, 4, 1)
     addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+9), ncell*(n+10), connect_ex_inh, 0, 1)
     addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex, 5, 0)
     addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
@@ -131,10 +131,17 @@ for n =0, 2{
 for n = 12, 16{
     addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex, 2, 0)
     addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
-    addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh, 4, 1)
+    //addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh, 4, 1)
+    //addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh, 4, 1)
     addConnection(ncell*(n+10), ncell*(n+11), 27, ncell*n, ncell*(n+1), connect_ex_ex, 5, 0)
     addConnection(ncell*(n+10), ncell*(n+11), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex, 5, 0)
 }
+
+    addConnection(ncell*12, ncell*13, 27, ncell*22, ncell*23, connect_ex_inh, 4, 1)
+    addConnection(ncell*13, ncell*14, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
+    addConnection(ncell*5, ncell*6, 27, ncell*22, ncell*23, connect_ex_inh, 4, 1)
+    addConnection(ncell*6, ncell*7, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
+
 
 //subthresholds
 for n = 27, 30{
@@ -142,6 +149,7 @@ for n = 27, 30{
     addConnection(ncell*(n+4), ncell*(n+5), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
     addConnection(ncell*(n+8), ncell*(n+9), 27, ncell*n, ncell*(n+1), connect_ex_inh, 3, 0)
     addConnection(ncell*(n+8), ncell*(n+9), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex, 3, 0)
+    addConnection(ncell*(n+4), ncell*(n+5), 27, ncell*(n+8), ncell*(n+9), connect_ex_ex, 4, 1)
 }
 
 //connection between subthresholds
@@ -156,25 +164,33 @@ addConnection(ncell*35, ncell*36, 27, ncell*6, ncell*7, connect_ex_ex, 1, 0)
 addConnection(ncell*13, ncell*14, 27, ncell*6, ncell*7, connect_ex_ex, 5, 0)
 addConnection(ncell*12, ncell*13, 27, ncell*6, ncell*7, connect_ex_ex, 5, 0)
 
-addConnection(ncell*2, ncell*3, 27, ncell*36, ncell*37, connect_ex_ex, 5, 0)
-addConnection(ncell*11, ncell*12, 27, ncell*36, ncell*37, connect_ex_ex, 5, 0)
+addConnection(ncell*2, ncell*3, 27, ncell*35, ncell*36, connect_ex_ex, 5, 0) //add generator .. strong connection between delay and generator
+addConnection(ncell*11, ncell*12, 27, ncell*35, ncell*36, connect_ex_ex, 5, 0)
+
+addConnection(ncell*14, ncell*15, 27, ncell*2, ncell*3, connect_ex_ex, 5, 0) //add generator .. strong connection between delay and generator
 
 addConnection(ncell*14, ncell*15, 27, ncell*8, ncell*9, connect_ex_ex, 5, 0)
 
-addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 5, 0)
-addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
+//addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 5, 0)
+//addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
 
 addConnection(ncell*15, ncell*16, 27, ncell*19, ncell*20, connect_ex_ex, 5, 0)
 
+addConnection(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
+
+addConnection(ncell*30, ncell*31, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+addConnection(ncell*38, ncell*39, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+
+
 //inhibitory projections 
-for n = 12, 15{
+for n = 13, 15{
     addConnection(ncell*n, ncell*(n+1), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
     addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*21, ncell*22, connect_ex_inh, 4, 1)
 }
 
 //connection IP
-for n = 0, 9 {
-    addConnection(ncell*39+15*n, ncell*39+15*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
+for n = 0, 3 {
+    addConnection(ncell*39+30*n, ncell*39+30*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
 }
 
 //connection MNE
