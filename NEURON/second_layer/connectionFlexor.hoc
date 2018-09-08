@@ -141,6 +141,7 @@ for n = 12, 16{
     addConnection(ncell*13, ncell*14, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
     addConnection(ncell*5, ncell*6, 27, ncell*22, ncell*23, connect_ex_inh, 4, 1)
     addConnection(ncell*6, ncell*7, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
+    addConnection(ncell*16, ncell*17, 27, ncell*26, ncell*27, connect_ex_inh, 4, 1)
 
 
 //subthresholds
@@ -171,26 +172,26 @@ addConnection(ncell*14, ncell*15, 27, ncell*2, ncell*3, connect_ex_ex, 5, 0) //a
 
 addConnection(ncell*14, ncell*15, 27, ncell*8, ncell*9, connect_ex_ex, 5, 0)
 
-//addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 5, 0)
-//addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
+addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 5, 0)
+addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
 
 addConnection(ncell*15, ncell*16, 27, ncell*19, ncell*20, connect_ex_ex, 5, 0)
 
 addConnection(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
 
-addConnection(ncell*30, ncell*31, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
-addConnection(ncell*38, ncell*39, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+//addConnection(ncell*30, ncell*31, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+//addConnection(ncell*38, ncell*39, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
 
 
 //inhibitory projections 
-for n = 13, 15{
-    addConnection(ncell*n, ncell*(n+1), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
-    addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*21, ncell*22, connect_ex_inh, 4, 1)
+for n = 12, 15{
+    addConnection(ncell*n, ncell*(n+1), 27, ncell*30, ncell*31, connect_ex_inh, 4, 1)
+    addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*34, ncell*35, connect_ex_inh, 4, 1)
 }
 
 //connection IP
-for n = 0, 3 {
-    addConnection(ncell*39+30*n, ncell*39+30*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
+for n = 0, 4 {
+    addConnection(ncell*39+24*n, ncell*39+24*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
 }
 
 //connection MNE
