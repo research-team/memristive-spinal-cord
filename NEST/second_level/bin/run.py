@@ -6,10 +6,10 @@ import getopt
 # Add the work directory to the PATH
 sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-3]))
 
-from the_second_level.src.tools.cleaner import Cleaner
-from the_second_level.src.paths import topologies_path
-from the_second_level.src.tools.plotter import Plotter
-from the_second_level.src.tools.miner import Miner
+from second_level.src.tools.cleaner import Cleaner
+from second_level.src.paths import topologies_path
+from second_level.src.tools.plotter import Plotter
+from second_level.src.tools.miner import Miner
 
 
 def cleaner():
@@ -75,11 +75,11 @@ def multi_simulation(topology_name):
 	Args:
 		topology_name:
 	"""
-	#cleaner()
-	#for test_number in range(10):
-	#	print("Test number", test_number)
-	#	simulate(topology_name, multitest=True, iteration=test_number)
-	## plot slices
+	cleaner()
+	for test_number in range(50):
+		print("Test number", test_number)
+		simulate(topology_name, multitest=True, iteration=test_number)
+	# plot slices
 	Plotter.plot_10test(num_slices=6, name="moto", plot_mean=False, from_memory=False)
 
 

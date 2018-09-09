@@ -5,7 +5,7 @@ import logging as log
 from ..data import *
 from nest import GetStatus
 from collections import defaultdict
-from the_second_level.src.paths import raw_data_path, spiketimes_path
+from second_level.src.paths import raw_data_path, spiketimes_path
 
 class Miner:
 	@staticmethod

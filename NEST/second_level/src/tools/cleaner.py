@@ -1,6 +1,6 @@
 import os
 import shutil
-from the_second_level.src.paths import results_path
+from second_level.src.paths import results_path
 
 class Cleaner:
     dirs_to_create = ['img', 'raw_data']
