@@ -67,7 +67,7 @@ proc connectionSTDP(){
         nc.weight = r.repick()
     }else if($8 == 4){
         stdp.aLTD = -0.001//inhibitory
-        r.uniform(0.004, 0.04)
+        r.uniform(0.004, 0.08)
         nc.weight = r.repick()
     }else if($8 == 5){
         r.uniform(0.005, 0.05)
@@ -172,12 +172,12 @@ addConnection(ncell*14, ncell*15, 27, ncell*2, ncell*3, connect_ex_ex, 5, 0) //a
 
 addConnection(ncell*14, ncell*15, 27, ncell*8, ncell*9, connect_ex_ex, 5, 0)
 
-addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 5, 0)
+addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
 addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
 
 addConnection(ncell*15, ncell*16, 27, ncell*19, ncell*20, connect_ex_ex, 5, 0)
 
-addConnection(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
+addConnection(ncell*21, ncell*22, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
 
 //addConnection(ncell*30, ncell*31, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
 //addConnection(ncell*38, ncell*39, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
@@ -185,8 +185,8 @@ addConnection(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
 
 //inhibitory projections 
 for n = 12, 15{
-    addConnection(ncell*n, ncell*(n+1), 27, ncell*30, ncell*31, connect_ex_inh, 4, 1)
-    addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*34, ncell*35, connect_ex_inh, 4, 1)
+    addConnection(ncell*n, ncell*(n+1), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
+    addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
 }
 
 //connection IP
