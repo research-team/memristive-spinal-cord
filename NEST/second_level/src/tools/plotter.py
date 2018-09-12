@@ -6,8 +6,9 @@ import numpy as np
 from nest import GetStatus
 from collections import defaultdict
 from ..data import *
-from the_second_level.src.tools.miner import Miner
-from the_second_level.src.paths import img_path, topologies_path
+from second_level.src.tools.miner import Miner
+from second_level.src.paths import img_path, topologies_path
+
 
 
 topology = __import__('{}.{}'.format(topologies_path, sys.argv[1]), globals(), locals(), ['Params'], 0)
@@ -48,35 +49,30 @@ class Plotter:
 		Plotter.save_voltage('hidden_tiers')
 
 	@staticmethod
-	def plot_10test(num_slices=6, name='moto', plot_mean=False, from_memory=True):
+	def plot_n_tests(num_slices=6, name='moto', test_number=10, from_memory=True):
 		"""
 		Method for search and plotting test data
 		Args:
 			num_slices (int): number of slices
 			name (str): neuron group name
-			plot_mean (bool): choose what to plot: mean (True) or all tests (False)
+			test_number:
+			from_memory:
 		"""
+		slices = {}
+		yticks = []
 		step = 0.1
-		test_number = 10
 		period = 1000 / Params.RATE.value
 		num_dots = int(1 / step * num_slices * period)
 		shift = Params.PLOT_SLICES_SHIFT.value
 		shift_dots = int(1 / step * shift)
-		slices = {}
-		test_colors = {}
-
-		# create the main body of the figure and it's subplots
-		fig = pylab.figure(figsize=(9, 3))
-		fig.suptitle("Rate {} Hz, Inh {}%".format(Params.RATE.value, 100 * Params.INH_COEF.value), fontsize=11)
 		# collect data from each test
 		test_names = ["{}-{}".format(test_n, name) for test_n in range(test_number)]
-
 		# every slice keep 10 tests, each test contain voltage results
 		for index, test_name in enumerate(test_names):
-			test_colors[test_name] = colors[index]
 			test_data = Miner.gather_mean_voltage(test_name, from_memory=from_memory)
 			raw_times = sorted(test_data.keys())[shift_dots-1:num_dots + shift_dots]    # make [8, 33]
 			fraction = float(len(raw_times)) / num_slices
+
 			for slice_number in range(num_slices):
 				start_time = int(slice_number * fraction)
 				end_time = int((slice_number + 1) * fraction) if slice_number < num_slices - 1 else len(raw_times) - 1
@@ -84,26 +80,27 @@ class Plotter:
 				if slice_number not in slices.keys():
 					slices[slice_number] = dict()
 				slices[slice_number][test_name] = values
-		yticks = []
+
+		pylab.figure(figsize=(9, 3))
+		pylab.suptitle("Rate {} Hz, inh {}%".format(Params.RATE.value, 100 * Params.INH_COEF.value), fontsize=11)
+		# plot each slice
 		for slice_number, tests in slices.items():
 			offset = slice_number * 40
 			yticks.append(tests[list(tests.keys())[0]][0] + offset)
-			local_offset = np.arange(-14, 14, 2.9)
-			index = 0
-			for test_name, voltages in tests.items():
-				pylab.plot([time / 10 for time in range(len(voltages))],
-				           [v + offset + local_offset[index] for v in voltages],
-				           linewidth=0.5,
-				           color='gray')
-				index += 1
-			if plot_mean:
-				mean_data = list(map(lambda elements: sum(elements) / test_number,
-				                     zip(*[voltages for test_name, voltages in tests.items()])))
-				pylab.plot([time / 10 for time in range(len(mean_data))],
-				           [v + offset for v in mean_data],
-				           color='gray',
-				           linewidth=2,
-				           linestyle='--')
+			# collect mean data: sum values (mV) step by step (ms) per test and divide by test number
+			mean_data = list(map(lambda elements: sum(elements) / test_number, zip(*tests.values())))  #
+			# collect values
+			times = [time / 10 for time in range(len(mean_data))]   # divide by 10 to convert to ms step
+			means = [voltage + offset for voltage in mean_data]
+			minimal_per_step = [min(a) for a in zip(*tests.values())]
+			maximal_per_step = [max(a) for a in zip(*tests.values())]
+			# plot mean with shadows
+			pylab.plot(times, means, linewidth=1, color='gray')
+			pylab.fill_between(times,
+			                   [i + offset for i in minimal_per_step],  # the minimal values + offset (slice number)
+			                   [i + offset for i in maximal_per_step],  # the maximal values + offset (slice number)
+			                   alpha=0.35)
+			# plot lines to see when activity should be started
 			if slice_number in [0, 1]:
 				pylab.plot([13, 13], [-100, 250], linewidth=boldline, color='r')
 			if slice_number == 2:
@@ -113,21 +110,18 @@ class Plotter:
 			if slice_number == 5:
 				pylab.plot([21, 21], [120, 250], linewidth=boldline, color='r')
 		pylab.axvline(x=5, linewidth=thickline, color='r')
-
 		# global plot settings
-		#pylab.yticks(yticks, range(1, num_slices+1))
-		pylab.xticks(range(26), [i if i % 5 == 0 else "" for i in range(26)])
 		pylab.xlim(0, 25)
+		pylab.xticks(range(26), [i if i % 5 == 0 else "" for i in range(26)])
+		pylab.yticks(yticks, range(1, num_slices+1))
 		pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 		pylab.subplots_adjust(left=0.03, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
 		pylab.gca().invert_yaxis()
-		pylab.subplots_adjust(left=0.07, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
-
 		pylab.show()
 		# save the plot
-		fig_name = 'slices{}Hz-{}Inh-{}sublevels_mean'.format(Params.RATE.value,
-		                                                      Params.INH_COEF.value,
-		                                                      Params.NUM_SUBLEVELS.value)
+		fig_name = 'slices_mean_{}Hz_{}inh-{}sublevels'.format(Params.RATE.value,
+		                                                       Params.INH_COEF.value,
+		                                                       Params.NUM_SUBLEVELS.value)
 		pylab.savefig(os.path.join(img_path, '{}.png'.format(fig_name)), dpi=200)
 		pylab.close('all')
 		logger.info('saved to "{}"'.format(os.path.join(img_path, '{}.png'.format(fig_name))))

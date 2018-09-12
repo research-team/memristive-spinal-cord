@@ -66,7 +66,7 @@ Neuron* group65[neurons_in_group];
 void show_results() {
     /// Printing results function
     ofstream myfile;
-    myfile.open ("/home/ranel/sim_results.txt");
+    myfile.open ("./sim_results.txt");
 
     for (int nrn_id = 0; nrn_id < neuron_number; nrn_id++) {
         myfile << "ID: "<< neurons[nrn_id]->getID() << "\n";
