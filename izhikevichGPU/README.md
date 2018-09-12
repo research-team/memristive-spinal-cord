@@ -17,6 +17,8 @@ You should have installed PGI and Nvidia videocard
 3. Compile by the command:
 ```bash
 pgc++ -acc -ta=tesla:managed,lineinfo -Minfo=all,intensity,ccff -o output main.cpp
+or
+pgc++ -acc -ta=tesla:cuda9.1,lineinfo -Minfo=all,intensity,ccff -o kek main.cpp
 ```
 4. Then run the program:
 ```bash
@@ -26,3 +28,6 @@ pgc++ -acc -ta=tesla:managed,lineinfo -Minfo=all,intensity,ccff -o output main.c
 ```bash
 nvprof ./output
 ```
+
+6. Plot
+```python3 plot_results.py /path/to/sim_results.txt  5```
