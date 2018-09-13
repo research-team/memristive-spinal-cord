@@ -56,7 +56,7 @@ proc epochrun() { local i, n, j
         //}
     }
 }
-epochrun(1, 1, 1)
+epochrun(1, 100, 50)
 
 objref fok
 fok=new File()

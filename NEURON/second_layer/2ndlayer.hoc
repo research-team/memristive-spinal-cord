@@ -29,7 +29,7 @@ cells = new List()
 
 objref pc, r
 pc = new ParallelContext()
-r = new Random()
+r = new Random(startsw())
 
 proc addcell(){
     cells.append($o1)
@@ -94,7 +94,7 @@ if (pc.id == 0) {
 
 {load_file("./ses/3.ses")}
 
-{load_file("connectionFlexor.hoc")}
+{load_file("connectionExtensor.hoc")}
 //forall psection()
 {load_file("recording.hoc")}
 
