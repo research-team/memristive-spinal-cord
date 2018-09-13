@@ -6,46 +6,54 @@
 #include <cstdio>
 #include <cmath>
 #include <utility>
+#include "Synapse.h"
 
 using namespace std;
+
+extern const float T_sim;
 class Neuron {
-    /// Synapse structure
+    /*/// Synapse structure
     struct Synapse {
-        Neuron* post_neuron; // post neuron ID
-        int syn_delay;		 // [steps] synaptic delay. Converts from ms to steps
-        float weight;		 // [pA] synaptic weight
-        int timer;			 // [steps] changeable value of synaptic delay
-        float changing_weight;
+        Neuron* post_neuron{}; // post neuron ID
+        int syn_delay{};		 // [steps] synaptic delay. Converts from ms to steps
+        float weight{};		 // [pA] synaptic weight
+        int timer{};			 // [steps] changeable value of synaptic delay
+        float changing_weight{};
+        int stdp_timer{};
 
         Synapse() = default;
-        Synapse(Neuron* post_neuron, float syn_delay, float weight) {
-            this-> post_neuron = post_neuron;
-            this-> syn_delay = ms_to_step(syn_delay);
-            this-> weight = weight;
-            this-> timer = 0;
-            this-> changing_weight = weight;
+        Synapse(Neuron* post, float delay, float w) {
+            this-> post_neuron = post;
+            this-> syn_delay = ms_to_step(delay);
+            this-> weight = w;
+            this-> timer = -1;
+            this-> changing_weight = w;
+            this-> stdp_timer = -1;
         }
-    };
+    };*/
 private:
     /// Object variables
     int id{};								// neuron ID
     float *spike_times{};					// array of spike time
     float *membrane_potential{};			// array of membrane potential values
+    double *weights{};			// array of membrane potential values
     float *I_potential{};					// array of I
+    int last_spike_time{};
 
     int mm_record_step = ms_to_step(0.1f); 	// step of recording membrane potential
     int iterSpikesArray = 0;				// current index of array of the spikes
     int iterVoltageArray = 0; 				// current index of array of the V_m
-    unsigned short simulation_iter = 0;		// current simulation step
+    int simulation_iter = 0;		        // current simulation step
     bool hasMultimeter = false;				// if neuron has multimeter
     bool hasSpikedetector = false;			// if neuron has spikedetector
     bool hasGenerator = false;				// if neuron has generator
+    bool hasWeightrecorder = false;
 
     /// Stuff variables
-    float T_sim = 500.0;					                    // simulation time
-    const float I_tau = 3.0f;				                    // step of I decreasing/increasing
-    static constexpr float ms_in_1step = 0.1f;	                // how much milliseconds in 1 step
-    static const short steps_in_1ms = (short) (1 / ms_in_1step);// how much steps in 1 ms
+    const float I_tau = 3.0f;				                            // step of I decreasing/increasing
+    static constexpr float ms_in_1step = 0.1f;	                        // how much milliseconds in 1 step
+    static const int steps_in_1ms = static_cast<int>(1 / ms_in_1step);  // how much steps in 1 ms
+    const int STDP_TIMER = 30 * steps_in_1ms;
 
     /// Parameters (const)
     const float C = 100.0f;			// [pF] membrane capacitance
@@ -68,10 +76,11 @@ private:
     float current_ref_t = 0;
 
 public:
-
     Synapse* synapses = new Synapse[100];	// array of synapses
     int num_synapses{0};                    // current number of synapses (neighbors)
     int synapse_array_capacity = 100;       // length of the array of a synapses
+    Synapse* input_syns = new Synapse[100];
+    int num_input_syns{0};
 
     char* name{};
 
@@ -87,6 +96,7 @@ public:
             this->I += I;
         }
     }
+
     void addMultimeter() {
         // set flag that this neuron has the multimeter
         hasMultimeter = true;
@@ -94,6 +104,8 @@ public:
         membrane_potential = new float[ (ms_to_step(T_sim) / mm_record_step) ];
         // allocate memory for recording I
         I_potential = new float[ (ms_to_step(T_sim) / mm_record_step) ];
+        weights = new double[ ms_to_step(T_sim) / mm_record_step ];
+
     }
 
     void addSpikedetector() {
@@ -144,15 +156,19 @@ public:
         return I_potential;
     }
 
+    double* getWeights() {
+        return weights;
+    }
+
     int getVoltageArraySize() {
         return (ms_to_step(T_sim) / mm_record_step);
     }
 
-    unsigned int getSimulationIter() {
+    int getSimulationIter() {
         return simulation_iter;
     }
 
-    int getIterSpikesArray() const {
+    int getIterSpikesArray() {
         return iterSpikesArray;
     }
 
@@ -176,6 +192,8 @@ public:
         if (hasMultimeter && simulation_iter % mm_record_step == 0) {
             membrane_potential[iterVoltageArray] = V_m;
             I_potential[iterVoltageArray] = I;
+            if (this->id == 1)
+                weights[iterVoltageArray] = synapses[0].changing_weight;
             iterVoltageArray++;
         }
 
@@ -185,8 +203,10 @@ public:
         // threshold crossing (spike)
         if (V_m >= V_peak) {
             // set timers for all neuron synapses
-            for (int i = 0; i < num_synapses; i++ )
+            for (int i = 0; i < num_synapses; i++) {
                 synapses[i].timer = synapses[i].syn_delay;
+                synapses[i].stdp_timer = STDP_TIMER;
+            }
 
             // redefine V_old and U_old
             V_old = c;
@@ -194,6 +214,7 @@ public:
 
             // save spike time if hasSpikedetector
             if (hasSpikedetector) {
+                printf("OOOOOOOOOOOOOO %d \n", iterSpikesArray);
                 spike_times[iterSpikesArray] = step_to_ms(simulation_iter);
                 iterSpikesArray++;
             }
@@ -208,34 +229,46 @@ public:
 
         // update timers in all neuron synapses
         for (int i = 0; i < num_synapses; i++ ) {
-
-            // decrement timer
-            if (synapses[i].timer > 0) {
-                synapses[i].timer -= 1;
-            }
-
+            Synapse* syn = synapses + i;
             // "send spike"
-            if (synapses[i].timer == 0) {
+            if (syn->timer == 0) {
+                syn->changing_weight += updateSTDP(syn);
+                updateInputSyns();
                 // change the I (currents) of the post neuron
 
-                synapses[i].changing_weight += updateSTDP(synapses + i);
-                if (synapses[i].weight != synapses[i].changing_weight) {
+                if (syn->weight != syn->changing_weight) {
                     printf("iter = %d|||(%d) and (%d) are connected with weight = %f; ch_w = %f\n",
-                           simulation_iter, this->getID(), synapses[i].post_neuron->getID(),
-                           synapses[i].weight, synapses[i].changing_weight);
+                           simulation_iter, this->getID(), syn->post_neuron->getID(),
+                           syn->weight, syn->changing_weight);
                 }
 
-                // 300ms update delay
-                if (step_to_ms(simulation_iter) == 300) {
-                    synapses[i].weight = synapses[i].changing_weight;
-                }
-
-                synapses[i].post_neuron->changeCurrent(synapses[i].weight);
+                //syn->post_neuron->changeCurrent(simulation_iter / 10);
+                syn->post_neuron->changeCurrent(syn->weight);
 
                 // set timer to -1 (thats mean no need to update timer in future without spikes)
-                synapses[i].timer = -1;
+                syn->timer = -1;
+            }
+
+            //if (syn->stdp_timer == 0) {
+            //    syn->weight = syn->changing_weight;
+            //    syn->stdp_timer = STDP_TIMER;
+            //}
+
+            // decrement timers
+            //printf("%d %f \n", this->id, syn->timer);
+            if (syn->timer > 0) {
+                printf("ID %d , %d \n", this->id, syn->timer);
+                syn->timer--;
+            }
+            if (syn->stdp_timer > 0) {
+                syn->stdp_timer--;
             }
         }
+        if (V_m >= V_peak)
+            last_spike_time = simulation_iter;
+
+
+
 
         // update I (currents) of the neuron
         // doesn't change the I of generator neurons!!!
@@ -261,40 +294,54 @@ public:
 
     // STDP function (learning window)
     float W(float delta) {
-        float result = 0.0;
+        int maximal = 2;
+        int minimal = -maximal;
 
+        float result = 0.0;
         float Aplus = 1;
         float Aminus = 1;
         int Tplus = 20;
         int Tminus = 20;
+        if (delta > 20 || delta < -20)
+            return result;
         if (delta >= 0) {
             result += Aplus * exp(delta/Tplus);
         } else {
             result += -Aminus * exp(delta/Tminus);
         }
-
+        printf("delta %f \n", delta);
+        if (result > maximal)
+            result = maximal;
+        if (result < minimal)
+            result = minimal;
         return result;
     }
 
     float updateSTDP(Synapse* syn) {
         float change = 0.0;
 
-        for (int i = 0; i < iterSpikesArray; ++i) {
-            for (int j = 0; j < syn->post_neuron->iterSpikesArray; ++j) {
-                change += W(syn->post_neuron->spike_times[j] - this->spike_times[i]);
-            }
+        printf("TTTT pre ID %d (%d)  post ID %d (%d) Weight %f\n",
+               this->id,
+               iterSpikesArray,
+               syn->post_neuron->id,
+               syn->post_neuron->getIterSpikesArray(), syn->weight);
+
+        change += W(step_to_ms(syn->post_neuron->last_spike_time - this->last_spike_time));
+        if (syn->changing_weight * (syn->changing_weight + change) < 0) {
+            change = -syn->changing_weight;
         }
+        printf("STDP CHANGE %f \n", change);
         return change;
     }
 
-    void connectWith(Neuron *post_neuron, float syn_delay, float weight) {
+    void connectWith(Neuron* pre_neuron, Neuron* post_neuron, float syn_delay, float weight) {
         /// adding the new synapse to the neuron
-        auto* syn = new Synapse(post_neuron, syn_delay, weight);
-        synapses[num_synapses] = *syn;
-
-        num_synapses++;
+        Synapse* syn = new Synapse(pre_neuron, post_neuron, syn_delay, weight);
+        pre_neuron->synapses[pre_neuron->num_synapses++] = *syn;
+        post_neuron->input_syns[post_neuron->num_input_syns++] = *syn;
 
         // increase array size if near to the limit
+        /*
         if (num_synapses == synapse_array_capacity) {
             int new_neighbors_capacity = static_cast<int>(synapse_array_capacity * 1.5 + 1);
             auto* new_neighbors = new Synapse[new_neighbors_capacity];
@@ -306,17 +353,36 @@ public:
             synapses = new_neighbors;
             synapse_array_capacity = new_neighbors_capacity;
             delete[] new_neighbors;
-        }
+        }*/
 
         /*printf("Connected %d (%p) to %d (%p) (%.2f) \n",
                this->getID(), this, post_neuron->getID(), post_neuron->getThis(), weight);*/
-        delete syn;
+    }
+
+    void updateInputSyns() {
+        for (int i = 0; i < num_input_syns; ++i) {
+            printf("___________weight = %f\n", input_syns[i].changing_weight);
+            printf("-----------from post(%d) to pre(%d)\n", input_syns[i].post_neuron->getID(), input_syns[i].pre_neuron->getID());
+            for (int j = 0; j < input_syns[i].pre_neuron->num_synapses; ++j) {
+                if (input_syns[i].pre_neuron->synapses[j].post_neuron == this) {
+                    input_syns[i].pre_neuron->synapses[j].changing_weight += 10;
+                }
+            }
+            //input_syns[i].changing_weight += 10;
+            printf("___________weight = %f\n", input_syns[i].changing_weight);
+        }
     }
 
     ~Neuron() {
 //#pragma acc exit data delete(this)
-        delete[] spike_times;
-        delete[] membrane_potential;
+        if (hasSpikedetector) {
+            delete[] spike_times;
+        }
+
+        if (hasMultimeter) {
+            delete[] membrane_potential;
+            delete[] I_potential;
+        }
         delete[] synapses;
     }
 };

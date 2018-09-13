@@ -5,17 +5,17 @@
 #include <fstream>
 #include <random>
 #include "Neuron.h"
-#include "time.h"
+#include "Synapse.h"
 
 using namespace std;
 
-const unsigned int neuron_number = 1440;
+const unsigned int neuron_number = 4;
 const unsigned int neurons_in_group = 40;
 const unsigned int synapses_number = 10;
 // Init the neuron objects
 Neuron* neurons[neuron_number];
 
-const float T_sim = 500.0;
+extern const float T_sim = 500.0;
 const float ms_in_1step = 0.1f; //0.01f; // ms in one step ALSO: simulation step
 const short steps_in_1ms = (short) (1 / ms_in_1step);
 
@@ -66,7 +66,7 @@ Neuron* group65[neurons_in_group];
 void show_results() {
     /// Printing results function
     ofstream myfile;
-    myfile.open ("./sim_results.txt");
+    myfile.open ("/home/ranel/sim_results.txt");
 
     for (int nrn_id = 0; nrn_id < neuron_number; nrn_id++) {
         myfile << "ID: "<< neurons[nrn_id]->getID() << "\n";
@@ -92,9 +92,17 @@ void show_results() {
             for(int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++){
                 myfile << neurons[nrn_id]->getCurrents()[k] << ", ";
             }
+            myfile << "]\n";
+            if (nrn_id == 1) {
+                myfile << "weights: [";
+                for (int k = 0; k < neurons[nrn_id]->getVoltageArraySize(); k++) {
+                    myfile << neurons[nrn_id]->getWeights()[k] << ", ";
+                }
+                myfile << "]\n";
+            }
         }
 
-        myfile << "]\n---------------\n";
+        myfile << "\n---------------\n";
     }
     myfile.close();
 }
@@ -108,7 +116,6 @@ void init_neurons() {
     // additional devices to the neurons
     for (int i = 0; i < neuron_number; ++i) {
         neurons[i]->addSpikedetector();
-        //neurons[i]->addMultimeter();}
         // TEST connections
         //for (int i = 0; i < neuron_number; ++i) {
         //	for (int j = 0; j < 30; ++j) {
@@ -118,6 +125,9 @@ void init_neurons() {
         //for(int i = 0; i < neuron_number; i+=10)
         //neurons[0]->addGenerator(180.f);
     }
+    neurons[1]->addMultimeter();
+    neurons[2]->addMultimeter();
+
 }
 
 void formGroup(int index, Neuron* group[], char* name) {
@@ -135,7 +145,7 @@ void connectFixedOutDegree(Neuron* a[], Neuron* b[], float syn_delay, float weig
     for (int i = 0; i < neurons_in_group; i++) {
         for(int j = 0; j < synapses_number; j++) {
             int b_index = rand() % neurons_in_group;
-            a[i]->connectWith(b[b_index], syn_delay, weight);
+            a[i]->connectWith(a[i], b[b_index], syn_delay, weight);
         }
     }
 }
@@ -144,7 +154,9 @@ void debug() {
     for (int i = 0; i < neuron_number; ++i) {
         printf("id = %d %s (%d)\n", i, neurons[i]->name, neurons[i]->num_synapses);
         for (int j = 0; j < neurons[i]->num_synapses; ++j) {
-            printf("|---- %p\n", neurons[i]->synapses[j].post_neuron);
+            printf("|---- ID %d, %p\n",
+                   neurons[i]->synapses[j].post_neuron->getID(),
+                   neurons[i]->synapses[j].post_neuron);
         }
     }
 }
@@ -277,8 +289,16 @@ void simulate() {
 
 int main(int argc, char *argv[]) {
     init_neurons();
-    init_groups();
-    init_synapses();
+    //init_groups();
+    //init_synapses();
+
+    neurons[0]->addGenerator(180.0f);
+    neurons[3]->addGenerator(100.0f);
+
+    neurons[0]->connectWith(neurons[0], neurons[1], 2, 500);
+    neurons[3]->connectWith(neurons[3], neurons[2], 2, 500);
+    neurons[1]->connectWith(neurons[1], neurons[2], 2, 500);
+
     debug();
     simulate();
     show_results();
