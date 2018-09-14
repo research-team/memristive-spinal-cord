@@ -54,7 +54,7 @@ for (i=pc.id+ncell*39; i < ncell*39+nIP; i += pc.nhost){
 for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
     addcell(new MNE(i - 14*ncell), i, pc.id)
 }
-/*
+
 r.uniform(50, 55)
 for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
     addcell(new Ia(r.repick()), i, pc.id)
