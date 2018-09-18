@@ -10,8 +10,8 @@ __tested___ = "14.09.2018 NEST 2.16.0 (with own module) Python 3"
 import nest
 import pylab
 
-T_sim = 25.0
-spike_times = [2.5, 10.0, 17.0]
+T_sim = 25
+spike_times = [2.0, 10.0, 17.0]
 spike_weights = [400.0, 300.0, 250.0]
 
 nest.ResetKernel()
@@ -49,9 +49,9 @@ generator = nest.Create("spike_generator", 1, {'spike_weights': spike_weights, '
 nest.Connect(generator, neuron, syn_spec={'weight': 1.0, 'delay': 0.1})
 nest.Connect(multimeter, neuron)
 
-nest.Simulate(T_sim)
+nest.Simulate(float(T_sim))
 
-voltages_extracellular = nest.GetStatus(multimeter, "events")[0]['Extracellular']
+voltages_extracellular = [i / 10 for i in nest.GetStatus(multimeter, "events")[0]['Extracellular']]
 voltages_intracellular = nest.GetStatus(multimeter, "events")[0]['V_m']
 channel_leakage = nest.GetStatus(multimeter, "events")[0]['Act_h']
 channel_K = nest.GetStatus(multimeter, "events")[0]['Inact_n']
@@ -62,27 +62,26 @@ times_intracellular = [i / 10 for i in range(len(voltages_intracellular))]
 
 pylab.figure(figsize=(16, 9))
 pylab.subplot(311)
-for st in spike_times:
-	pylab.axvline(x=st, color='gray', linestyle="--")
+#for st in spike_times:
+#	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
+pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("uV")
 pylab.plot(times_extracellular, voltages_extracellular, label="Extracellular")
 pylab.legend()
 
 pylab.subplot(312)
-for st in spike_times:
-	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
+pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("mV")
 pylab.plot(times_intracellular, voltages_intracellular, label="Intracellular")
 pylab.legend()
 
 pylab.subplot(313)
-for st in spike_times:
-	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
 pylab.ylabel("Probability")
 pylab.xlabel("Time (ms)")
+pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.plot(times_intracellular, channel_Na, label="Na+")
 pylab.plot(times_intracellular, channel_K, label="K+")
 pylab.plot(times_intracellular, channel_leakage, label="Na+/K+ pump")
