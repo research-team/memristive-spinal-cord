@@ -9,8 +9,10 @@
 
 using namespace std;
 
-const unsigned int neuron_number = 4;
+const unsigned int neuron_number = 3000;
 const unsigned int neurons_in_group = 40;
+const unsigned int neurons_in_ip = neurons_in_group;
+const unsigned int neurons_in_test = 169;
 const unsigned int synapses_number = 10;
 // Init the neuron objects
 Neuron* neurons[neuron_number];
@@ -57,6 +59,15 @@ Neuron* group62[neurons_in_group];
 Neuron* group63[neurons_in_group];
 Neuron* group64[neurons_in_group];
 Neuron* group65[neurons_in_group];
+
+Neuron* ip1[neurons_in_group];
+Neuron* ip2[neurons_in_group];
+Neuron* ip3[neurons_in_group];
+Neuron* ip4[neurons_in_group];
+Neuron* ip5[neurons_in_group];
+Neuron* ip6[neurons_in_group];
+
+Neuron* test[neurons_in_test];
 
 // random
 //random_device rd;
@@ -130,9 +141,9 @@ void init_neurons() {
 
 }
 
-void formGroup(int index, Neuron* group[], char* name) {
+void formGroup(int index, Neuron* group[], char* name, int n = neurons_in_group) {
     int j = 0;
-    for (int i = index; i < index + neurons_in_group; ++i){
+    for (int i = index; i < index + n; ++i){
         group[j] = neurons[i];
         neurons[i]->name = name;
         ///printf("%s %d %d\n", name, i, j);
@@ -141,10 +152,10 @@ void formGroup(int index, Neuron* group[], char* name) {
     }
 }
 
-void connectFixedOutDegree(Neuron* a[], Neuron* b[], float syn_delay, float weight) {
-    for (int i = 0; i < neurons_in_group; i++) {
+void connectFixedOutDegree(Neuron* a[], Neuron* b[], float syn_delay, float weight, int n = neurons_in_group) {
+    for (int i = 0; i < n; i++) {
         for(int j = 0; j < synapses_number; j++) {
-            int b_index = rand() % neurons_in_group;
+            int b_index = rand() % n;
             a[i]->connectWith(a[i], b[b_index], syn_delay, weight);
         }
     }
@@ -199,6 +210,15 @@ void init_groups() {
     formGroup(neurons_in_group * i++, group63, "group63");
     formGroup(neurons_in_group * i++, group64, "group64");
     formGroup(neurons_in_group * i++, group65, "group65");
+
+    formGroup(neurons_in_group * i++, ip1, "ip1", neurons_in_ip);
+    formGroup(neurons_in_ip * i++, ip2, "ip2", neurons_in_ip);
+    formGroup(neurons_in_ip * i++, ip3, "ip3", neurons_in_ip);
+    formGroup(neurons_in_ip * i++, ip4, "ip4", neurons_in_ip);
+    formGroup(neurons_in_ip * i++, ip5, "ip5", neurons_in_ip);
+    formGroup(neurons_in_ip * i++, ip6, "ip6", neurons_in_ip);
+
+    formGroup(neurons_in_ip * i++, test, "test", neurons_in_test);
 }
 
 void init_synapses() {
@@ -263,6 +283,20 @@ void init_synapses() {
     connectFixedOutDegree(group63, group64, 2.0, 15.0);
     connectFixedOutDegree(group63, group65, 1.0, 15.0);
     connectFixedOutDegree(group64, group65, 1.0, 15.0);
+
+    connectFixedOutDegree(group14, ip1, 1., 17.);
+    connectFixedOutDegree(group27, ip2, 1., 17.);
+    connectFixedOutDegree(group37, ip3, 1., 17.);
+    connectFixedOutDegree(group47, ip4, 1., 17.);
+    connectFixedOutDegree(group56, ip5, 1., 17.);
+    connectFixedOutDegree(group65, ip6, 1., 17.);
+
+    connectFixedOutDegree(ip1, test, 1., 20., neurons_in_test);
+    connectFixedOutDegree(ip2, test, 1., 20., neurons_in_test);
+    connectFixedOutDegree(ip3, test, 1., 20., neurons_in_test);
+    connectFixedOutDegree(ip4, test, 1., 20., neurons_in_test);
+    connectFixedOutDegree(ip5, test, 1., 20., neurons_in_test);
+    connectFixedOutDegree(ip6, test, 1., 20., neurons_in_test);
 }
 
 void simulate() {
@@ -273,12 +307,12 @@ void simulate() {
 
     clock_t t = clock();
 
-//#pragma acc data copy(neurons)
-//#pragma acc parallel vector_length(200)
+    #pragma acc data copy(neurons)
+    #pragma acc parallel vector_length(200)
     {
-//#pragma acc loop gang worker seq
+        #pragma acc loop gang worker seq
         for (iter = 0; iter < T_sim * steps_in_1ms; iter++) {
-//#pragma acc loop vector
+        #pragma acc loop vector
             for (id = 0; id < neuron_number; id++) {
                 neurons[id]->update_state();
             }
@@ -289,17 +323,17 @@ void simulate() {
 
 int main(int argc, char *argv[]) {
     init_neurons();
-    //init_groups();
-    //init_synapses();
+    init_groups();
+    init_synapses();
 
-    neurons[0]->addGenerator(180.0f);
-    neurons[3]->addGenerator(100.0f);
+    // neurons[0]->addGenerator(180.0f);
+    // neurons[3]->addGenerator(100.0f);
 
-    neurons[0]->connectWith(neurons[0], neurons[1], 2, 500);
-    neurons[3]->connectWith(neurons[3], neurons[2], 2, 500);
-    neurons[1]->connectWith(neurons[1], neurons[2], 2, 500);
+    // neurons[0]->connectWith(neurons[0], neurons[1], 2, 500);
+    // neurons[3]->connectWith(neurons[3], neurons[2], 2, 500);
+    // neurons[1]->connectWith(neurons[1], neurons[2], 2, 500);
 
-    debug();
+    //debug();
     simulate();
     show_results();
     return 0;
