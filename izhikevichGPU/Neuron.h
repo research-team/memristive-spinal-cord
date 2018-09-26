@@ -172,7 +172,7 @@ public:
         return iterSpikesArray;
     }
 
-    //#pragma acc routine vector
+    #pragma acc routine vector
     /// Invoked every simulation step, update the neuron state
     void update_state() {
         if (current_ref_t > 0) {
@@ -374,7 +374,7 @@ public:
     }
 
     ~Neuron() {
-//#pragma acc exit data delete(this)
+    #pragma acc exit data delete(this)
         if (hasSpikedetector) {
             delete[] spike_times;
         }
