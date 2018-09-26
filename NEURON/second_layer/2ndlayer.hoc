@@ -1,4 +1,4 @@
-load_file("nrngui.hoc")
+{load_file("nrngui.hoc")}  // load the GUI and standard run libraries
 ncell = 20       /* The number of cells */
 nsyn = 2
 nMN = 169       /* The number of cells */
@@ -7,94 +7,85 @@ nAff = 120
 nRC = 196
 nIP = 120
 nSens = 120
-ncells = ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
+ncells = ncell*39+nIP+nMN+2*nAff //ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
 
 {load_file("./templates/EES.hoc")}
-{load_file("./templates/ex.hoc")}
-{load_file("./templates/inh.hoc")}
-{load_file("./templates/ip.hoc")}
-{load_file("./templates/MNE.hoc")}
+{load_file("./templates/interneuron.hoc")}
+{load_file("./templates/motoneuron.hoc")}
+{load_file("./templates/afferent.hoc")}
 {load_file("./templates/Ia.hoc")}
-{load_file("./templates/IaintE.hoc")}
-{load_file("./templates/IbintE.hoc")}
-{load_file("./templates/RCE.hoc")}
-{load_file("./templates/sens1.hoc")}
-{load_file("./templates/sensorygen.hoc")}
-{load_file("./templates/IaAff.hoc")}
-{load_file("save.hoc")}
 
+objref interneurons, motoneurons, afferents 
 
-objref cells, nil, nc
-cells = new List()
-
-objref pc, r
+objref pc
 pc = new ParallelContext()
-r = new Random(startsw())
 
-proc addcell(){
-    cells.append($o1)
-    pc.set_gid2node($2, $3)
-    nc = cells.object(cells.count()-1).connect2target(nil)
-    pc.cell($2, nc)
+proc addinterneurons() {local i  localobj cell, nc, nil
+    interneurons = new List()
+    for (i=pc.id; i < ncell*39+nIP; i += pc.nhost) {
+        cell = new interneuron(i)
+        interneurons.append(cell)
+        pc.set_gid2node(i, pc.id)  // associate gid i with this host
+        nc = cell.connect2target(nil)  // attach spike detector to cell
+        pc.cell(i, nc)  // associate gid i with spike detector
+    }
 }
 
-for (i=pc.id; i < ncell*39; i += pc.nhost){
-    addcell(new Ex(i), i, pc.id)
+proc addmotoneurons(){ local i localobj cell, nil, nc
+    motoneurons = new List()
+    for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
+        cell = new motoneuron(i - ncell*39)
+        motoneurons.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }
 }
 
-/*
-for (i=pc.id+ncell*6; i < ncell*12; i += pc.nhost){
-    addcell(new Inh((i - ncell)*2), i, pc.id)
-}*/
-
-for (i=pc.id+ncell*39; i < ncell*39+nIP; i += pc.nhost){
-    addcell(new IP0(i - 12*ncell), i, pc.id)
+proc addafferents(){ local i localobj cell, nil, nc
+    afferents = new List()
+    for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+2*nAff; i += pc.nhost){
+        cell = new afferent(i - ncell*49)
+        afferents.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }
+    /*r.uniform(50, 55)
+    for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
+        cell = new Ia(r.repick())
+        afferents.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }*/
 }
-
-for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
-    addcell(new MNE(i - 14*ncell), i, pc.id)
-}
-
-r.uniform(50, 55)
-for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
-    addcell(new Ia(r.repick()), i, pc.id)
-}
-/*
-for (i=pc.id+ncell*39+nIP+nMN+nAff; i < ncell*39+nIP+nMN+nAff+nInt; i += pc.nhost){
-    addcell(new IaE(i - 24*ncell), i, pc.id)
-}
-
-for (i=pc.id+ncell*39+nIP+nMN+nAff+nInt; i < ncell*39+nIP+nMN+nAff+2*nInt; i += pc.nhost){
-    addcell(new IbE(i - 24*ncell), i, pc.id)
-}
-
-for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC; i += pc.nhost){
-    addcell(new RCE(i - 25*ncell), i, pc.id)
-}
-*/
-for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt+nRC; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens; i += pc.nhost){
-    addcell(new sens1(i - 15*ncell), i, pc.id)
-}
-
-
-for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff; i += pc.nhost){
-    addcell(new IaAff(i - 30*ncell), i, pc.id)
-}
-
-//add sensory generator
-/*if (pc.id == 0) {
-    {addcell(new sensorygen(),ncells+1,pc.id)}
-}*/
-
 
 //add EES
-if (pc.id == 0) {
-    {addcell(new EES(), ncells, pc.id)}
+objref ncees, eestim
+proc addees() { localobj nil
+    if (pc.id == 0) {
+        eestim = new EES()
+        pc.set_gid2node(ncells, pc.id) 
+        ncees = eestim.connect2target(nil)
+        pc.cell(ncells, ncees)
+    }
 }
+
+proc addnet(){
+    addinterneurons()
+    addmotoneurons()
+    addafferents()
+}
+
+addnet()
+
+addees()
 
 {load_file("./ses/3.ses")}
 
-{load_file("connectionExtensor.hoc")}
+//{load_file("connectionExtensor.hoc")}
+{load_file("conn1.hoc")}
 //forall psection()
 {load_file("recording.hoc")}
 

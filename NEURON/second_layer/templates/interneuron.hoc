@@ -1,16 +1,15 @@
-begintemplate sens1
-public soma, axon, dend, connect2target, soma_Ra
+begintemplate interneuron
+public soma, axon, dend, presyn, connect2target
 
 create soma, axon, dend[1] 
-public presynexlist, presyninhlist
-objref presynexlist, presyninhlist
-objref presynex_      
-objref presyninh_      
+objectvar presyn
 
-public synlistees, synlistex
-objref synlistees, synlistex
+public synlistinh, synlistees, synlistex
+objref synlistinh, synlistees, synlistex
+objref syninh_ 
 objref synees_
 objref synex_
+
 
 
 proc init() {local i, j
@@ -24,26 +23,23 @@ proc init() {local i, j
     soma_cm = 2
     soma_Ra = 200     
 
-    axon_diam = 2      
-    axon_len = 150 + $1*0.5     
+    axon_diam = 1     
+    axon_len = 150 //+ $1*0.5     
     axon_nseg = 50 
-    axon_cm = 2
-    axon_Ra = 0.002        
+    axon_cm = 3
+    axon_Ra = 150        
 
     dend_diam = 1      
     dend_len = 40     
     dend_nseg = 1
     dend_cm = 2
-    dend_Ra = 200 
-
-
+    dend_Ra = 200          
 
     create soma, axon, dend[ndend] 
 
+    synlistinh = new List()
     synlistees = new List()
     synlistex = new List()
-    presynexlist = new List()
-    presyninhlist = new List()
 
 
     soma {
@@ -53,17 +49,14 @@ proc init() {local i, j
         cm = soma_cm
         Ra = soma_Ra
         insert hh
-        gnabar_hh=0.25
-        gl_hh = .0001666
+        gnabar_hh=0.3
+        gl_hh = .00017
         el_hh = -60.0
-
-        insert extracellular
-        xg = 1000
-        xc = 300 
+        //ena_hh=-55.0
 
         pt3dclear()
-        pt3dadd(-500,350,$1*5,soma_diam) 
-        pt3dadd(-500-soma_len,350,$1*5,soma_diam) 
+        pt3dadd(-500,400,$1*5,soma_diam) 
+        pt3dadd(-500-soma_len,400,$1*5,soma_diam) 
     }
 
     axon {
@@ -76,30 +69,38 @@ proc init() {local i, j
         insert hh
 
         pt3dclear()     
-        pt3dadd(-500,350,$1*5,axon_diam) 
-        pt3dadd(-500-soma_len-axon_len,350,$1*5,axon_diam) 
-
+        pt3dadd(-500,400,$1*5,axon_diam) 
+        pt3dadd(-500-soma_len-axon_len,400,$1*5,axon_diam) 
     }
-        presyninh_ = new GABAA_S(0.5) presyninhlist.append(presyninh_)
-        presynex_ = new AMPA_S(0.5) presynexlist.append(presynex_)
+
+    presyn = new AMPA_S(0.5) 
 
     for i = 0, ndend-1{
         dend[i] {
             nseg = dend_nseg    
             diam = dend_diam    
-            L = dend_len        
+            L = dend_len  
+            //insert hh  
+            //gnabar_hh=0.4
+            //gl_hh = .00017
+            //el_hh = -60.0  
+            insert pas  
             pt3dclear()     
-            pt3dadd(-500+dend_len*i,350,$1*5,diam)
-            pt3dadd(-500+dend_len*(i+1),350,$1*5,diam)
+            pt3dadd(-500+dend_len*i+(i%2)*soma_len,400,$1*5,diam)
+            pt3dadd(-500+dend_len*(i+1)+(i%2)*soma_len,400,$1*5,diam)
         }
 
-        for j = 0, nsyn-1{
+        for j = 0, nsyn*10-1{
             dend[i] synex_ = new ExpSyn(0.5)  synlistex.append(synex_) /* E */
             synex_.tau = 0.1
             synex_.e=50
             dend[i] synees_ = new ExpSyn(0.5)  synlistees.append(synees_) /* E */
             synees_.tau = 0.1
             synees_.e=50
+            dend[i] syninh_ = new Exp2Syn(0.5) synlistinh.append(syninh_) //Exp2Syn(0.5)
+            syninh_.tau1 = 1.5
+            syninh_.tau2 = 6
+            syninh_.e = -80
         }
 
     }
@@ -110,10 +111,10 @@ proc init() {local i, j
 }
 
 obfunc connect2target() { localobj nc //$o1 target point process, optional $o2 returned NetCon
-  soma nc = new NetCon(&v(1), $o1)
-  nc.threshold = 10
-  if (numarg() == 2) { $o2 = nc } // for backward compatibility
-  return nc
+    axon nc = new NetCon(&v(1), $o1)
+    nc.threshold = 10
+    if (numarg() == 2) { $o2 = nc } // for backward compatibility
+    return nc
 }
 
-endtemplate sens1
+endtemplate interneuron

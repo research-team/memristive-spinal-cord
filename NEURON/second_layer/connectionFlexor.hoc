@@ -34,7 +34,8 @@ postsyns = new List()
 stdpmech = new List()
 
 
-proc connection(){
+proc connection(){ localobj syn, nc, r
+    r = new Random(startsw())
     syn = $o1
     nc = pc.gid_connect($3, syn)
     r.uniform(1, 2)
@@ -44,7 +45,8 @@ proc connection(){
     $o2.append(nc)
 }
 
-proc connectionSTDP(){
+proc connectionSTDP(){ localobj syn, nc, stdp, presyn, postsyn, r
+    r = new Random(startsw())
     r.uniform(0.04, 0.07)
     syn = $o1
     nc = pc.gid_connect($4, syn)
@@ -88,7 +90,8 @@ proc connectionSTDP(){
     $o7.append(postsyn)
 }
 
-proc addConnection(){
+proc addConnection(){ local i  localobj target, r
+    r = new Random(startsw())
     for (i=pc.id + $1; i < $2; i += pc.nhost){
         if (!pc.gid_exists(i)) { continue }
         target = pc.gid2cell(i) //target cell

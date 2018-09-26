@@ -1,37 +1,21 @@
-objref vol2[nMN]
+objref volMN[motoneurons.count]
+print(motoneurons.count)
 objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
 
 proc printFile(){
-sprint($s1, "%s%dv2.%s", $s2, $5, $s3) 
-    fok.wopen($s1)
-    $o4.printf(fok)
-    fok.close()
+sprint($s1, "%s%dv0.%s", $s2, $5, $s3) 
+    $o6.wopen($s1)
+    $o4.printf($o6)
+    $o6.close()
 }
 
-for i=0, nMN - 1{
-    vol2[i] = new Vector()
-    vol2[i].record(&MNE[i].soma.vext[1](0.5))
-    //vol4[i].record(&sens1[i].soma.vext[1](0.5))
-    //vol5[i].record(&IaAff[i].soma.vext[1](0.5))
-
+proc recordmoto(){ local i 
+    for i=0, motoneurons.count - 1{
+        volMN[i] = new Vector()
+        volMN[i].record(&motoneurons.object(i).soma.vext[1](0.5))
+    }
 }
-/*
-for i=0, ncell - 1{
-    l1[i] = new Vector()
-    l2[i] = new Vector()
-    l3[i] = new Vector()
-    l4[i] = new Vector()
-    l5[i] = new Vector()
-    l6[i] = new Vector()
-    l1[i].record(&Ex[120+i].soma.v(0.5))
-    l2[i].record(&Ex[140+i].soma.v(0.5))
-    l3[i].record(&Ex[160+i].soma.v(0.5))
-    l4[i].record(&Ex[180+i].soma.v(0.5))
-    l5[i].record(&Ex[200+i].soma.v(0.5))
-    l6[i].record(&Ex[220+i].soma.v(0.5))
-}
-*/
-proc epochrun() { local i, n, j
+/*proc epochrun() { local i, n, j
     running_ = 1
     tstop = 150//$1*$2+$1*$3 // in case some other code needs tstop
     ns = connect_ex_ees.count
@@ -56,42 +40,35 @@ proc epochrun() { local i, n, j
         }
     }
 }
-epochrun(1, 15, 15)
+epochrun(1, 15, 15)*/
 
-objref fok
-fok=new File()
-for i=0, nMN - 1{
+recordmoto()
+
+tstop = 150
+{pc.set_maxstep(10)}
+run()
+{pc.psolve(tstop)}
+
+proc spikeout(){ local i, rank localobj fok
+    fok=new File()
+    pc.barrier() 
     strdef extension
     extension = "txt"
     strdef basename2, filename2
-    basename2 = "/Users/sulgod/Desktop/img/res1/volMN"
-    printFile(filename2, basename2, extension, vol2[i], i)
+    basename2 = "./res/volMN"
+    for rank=0, pc.nhost-1 {  
+        if (rank==pc.id) {
+            for i=0, motoneurons.count-1 {
+                    printFile(filename2, basename2, extension, volMN[i], i*(rank+1), fok)
+            }
+        }
+    pc.barrier()  
+    }
 }
-/*
-for i=0, ncell - 1{
-    strdef basename4, filename4
-    basename4 = "./res/l1"
-    strdef basename5, filename5
-    basename5 = "./res/l2"
-    strdef basename6, filename6
-    basename6 = "./res/l3"
-    strdef basename7, filename7
-    basename7 = "./res/l4"
-    strdef basename8, filename8
-    basename8 = "./res/l5"
-    strdef basename9, filename9
-    basename9 = "./res/l6"
-    printFile(filename4, basename4, extension, l1[i], i)
-    printFile(filename5, basename5, extension, l2[i], i)
-    printFile(filename6, basename6, extension, l3[i], i)
-    printFile(filename7, basename7, extension, l4[i], i)
-    printFile(filename8, basename8, extension, l5[i], i)
-    printFile(filename9, basename9, extension, l6[i], i)
 
-}
-*/
-{pc.set_maxstep(0.5)}
-{pc.psolve(tstop)}
+
+spikeout() 
+
 {pc.runworker()}
 {pc.done()}
 
