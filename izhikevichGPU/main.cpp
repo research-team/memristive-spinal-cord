@@ -66,7 +66,6 @@ Neuron* ip3[neurons_in_group];
 Neuron* ip4[neurons_in_group];
 Neuron* ip5[neurons_in_group];
 Neuron* ip6[neurons_in_group];
-
 Neuron* test[neurons_in_test];
 
 // random
@@ -166,8 +165,8 @@ void debug() {
         printf("id = %d %s (%d)\n", i, neurons[i]->name, neurons[i]->num_synapses);
         for (int j = 0; j < neurons[i]->num_synapses; ++j) {
             printf("|---- ID %d, %p\n",
-                   neurons[i]->synapses[j].post_neuron->getID(),
-                   neurons[i]->synapses[j].post_neuron);
+                   neurons[i]->synapses[j]->post_neuron->getID(),
+                   neurons[i]->synapses[j]->post_neuron);
         }
     }
 }
@@ -290,7 +289,6 @@ void init_synapses() {
     connectFixedOutDegree(group47, ip4, 1., 17.);
     connectFixedOutDegree(group56, ip5, 1., 17.);
     connectFixedOutDegree(group65, ip6, 1., 17.);
-
     connectFixedOutDegree(ip1, test, 1., 20., neurons_in_test);
     connectFixedOutDegree(ip2, test, 1., 20., neurons_in_test);
     connectFixedOutDegree(ip3, test, 1., 20., neurons_in_test);
@@ -325,15 +323,7 @@ int main(int argc, char *argv[]) {
     init_neurons();
     init_groups();
     init_synapses();
-
-    // neurons[0]->addGenerator(180.0f);
-    // neurons[3]->addGenerator(100.0f);
-
-    // neurons[0]->connectWith(neurons[0], neurons[1], 2, 500);
-    // neurons[3]->connectWith(neurons[3], neurons[2], 2, 500);
-    // neurons[1]->connectWith(neurons[1], neurons[2], 2, 500);
-
-    //debug();
+    debug();
     simulate();
     show_results();
     return 0;
