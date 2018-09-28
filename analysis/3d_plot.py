@@ -14,10 +14,10 @@ logger.debug('Completed setup')
 RTA right  tibialis anterior (flexor)
 RMG right adductor magnus (extensor)
 '''
-mat_data = sio.loadmat('../../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-# mat_data = sio.loadmat('../../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
-# mat_data = sio.loadmat('../../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
-# mat_data = sio.loadmat('../../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
+mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
+# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
+# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
 
 tick_rate = int(mat_data['tickrate'][0][0])
 
@@ -35,7 +35,7 @@ for data_title, data in datas.items():
     x = [i / tick_rate for i in range(len(data))]
     plt.plot(x, data, label=data_title)
     plt.xlim(0, x[-1])
-#plt.show()
+plt.show()
 
 logger.info('Slicing')
 max_stim = max(datas['Stim'])
