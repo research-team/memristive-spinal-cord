@@ -6,7 +6,7 @@ fig = plt.figure()
 Axes3D(fig)
 
 datas = {}
-mat_data = sio.loadmat('C:/Users/Home/Desktop/учебники/Нейролаб/данные Лаврова/SCI Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+mat_data = sio.loadmat('../../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 tickrate = int(mat_data['tickrate'][0][0])
 for index, data_title in enumerate(mat_data['titles']):
 	data_start = int(mat_data['datastart'][index])-1
