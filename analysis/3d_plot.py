@@ -27,16 +27,19 @@ for index, data_title in enumerate(mat_data['titles']):
     data_end = int(mat_data['dataend'][index])
     # if "Stim" not in data_title:
     datas[data_title] = mat_data['data'][0][data_start:data_end]
-    logger.info('Collected data')
+    logger.debug('Collected data ' + data_title)
 
 logger.info("Plot data")
 for data_title, data in datas.items():
-    logger.debug('data title ' + data_title)
+    logger.debug('Ploting data ' + data_title)
     x = [i / tick_rate for i in range(len(data))]
     plt.plot(x, data, label=data_title)
     plt.xlim(0, x[-1])
-plt.show()
+#plt.show()
 
+logger.info('Slicing')
+max_stim = max(datas['Stim'])
+number_of_maxs = sum(d > max_stim-.1 for d in datas['Stim'])
+logger.debug('number of maxs ' + str(number_of_maxs) + ' ' + str(max_stim))
 
-
-logger.info("End of processing")
+logger.info('End of processing')
