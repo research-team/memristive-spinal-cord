@@ -1,3 +1,5 @@
+import numpy
+
 import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import scipy.io as sio
