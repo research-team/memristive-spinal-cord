@@ -6,7 +6,6 @@ import logging
 from matplotlib.collections import PolyCollection
 from matplotlib import colors as mcolors
 
-
 def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon = .001) :
     logger.debug('Slicing')
     max_stim = max(data_array[slicing_index])
@@ -67,7 +66,7 @@ for s in slices[:-1]:
 #plt.plot(x_axes, slices)
 #plt.show()
 
-fig = plt.figure()
+#fig = plt.figure()
 ax = fig.gca(projection='3d')
 
 xs = range(100)
@@ -83,11 +82,11 @@ poly.set_alpha(0.7)
 ax.add_collection3d(poly, zs=zs, zdir='y')
 
 ax.set_xlabel('X')
-ax.set_xlim3d(0, 10)
+ax.set_xlim3d(0, len(xs))
 ax.set_ylabel('Y')
-ax.set_ylim3d(-1, 4)
+ax.set_ylim3d(-1, len(zs))
 ax.set_zlabel('Z')
-ax.set_zlim3d(0, 1)
+ax.set_zlim3d(-10, 5)
 
 plt.show()
 
