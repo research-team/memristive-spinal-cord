@@ -1,5 +1,4 @@
 import numpy
-
 import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import scipy.io as sio
@@ -42,12 +41,10 @@ for data_title, data in datas.items():
 logger.info('Slicing')
 max_stim = max(datas['Stim'])
 number_of_maxs = sum(d > max_stim-.001 for d in datas['Stim'])
-list_of_maxs = [x for x in datas['Stim'] if x > max_stim-.001 ]
-for i in range(len(datas['Stim'])):
-    if datas['Stim'][i] > x > max_stim-.001:
-        yield datas['RMG'][i]
-
+epsilon = .001
+list_of_maxs = [i for i, x in enumerate(datas['Stim']) if x > max_stim-epsilon]
 logger.debug('number of maxs ' + str(number_of_maxs) + ' ' + str(max_stim) + ' ' + str(len(list_of_maxs)))
-
+slices = numpy.split(datas['RMG '], list_of_maxs)
+logger.debug('slices ' + str(slices))
 
 logger.info('End of processing')
