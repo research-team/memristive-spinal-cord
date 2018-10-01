@@ -4,6 +4,17 @@ from mpl_toolkits.mplot3d import Axes3D
 import scipy.io as sio
 import logging
 
+def slice_ees(data_array, slicing_index = 'Stim', data_index='RMG ', epsilon=.001) :
+    logger.debug('Slicing')
+    max_stim = max(datas[slicing_index])
+    list_of_maxs = [i for i, x in enumerate(datas[slicing_index]) if x > max_stim-epsilon]
+    logger.debug('number of maxs ' + str(len(list_of_maxs)))
+    slices = numpy.split(datas[data_index], list_of_maxs)
+    logger.debug('number of slices ' + str(len(slices)))
+    return slices
+
+
+
 logger = logging
 logging.basicConfig(level=logging.DEBUG)
 fig = plt.figure()
@@ -32,19 +43,18 @@ for index, data_title in enumerate(mat_data['titles']):
 
 logger.info("Plot data")
 for data_title, data in datas.items():
-    logger.debug('Ploting title ' + data_title)
+    logger.debug('Plotting title ' + data_title)
     x = [i / tick_rate for i in range(len(data))]
     plt.plot(x, data, label=data_title)
     plt.xlim(0, x[-1])
 #plt.show()
 
-logger.info('Slicing')
-max_stim = max(datas['Stim'])
-number_of_maxs = sum(d > max_stim-.001 for d in datas['Stim'])
-epsilon = .001
-list_of_maxs = [i for i, x in enumerate(datas['Stim']) if x > max_stim-epsilon]
-logger.debug('number of maxs ' + str(number_of_maxs) + ' ' + str(max_stim) + ' ' + str(len(list_of_maxs)))
-slices = numpy.split(datas['RMG '], list_of_maxs)
-logger.debug('slices ' + str(slices))
+slices = slice_ees(datas)
+for data in slices:
+    logger.debug('Plotting slices ')
+    x = [i / tick_rate for i in range(len(data))]
+    plt.plot(x, data, label='slice')
+    plt.xlim(0, x[-1])
+plt.show()
 
 logger.info('End of processing')
