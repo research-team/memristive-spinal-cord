@@ -3,6 +3,9 @@ import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import scipy.io as sio
 import logging
+from matplotlib.collections import PolyCollection
+from matplotlib import colors as mcolors
+
 
 def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon = .001) :
     logger.debug('Slicing')
@@ -13,13 +16,16 @@ def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon =
     logger.debug('number of slices ' + str(len(res)))
     return res
 
+def cc(arg):
+    return mcolors.to_rgba(arg, alpha=0.6)
+
 
 logger = logging
 logging.basicConfig(level=logging.DEBUG)
 fig = plt.figure()
 Axes3D(fig)
 datas = {}
-plt.matplotlib.pyplot.viridis()
+plt.matplotlib.pyplot.jet()
 
 logger.debug('Completed setup')
 '''
@@ -50,17 +56,41 @@ logger.info("Plot data")
 #plt.show()
 
 slices = slice_ees(datas)
-
 for s in slices[:-1]:
     logger.debug('Plotting slices ' + str(len(s)))
     x = [i for i in range(len(s))]
     x = [i / tick_rate * 1000 for i in range(len(s))]
-    plt.plot(x, s, label='slice')
-    plt.xlim(0, x[-1])
+    #plt.plot(x, s, label='slice')
+    #plt.xlim(0, x[-1])
 
 #x_axes = [i / tick_rate * 1000 for i in range(len(s))]
 #plt.plot(x_axes, slices)
+#plt.show()
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+
+xs = range(100)
+zs = range(len(slices))
+verts = []
+for z in zs:
+    ys = slices[z]
+    verts.append(list(zip(xs, ys)))
+
+
+poly = PolyCollection(verts, facecolors=[cc('r'), cc('g'), cc('b'), cc('y')])
+poly.set_alpha(0.7)
+ax.add_collection3d(poly, zs=zs, zdir='y')
+
+ax.set_xlabel('X')
+ax.set_xlim3d(0, 10)
+ax.set_ylabel('Y')
+ax.set_ylim3d(-1, 4)
+ax.set_zlabel('Z')
+ax.set_zlim3d(0, 1)
+
 plt.show()
+
 
 logger.info('End of processing')
 
