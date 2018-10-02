@@ -2,7 +2,7 @@ import pylab as plt
 import scipy.io as sio
 
 datas = {}
-mat_data = sio.loadmat('C:/Users/Home/LAB/memristive-spinal-cord/analysis/Lavrov_data/SCI Rat-1_11-22-2016_RMG_40Hz_one_step')
+mat_data = sio.loadmat('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 tickrate = int(mat_data['tickrate'][0][0])
 datas_max = []
 datas_min = []
