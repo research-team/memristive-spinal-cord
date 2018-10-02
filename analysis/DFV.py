@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# This import registers the 3D projection, but is otherwise unused.
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def lorenz(x, y, z, s=10, r=28, b=2.667):
@@ -20,7 +19,11 @@ def lorenz(x, y, z, s=10, r=28, b=2.667):
 
 
 dt = 0.01
-num_steps = 100
+num_steps = 6
+
+ds = [13.0, 13.0, 15.0, 17.0, 17.0, 21.0]
+fs = [13.0, 13.0, 15.0, 17.0, 17.0, 21.0]
+vs = [13.0, 13.0, 15.0, 17.0, 17.0, 21.0]
 
 # Need one more for the initial values
 xs = np.empty((num_steps + 1,))
@@ -43,7 +46,7 @@ for i in range(num_steps):
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-ax.plot(xs, ys, zs, lw=0.5)
+ax.plot(ds, fs, vs, lw=0.5)
 ax.set_xlabel("Delay ms")
 ax.set_ylabel("Frequency Hz")
 ax.set_zlabel("Amplitude mV")
