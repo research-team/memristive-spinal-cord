@@ -6,6 +6,7 @@ import logging
 from matplotlib.collections import PolyCollection
 from matplotlib import colors as mcolors
 
+
 def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon = .001) :
     logger.debug('Slicing')
     max_stim = max(data_array[slicing_index])
@@ -14,6 +15,7 @@ def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon =
     res = numpy.split(datas[data_index], list_of_maxs)
     logger.debug('number of slices ' + str(len(res)))
     return res
+
 
 def cc(arg):
     return mcolors.to_rgba(arg, alpha=0.6)
