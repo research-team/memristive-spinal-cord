@@ -66,6 +66,7 @@ ax.set_ylabel('Y slice #')
 ax.set_ylim3d(-1, len(zs))
 ax.set_zlabel('Z mV')
 ax.set_zlim3d(-10, 5)
+ax.set_title("Sliced EES EMG")
 
 plt.show()
 
