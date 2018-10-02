@@ -31,9 +31,9 @@ RTA right  tibialis anterior (flexor)
 RMG right adductor magnus (extensor)
 '''
 mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
-# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
-# mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
 
 tick_rate = int(mat_data['tickrate'][0][0])
 
@@ -47,10 +47,10 @@ for index, data_title in enumerate(mat_data['titles']):
 
 logger.info("Plotting data")
 
-slices = slice_ees(datas)[1:]
+slices = slice_ees(datas, sorted(datas)[1], sorted(datas)[0])[1:]
 ax = fig.gca(projection='3d')
 
-xs = plt.frange(0, 100/tick_rate*1000, (100/tick_rate*1000)/100)
+xs = plt.arange(0, 100/tick_rate*1000, (100/tick_rate*1000)/100)
 zs = range(len(slices))
 verts = []
 for z in zs:
