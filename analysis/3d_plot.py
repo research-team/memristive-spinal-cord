@@ -47,49 +47,28 @@ for index, data_title in enumerate(mat_data['titles']):
     logger.debug('Collected data ' + data_title)
 
 logger.info("Plot data")
-#for data_title, data in datas.items():
-    #logger.debug('Plotting title ' + data_title)
-    #x = [i / tick_rate for i in range(len(data))]
-    #plt.plot(x, data, label=data_title)
-    #plt.xlim(0, x[-1])
-#plt.show()
 
 slices = slice_ees(datas)
-for s in slices[:-1]:
-    logger.debug('Plotting slices ' + str(len(s)))
-    x = [i for i in range(len(s))]
-    x = [i / tick_rate * 1000 for i in range(len(s))]
-    #plt.plot(x, s, label='slice')
-    #plt.xlim(0, x[-1])
-
-#x_axes = [i / tick_rate * 1000 for i in range(len(s))]
-#plt.plot(x_axes, slices)
-#plt.show()
-
-#fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-xs = range(100)
+xs = plt.frange(0, 100/tick_rate*1000, (100/tick_rate*1000)/100)
 zs = range(len(slices))
 verts = []
 for z in zs:
     ys = slices[z]
     verts.append(list(zip(xs, ys)))
 
-#PolyCollection facecolors=['w','w','w','y'],
 poly = PolyCollection(verts, facecolors=(0.0, 0.0, 0.0, 0.0), edgecolors=['k'], closed=False)
-#poly.set_alpha(0.9)
 ax.add_collection3d(poly, zs=zs, zdir='y')
 
-ax.set_xlabel('X')
-ax.set_xlim3d(0, len(xs))
-ax.set_ylabel('Y')
+ax.set_xlabel('X ms')
+ax.set_xlim3d(0, len(xs)/tick_rate*1000)
+ax.set_ylabel('Y slice #')
 ax.set_ylim3d(-1, len(zs))
-ax.set_zlabel('Z')
+ax.set_zlabel('Z mV')
 ax.set_zlim3d(-10, 5)
 
 plt.show()
-
 
 logger.info('End of processing')
 
