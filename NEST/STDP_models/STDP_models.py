@@ -63,7 +63,7 @@ detector_params = {
 }
 
 multimeter_params = {
-	'record_from': ['V_m'],
+	'record_from': ['extracellular'],
 	'withgid': True,
 	'withtime': True,
 	'interval': 0.1,
@@ -170,7 +170,7 @@ def plot_results(model_name, neurons_pre, neurons_post, wr):
 		# get voltages
 		mm = multimeters[(nrn_pre, nrn_post)]
 		events_senders = nest.GetStatus(mm)[0]['events']['senders']
-		events_voltages = nest.GetStatus(mm)[0]['events']['V_m']
+		events_voltages = nest.GetStatus(mm)[0]['events']['extracellular']
 		events_times = nest.GetStatus(mm)[0]['events']['times']
 		# fill the dict with data
 		nrn_values = {sender: {"volt": [],

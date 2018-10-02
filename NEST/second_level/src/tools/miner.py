@@ -5,30 +5,30 @@ import logging as log
 from ..data import *
 from nest import GetStatus
 from collections import defaultdict
-from second_level.src.paths import raw_data_path, spiketimes_path
+from ..paths import raw_data_path, spiketimes_path
 
 class Miner:
 	@staticmethod
-	def gather_mean_voltage(group_name, from_memory=False):
+	def gather_mean_voltage(test_name, from_memory=False):
 		"""
 		Gather voltage from files and calculate mean for each milliseconds
 		Args:
-			group_name (str): neurons group name
+			test_name (str): neurons group name
 			from_memory (bool):
 		Returns:
 			list: mean voltage for each millisecond
 		"""
 		log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
 		logger = log.getLogger('Miner')
-		logger.info('[{}] from "{}"'.format("MEM" if from_memory else "FILE", group_name))
+		logger.info('[{}] from "{}"'.format("MEM" if from_memory else "FILE", test_name))
 
 		data = {}
 
 		if from_memory:
 			# get values from memory
-			voltages = GetStatus(multimeters_dict[group_name])[0]['events']['V_m']
-			times = GetStatus(multimeters_dict[group_name])[0]['events']['times']
-			gids = GetStatus(multimeters_dict[group_name])[0]['events']['senders']
+			voltages = GetStatus(multimeters_dict[test_name])[0]['events']['Extracellular']
+			times = GetStatus(multimeters_dict[test_name])[0]['events']['times']
+			gids = GetStatus(multimeters_dict[test_name])[0]['events']['senders']
 			# calculate mean value of voltage by each unique time
 			for key, group in itertools.groupby(zip(times, voltages, gids), key=lambda x: x[0]):
 				# FixMe: a bug of groupby -- can't use 'group' twice. The next invoke is empty. Use the list()
@@ -37,18 +37,19 @@ class Miner:
 		else:
 			neurons = set()
 			for filename in os.listdir(raw_data_path):
-				if filename.startswith(group_name) and filename.endswith('.dat'):
+				if filename.startswith(test_name) and filename.endswith('.dat'):
 					logger.info('  Gathering data from {}'.format(filename))
 					with open(os.path.join(raw_data_path, filename)) as filedata:
 						for line in filedata:
 							gid, time, volt = line.split()
+							time = float(time)
 							neurons.add(gid)
-							if float(time) not in data.keys():
-								data[float(time)] = 0.
-							data[float(time)] += float(volt)
+							if time not in data.keys():
+								data[time] = 0.
+							data[time] += float(volt)
 			# calculate mean value of Voltage
 			for time in data.keys():
-				data[float(time)] /= float(len(neurons))
+				data[time] = round(data[time] / len(neurons), 5)
 		return data
 
 	@staticmethod

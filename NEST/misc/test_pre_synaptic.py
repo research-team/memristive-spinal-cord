@@ -1,18 +1,17 @@
 """
-Script for testing 'Extracellular' recording.
-Use only with neuron model that have Extracellular recording realisation.
+Script for testing pre-synaptic inhibition
 """
 
 __author__ = "Alexey Panzer"
-__version__ = "1.7"
-__tested___ = "14.09.2018 NEST 2.16.0 (with own module) Python 3"
+__version__ = "1.0"
+__tested___ = "17.09.2018 NEST 2.16.0 Python 3"
 
 import nest
 import pylab
 
-T_sim = 25
-spike_times = [2.0, 10.0, 17.0]
-spike_weights = [150.0, 160.0, 190.0]
+T_sim = 30.0
+spike_times = [2.5, 10.0, 17.0]
+spike_weights = [400.0, 300.0, 250.0]
 
 nest.ResetKernel()
 nest.SetKernelStatus({
@@ -34,7 +33,7 @@ nrn_params = {
 }
 
 multimeter_params = {
-	'record_from': ['Extracellular', 'V_m', "Act_h", "Act_m", "Inact_n"],
+	'record_from': ['V_m', "Act_h", "Act_m", "Inact_n"],
 	'withgid': True,
 	'withtime': True,
 	'interval': 0.1,
@@ -42,14 +41,24 @@ multimeter_params = {
 	'to_memory': True
 }
 
-neuron = nest.Create("hh_cond_exp_traub", 1, nrn_params)
+neuron_pre = nest.Create("hh_cond_exp_traub", 1, nrn_params)
+neuron_post = nest.Create("hh_cond_exp_traub", 1, nrn_params)
+neuron_inh = nest.Create("hh_cond_exp_traub", 1, nrn_params)
+
 multimeter = nest.Create("multimeter", 1, multimeter_params)
-generator = nest.Create("spike_generator", 1, {'spike_weights': spike_weights, 'spike_times': spike_times})
+generator_pre = nest.Create("spike_generator", 1, {'spike_weights': spike_weights, 'spike_times': spike_times})
+generator_inh = nest.Create("spike_generator", 1, {'spike_weights': spike_weights, 'spike_times': spike_times})
 
-nest.Connect(generator, neuron, syn_spec={'weight': 1.0, 'delay': 0.1})
-nest.Connect(multimeter, neuron)
+nest.Connect(generator_inh, neuron_inh, syn_spec={'weight': 1.0, 'delay': 0.1})
+nest.Connect(generator_pre, neuron_pre, syn_spec={'weight': 1.0, 'delay': 0.1})
+nest.Connect(multimeter, neuron_inh + neuron_pre + neuron_post)
 
-nest.Simulate(float(T_sim))
+nest.Connect(neuron_pre, neuron_post, syn_spec="stdp_synapse")
+
+nest.Simulate(T_sim)
+print(nest.GetStatus(nest.GetConnections(neuron_pre)))
+
+raise Exception
 
 voltages_extracellular = [i / 10 for i in nest.GetStatus(multimeter, "events")[0]['Extracellular']]
 voltages_intracellular = nest.GetStatus(multimeter, "events")[0]['V_m']
@@ -62,26 +71,27 @@ times_intracellular = [i / 10 for i in range(len(voltages_intracellular))]
 
 pylab.figure(figsize=(16, 9))
 pylab.subplot(311)
-#for st in spike_times:
-#	pylab.axvline(x=st, color='gray', linestyle="--")
+for st in spike_times:
+	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
-pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("uV")
 pylab.plot(times_extracellular, voltages_extracellular, label="Extracellular")
 pylab.legend()
 
 pylab.subplot(312)
+for st in spike_times:
+	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
-pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("mV")
 pylab.plot(times_intracellular, voltages_intracellular, label="Intracellular")
 pylab.legend()
 
 pylab.subplot(313)
+for st in spike_times:
+	pylab.axvline(x=st, color='gray', linestyle="--")
 pylab.xlim(0, T_sim)
 pylab.ylabel("Probability")
 pylab.xlabel("Time (ms)")
-pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.plot(times_intracellular, channel_Na, label="Na+")
 pylab.plot(times_intracellular, channel_K, label="K+")
 pylab.plot(times_intracellular, channel_leakage, label="Na+/K+ pump")
