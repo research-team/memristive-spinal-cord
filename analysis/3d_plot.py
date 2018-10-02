@@ -76,9 +76,9 @@ for z in zs:
     ys = slices[z]
     verts.append(list(zip(xs, ys)))
 
-
-poly = PolyCollection(verts, facecolors=['w','w','w','y'], edgecolors=['k'], closed=False)
-poly.set_alpha(0.3)
+#PolyCollection facecolors=['w','w','w','y'],
+poly = PolyCollection(verts, facecolors=(0.0, 0.0, 0.0, 0.0), edgecolors=['k'], closed=False)
+#poly.set_alpha(0.9)
 ax.add_collection3d(poly, zs=zs, zdir='y')
 
 ax.set_xlabel('X')
