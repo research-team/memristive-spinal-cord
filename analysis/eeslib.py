@@ -1,6 +1,7 @@
 import logging
 import numpy
 
+
 def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon = .001) :
     logging.debug('Slicing')
     max_stim = max(data_array[slicing_index])
@@ -9,3 +10,4 @@ def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon =
     res = numpy.split(data_array[data_index], list_of_maxs)
     logging.debug('number of slices ' + str(len(res)))
     return res
+

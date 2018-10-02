@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import logging
 
+# https://stackoverflow.com/questions/25735153/plotting-a-fast-fourier-transform-in-python#25735274
+
 logging.basicConfig(level=logging.DEBUG)
 
 ds = [0.0, 13.0,  13.0,  15.0,  17.0,  17.0,  21.0,  16.0,  0.0]
