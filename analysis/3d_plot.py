@@ -24,7 +24,6 @@ logging.basicConfig(level=logging.DEBUG)
 fig = plt.figure()
 Axes3D(fig)
 datas = {}
-plt.matplotlib.pyplot.jet()
 
 logger.debug('Completed setup')
 '''
@@ -39,16 +38,16 @@ mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 tick_rate = int(mat_data['tickrate'][0][0])
 
 logger.info('Loaded data')
+
 for index, data_title in enumerate(mat_data['titles']):
     data_start = int(mat_data['datastart'][index]) - 1
     data_end = int(mat_data['dataend'][index])
-    #if "RMG" not in data_title:
     datas[data_title] = mat_data['data'][0][data_start:data_end]
     logger.debug('Collected data ' + data_title)
 
-logger.info("Plot data")
+logger.info("Plotting data")
 
-slices = slice_ees(datas)
+slices = slice_ees(datas)[1:]
 ax = fig.gca(projection='3d')
 
 xs = plt.frange(0, 100/tick_rate*1000, (100/tick_rate*1000)/100)
