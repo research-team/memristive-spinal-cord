@@ -2,7 +2,7 @@ import pylab as plt
 import scipy.io as sio
 
 datas = {}
-mat_data = sio.loadmat('C:/Users/Home/LAB/memristive-spinal-cord/analysis/Lavrov_data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
+mat_data = sio.loadmat('C:/Users/Home/LAB/memristive-spinal-cord/analysis/Lavrov_data/SCI Rat-1_11-22-2016_RMG_40Hz_one_step')
 tickrate = int(mat_data['tickrate'][0][0])
 datas_max = []
 datas_min = []
@@ -24,7 +24,12 @@ values = max(datas.values())
 offset = 100
 sliced_values = []
 start = 188
-for j in range(20):
+kekdata = [x / tickrate for x in range(len(datas[mat_data['titles'][0]]))][188::100]
+counter = len(kekdata)
+for kek in kekdata:
+	plt.axvline(x=kek, linestyle="--", color="gray")
+print("counter = ", counter)
+for j in range(counter - 1):
 	for i in range(start, start + offset, 1):
 		sliced_values.append(values[i])
 	datas_max.append(max(sliced_values))
@@ -34,9 +39,5 @@ for j in range(20):
 print("max = ", datas_max, len(datas_max))
 print("min = ", datas_min, len(datas_min))
 
-for kek in [x / tickrate for x in range(len(datas[mat_data['titles'][0]]))][188::100]:
-	if kek:
-		i += 1
-	plt.axvline(x=kek, linestyle="--", color="gray")
 plt.legend()
 plt.show()
