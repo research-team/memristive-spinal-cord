@@ -4,21 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import scipy.io as sio
 import logging
 from matplotlib.collections import PolyCollection
-from matplotlib import colors as mcolors
-
-
-def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon = .001) :
-    logger.debug('Slicing')
-    max_stim = max(data_array[slicing_index])
-    list_of_maxs = [i for i, x in enumerate(data_array[slicing_index]) if x > max_stim-epsilon]
-    logger.debug('number of maxs ' + str(len(list_of_maxs)))
-    res = numpy.split(datas[data_index], list_of_maxs)
-    logger.debug('number of slices ' + str(len(res)))
-    return res
-
-
-def cc(arg):
-    return mcolors.to_rgba(arg, alpha=0.6)
+from analysis.eeslib import slice_ees
 
 
 logger = logging
