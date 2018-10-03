@@ -42,11 +42,6 @@ def max_min_values(path_to_file):
 			if (sliced_values[c - 1] > sliced_values[c] < sliced_values[c + 1]):
 				datas_min.append(sliced_values[c])
 				datas_min_time.append(datas_times[c])
-		#print(len(sliced_values), sliced_values)
-		# datas_max.append(max(sliced_values))
-		# datas_max_time.append(sliced_values.index(max(sliced_values)) * 0.00025)
-		# datas_min.append(min(sliced_values))
-		# datas_min_time.append(sliced_values.index(min(sliced_values)) * 0.00025)
 		start += 100
 		sliced_values.clear()
 	print(len(datas_max), "max = ", datas_max)
@@ -54,7 +49,6 @@ def max_min_values(path_to_file):
 	print(len(datas_min), "min = ", datas_min, )
 	print(len(datas_min_time), "min_times = ", datas_min_time)
 
-	#plt.scatter(x=datas_max_time, y=datas_max, marker='o', c='r', edgecolor='b')
 
 	plt.legend()
 	plt.show()
