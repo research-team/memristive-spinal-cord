@@ -35,7 +35,7 @@ for index, data_title in enumerate(mat_data['titles']):
 
 logger.info("Plotting data")
 
-slices = slice_ees(datas, sorted(datas)[1], sorted(datas)[0])[1:]
+slices = slice_ees(datas, sorted(datas)[1], sorted(datas)[0])[1:5]
 ax = fig.gca(projection='3d')
 
 xs = plt.arange(0, 100/tick_rate*1000, (100/tick_rate*1000)/100)
