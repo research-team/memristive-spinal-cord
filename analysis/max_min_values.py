@@ -2,10 +2,11 @@ import pylab as plt
 import scipy.io as sio
 
 datas = {}
-mat_data = sio.loadmat('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+mat_data = sio.loadmat('../bio-data//SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
 tickrate = int(mat_data['tickrate'][0][0])
 datas_max = []
 datas_min = []
+datas_times = []
 datas_max_time = []
 datas_min_time = []
 # Collect data
@@ -33,15 +34,26 @@ for kek in kekdata:
 for j in range(counter - 1):
 	for i in range(start, start + offset, 1):
 		sliced_values.append(values[i])
-	datas_max.append(max(sliced_values))
-	datas_max_time.append(sliced_values.index(max(sliced_values)) * 0.00025)
-	datas_min.append(min(sliced_values))
-	datas_min_time.append(sliced_values.index(min(sliced_values)) * 0.00025)
+		datas_times.append(i * 0.00025)
+	for c in range (1, len(sliced_values) - 1):
+		if (sliced_values[c - 1] < sliced_values[c] > sliced_values[c + 1]):
+			datas_max.append(sliced_values[c])
+			datas_max_time.append(datas_times[c])
+		if (sliced_values[c - 1] > sliced_values[c] < sliced_values[c + 1]):
+			datas_min.append(sliced_values[c])
+			datas_min_time.append(datas_times[c])
+	#print(len(sliced_values), sliced_values)
+	# datas_max.append(max(sliced_values))
+	# datas_max_time.append(sliced_values.index(max(sliced_values)) * 0.00025)
+	# datas_min.append(min(sliced_values))
+	# datas_min_time.append(sliced_values.index(min(sliced_values)) * 0.00025)
 	start += 100
 	sliced_values.clear()
-print("max = ", datas_max, len(datas_max))
-print("max_times = ", datas_max_time)
-print("min = ", datas_min, len(datas_min))
-print("min_times = ", datas_min_time)
+print(len(datas_max), "max = ", datas_max)
+print(len(datas_max_time), "max_times = ", datas_max_time)
+print(len(datas_min), "min = ", datas_min, )
+print(len(datas_min_time), "min_times = ", datas_min_time)
+
 plt.legend()
+plt.scatter(x=datas_max_time, y=datas_max, marker='o', c='r', edgecolor='b ')
 plt.show()
