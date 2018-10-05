@@ -60,9 +60,9 @@ ASSIGNED {
     k1 (/s)   : binding
     k2 (/s)   : binding
     k3 (/s)   : binding
-    m1 (/s)   
-    m2 (/s)   
-    m3 (/s)  
+    d1 (/s)   
+    d2 (/s)   
+    d3 (/s)  
 }
 
 STATE {	
@@ -87,7 +87,7 @@ INITIAL {
 
 BREAKPOINT {
 	SOLVE kstates METHOD sparse
-	g = gmax*Ro
+	g = gmax*Re
 	i = (1e-3) * g * (v - Ev)
 }
 
