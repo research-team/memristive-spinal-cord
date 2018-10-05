@@ -18,11 +18,12 @@ logging.info('Plotting')
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-ax.plot(ds, ls, vs, lw=0.5)
+ax.plot(ds, ls, fs, lw=0.5)
 ax.set_xlabel("Delay ms")
 ax.set_ylabel("Duration ms")
-ax.set_zlabel("Amplitude mV")
-ax.set_title("Delay - Frequency - Amplitude")
+#ax.set_zlabel("Amplitude mV")
+ax.set_zlabel("Frequency Hz")
+ax.set_title("Delay - Duration - Frequency")
 
 plt.show()
 
