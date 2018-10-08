@@ -135,23 +135,22 @@ def calc_NEST(data, debug_show=False):
 			slice_begin_ticks[test_index].append(test_data.index(EES_value))
 
 	for test_index, test_data in enumerate(nest_tests):
-		start = slice_begin_ticks[0][0] - 10
+		start = slice_begin_ticks[0][0] - 10    # remove 10 if you want calculate without EES
 		for slice_index in range(len(slice_begin_ticks[0])):
-			sliced_values = test_data[start:start + offset]
-			datas_times = range(offset)
-
 			tmp_max_time = []
 			tmp_min_time = []
 			tmp_max_value = []
 			tmp_min_value = []
+			sliced_values = test_data[start:start + offset]
+			datas_times = range(offset)
 
 			# search min/max
 			for i in range(1, len(sliced_values) - 1):
 				if sliced_values[i - 1] < sliced_values[i] > sliced_values[i + 1]:
-					tmp_max_time.append(datas_times[i])
+					tmp_max_time.append(round(datas_times[i] * nest_sim_step, 3))   # with normalization to 1 ms
 					tmp_max_value.append(sliced_values[i])
 				if sliced_values[i - 1] > sliced_values[i] < sliced_values[i + 1]:
-					tmp_min_time.append(datas_times[i])
+					tmp_min_time.append(round(datas_times[i] * nest_sim_step, 3))  # with normalization to 1 ms
 					tmp_min_value.append(sliced_values[i])
 
 			extremum_max_points_times[test_index][slice_index] = list(tmp_max_time)
@@ -166,42 +165,24 @@ def calc_NEST(data, debug_show=False):
 	for test_index, test_data in extremum_max_points_times.items():
 		print(test_index)
 		for slice_index, slice_data in test_data.items():
-			print("\t", slice_index)
-			print("\t\t", *slice_data)
-
-	for test_number in range(len(extremum_max_points_times)):
-		plt.figure()
-		plt.plot([x for x in range(len(nest_tests[test_number]))],
-		         nest_tests[test_number], color="gray")
-		for slice_index, _ in extremum_max_points_times[test_number].items():
-			x = extremum_max_points_times[test_number][slice_index]
-			y = extremum_max_points_values[test_number][slice_index]
-			plt.plot([o + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="r")
-		for slice_index, _ in extremum_min_points_times[test_number].items():
-			x = extremum_min_points_times[test_number][slice_index]
-			y = extremum_min_points_values[test_number][slice_index]
-			plt.plot([o + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="b")
-	plt.show()
-	raise Exception
-	print(len(slices_max_value), "max = ", slices_max_value)
-	print(len(slices_max_time), "max_times = ", slices_max_time)
-	print(len(slices_min_value), "min = ", slices_min_value)
-	print(len(slices_min_time), "min_times = ", slices_min_time)
+			print("\t", slice_index, *slice_data)
 
 	if debug_show:
-		plt.figure()
-		plt.suptitle("NEST 40Hz (slow) Extensor (0.1 ms step)")
-		plt.plot([x / 10 for x in range(len(nest_means))], nest_means, color="gray")
-		for slice_num in range(0, 6):
-			plt.plot([(x + slice_num * offset) / 10 for x in slices_max_time[slice_num+1]],
-			         slices_max_value[slice_num+1], ".", color='red')
-			plt.plot([(x + slice_num * offset) / 10 for x in slices_min_time[slice_num + 1]],
-			         slices_min_value[slice_num + 1], ".", color='blue')
-		plt.xlim(0, 150)
-		plt.show()
+		for test_index in range(len(extremum_max_points_times)):
+			plt.figure()
+			plt.plot([x for x in range(len(nest_tests[test_index]))], nest_tests[test_index], color="gray")
+			for slice_index, _ in extremum_max_points_times[test_index].items():
+				x = extremum_max_points_times[test_index][slice_index]
+				y = extremum_max_points_values[test_index][slice_index]
+				plt.plot([o + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="r")
+			for slice_index, _ in extremum_min_points_times[test_index].items():
+				x = extremum_min_points_times[test_index][slice_index]
+				y = extremum_min_points_values[test_index][slice_index]
+				plt.plot([o + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="b")
+			plt.show()
 		plt.close()
 
-	return slice_begin_ticks, slices_max_time, slices_max_value, slices_min_time, slices_min_value
+	return slice_begin_ticks, extremum_max_points_times, extremum_min_points_times
 
 
 def calc_real_data(volt_data, slices_begin_time, debug_show=False):
@@ -276,6 +257,12 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_begin_time, slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
+def find_neighbour_points(original, target):
+	per_point = []
+
+	return per_point
+
+
 
 def plot(real_results, NEST_results, NEURON_results, compare_by="max"):
 	"""
@@ -283,80 +270,98 @@ def plot(real_results, NEST_results, NEURON_results, compare_by="max"):
 	:param list NEST_results:
 	:param list NEURON_results:
 	"""
+	# ToDo implement by loop
+	# for simulator_index, test_data in enumerate([NEST_results, NEURON_results]):
+	#   simulator_name = "NEST" if simulator_index == 0 else "NEURON"
+	# 	for index_element, extremum in enumerate([test_data[0], test_data[1]]):
+	#       compare_by = "MAX" if index_element == 0 else "MIN"
+	#       . . .
+
+	NEST_extremum_max_points_times = NEST_results[1]
+	window_size = 1
 	# Lavrov results from 10 - 15 slices
 	if compare_by == "max":
 		index = 1
 	else:
-		index = 3
+		index = 2
 	lavrov_max = []
-	neuron_max = []
-	nest_max = []
+	# normalization to 1 ms step size
 	for v in real_results[index].values():
 		lavrov_max.append([t / 4 for t in v])
-	for v in NEURON_results[index].values():
-		neuron_max.append([t / 40 for t in v])
-	for v in NEST_results[index].values():
-		nest_max.append([t / 10 for t in v])
+
 	print("real_results = ", real_results)
 	print("lavrov_max = ", lavrov_max)
-	print("neuron_max = ", neuron_max)
-	print("nest_max = ", nest_max)
 
-	diff_nest_lavrov_per_slice = []
-	diff_neuron_lavrov_per_slice = []
-	for slice_num in range(6):
-		per_point_nest = []
-		per_point_neuron = []
-		for t_Lavrov in lavrov_max[slice_num]:
-			# NEST
-			tmp = []
-			for t_p in nest_max[slice_num]:
-				if t_Lavrov - 5 < t_p < t_Lavrov + 5:
-					print("DA ", abs(t_p - t_Lavrov))
-					tmp.append(abs(t_p - t_Lavrov))
-				print(tmp)
-			per_point_nest.append(np.mean(tmp))
-			# NEURON
-			tmp = []
-			for t_p in neuron_max[slice_num]:
-				if t_Lavrov - 5 < t_p < t_Lavrov + 5:
-					print("DA ", abs(t_p - t_Lavrov))
-					tmp.append(abs(t_p - t_Lavrov))
-			per_point_neuron.append(np.mean(tmp))
+	NEST_diffs = {k: defaultdict(list) for k in range(6)}
+	for slice_index in NEST_extremum_max_points_times[0].keys():
+		for test_index in NEST_extremum_max_points_times.keys():
+			# find neighbour dots Lavrov <-> simulation
+			for point_index, point_Lavrov in enumerate(lavrov_max[slice_index]):
+				tmp = []
+				for point_simulator in NEST_extremum_max_points_times[test_index][slice_index]:
+					if point_Lavrov - window_size <= point_simulator <= point_Lavrov + window_size:
+						tmp.append(abs(point_simulator - point_Lavrov))
+				NEST_diffs[slice_index][point_index] += tmp
+	# print("- " * 15)
+	# for slice_index, points in NEST_diffs.items():
+	# 	print("slice", slice_index)
+	# 	for point_index, diffs in points.items():
+	# 		if diffs:
+	# 			print("\t point {} \t max: {}, mean: {}, min: {}, len: {}, {}".format(point_index,
+	# 			                                                             round(max(diffs), 2),
+	# 			                                                             round(np.mean(diffs), 2),
+	# 			                                                             round(min(diffs), 2),
+	# 			                                                             len(diffs),
+	# 			                                                             [round(x,2) for x in diffs]))
+	# 		else:
+	# 			print("\t point {} \t -".format(point_index))
 
-		diff_nest_lavrov_per_slice.append(per_point_nest)
-		diff_neuron_lavrov_per_slice.append(per_point_neuron)
-		# print("KEK", per_point_neuron)
-	print("diff_neuron_lavrov_per_slice = ", diff_neuron_lavrov_per_slice)
-	# ONLY NEURON (max)
-	start = 0
+	# re-procesing data to convert list to tuple of min mean max
+	minimals_per_point = []
+	means_per_point = []
+	maximals_per_point = []
+	for slice_index, points in NEST_diffs.items():
+		tmp_min = []
+		tmp_max = []
+		tmp_mean = []
+		for point_index, diffs in points.items():
+			if diffs:
+				tmp_min.append(min(diffs))
+				tmp_mean.append(np.mean(diffs))
+				tmp_max.append(max(diffs))
+			else:
+				tmp_min.append(0)
+				tmp_mean.append(0)
+				tmp_max.append(0)
+		minimals_per_point.append(tmp_min)
+		means_per_point.append(tmp_mean)
+		maximals_per_point.append(tmp_max)
+
+	# Plot
+	offset = 0
 	plt.figure()
-	plt.suptitle("time diff between real data and Neuron ({} values)".format(compare_by))
-	for dots_in_slice in diff_neuron_lavrov_per_slice:
-		length = len(dots_in_slice)
-		x = range(start, start+length)
-		plt.bar(x, dots_in_slice)
-		start += length
-	plt.xticks(range(start), range(start))
+	plt.suptitle("time diff between real data and NEST (per {} extremums)".format(compare_by))
+	for slice_index in range(6):
+		length = len(maximals_per_point[slice_index])
+		# Draw maximal
+		plt.bar([x + offset for x in range(length)],
+		        maximals_per_point[slice_index], color='r', label="max" if slice_index == 0 else None)
+		# Draw mean
+		plt.bar([x + offset for x in range(length)],
+		        means_per_point[slice_index], color='k', label="mean" if slice_index == 0 else None)
+		# Draw minimal
+		plt.bar([x + offset for x in range(length)],
+		        minimals_per_point[slice_index], color='b', label="min"  if slice_index == 0 else None)
+		# Draw slice border
+		plt.axvline(x=offset - 0.5, color='gray', linestyle="--")
+		offset += len(minimals_per_point[slice_index])
+	plt.xticks(range(offset), range(offset))
 	plt.xlabel("point index")
 	plt.ylabel("time diff in ms")
+	plt.ylim(0, window_size)
+	plt.grid(axis='y')
+	plt.legend()
 	plt.show()
-
-	# ONLY NEST (max)
-	start = 0
-	plt.figure()
-	plt.suptitle("time diff between real data and Nest ({} values)".format(compare_by))
-	for dots_in_slice in diff_nest_lavrov_per_slice:
-		length = len(dots_in_slice)
-		x = range(start, start + length)
-		plt.bar(x, dots_in_slice)
-		start += length
-	plt.xticks(range(start), range(start))
-	plt.xlabel("point index")
-	plt.ylabel("time diff in ms")
-	plt.show()
-
-
 
 
 def main():
