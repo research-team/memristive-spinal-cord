@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.io as sio
 from mpl_toolkits.mplot3d import Axes3D
 import logging
 
@@ -13,6 +14,19 @@ ls = [0.0, 2.0,   4.0,   10.0,  8.0,   8.0,   4.0,   9.0,   0.0]
 vs = [0.0, 0.5,   2.0,   1.5,   2.0,   2.0,   1.5,   1.0,   0.0]
 
 logging.info('Setup complete')
+
+logging.info('Loading data')
+
+mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
+
+tick_rate = int(mat_data['tickrate'][0][0])
+
+logging.info('Loaded data')
+
+
 
 logging.info('Plotting')
 fig = plt.figure()
