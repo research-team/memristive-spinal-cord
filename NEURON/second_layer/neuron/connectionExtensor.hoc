@@ -1,0 +1,354 @@
+objref connect_inh_inh, connect_ex_ex, connect_ex_inh, connect_inh_ex
+objref connect_ip_ex, connect_ex_ees, connect_ip_ees
+
+
+objref connect_MNe_Aff, connect_MNe_IA, connect_MNe_Ib
+objref connect_IAe_Ia, connect_Ibe_Ia, connect_sens1_EES
+objref connect_IP0_sens1, connect_IP0_MNe, connect_IP0_IAe
+objref connect_MNe_RCe, connect_IAe_RCe, connect_RCe_MNe
+
+connect_MNe_Aff = new List()
+connect_MNe_Ib = new List()
+connect_MNe_IA = new List()
+connect_IAe_Ia = new List()
+connect_Ibe_Ia = new List()
+connect_sens1_EES = new List()
+connect_IP0_sens1 = new List()
+connect_IP0_MNe = new List()
+connect_IP0_IAe = new List()
+connect_MNe_RCe = new List()
+connect_IAe_RCe = new List()
+connect_RCe_MNe = new List()
+
+connect_inh_inh = new List()
+connect_ex_ex = new List()
+connect_ex_inh = new List()
+connect_inh_ex = new List()
+connect_ip_ex = new List()
+connect_ex_ees = new List()
+connect_ip_ees = new List()
+
+/*presyns = new List()
+postsyns = new List()
+stdpmech = new List()*/
+
+
+/*proc connection(){
+    syn = $o1
+    nc = pc.gid_connect($3, syn)
+    {r.uniform(1, 2)}
+    nc.weight = r.repick()
+    {r.uniform(1, 2)}
+    nc.delay = r.repick()
+    $o2.append(nc)
+}*/
+
+/*proc connectionSTDP(){
+    {r.uniform(0.04, 0.07)}
+    syn = $o1
+    nc = pc.gid_connect($4, syn)
+    nc.weight = r.repick()
+    {r.uniform(1, 1.5)}
+    nc.delay = r.repick()
+    stdp = new StdwaSA(0.5)
+    $o2.append(nc)
+    if($8 == 1){
+        {r.uniform(0.00025, 0.00026)}
+        nc.weight = r.repick()
+        nc.delay = 2
+    }else if($8 == 2){
+        {r.uniform(0.03, 0.05)}
+        nc.weight = r.repick()
+        {r.uniform(2, 2.5)}
+        nc.delay = r.repick()
+    }else if($8 == 3){
+        {r.uniform(0.00025, 0.00026)}
+        nc.weight = r.repick()
+    }else if($8 == 4){
+        stdp.aLTD = -0.001//inhibitory
+        {r.uniform(0.04, 0.08)}
+        nc.weight = r.repick()
+    }else if($8 == 5){
+        {r.uniform(0.005, 0.05)}
+        nc.weight = r.repick()
+        {r.uniform(0.8, 1)}
+        nc.delay = r.repick()
+    }else{{r.uniform(0.0015, 0.002)}
+        nc.weight = r.repick()
+        stdp.aLTD = -0.001//inhibitory
+    }
+    presyn = pc.gid_connect($4, stdp)
+    presyn.weight = 1
+    postsyn = pc.gid_connect($3, stdp)
+    postsyn.weight = -1
+    setpointer stdp.wsyn, $o2.object($o2.count-1).weight
+    $o5.append(stdp)
+    $o6.append(presyn)
+    $o7.append(postsyn)
+}*/
+
+proc addConnectionInh(){ local i, j localobj target, syn, nc, r
+    {r = new Random()}
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            {r.uniform($4, $5)}
+            conn_id = int(r.repick())
+            syn = target.synlistinh.object(j)
+            nc = pc.gid_connect(conn_id, syn)
+            {r.uniform(0.04, 0.07)}
+            nc.weight = r.repick()
+            {r.uniform(1, 1.5)}
+            nc.delay = r.repick()
+            $o6.append(nc)
+            /*stdp = new StdwaSA(0.5)
+            stdp.aLTD = -0.001//inhibitory
+            $o6.append(nc)
+            presyn = pc.gid_connect(conn_id, stdp)
+            presyn.weight = 1
+            postsyn = pc.gid_connect(i, stdp)
+            postsyn.weight = -1
+            setpointer stdp.wsyn, nc.weight
+            stdpmech.append(stdp)
+            presyns.append(presyn)
+            postsyns.append(postsyn)*/
+        }
+    }
+}
+
+
+proc addConnectionEx(){ local i, j localobj target, syn, nc, r
+    {r = new Random()}
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            {r.uniform($4, $5)}
+            conn_id = int(r.repick())
+            syn = target.synlistex.object(j)
+            nc = pc.gid_connect(conn_id, syn)
+            {r.uniform(0.04, 0.07)}
+            nc.weight = r.repick()
+            {r.uniform(1, 1.5)}
+            nc.delay = r.repick()
+            $o6.append(nc)
+            /*stdp = new StdwaSA(0.5)
+            stdp.aLTD = -0.001//inhibitory
+            $o6.append(nc)
+            presyn = pc.gid_connect(conn_id, stdp)
+            presyn.weight = 1
+            postsyn = pc.gid_connect(i, stdp)
+            postsyn.weight = -1
+            setpointer stdp.wsyn, nc.weight
+            stdpmech.append(stdp)
+            presyns.append(presyn)
+            postsyns.append(postsyn) */       
+        }
+    }
+}
+
+proc addConnectionEes(){ local i, j localobj target, syn, nc, r
+    {r = new Random()}
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            {r.uniform($4, $5)}
+            conn_id = int(r.repick())
+            syn = target.synlistees.object(j)
+            nc = pc.gid_connect(conn_id, syn)
+            {r.uniform(1, 2)}
+            nc.weight = r.repick()
+            {r.uniform(1, 2)}
+            nc.delay = r.repick()
+            $o6.append(nc)
+        }
+    }
+}
+
+proc addConnectionD2(){ local i, j localobj target, syn, nc, r
+    {r = new Random()}
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            {r.uniform($4, $5)}
+            conn_id = int(r.repick())
+            syn = target.synlistex.object(j)
+            nc = pc.gid_connect(conn_id, syn)
+            {r.uniform(0.04, 0.07)}
+            nc.weight = r.repick()
+            {r.uniform(2, 2.5)}
+            nc.delay = r.repick()
+            $o6.append(nc)
+            /*stdp = new StdwaSA(0.5)
+            stdp.aLTD = -0.001//inhibitory
+            $o6.append(nc)
+            presyn = pc.gid_connect(conn_id, stdp)
+            presyn.weight = 1
+            postsyn = pc.gid_connect(i, stdp)
+            postsyn.weight = -1
+            setpointer stdp.wsyn, nc.weight
+            stdpmech.append(stdp)
+            presyns.append(presyn)
+            postsyns.append(postsyn) */       
+        }
+    }
+}
+
+proc addConnectionSub(){ local i, j localobj target, syn, nc, r
+    {r = new Random()}
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            {r.uniform($4, $5)}
+            conn_id = int(r.repick())
+            syn = target.synlistex.object(j)
+            nc = pc.gid_connect(conn_id, syn)
+            {r.uniform(0.00025, 0.00027)}
+            nc.weight = r.repick()
+            nc.delay = 1
+            $o6.append(nc)
+           /* stdp = new StdwaSA(0.5)
+            stdp.aLTD = -0.001//inhibitory
+            $o6.append(nc)
+            presyn = pc.gid_connect(conn_id, stdp)
+            presyn.weight = 1
+            postsyn = pc.gid_connect(i, stdp)
+            postsyn.weight = -1
+            setpointer stdp.wsyn, nc.weight
+            stdpmech.append(stdp)
+            presyns.append(presyn)
+            postsyns.append(postsyn) */       
+        }
+    }
+}
+
+
+//delays
+
+proc delays(){local n
+    addConnectionEes(0, ncell, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+    addConnectionEes(ncell*9, ncell*10, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+
+    for n = 0, 2{
+        addConnectionD2(ncell*n, ncell*(n+1), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex)
+        addConnectionD2(ncell*(n+3), ncell*(n+4), 27, ncell*n, ncell*(n+1), connect_ex_ex)
+        addConnectionInh(ncell*n, ncell*(n+1), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh)
+        addConnectionInh(ncell*(n+3), ncell*(n+4), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh)
+        addConnectionSub(ncell*(n+6), ncell*(n+7), 27, ncell*(n+9), ncell*(n+10), connect_ex_inh)
+        addConnectionEx(ncell*(n+6), ncell*(n+7), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex)
+        addConnectionD2(ncell*(n+6), ncell*(n+7), 27, ncell*n, ncell*(n+1), connect_ex_ex)
+    } 
+}
+
+delays()
+
+
+//generators
+
+proc generators(){ local n 
+    for n = 12, 16{
+        addConnectionD2(ncell*n, ncell*(n+1), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex)
+        addConnectionD2(ncell*(n+5), ncell*(n+6), 27, ncell*n, ncell*(n+1), connect_ex_ex)
+        addConnectionInh(ncell*(n+5), ncell*(n+6), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh)
+        addConnectionInh(ncell*n, ncell*(n+1), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh)
+        addConnectionEx(ncell*(n+10), ncell*(n+11), 27, ncell*n, ncell*(n+1), connect_ex_ex)
+        addConnectionEx(ncell*(n+10), ncell*(n+11), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex)
+    }  
+}
+
+generators()
+
+    /*addConnection(ncell*12, ncell*13, 27, ncell*22, ncell*23, connect_ex_inh)
+    addConnection(ncell*13, ncell*14, 27, ncell*23, ncell*24, connect_ex_inh)
+    addConnection(ncell*5, ncell*6, 27, ncell*22, ncell*23, connect_ex_inh)
+    addConnection(ncell*6, ncell*7, 27, ncell*23, ncell*24, connect_ex_inh)
+    addConnection(ncell*16, ncell*17, 27, ncell*26, ncell*27, connect_ex_inh)*/
+
+
+//subthresholds
+
+proc subs(){ local n
+    for n = 27, 30{
+        addConnectionD2(ncell*n, ncell*(n+1), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex)
+        addConnectionD2(ncell*(n+4), ncell*(n+5), 27, ncell*n, ncell*(n+1), connect_ex_ex)
+        addConnectionSub(ncell*(n+8), ncell*(n+9), 27, ncell*n, ncell*(n+1), connect_ex_inh)
+        addConnectionSub(ncell*(n+8), ncell*(n+9), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex)
+        addConnectionInh(ncell*(n+4), ncell*(n+5), 27, ncell*(n+8), ncell*(n+9), connect_ex_ex)
+    }
+}
+subs()
+
+proc betweensub(){ local n
+    //connection between subthresholds
+    for n = 28, 30{
+        addConnectionEx(ncell*n, ncell*(n+1), 27, ncell*(n+7), ncell*(n+8), connect_ex_ex)
+        addConnectionSub(ncell*(n+8), ncell*(n+9), 27, ncell*(n+7), ncell*(n+8), connect_ex_ex)
+    }
+    addConnectionEx(ncell*27, ncell*28, 27, ncell*6, ncell*7, connect_ex_ex)
+    addConnectionSub(ncell*35, ncell*36, 27, ncell*6, ncell*7, connect_ex_ex)
+    addConnectionEx(ncell*12, ncell*13, 27, ncell*6, ncell*7, connect_ex_ex)
+
+    addConnectionEx(ncell*2, ncell*3, 27, ncell*36, ncell*37, connect_ex_ex) 
+    addConnectionEx(ncell*11, ncell*12, 27, ncell*36, ncell*37, connect_ex_ex)
+
+    addConnectionEx(ncell*13, ncell*14, 27, ncell*35, ncell*36, connect_ex_ex)
+    addConnectionEx(ncell*14, ncell*15, 27, ncell*36, ncell*37, connect_ex_ex)
+
+    addConnectionEx(ncell*15, ncell*16, 27, ncell*37, ncell*38, connect_ex_ex)
+    addConnectionEx(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex)
+}
+ 
+betweensub()
+
+
+proc inh(){ local n
+    //inhibitory projections 
+    for n = 12, 14{
+        addConnectionInh(ncell*n, ncell*(n+1), 27, ncell*16, ncell*17, connect_ex_inh)
+        addConnectionInh(ncell*(n+5), ncell*(n+6), 27, ncell*16, ncell*17, connect_ex_inh)
+    }
+    addConnectionInh(ncell*12, ncell*13, 27, ncell*28, ncell*29, connect_ex_inh)
+    addConnectionInh(ncell*12, ncell*13, 27, ncell*32, ncell*33, connect_ex_inh)
+    addConnectionInh(ncell*12, ncell*13, 27, ncell*36, ncell*37, connect_ex_inh)
+    addConnectionInh(ncell*13, ncell*14, 27, ncell*29, ncell*30, connect_ex_inh)
+    addConnectionInh(ncell*13, ncell*14, 27, ncell*33, ncell*34, connect_ex_inh)
+    addConnectionInh(ncell*13, ncell*14, 27, ncell*37, ncell*38, connect_ex_inh)  
+}
+
+inh()
+
+
+
+
+proc ip(){ local n
+    //connection IP
+    for n = 0, 4 {
+        addConnectionEx(ncell*39+12*n, ncell*39+12*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex)
+        addConnectionEx(ncell*39+12*(n+5), ncell*39+12*(n+6), 28, ncell*(n+17), ncell*(n+18), connect_ip_ex)
+    }   
+}
+
+ip()
+
+proc mn(){ local n
+    //connection MNE
+    for n = 0, 11 {
+        addConnectionEx(ncell*39+nIP, ncell*39+nIP+nMN/2, 12, ncell*39+10*n, ncell*39+10*(n+1), connect_IP0_MNe)
+    } 
+
+    addConnectionEx(ncell*39+nIP, ncell*39+nIP+nMN, 10, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff, connect_MNe_Aff)
+
+    //connection Ia Afferent
+    addConnectionEes(ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff, 50, ncells, ncells, connect_sens1_EES)
+    //addConnection(ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff/3, 20, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, connect_sens1_EES, 5, 3)
+
+    //connection sens
+    addConnectionEes(ncell*39+nIP+nMN+nAff+2*nInt+nRC, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, 50, ncells, ncells, connect_sens1_EES)
+}
+
+mn()
+         

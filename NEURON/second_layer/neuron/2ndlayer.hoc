@@ -1,0 +1,91 @@
+{load_file("nrngui.hoc")}  // load the GUI and standard run libraries
+{load_file("stdlib.hoc")}
+objref pc
+pc = new ParallelContext()
+
+ncell = 20       /* The number of cells */
+nsyn = 2
+nMN = 169       /* The number of cells */
+nInt = 196
+nAff = 120
+nRC = 196
+nIP = 120
+nSens = 120
+ncells = ncell*39+nIP+nMN+2*nAff //ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
+
+{load_file("./templates/EES.hoc")}
+{load_file("./templates/interneuron.hoc")}
+{load_file("./templates/motoneuron.hoc")}
+{load_file("./templates/afferent.hoc")}
+{load_file("./templates/Ia.hoc")}
+
+objref interneurons, motoneurons, afferents 
+
+proc addinterneurons() {local i  localobj cell, nc, nil
+    interneurons = new List()
+    for (i=pc.id; i < ncell*39+nIP; i += pc.nhost) {
+        cell = new interneuron(i)
+        interneurons.append(cell)
+        pc.set_gid2node(i, pc.id)  // associate gid i with this host
+        nc = cell.connect2target(nil)  // attach spike detector to cell
+        pc.cell(i, nc)  // associate gid i with spike detector
+    }
+}
+
+proc addmotoneurons(){ local i localobj cell, nil, nc
+    motoneurons = new List()
+    for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
+        cell = new motoneuron(i - ncell*39)
+        motoneurons.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }
+}
+
+proc addafferents(){ local i localobj cell, nil, nc
+    afferents = new List()
+    for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+2*nAff; i += pc.nhost){
+        cell = new afferent(i - ncell*49)
+        afferents.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }
+    /*r.uniform(50, 55)
+    for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
+        cell = new Ia(r.repick())
+        afferents.append(cell)
+        pc.set_gid2node(i, pc.id)  
+        nc = cell.connect2target(nil)
+        pc.cell(i, nc)
+    }*/
+}
+
+//add EES
+objref ncees, eestim
+proc addees() { localobj nil
+    if (pc.id == 0) {
+        eestim = new EES()
+        pc.set_gid2node(ncells, pc.id) 
+        ncees = eestim.connect2target(nil)
+        pc.cell(ncells, ncees)
+    }
+}
+
+proc addnet(){
+    addinterneurons()
+    addmotoneurons()
+    addafferents()
+}
+
+addnet()
+
+addees()
+
+{load_file("./ses/3.ses")}
+
+{load_file("connectionExtensor.hoc")}
+//{load_file("conn1.hoc")}
+//forall psection()
+{load_file("recording.hoc")}
