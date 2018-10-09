@@ -10,6 +10,7 @@ datas_min_time = []
 
 title = ""
 tickrate = 0
+real_data_step = 0.25
 
 
 def read_data(file_path):
@@ -40,10 +41,10 @@ def data_processing(raw_data):
 	# find peaks in stimulations data
 	for index in range(1, len(stim_data) - 1):
 		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and stim_data[index] > 4:
-			slices_begin_time.append(index / 4)  # division by 4 gives us the normal 1 ms step size
+			slices_begin_time.append(index * real_data_step)  # division by 4 gives us the normal 1 ms step size
 
 	# remove unnecessary data, use only from first stim, and last stim
-	volt_data = volt_data[int(slices_begin_time[0] * 4):int(slices_begin_time[-1] * 4)]
+	volt_data = volt_data[int(slices_begin_time[0] / real_data_step):int(slices_begin_time[-1] / real_data_step)]
 
 	# move times to the begin (start from 0 ms)
 	slices_begin_time = [t - slices_begin_time[0] for t in slices_begin_time]
