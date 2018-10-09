@@ -29,8 +29,8 @@ def plot_n_tests():
     testsNeuron = {k: {} for k in range(tests_number)}
     for neuron_test_number in range(tests_number):
         for neuron_id in range(neuron_number):
-            with open('res1309/volMN{}v{}.txt'.format(neuron_id, neuron_test_number), 'r') as file:
-                print("opened", 'res1309/volMN{}v{}.txt'.format(neuron_id, neuron_test_number))
+            with open('res2509/volMN{}v{}.txt'.format(neuron_id, neuron_test_number), 'r') as file:
+                print("opened", 'res2509/volMN{}v{}.txt'.format(neuron_id, neuron_test_number))
                 value = [float(i) for i in file.read().split("\n")[1:-2]]
                 time_iter = 0.0
                 for offset in range(0, len(value), 4):
