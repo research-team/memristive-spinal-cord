@@ -188,6 +188,14 @@ def calc_NEST(data, debug_show=False):
 
 
 def calc_real_data(volt_data, slices_begin_time, debug_show=False):
+	"""
+
+	:param volt_data:
+	:param slices_begin_time:
+	:param debug_show:
+	:return: slices_max_time = {}
+	slices_min_time = {}
+	"""
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
 	datas_times = []
 	sliced_values = []
@@ -349,7 +357,6 @@ def main():
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 	volt, slices_time = data_processing(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
-
 	plot(real_results, NEST_results, NEURON_results)
 
 
