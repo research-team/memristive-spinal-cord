@@ -1,0 +1,246 @@
+objref connect_inh_inh, connect_ex_ex, connect_ex_inh, connect_inh_ex
+objref connect_ip_ex, connect_ex_ees, connect_ip_ees
+
+objref stdpmech, presyns, postsyns
+
+objref connect_MNe_Aff, connect_MNe_IA, connect_MNe_Ib
+objref connect_IAe_Ia, connect_Ibe_Ia, connect_sens1_EES
+objref connect_IP0_sens1, connect_IP0_MNe, connect_IP0_IAe
+objref connect_MNe_RCe, connect_IAe_RCe, connect_RCe_MNe
+
+connect_MNe_Aff = new List()
+connect_MNe_Ib = new List()
+connect_MNe_IA = new List()
+connect_IAe_Ia = new List()
+connect_Ibe_Ia = new List()
+connect_sens1_EES = new List()
+connect_IP0_sens1 = new List()
+connect_IP0_MNe = new List()
+connect_IP0_IAe = new List()
+connect_MNe_RCe = new List()
+connect_IAe_RCe = new List()
+connect_RCe_MNe = new List()
+
+connect_inh_inh = new List()
+connect_ex_ex = new List()
+connect_ex_inh = new List()
+connect_inh_ex = new List()
+connect_ip_ex = new List()
+connect_ex_ees = new List()
+connect_ip_ees = new List()
+
+presyns = new List()
+postsyns = new List()
+stdpmech = new List()
+
+
+proc connection(){ localobj syn, nc
+    syn = $o1
+    nc = pc.gid_connect($3, syn)
+    //r.uniform(1, 2)
+    nc.weight = 1 //r.repick()
+    //r.uniform(1, 2)
+    nc.delay = 1  //r.repick()
+    $o2.append(nc)
+}
+
+proc connectionSTDP(){ localobj syn, nc, stdp, presyn, postsyn
+    //r.uniform(0.04, 0.07)
+    syn = $o1
+    nc = pc.gid_connect($4, syn)
+    nc.weight = 0.05 //r.repick()
+    //r.uniform(1, 1.5)
+    nc.delay = 1 //r.repick()
+    stdp = new StdwaSA(0.5)
+    $o2.append(nc)
+    if($8 == 1){
+        //r.uniform(0.00025, 0.00026)
+        nc.weight = 0.00026 //r.repick()
+        //nc.delay = 2
+    }else if($8 == 2){
+        //r.uniform(0.03, 0.05)
+        nc.weight = 0.04 //r.repick()
+        //r.uniform(2, 2.5)
+        nc.delay = 2.25 //r.repick()
+    }else if($8 == 3){
+        //r.uniform(0.00025, 0.00026)
+        nc.weight = 0.00026 //r.repick()
+    }else if($8 == 4){
+        stdp.aLTD = -0.001//inhibitory
+        //r.uniform(0.04, 0.08)
+        nc.weight = 0.05 //r.repick()
+    }else if($8 == 5){
+        //r.uniform(0.005, 0.05)
+        nc.weight = 0.01 //r.repick()
+        //r.uniform(0.8, 1)
+        nc.delay = 1 //r.repick()
+    }else{//r.uniform(0.0015, 0.002)
+        nc.weight = 0.0015 //r.repick()
+        stdp.aLTD = -0.001//inhibitory
+    }
+    presyn = pc.gid_connect($4, stdp)
+    presyn.weight = 1
+    postsyn = pc.gid_connect($3, stdp)
+    postsyn.weight = -1
+    setpointer stdp.wsyn, $o2.object($o2.count-1).weight
+    $o5.append(stdp)
+    $o6.append(presyn)
+    $o7.append(postsyn)
+}
+
+proc addConnection(){ localobj target
+    for (i=pc.id + $1; i < $2; i += pc.nhost){
+        if (!pc.gid_exists(i)) { continue }
+        target = pc.gid2cell(i) //target cell
+        for j = 0, nsyn*$3-1 {
+            if($8 == 0){
+                r.uniform($4, $5)
+                connectionSTDP(target.synlistex.object(j), $o6, i, r.repick(), stdpmech, presyns, postsyns, $7)
+            }else if($8 == 1){
+                r.uniform($4, $5)
+                connectionSTDP(target.synlistinh.object(j), $o6, i, r.repick(), stdpmech, presyns, postsyns, $7)
+
+            }else{
+                r.uniform($4, $5)
+                connection(target.synlistees.object(j), $o6, r.repick()) //add ees                 
+            }
+        }
+    }
+}
+
+//last number is type of connection
+//0 - excitatory
+//1 - inhibitory
+//3 - EES
+
+proc adddelays(){ local n
+    //delays
+    addConnection(0, ncell, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+    addConnection(ncell*9, ncell*10, 27, (ncell*39+nIP+nMN+nAff+2*nInt+nRC), (ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens), connect_ex_ex, 0, 3)
+
+    for n =0, 2{
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex, 2, 0)
+        addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh, 4, 1)
+        addConnection(ncell*(n+3), ncell*(n+4), 27, ncell*(n+6), ncell*(n+7), connect_ex_inh, 4, 1)
+        addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+9), ncell*(n+10), connect_ex_inh, 0, 1)
+        addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*(n+3), ncell*(n+4), connect_ex_ex, 5, 0)
+        addConnection(ncell*(n+6), ncell*(n+7), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
+    }
+}
+
+proc addgen(){ local n
+    //generators
+    for n = 12, 16{
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex, 2, 0)
+        addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
+        addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh, 4, 1)
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+10), ncell*(n+11), connect_ex_inh, 4, 1)
+        addConnection(ncell*(n+10), ncell*(n+11), 27, ncell*n, ncell*(n+1), connect_ex_ex, 5, 0)
+        addConnection(ncell*(n+10), ncell*(n+11), 27, ncell*(n+5), ncell*(n+6), connect_ex_ex, 5, 0)
+    }
+}
+
+
+    /*addConnection(ncell*12, ncell*13, 27, ncell*22, ncell*23, connect_ex_inh, 4, 1)
+    addConnection(ncell*13, ncell*14, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
+    addConnection(ncell*5, ncell*6, 27, ncell*22, ncell*23, connect_ex_inh, 4, 1)
+    addConnection(ncell*6, ncell*7, 27, ncell*23, ncell*24, connect_ex_inh, 4, 1)
+    addConnection(ncell*16, ncell*17, 27, ncell*26, ncell*27, connect_ex_inh, 4, 1)*/
+
+proc addsub(){ local n
+   //subthresholds
+    for n = 27, 30{
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex, 2, 0)
+        addConnection(ncell*(n+4), ncell*(n+5), 27, ncell*n, ncell*(n+1), connect_ex_ex, 2, 0)
+        addConnection(ncell*(n+8), ncell*(n+9), 27, ncell*n, ncell*(n+1), connect_ex_inh, 3, 0)
+        addConnection(ncell*(n+8), ncell*(n+9), 27, ncell*(n+4), ncell*(n+5), connect_ex_ex, 3, 0)
+        addConnection(ncell*(n+4), ncell*(n+5), 27, ncell*(n+8), ncell*(n+9), connect_ex_ex, 4, 1)
+    } 
+}
+
+proc betweensub(){ local n
+    //connection between subthresholds
+    for n = 28, 30{
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*(n+7), ncell*(n+8), connect_ex_ex, 5, 0)
+        addConnection(ncell*(n+8), ncell*(n+9), 27, ncell*(n+7), ncell*(n+8), connect_ex_ex, 1, 0)
+    }
+}
+
+proc betweenlayers(){ local n
+    addConnection(ncell*27, ncell*28, 27, ncell*6, ncell*7, connect_ex_ex, 5, 0)
+    addConnection(ncell*35, ncell*36, 27, ncell*6, ncell*7, connect_ex_ex, 1, 0)
+
+    //addConnection(ncell*13, ncell*14, 27, ncell*6, ncell*7, connect_ex_ex, 5, 0)
+    addConnection(ncell*12, ncell*13, 27, ncell*6, ncell*7, connect_ex_ex, 5, 0)
+
+    //addConnection(ncell, ncell*2, 27, ncell*35, ncell*36, connect_ex_ex, 5, 0) 
+    //addConnection(ncell*10, ncell*11, 27, ncell*35, ncell*36, connect_ex_ex, 5, 0)
+
+    addConnection(ncell*2, ncell*3, 27, ncell*36, ncell*37, connect_ex_ex, 5, 0) 
+    addConnection(ncell*11, ncell*12, 27, ncell*36, ncell*37, connect_ex_ex, 5, 0)
+
+    addConnection(ncell*13, ncell*14, 27, ncell*35, ncell*36, connect_ex_ex, 5, 0)
+    addConnection(ncell*14, ncell*15, 27, ncell*36, ncell*37, connect_ex_ex, 5, 0)
+
+    //addConnection(ncell*14, ncell*15, 27, ncell*2, ncell*3, connect_ex_ex, 5, 0) //add generator .. strong connection between delay and generator
+
+
+    //addConnection(ncell*29, ncell*30, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
+    //addConnection(ncell*37, ncell*38, 27, ncell*15, ncell*16, connect_ex_ex, 1, 0)
+
+    addConnection(ncell*15, ncell*16, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+    addConnection(ncell*16, ncell*17, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
+
+    //addConnection(ncell*21, ncell*22, 27, ncell*38, ncell*39, connect_ex_ex, 5, 0)
+
+    //addConnection(ncell*30, ncell*31, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+    //addConnection(ncell*38, ncell*39, 27, ncell*37, ncell*38, connect_ex_ex, 5, 0)
+
+
+    //inhibitory projections 
+    for n = 12, 14{
+        addConnection(ncell*n, ncell*(n+1), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
+        addConnection(ncell*(n+5), ncell*(n+6), 27, ncell*16, ncell*17, connect_ex_inh, 4, 1)
+    }
+    addConnection(ncell*12, ncell*13, 27, ncell*28, ncell*29, connect_ex_inh, 4, 1)
+    addConnection(ncell*12, ncell*13, 27, ncell*32, ncell*33, connect_ex_inh, 4, 1)
+    addConnection(ncell*12, ncell*13, 27, ncell*36, ncell*37, connect_ex_inh, 4, 1)
+    addConnection(ncell*13, ncell*14, 27, ncell*29, ncell*30, connect_ex_inh, 4, 1)
+    addConnection(ncell*13, ncell*14, 27, ncell*33, ncell*34, connect_ex_inh, 4, 1)
+    addConnection(ncell*13, ncell*14, 27, ncell*37, ncell*38, connect_ex_inh, 4, 1)
+}
+
+proc connip(){ local n
+    //connection IP
+    for n = 0, 4 {
+        addConnection(ncell*39+12*n, ncell*39+12*(n+1), 28, ncell*(n+12), ncell*(n+13), connect_ip_ex, 5, 0)
+        addConnection(ncell*39+12*(n+5), ncell*39+12*(n+6), 28, ncell*(n+17), ncell*(n+18), connect_ip_ex, 5, 0)
+    }
+}
+
+proc connmn(){ local n
+    //connection MNE
+    for n = 0, 11 {
+        addConnection(ncell*39+nIP, ncell*39+nIP+nMN/2, 12, ncell*39+10*n, ncell*39+10*(n+1), connect_IP0_MNe, 5, 0)
+    }            
+    addConnection(ncell*39+nIP, ncell*39+nIP+nMN, 10, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff, connect_MNe_Aff, 5, 0)  
+}
+
+proc addees(){
+    //connection Ia Afferent
+    addConnection(ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff, 50, ncells, ncells, connect_sens1_EES, 5, 3)
+    addConnection(ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff/3, 20, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, connect_sens1_EES, 5, 3)
+
+    //connection sens
+    addConnection(ncell*39+nIP+nMN+nAff+2*nInt+nRC, ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens, 50, ncells, ncells, connect_sens1_EES, 5, 3)
+}
+
+adddelays()
+addgen()
+addsub()
+betweensub()
+betweenlayers()
+connip()
+connmn()
+addees()

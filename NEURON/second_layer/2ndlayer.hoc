@@ -1,0 +1,95 @@
+{load_file("nrngui.hoc")}  // load the GUI and standard run libraries
+ncell = 20       /* The number of cells */
+nsyn = 2
+nMN = 169       /* The number of cells */
+nInt = 196
+nAff = 120
+nRC = 196
+nIP = 120
+nSens = 120
+ncells = ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff
+
+{load_file("./templates/EES.hoc")}
+{load_file("./templates/afferent.hoc")}
+{load_file("./templates/interneuron.hoc")}
+{load_file("./templates/motoneuron.hoc")}
+
+
+
+objref cells 
+cells = new List()
+
+objref pc //, r
+pc = new ParallelContext()
+//r = new Random(startsw())
+
+proc addcell(){ localobj nil, nc
+    cells.append($o1)
+    pc.set_gid2node($2, $3)
+    nc = cells.object(cells.count()-1).connect2target(nil)
+    pc.cell($2, nc)
+}
+
+
+proc addintercell(){ local i
+    for (i=pc.id; i < ncell*39+nIP; i += pc.nhost){
+        addcell(new interneuron(i), i, pc.id)
+    }    
+}
+
+
+/*
+for (i=pc.id+ncell*6; i < ncell*12; i += pc.nhost){
+    addcell(new Inh((i - ncell)*2), i, pc.id)
+}*/
+
+proc addmotocell(){ local i
+    for (i=pc.id+ncell*39+nIP; i < ncell*39+nIP+nMN; i += pc.nhost){
+        addcell(new motoneuron(i - 14*ncell), i, pc.id)
+    }  
+}
+
+/*
+r.uniform(50, 55)
+for (i=pc.id+ncell*39+nIP+nMN; i < ncell*39+nIP+nMN+nAff; i += pc.nhost){
+    addcell(new Ia(r.repick()), i, pc.id)
+}
+/*
+for (i=pc.id+ncell*39+nIP+nMN+nAff; i < ncell*39+nIP+nMN+nAff+nInt; i += pc.nhost){
+    addcell(new IaE(i - 24*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*39+nIP+nMN+nAff+nInt; i < ncell*39+nIP+nMN+nAff+2*nInt; i += pc.nhost){
+    addcell(new IbE(i - 24*ncell), i, pc.id)
+}
+
+for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC; i += pc.nhost){
+    addcell(new RCE(i - 25*ncell), i, pc.id)
+}
+*/
+
+proc addafferentcell(){ local i
+    for (i=pc.id+ncell*39+nIP+nMN+nAff+2*nInt+nRC; i < ncell*39+nIP+nMN+nAff+2*nInt+nRC+nSens+nAff; i += pc.nhost){
+        addcell(new afferent(i - 15*ncell), i, pc.id)
+    }  
+}
+
+//add sensory generator
+/*if (pc.id == 0) {
+    {addcell(new sensorygen(),ncells+1,pc.id)}
+}*/
+
+addintercell()
+addmotocell()
+addafferentcell()
+
+//add EES
+if (pc.id == 0) {
+    {addcell(new EES(), ncells, pc.id)}
+}
+
+//{load_file("./ses/3.ses")}
+
+{load_file("connectionExtensor.hoc")}
+//forall psection()
+{load_file("recording.hoc")}

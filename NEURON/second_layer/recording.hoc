@@ -1,18 +1,18 @@
-objref volMN[motoneurons.count]
-print(motoneurons.count)
+objref volMN[nMN/pc.nhost]
+print(nMN/pc.nhost)
 objref l1[ncell], l2[ncell], l3[ncell], l4[ncell], l5[ncell], l6[ncell]
 
 proc printFile(){
-sprint($s1, "%s%dv0.%s", $s2, $5, $s3) 
+sprint($s1, "%s%dv7.%s", $s2, $5, $s3) 
     $o6.wopen($s1)
     $o4.printf($o6)
     $o6.close()
 }
 
 proc recordmoto(){ local i 
-    for i=0, motoneurons.count - 1{
+    for i=0, nMN/pc.nhost - 1{
         volMN[i] = new Vector()
-        volMN[i].record(&motoneurons.object(i).soma.vext[1](0.5))
+        volMN[i].record(&motoneuron[i].soma.vext[1](0.5))
     }
 }
 /*proc epochrun() { local i, n, j
@@ -58,7 +58,7 @@ proc spikeout(){ local i, rank localobj fok
     basename2 = "./res/volMN"
     for rank=0, pc.nhost-1 {  
         if (rank==pc.id) {
-            for i=0, motoneurons.count-1 {
+            for i=0, nMN/pc.nhost-1 {
                     printFile(filename2, basename2, extension, volMN[i], i*(rank+1), fok)
             }
         }
@@ -69,5 +69,9 @@ proc spikeout(){ local i, rank localobj fok
 
 spikeout() 
 
+
+
 {pc.runworker()}
 {pc.done()}
+
+
