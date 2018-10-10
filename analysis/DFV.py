@@ -14,6 +14,9 @@ vs = [0.0, 0.5,   2.0,   1.5,   2.0,   2.0,   1.5,   1.0,   0.0]
 
 logging.info('Setup complete')
 
+logging.info('')
+
+
 logging.info('Plotting')
 fig = plt.figure()
 ax = fig.gca(projection='3d')

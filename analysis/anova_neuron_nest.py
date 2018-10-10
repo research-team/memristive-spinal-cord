@@ -2,7 +2,7 @@ import pylab as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from analysis.real_data_slices import read_data, data_processing
+from analysis.real_data_slices import read_data, slice_myogram
 chunks_NEST = []
 chunks_NEURON = []
 deltas_std = []
