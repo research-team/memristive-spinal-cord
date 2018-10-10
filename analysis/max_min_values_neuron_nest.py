@@ -2,7 +2,7 @@ import numpy as np
 import pylab as plt
 from collections import defaultdict
 
-from analysis.real_data_slices import read_data, data_processing
+from analysis.real_data_slices import read_data, slice_myogram
 
 test_number = 25
 nest_sim_step = 0.1
@@ -405,7 +405,7 @@ def main():
 	# NEURON_results = calc_NEURON(raw_NEURON_data, debug_show=False)
 
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-	volt, slices_time = data_processing(raw_real_data)
+	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
 	# plot(real_results, NEST_results, NEURON_results)
 
