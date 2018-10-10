@@ -2,6 +2,7 @@ import pylab as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+from analysis.real_data_slices import read_data, slice_myogram
 chunks_NEST = []
 chunks_NEURON = []
 deltas_std = []
@@ -53,7 +54,6 @@ for neuron_test_number in range(test_number):
 		with open('res2509/volMN{}v{}.txt'.format(neuron_id, neuron_test_number), 'r') as file:
 			tmp.append([float(i) * V_to_uV for i in file.read().split("\n")[1:-2]])
 	neuron_tests.append([elem * 10**7 for elem in list(map(lambda x: np.mean(x), zip(*tmp)))])
-
 # calculate mean
 neuron_means = []
 raw_means = list(map(lambda x: np.mean(x), zip(*neuron_tests)))
@@ -69,6 +69,11 @@ for iter_begin in range(len(neuron_means))[::offset]:
 # FixMe neuron_without_EES = [-x for x in neuron_without_EES]
 
 print(len(neuron_without_EES), neuron_without_EES)
+#collect real data
+
+raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+real_data = max(raw_real_data['data'])
+#calculate mean
 
 # normalization
 scaler = StandardScaler()
@@ -82,32 +87,29 @@ scaler = StandardScaler()
 # df[['nest', 'neuron']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 # normalized_nest = nest_without_EES.reshape(1, -1)
 # normalized_neuron = neuron_without_EES.reshape(1, -1)
-normalized_nest = scaler.fit_transform(nest_without_EES)
-normalized_neuron = scaler.transform(neuron_without_EES)
-print("normalized_nest: ", normalized_nest)
-print("normalized_neuron: ", normalized_neuron)
-# print("df: ", df)
-# plt.plot(range(len(lambda x: (x - x.min()) / (x.max() - x.min()))), df)
-plt.plot(range(len(normalized_nest)), normalized_nest, label="NEST")
-plt.plot(range(len(normalized_neuron)), normalized_neuron, label="NEURON")
-plt.legend()
-plt.show()
-
-
-"""
+normalized_nest = scaler.fit_transform(nest_means)
+normalized_neuron = scaler.transform(neuron_means)
+# print("normalized_nest: ", normalized_nest)
+# print("normalized_neuron: ", normalized_neuron)
+# # print("df: ", df)
+# # plt.plot(range(len(lambda x: (x - x.min()) / (x.max() - x.min()))), df)
+# plt.plot(range(len(normalized_nest)), normalized_nest, label="NEST")
+# plt.plot(range(len(normalized_neuron)), normalized_neuron, label="NEURON")
+# plt.legend()
+# plt.show()
 raise Exception
-step_size_NEST = int(len(NEST) / sim_time * delta_step_size)
-step_size_NEURON = int(len(NEURON) / sim_time * delta_step_size)
+step_size_NEST = int(len(normalized_nest) / sim_time * delta_step_size)
+step_size_NEURON = int(len(normalized_neuron) / sim_time * delta_step_size)
 
 # fixme split on chunks (by stepsize)
 offset = 0
-for elem in range(int(len(NEST) / step_size_NEST)):
-	chunks_NEST.append(NEST[offset:offset + step_size_NEST])
+for elem in range(int(len(normalized_nest) / step_size_NEST)):
+	chunks_NEST.append(normalized_nest[offset:offset + step_size_NEST])
 	offset += step_size_NEST
 
 offset = 0
-for elem in range(int(len(NEURON) / step_size_NEURON)):
-	chunks_NEURON.append(NEURON[offset:offset + step_size_NEURON])
+for elem in range(int(len(normalized_neuron) / step_size_NEURON)):
+	chunks_NEURON.append(normalized_neuron[offset:offset + step_size_NEURON])
 	offset += step_size_NEURON
 
 # fixme calculate STD for each chunk for NEST
@@ -116,22 +118,21 @@ stds_NEST = list(map(lambda x: np.std(x), chunks_NEST))
 stds_NEURON = list(map(lambda x: np.std(x), chunks_NEURON))
 
 # fixme calculate delta of STD for each zipped STDs of NEST/NEURON
-for std_for_NEST, std_for_NEURON in zip(stds_NEST, stds_NEURON):
-	deltas_std.append(std_for_NEST - std_for_NEURON)
+# for std_for_NEST, std_for_NEURON in zip(stds_NEST, stds_NEURON):
+# 	deltas_std.append(std_for_NEST - std_for_NEURON)
 
-pylab.figure(figsize=(16, 9))
-pylab.subplot(211)
-pylab.plot([i / 40 for i in range(len(NEST))], NEST)
-pylab.plot([i / 40 for i in range(len(NEURON))], NEURON)
-pylab.xlim(0, 125)
-pylab.ylabel("uV")
-
-pylab.subplot(212)
-pylab.title("Step size: {} ms".format(delta_step_size))
-pylab.ylabel("Δ σ (Δ СКО)")
-pylab.xlim(0, len(chunks_NEST))
-pylab.plot(range(len(deltas_std)), deltas_std)
-
-pylab.savefig("C:/Users/Home/Desktop/results.png", dpi=300)
-pylab.show()
-"""
+# plt.figure(figsize=(16, 9))
+# plt.subplot(211)
+# plt.plot([i / 40 for i in range(len(normalized_nest))], normalized_nest)
+# plt.plot([i / 40 for i in range(len(normalized_neuron))], normalized_neuron)
+# plt.xlim(0, 125)
+# plt.ylabel("uV")
+#
+# plt.subplot(212)
+# plt.title("Step size: {} ms".format(delta_step_size))
+# plt.ylabel("Δ σ (Δ СКО)")
+# plt.xlim(0, len(chunks_NEST))
+# plt.plot(range(len(deltas_std)), deltas_std)
+#
+# plt.savefig("C:/Users/Home/Desktop/results.png", dpi=300)
+# plt.show()

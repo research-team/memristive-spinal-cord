@@ -22,7 +22,14 @@ def read_data(file_path):
 	return mat_data
 
 
-def data_processing(raw_data):
+def slice_myogram(raw_data, slicing_index ='Stim'):
+	"""
+	The function to slice the data from the matlab file of myogram.
+	:param dict raw_data:  the myogram data loaded from matlab file.
+	:param str slicing_index: the index to be used as the base for slicing, default 'Stim'.
+	:return: list volt_data: the voltages array
+	:return: list slices_begin_time: the staring time of each slice array.
+	"""
 	# Collect data
 	volt_data = []
 	stim_data = []
@@ -33,7 +40,7 @@ def data_processing(raw_data):
 		data_start = int(raw_data['datastart'][index]) - 1
 		data_end = int(raw_data['dataend'][index])
 		float_data = [round(float(x), 3) for x in raw_data['data'][0][data_start:data_end]]
-		if "Stim" not in data_title:
+		if slicing_index not in data_title:
 			volt_data = float_data
 		else:
 			stim_data = float_data
@@ -80,7 +87,7 @@ def plot_by_slice(volt_data, slices_begin_time):
 
 def main():
 	raw_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-	volt_data, slices_begin_time = data_processing(raw_data)
+	volt_data, slices_begin_time = slice_myogram(raw_data)
 	# plot_1d(volt_data, slices_begin_time)
 	plot_by_slice(volt_data, slices_begin_time)
 

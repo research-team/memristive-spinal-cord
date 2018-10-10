@@ -2,7 +2,7 @@ import numpy as np
 import pylab as plt
 from collections import defaultdict
 
-from analysis.real_data_slices import read_data, data_processing
+from analysis.real_data_slices import read_data, slice_myogram
 
 test_number = 25
 nest_sim_step = 0.1
@@ -188,45 +188,20 @@ def calc_NEST(data, debug_show=False):
 
 
 def calc_real_data(volt_data, slices_begin_time, debug_show=False):
+	"""
+
+	:param volt_data:
+	:param slices_begin_time:
+	:param debug_show:
+	:return: slices_max_time = {time, value}, slices_min_time = {time, value}
+	"""
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
-	datas_times = []
-	sliced_values = []
-	# Lavrov results from 10 - 15 slices
-	counter = len(slices_begin_time[10:16])
-	k_slice = 1
-	offset = slices_begin_time[1] - slices_begin_time[0]
-	slices_max_time = {}
-	slices_max_value = {}
-	slices_min_time = {}
-	slices_min_value = {}
-	start = slices_begin_time[10]
+	real_max_min = calc_max_min(slices_begin_time, volt_data, real_data_step)
+	slices_max_time = real_max_min[0]
+	slices_max_value = real_max_min[1]
+	slices_min_time = real_max_min[2]
 
-	for j in range(counter):
-		sliced_values += volt_data[start:start + offset]
-		datas_times += range(start, start + offset)
-		tmp_max_time = []
-		tmp_min_time = []
-		tmp_max_value = []
-		tmp_min_value = []
-
-		for c in range(1, len(sliced_values) - 1):
-			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_max_time.append((datas_times[c] - 1000) * real_data_step)
-				tmp_max_value.append(sliced_values[c])
-			if sliced_values[c - 1] > sliced_values[c] <= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_min_time.append((datas_times[c] - 1000) * real_data_step)
-				tmp_min_value.append(sliced_values[c])
-
-		slices_max_time[k_slice] = tmp_max_time
-		slices_max_value[k_slice] = tmp_max_value
-		slices_min_time[k_slice] = tmp_min_time
-		slices_min_value[k_slice] = tmp_min_value
-		start += offset
-		k_slice += 1
-		sliced_values.clear()
-
+	slices_min_value = real_max_min[3]
 	print("REAL data")
 	print("MAX")
 	for slice_index, times in slices_max_time.items():
@@ -251,6 +226,49 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 
 	return slices_max_time, slices_min_time
 
+
+def calc_max_min(slices_begin_time, test_data, data_step):
+	"""
+
+	:param slices_begin_time: array of times when slices begin
+	:param test_data: list of data for processing. In our case, Lavrov data
+	:param data_step: step with which data is recorded. in our case, data_step = 0.25
+	:return: slices_max_time = {slice_index, time}, slices_max_value = {slice_index, value}, slices_min_time = {slice_index, time}, slices_min_value = {slice_index, value}
+	"""
+	datas_times = []
+	k_slice = 1
+	offset = slices_begin_time[1] - slices_begin_time[0]
+	slices_max_time = {}
+	slices_max_value = {}
+	slices_min_time = {}
+	slices_min_value = {}
+	start = slices_begin_time[10]
+
+	for slice_index in range(len(slices_begin_time[10:16])):
+		tmp_max_time = []
+		tmp_min_time = []
+		tmp_max_value = []
+		tmp_min_value = []
+		sliced_values = test_data[start:start + offset]
+		datas_times += range(start, start + offset)
+		for c in range(1, len(sliced_values) - 1):
+			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
+				# with normalization to 1 ms step size
+				tmp_max_time.append((datas_times[c] - 1000) * data_step)
+				tmp_max_value.append(sliced_values[c])
+			if sliced_values[c - 1] > sliced_values[c] <= sliced_values[c + 1]:
+				# with normalization to 1 ms step size
+				tmp_min_time.append((datas_times[c] - 1000) * data_step)
+				tmp_min_value.append(sliced_values[c])
+
+		slices_max_time[k_slice] = tmp_max_time
+		slices_max_value[k_slice] = tmp_max_value
+		slices_min_time[k_slice] = tmp_min_time
+		slices_min_value[k_slice] = tmp_min_value
+		start += offset
+		k_slice += 1
+		sliced_values.clear()
+	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 def plot(real_results, NEST_results, NEURON_results):
 	"""
@@ -340,17 +358,16 @@ def plot(real_results, NEST_results, NEURON_results):
 
 
 def main():
-	raw_NEST_data = read_data_NEST('NEST')
-	NEST_results = calc_NEST(raw_NEST_data, debug_show=False)
-
-	raw_NEURON_data = read_data_NEURON('res2509')
-	NEURON_results = calc_NEURON(raw_NEURON_data, debug_show=False)
+	# raw_NEST_data = read_data_NEST('NEST')
+	# NEST_results = calc_NEST(raw_NEST_data, debug_show=False)
+	#
+	# raw_NEURON_data = read_data_NEURON('res2509')
+	# NEURON_results = calc_NEURON(raw_NEURON_data, debug_show=False)
 
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-	volt, slices_time = data_processing(raw_real_data)
+	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
-
-	plot(real_results, NEST_results, NEURON_results)
+	# plot(real_results, NEST_results, NEURON_results)
 
 
 if __name__ == "__main__":

@@ -104,7 +104,10 @@ ENV/
 # raw_data files
 *.dat
 *.gdf
-
+*.txt
+*.fig
+*.adicht
+*.mat
 cmake-build-debug/
 /IzhikevichGPU/*CMakeFiles/*
 /IzhikevichGPU/*Debug/
