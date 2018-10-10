@@ -239,7 +239,7 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	slices_min_time = real_max_min[2]
 
 	slices_min_value = real_max_min[3]
-	# print("slices_max_time ", slices_max_time )
+	# print("real_data_step", real_data_step )
 	# print("slices_min_value", slices_min_value)
 	# raise Exception
 	print("REAL data")
@@ -270,9 +270,9 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 def calc_max_min(slices_begin_time, test_data, data_step):
 	"""
 
-	:param slices_begin_time:
-	:param test_data:
-	:param data_step:
+	:param slices_begin_time: array of times when slices begin
+	:param test_data: list of data for processing. In our case, Lavrov data
+	:param data_step: step with which data is recorded. in our case, data_step = 0.25
 	:return: slices_max_time = {slice_index, time}, slices_max_value = {slice_index, value}, slices_min_time = {slice_index, time}, slices_min_value = {slice_index, value}
 	"""
 	datas_times = []
