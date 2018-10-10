@@ -227,24 +227,24 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_begin_time, test_data, data_step):
+def calc_max_min(slices_start_time, test_data, data_step=0.25):
 	"""
-
-	:param slices_begin_time: array of times when slices begin
-	:param test_data: list of data for processing. In our case, Lavrov data
-	:param data_step: step with which data is recorded. in our case, data_step = 0.25
+    Function to collect minimums and maximums based on voltages of myograms.
+	:param slices_start_time: array of slices start times
+	:param list test_data: list of data for processing myograms from matlab. (In our case, Lavrov data)
+	:param float data_step: step with which data is recorded. in our case, data_step = 0.25
 	:return: slices_max_time = {slice_index, time}, slices_max_value = {slice_index, value}, slices_min_time = {slice_index, time}, slices_min_value = {slice_index, value}
 	"""
 	datas_times = []
 	k_slice = 1
-	offset = slices_begin_time[1] - slices_begin_time[0]
+	offset = slices_start_time[1] - slices_start_time[0]
 	slices_max_time = {}
 	slices_max_value = {}
 	slices_min_time = {}
 	slices_min_value = {}
-	start = slices_begin_time[10]
+	start = slices_start_time[10]
 
-	for slice_index in range(len(slices_begin_time[10:16])):
+	for slice_index in range(len(slices_start_time[10:16])):
 		tmp_max_time = []
 		tmp_min_time = []
 		tmp_max_value = []

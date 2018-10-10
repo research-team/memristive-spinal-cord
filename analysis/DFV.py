@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import logging
+import scipy.io as sio
+from analysis.max_min_values_neuron_nest import calc_max_min
+from analysis.real_data_slices import slice_myogram
 
 # https://stackoverflow.com/questions/25735153/plotting-a-fast-fourier-transform-in-python#25735274
 
@@ -14,8 +17,26 @@ vs = [0.0, 0.5,   2.0,   1.5,   2.0,   2.0,   1.5,   1.0,   0.0]
 
 logging.info('Setup complete')
 
-logging.info('')
+logging.info('Loading myograms')
 
+'''
+RTA right  tibialis anterior (flexor)
+RMG right adductor magnus (extensor)
+'''
+mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RMG_20Hz_one_step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
+#mat_data = sio.loadmat('../bio-data/SCI_Rat-1_11-22-2016_RTA_20Hz_one_step.mat')
+tick_rate = int(mat_data['tickrate'][0][0])
+
+logging.info('Loaded myograms')
+
+voltages, start_times = slice_myogram(mat_data)
+slices_max_time, slices_max_value, slices_min_time, slices_min_value = calc_max_min(start_times, voltages)
+
+#TODO calculate delay time to 3rd extremum
+#TODO calculate duration time_to_last_etremum - time_to_3rd_extremum
+#TODO calculete frequencies with FFT https://stackoverflow.com/questions/25735153/plotting-a-fast-fourier-transform-in-python#25735274
 
 logging.info('Plotting')
 fig = plt.figure()
