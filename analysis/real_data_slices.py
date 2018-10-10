@@ -25,9 +25,10 @@ def read_data(file_path):
 def slice_myogram(raw_data, slicing_index ='Stim'):
 	"""
 	The function to slice the data from the matlab file of myogram.
-	:param raw_data: the myogram data loaded from matlab file.
-	:param slicing_index: the index to be used as the base for slicing, default 'Stim'.
-	:return: volt_data: the voltages array, slices_begin_time: the staring time of each slice array.
+	:param dict raw_data:  the myogram data loaded from matlab file.
+	:param str slicing_index: the index to be used as the base for slicing, default 'Stim'.
+	:return: list volt_data: the voltages array
+	:return: list slices_begin_time: the staring time of each slice array.
 	"""
 	# Collect data
 	volt_data = []
