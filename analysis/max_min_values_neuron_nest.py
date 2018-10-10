@@ -249,8 +249,10 @@ def calc_max_min(slices_start_time, test_data, data_step=0.25):
 		tmp_min_time = []
 		tmp_max_value = []
 		tmp_min_value = []
-		sliced_values = test_data[start:start + offset]
-		datas_times += range(start, start + offset)
+		#TODO why it is like this indexes as time?
+		sliced_values = test_data[int(start):int(start + offset)]
+		datas_times += range(int(start), int(start + offset))
+
 		for c in range(1, len(sliced_values) - 1):
 			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
 				# with normalization to 1 ms step size
