@@ -69,6 +69,7 @@ class motoneuron(object):
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -60
+    self.soma.insert('extracellular')
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001

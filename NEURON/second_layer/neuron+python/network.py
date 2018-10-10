@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
 from neuron import h
 h.load_file('nrngui.hoc')
 pc = h.ParallelContext()
@@ -15,18 +17,22 @@ import random
 interneurons = []
 motoneurons = []
 afferents = []
-nclist = []
+exnclist = []
+inhnclist = []
+
+index = 0
 
 ncell = 20       
-nMN = 169      
+nMN = 168      
 nAff = 120
 nIP = 120
 ncells = ncell*39+nIP+nMN+2*nAff 
 
 def addnetwork():
+  ''' create cells and connections '''
   addinterneurons(0, ncell*39+nIP)
   addmotoneurons(ncell*39+nIP, ncell*39+nIP+nMN)
-  addafferents(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff)
+  addafferents(ncell*39+nIP+nMN, ncells+1)
   connectcells()
 
 def addinterneurons(start, end):
@@ -59,14 +65,13 @@ def addafferents(start, end):
     nc = cell.connect2target(None)
     pc.cell(i, nc)
 
-# connection between cells
 
 def connectcells():
-  
+  ''' connection between cells '''
   # delays
-  exconnectcells(0, ncell, 0.05, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
-  exconnectcells(ncell*9, ncell*10, 0.05, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
-
+  exconnectcells(0, ncell, 1, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
+  exconnectcells(ncell*9, ncell*10, 1, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
+  
   for i in range(2):
     exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+3), ncell*(i+4), 27)
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
@@ -131,67 +136,69 @@ def connectcells():
 
   # mn connections 
   for i in range(0, 11):
-    exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN/2, 0.05, 1, ncell*39+10*i, ncell*39+10*(i+1), 12)
+    exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.05, 1, ncell*39+10*i, ncell*39+10*(i+1), 12)
 
-  exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.05, 1, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff, 10)
+  exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 1, 1, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff-1, 50)
+  exconnectcells(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff, 1, 1, ncells, ncells, 50)
 
-
-def exconnectcells(tarstart, tarend, weight, delay, start, end, nsyn):
+def exconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
+  global index
+  ''' connection with excitatory synapse '''
   global exnclist
-  exnclist = []
   # not efficient but demonstrates use of pc.gid_exists
   for i in range(start, end):
-    targid = random.randint(tarstart, tarend)
-    if pc.gid_exists(targid):
+    if pc.gid_exists(i):
       for j in range(nsyn):
-        target = pc.gid2cell(targid)
+        srcgid = random.randint(srcstart, srcend)
+        target = pc.gid2cell(i)
         syn = target.synlistex[j]
-        nc = pc.gid_connect(i, syn)
+        nc = pc.gid_connect(srcgid, syn)
         exnclist.append(nc)
         nc.delay = delay
         nc.weight[0] = weight
 
-def inhconnectcells(tarstart, tarend, weight, delay, start, end, nsyn):
+def inhconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
+  ''' connection with inhibitory synapse '''
   global inhnclist
-  inhnclist = []
   # not efficient but demonstrates use of pc.gid_exists
   for i in range(start, end):
-    targid = random.randint(tarstart, tarend)
-    if pc.gid_exists(targid):
-      for j in range(nsyn): 
-        target = pc.gid2cell(targid)
+    if pc.gid_exists(i):
+      for j in range(nsyn):
+        srcgid = random.randint(srcstart, srcend) 
+        target = pc.gid2cell(i)
         syn = target.synlistinh[j]
-        nc = pc.gid_connect(i, syn)
+        nc = pc.gid_connect(srcgid, syn)
         inhnclist.append(nc)
         nc.delay = delay
         nc.weight[0] = weight
 
-
-
 addnetwork()
+#print(len(exnclist))
 
 # run and recording
 
 def addees():
-  ''' stimulate gid 0 with NetStim to start ring '''
+  ''' stimulate afferents with NetStim '''
   global stim, ncstim
   if not pc.gid_exists(0):
     return
   stim = h.NetStim()
   stim.number = 1000000000
   stim.start = 0
-  ncstim = h.NetCon(stim, pc.gid2cell(0).synlistees[0])
+  stim.interval = 25
+  ncstim = h.NetCon(stim, pc.gid2cell(ncells).synlistees[0])
   ncstim.delay = 0
-  ncstim.weight[0] = 0.1
+  ncstim.weight[0] = 1
 
 addees()
 
 def spike_record():
   ''' record spikes from all gids '''
-  global tvec, idvec
-  tvec = h.Vector()
-  idvec = h.Vector()
-  pc.spike_record(-1, tvec, idvec)
+  global soma_v_vec, motoneurons
+  soma_v_vec = [None] * len(motoneurons)
+  for i in range(len(motoneurons)):
+    soma_v_vec[i] = h.Vector()
+    soma_v_vec[i].record(motoneurons[i].soma(0.5)._ref_vext[1])
 
 def prun(tstop):
   ''' simulation control '''
@@ -199,15 +206,17 @@ def prun(tstop):
   h.stdinit()
   pc.psolve(tstop)
 
-
 def spikeout():
   ''' report simulation results to stdout '''
-  global rank, tvec, idvec
+  global rank, soma_v_vec, motoneurons
   pc.barrier()
   for i in range(nhost):
     if i == rank:
-      for i in range(len(tvec)):
-        print('%g %d' % (tvec.x[i], int(idvec.x[i])))
+      for j in range(len(motoneurons)):
+        path=str('./res/vMN%dr%dv%d'%(j, rank, 0))
+        f = open(path, 'w')
+        for v in list(soma_v_vec[i]):
+          f.write(str(v)+"\n")
     pc.barrier()
 
 
@@ -219,8 +228,11 @@ def finish():
 
 if __name__ == '__main__':
   spike_record()
+  print("- "*10, "\nstart")
   prun(150)
+  print("- "*10, "\nend")
   spikeout()
   if (nhost > 1):
     finish()
+
 
