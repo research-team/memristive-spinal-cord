@@ -19,20 +19,23 @@ motoneurons = []
 afferents = []
 exnclist = []
 inhnclist = []
+eesnclist = []
+sensnclist = []
+sensstims = []
 
 index = 0
 
-ncell = 20       
+ncell = 40       
 nMN = 168      
 nAff = 120
-nIP = 120
-ncells = ncell*39+nIP+nMN+2*nAff 
+nIP = 240
+ncells = ncell*23+nIP+nMN+2*nAff 
 
 def addnetwork():
   ''' create cells and connections '''
-  addinterneurons(0, ncell*39+nIP)
-  addmotoneurons(ncell*39+nIP, ncell*39+nIP+nMN)
-  addafferents(ncell*39+nIP+nMN, ncells+1)
+  addinterneurons(0, ncell*23+nIP)
+  addmotoneurons(ncell*23+nIP, ncell*23+nIP+nMN)
+  addafferents(ncell*23+nIP+nMN, ncell*23+nIP+nMN+2*nAff)
   connectcells()
 
 def addinterneurons(start, end):
@@ -68,78 +71,51 @@ def addafferents(start, end):
 
 def connectcells():
   ''' connection between cells '''
-  # delays
-  exconnectcells(0, ncell, 1, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
-  exconnectcells(ncell*9, ncell*10, 1, 1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
+  # delay
+  exconnectcells(0, ncell, 1, 1, ncell*23+nIP+nMN, ncell*23+nIP+nMN+nAff, 27)
+  exconnectcells(ncell*3, ncell*4, 1, 1, ncell*23+nIP+nMN, ncell*23+nIP+nMN+nAff, 27)
   
-  for i in range(2):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+3), ncell*(i+4), 27)
-    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*i, ncell*(i+1), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*i, ncell*(i+1), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
-    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
+  exconnectcells(0, ncell, 0.05, 2, ncell, ncell*2, 27)
+  exconnectcells(ncell, ncell*2, 0.05, 2, 0, ncell, 27)
+  exconnectcells(ncell*3, ncell*4, 0.05, 1, 0, ncell, 27)
+  exconnectcells(ncell*3, ncell*4, 0.05, 1, ncell, ncell*2, 27)
+  inhconnectcells(ncell*3, ncell*4, 0.05, 1, ncell*2, ncell*3, 27)
+  inhconnectcells(ncell, ncell*2, 0.05, 1, ncell*3, ncell*4, 27)
 
   # generators
-  for i in range(12, 16):
+  for i in range(8, 13):
     exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+5), ncell*(i+6), 27)
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*i, ncell*(i+1), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
 
-  # subthreshold
-  for i in range(27, 30):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+4), ncell*(i+5), 27)
-    exconnectcells(ncell*(i+4), ncell*(i+5), 0.05, 2, ncell*i, ncell*(i+1), 27)
-    exconnectcells(ncell*(i+8), ncell*(i+9), 0.00025, 1, ncell*i, ncell*(i+1), 27)
-    exconnectcells(ncell*(i+8), ncell*(i+9), 0.00025, 1, ncell*(i+4), ncell*(i+5), 27)
-    inhconnectcells(ncell*(i+4), ncell*(i+5), 0.04, 1, ncell*(i+8), ncell*(i+9), 27)
-
-  # between sub
-  for i in range(28, 30):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 1, ncell*(i+7), ncell*(i+8), 27)
-    exconnectcells(ncell*(i+8), ncell*(i+9), 0.00025, 1, ncell*(i+7), ncell*(i+8), 27)
-
   # between layers
+  for i in range(8, 13):
+    exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i-5), ncell*(i-4), 27)
 
-  exconnectcells(ncell*27, ncell*28, 0.05, 1, ncell*6, ncell*7, 27)
-  exconnectcells(ncell*35, ncell*36, 0.00025, 1, ncell*6, ncell*7, 27)
-  exconnectcells(ncell*12, ncell*12, 0.05, 1, ncell*6, ncell*7, 27)
-
-  exconnectcells(ncell*2, ncell*3, 0.05, 1, ncell*36, ncell*37, 27)
-  exconnectcells(ncell*11, ncell*12, 0.05, 1, ncell*36, ncell*37, 27)
-
-  exconnectcells(ncell*13, ncell*14, 0.05, 1, ncell*35, ncell*36, 27)
-  exconnectcells(ncell*14, ncell*14, 0.05, 1, ncell*36, ncell*37, 27)
-
-  exconnectcells(ncell*15, ncell*16, 0.05, 1, ncell*37, ncell*38, 27)
-  exconnectcells(ncell*16, ncell*17, 0.05, 1, ncell*38, ncell*39, 27)
 
   # inhibitory projections
-  for i in range(12, 14):
-    inhconnectcells(ncell*i, ncell*(i+1), 0.05, 1, ncell*16, ncell*17, 27)
-    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 1, ncell*16, ncell*17, 27)
+  for i in range(8, 12):
+    inhconnectcells(ncell*i, ncell*(i+1), 0.05, 1, ncell*7, ncell*8, 27)
+    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 1, ncell*7, ncell*8, 27)
 
-  inhconnectcells(ncell*12, ncell*13, 0.05, 1, ncell*28, ncell*29, 27)
-  inhconnectcells(ncell*12, ncell*13, 0.05, 1, ncell*32, ncell*33, 27)
-  inhconnectcells(ncell*12, ncell*13, 0.05, 1, ncell*36, ncell*37, 27)
-  inhconnectcells(ncell*13, ncell*14, 0.05, 1, ncell*29, ncell*30, 27)
-  inhconnectcells(ncell*13, ncell*14, 0.05, 1, ncell*33, ncell*34, 27)
-  inhconnectcells(ncell*13, ncell*14, 0.05, 1, ncell*37, ncell*38, 27)
+  inhconnectcells(ncell*8, ncell*9, 0.05, 1, ncell*5, ncell*6, 27)
+  inhconnectcells(ncell*9, ncell*10, 0.05, 1, ncell*6, ncell*7, 27)
+  inhconnectcells(ncell*13, ncell*14, 0.05, 1, ncell*5, ncell*6, 27)
+  inhconnectcells(ncell*14, ncell*15, 0.05, 1, ncell*6, ncell*7, 27)
 
   # ip connections
-  for i in range(0, 4):
-    exconnectcells(ncell*39+12*i, ncell*39+12*(i+1), 0.05, 1, ncell*(i+12), ncell*(i+13), 28)
-    exconnectcells(ncell*39+12*(i+5), ncell*39+12*(i+6), 0.05, 1, ncell*(i+17), ncell*(i+18), 28)
+  for i in range(0, 5):
+    exconnectcells(ncell*23+int(nIP/10)*i, ncell*23+int(nIP/10)*(i+1), 0.05, 1, ncell*(i+8), ncell*(i+9), 28)
+    exconnectcells(ncell*23+int(nIP/10)*(i+5), ncell*23+int(nIP/10)*(i+6), 0.05, 1, ncell*(i+13), ncell*(i+14), 28)
 
   # mn connections 
-  for i in range(0, 11):
-    exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.05, 1, ncell*39+10*i, ncell*39+10*(i+1), 12)
+  for i in range(0, 12):
+    exconnectcells(ncell*23+nIP, ncell*23+nIP+int(nMN/2), 0.05, 1, ncell*23+20*i, ncell*23+20*(i+1), 12)
 
-  exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 1, 1, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff-1, 50)
-  exconnectcells(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff, 1, 1, ncells, ncells, 50)
+  exconnectcells(ncell*23+nIP, ncell*23+nIP+nMN, 1, 1, ncell*23+nIP+nMN+nAff, ncell*23+nIP+nMN+2*nAff-1, 50)
+  #exconnectcells(ncell*23+nIP+nMN, ncell*23+nIP+nMN+2*nAff, 1, 1, ncells, ncells, 50)
 
 def exconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
   global index
@@ -179,18 +155,38 @@ addnetwork()
 
 def addees():
   ''' stimulate afferents with NetStim '''
-  global stim, ncstim
-  if not pc.gid_exists(0):
-    return
+  global stim, ncstim, eesnclist
   stim = h.NetStim()
   stim.number = 1000000000
   stim.start = 0
   stim.interval = 25
-  ncstim = h.NetCon(stim, pc.gid2cell(ncells).synlistees[0])
-  ncstim.delay = 0
-  ncstim.weight[0] = 1
+  for i in range(ncell*23+nIP+nMN, ncell*23+nIP+nMN+2*nAff):
+    if pc.gid_exists(i):
+      for j in range(50):
+        ncstim = h.NetCon(stim, pc.gid2cell(i).synlistees[j])
+        eesnclist.append(ncstim)
+        ncstim.delay = 0
+        ncstim.weight[0] = 1
 
 addees()
+
+def addsensoryinputs():
+  global sensstim, sensstims, ncsens, sensnclist
+  for n in range(4):
+    sensstim = h.NetStim()
+    sensstim.number = 5
+    sensstim.start = 25*(n+1)
+    sensstim.interval = 3
+    sensstims.append(sensstim)
+    for i in range(ncell*(n+3), ncell*(n+5)):
+      if pc.gid_exists(i):
+        for j in range(50):
+          ncsens = h.NetCon(sensstim, pc.gid2cell(i).synlistex[j])
+          sensnclist.append(ncsens)
+          ncsens.delay = 0
+          ncsens.weight[0] = 1
+
+addsensoryinputs()
 
 def spike_record():
   ''' record spikes from all gids '''
@@ -198,7 +194,7 @@ def spike_record():
   soma_v_vec = [None] * len(motoneurons)
   for i in range(len(motoneurons)):
     soma_v_vec[i] = h.Vector()
-    soma_v_vec[i].record(motoneurons[i].soma(0.5)._ref_vext[1])
+    soma_v_vec[i].record(motoneurons[i].soma(0.5)._ref_vext[0])
 
 def prun(tstop):
   ''' simulation control '''
