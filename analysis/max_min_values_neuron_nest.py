@@ -2,7 +2,7 @@ import numpy as np
 import pylab as plt
 from collections import defaultdict
 
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, slice_myogram, plot_1d, plot_by_slice
 
 test_number = 25
 nest_sim_step = 0.1
@@ -227,38 +227,38 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_begin_time, test_data, data_step):
+def calc_max_min(slices_start_time, test_data, data_step):
 	"""
-
-	:param slices_begin_time: array of times when slices begin
-	:param test_data: list of data for processing. In our case, Lavrov data
-	:param data_step: step with which data is recorded. in our case, data_step = 0.25
+    Function to collect minimums and maximums based on voltages of myograms.
+	:param slices_start_time: array of slices start times
+	:param list test_data: list of data for processing myograms from matlab. (In our case, Lavrov data)
+	:param float data_step: step with which data is recorded. in our case, data_step = 0.25
 	:return: slices_max_time = {slice_index, time}, slices_max_value = {slice_index, value}, slices_min_time = {slice_index, time}, slices_min_value = {slice_index, value}
 	"""
 	datas_times = []
 	k_slice = 1
-	offset = slices_begin_time[1] - slices_begin_time[0]
+	offset = int(slices_start_time[1] - slices_start_time[0])
 	slices_max_time = {}
 	slices_max_value = {}
 	slices_min_time = {}
 	slices_min_value = {}
-	start = slices_begin_time[10]
-
-	for slice_index in range(len(slices_begin_time[10:16])):
+	start = 0
+	for slice_index in range(len(slices_start_time) - 1):
 		tmp_max_time = []
 		tmp_min_time = []
 		tmp_max_value = []
 		tmp_min_value = []
 		sliced_values = test_data[start:start + offset]
 		datas_times += range(start, start + offset)
+
 		for c in range(1, len(sliced_values) - 1):
 			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
 				# with normalization to 1 ms step size
-				tmp_max_time.append((datas_times[c] - 1000) * data_step)
+				tmp_max_time.append((datas_times[c]) * data_step)
 				tmp_max_value.append(sliced_values[c])
 			if sliced_values[c - 1] > sliced_values[c] <= sliced_values[c + 1]:
 				# with normalization to 1 ms step size
-				tmp_min_time.append((datas_times[c] - 1000) * data_step)
+				tmp_min_time.append((datas_times[c]) * data_step)
 				tmp_min_value.append(sliced_values[c])
 
 		slices_max_time[k_slice] = tmp_max_time
@@ -367,8 +367,5 @@ def main():
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
-	# plot(real_results, NEST_results, NEURON_results)
-
-
 if __name__ == "__main__":
 	main()
