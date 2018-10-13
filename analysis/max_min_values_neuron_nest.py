@@ -197,6 +197,9 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	"""
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
 	real_max_min = calc_max_min(slices_begin_time, volt_data, real_data_step)
+	print("slices_begin_time", slices_begin_time)
+	print("volt_data", volt_data)
+	print("real_data_step", real_data_step)
 	slices_max_time = real_max_min[0]
 	slices_max_value = real_max_min[1]
 	slices_min_time = real_max_min[2]
@@ -233,7 +236,10 @@ def calc_max_min(slices_start_time, test_data, data_step):
 	:param slices_start_time: array of slices start times
 	:param list test_data: list of data for processing myograms from matlab. (In our case, Lavrov data)
 	:param float data_step: step with which data is recorded. in our case, data_step = 0.25
-	:return: slices_max_time = {slice_index, time}, slices_max_value = {slice_index, value}, slices_min_time = {slice_index, time}, slices_min_value = {slice_index, value}
+	:return: slices_max_time = {slice_index, time}
+	:return: slices_max_value = {slice_index, value}
+	:return: slices_min_time = {slice_index, time}
+	:return: slices_min_value = {slice_index, value}
 	"""
 	datas_times = []
 	k_slice = 1
@@ -250,7 +256,6 @@ def calc_max_min(slices_start_time, test_data, data_step):
 		tmp_min_value = []
 		sliced_values = test_data[start:start + offset]
 		datas_times += range(start, start + offset)
-
 		for c in range(1, len(sliced_values) - 1):
 			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
 				# with normalization to 1 ms step size
@@ -364,7 +369,7 @@ def main():
 	# raw_NEURON_data = read_data_NEURON('res2509')
 	# NEURON_results = calc_NEURON(raw_NEURON_data, debug_show=False)
 
-	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
+	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
 	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
 if __name__ == "__main__":
