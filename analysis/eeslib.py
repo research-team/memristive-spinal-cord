@@ -21,6 +21,7 @@ def slice_ees(data_array, slicing_index = 'Stim', data_index = 'RMG ', epsilon =
     list[array]
         the list of slices (array of voltages)
     """
+    tick_rate = int(data_array['tickrate'][0][0])
     logging.debug('Slicing')
     max_stim = max(data_array[slicing_index])
     list_of_maxs = [i for i, x in enumerate(data_array[slicing_index]) if x > max_stim-epsilon]
