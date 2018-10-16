@@ -80,7 +80,7 @@ def connectcells():
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.001, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.001, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+15), ncell*(i+16), (0.0001+i*0.00025), 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+15), ncell*(i+16), (0.0001+i*0.0002), 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.5, 1, ncell*(i+15), ncell*(i+16), 27)
 
   # skin inputs
@@ -101,20 +101,20 @@ def connectcells():
   stimconnectcells(ncell*35+nIP+nMN+2*nAff+2*ncell, ncell*35+nIP+nMN+2*nAff+3*ncell, 1, 1, ncells+2, ncells+2, 50)
   stimconnectcells(ncell, ncell*2, 0.0007, 1, ncells+2, ncells+2, 27)
   stimconnectcells(ncell*11, ncell*12, 0.0007, 1, ncells+2, ncells+2, 27)
-  stimconnectcells(ncell*2, ncell*3, 0.0007, 1, ncells+2, ncells+2, 27)
-  stimconnectcells(ncell*12, ncell*13, 0.0007, 1, ncells+2, ncells+2, 27)
+  stimconnectcells(ncell*2, ncell*3, 0.0005, 1, ncells+2, ncells+2, 27)
+  stimconnectcells(ncell*12, ncell*13, 0.0005, 1, ncells+2, ncells+2, 27)
 
   #C4
   stimconnectcells(ncell*35+nIP+nMN+2*nAff+3*ncell, ncell*35+nIP+nMN+2*nAff+4*ncell, 1, 1, ncells+3, ncells+3, 50)
-  stimconnectcells(ncell*2, ncell*3, 0.0007, 1, ncells+3, ncells+3, 27)
-  stimconnectcells(ncell*12, ncell*13, 0.0007, 1, ncells+3, ncells+3, 27)
-  stimconnectcells(ncell*3, ncell*4, 0.0007, 1, ncells+3, ncells+3, 27)
-  stimconnectcells(ncell*13, ncell*14, 0.0007, 1, ncells+3, ncells+3, 27)
+  stimconnectcells(ncell*2, ncell*3, 0.0003, 1, ncells+3, ncells+3, 27)
+  stimconnectcells(ncell*12, ncell*13, 0.0003, 1, ncells+3, ncells+3, 27)
+  stimconnectcells(ncell*3, ncell*4, 0.0003, 1, ncells+3, ncells+3, 27)
+  stimconnectcells(ncell*13, ncell*14, 0.0003, 1, ncells+3, ncells+3, 27)
 
   #C5
   stimconnectcells(ncell*35+nIP+nMN+2*nAff+4*ncell, ncell*35+nIP+nMN+2*nAff+5*ncell, 1, 1, ncells+4, ncells+4, 50)
-  stimconnectcells(ncell*4, ncell*5, 0.0007, 1, ncells+4, ncells+4, 27)
-  stimconnectcells(ncell*14, ncell*15, 0.0007, 1, ncells+4, ncells+4, 27)
+  stimconnectcells(ncell*4, ncell*5, 0.0003, 1, ncells+4, ncells+4, 27)
+  stimconnectcells(ncell*14, ncell*15, 0.0003, 1, ncells+4, ncells+4, 27)
   
   # between delays
   for i in range(1, 5): 
@@ -127,7 +127,7 @@ def connectcells():
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.5, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+5), ncell*(i+6), 1, 1, ncell*(i+10), ncell*(i+11), 27)
 
   # delay -> generator
   for i in range(15, 20):
@@ -150,11 +150,11 @@ def connectcells():
   # ip connections
   for i in range(0, 5):
     exconnectcells(ncell*35+int(nIP/10)*i, ncell*35+int(nIP/10)*(i+1), 0.05, 1, ncell*(i+20), ncell*(i+21), 28)
-    exconnectcells(ncell*35+int(nIP/10)*(i+5), ncell*35+int(nIP/10)*(i+6), 0.05, 1, ncell*(i+25), ncell*(i+25), 28)
+    exconnectcells(ncell*35+int(nIP/10)*(i+5), ncell*35+int(nIP/10)*(i+6), 0.05, 1, ncell*(i+25), ncell*(i+26), 28)
 
   # mn connections 
-  for i in range(0, 12):
-    exconnectcells(ncell*35+nIP, ncell*35+nIP+int(nMN/2), 0.05, 1, ncell*35+20*i, ncell*35+20*(i+1), 12)
+  for i in range(0, 10):
+    exconnectcells(ncell*35+nIP, ncell*35+nIP+int(nMN/2), 0.05, 1, ncell*35+24*i, ncell*35+24*(i+1), 12)
 
   exconnectcells(ncell*35+nIP, ncell*35+nIP+nMN, 1, 1, ncell*35+nIP+nMN+nAff, ncell*35+nIP+nMN+2*nAff-1, 50)
 
@@ -229,7 +229,7 @@ def addskininputs():
     if n == 4:
       skinstim.start = 25*(n+1)
     skinstim.interval = 5
-    skinstim.noise = 0.1
+    #skinstim.noise = 0.1
     skinstims.append(skinstim)
     pc.set_gid2node(ncells+n, rank)
     ncskin = h.NetCon(skinstim, None)
