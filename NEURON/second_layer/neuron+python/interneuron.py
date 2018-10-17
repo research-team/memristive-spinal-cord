@@ -10,8 +10,8 @@ class interneuron(object):
     self.biophys()
     self.geom_nseg()
     self.synlistinh = []
-    self.synlistees = []
     self.synlistex = []
+    self.synlistees = []
     self.synapses()
     self.x = self.y = self.z = 0.
 
@@ -69,7 +69,8 @@ class interneuron(object):
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
-    self.soma.el_hh = -60
+    self.soma.el_hh = -60  
+    self.soma.insert('extracellular')
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
@@ -85,7 +86,7 @@ class interneuron(object):
     h.pop_section()
 
   def connect2target(self, target):
-    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
     nc.threshold = 10
     return nc
 
@@ -95,15 +96,15 @@ class interneuron(object):
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
+      s = h.Exp2Syn(self.dend(0.5)) # I1
+      s.tau1 = 1.5
+      s.tau2 = 2
+      s.e = -80
+      self.synlistinh.append(s)  
       s = h.ExpSyn(self.dend(0.8)) # I1
       s.tau = 0.1
       s.e = 50
-      self.synlistees.append(s)
-      s = h.Exp2Syn(self.dend(0.5)) # I1
-      s.tau1 = 1.5
-      s.tau2 = 6
-      s.e = -80
-      self.synlistinh.append(s)    
+      self.synlistees.append(s)  
 
   def is_art(self):
     return 0
