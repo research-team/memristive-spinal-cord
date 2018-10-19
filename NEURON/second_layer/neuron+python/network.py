@@ -37,7 +37,7 @@ def addnetwork():
   addmotoneurons(ncell*39+nIP, ncell*39+nIP+nMN)
   addafferents(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff+5*ncell)
   addees()
-  addskininputs()
+  addskininputs(50)
   connectcells()
 
 def addinterneurons(start, end):
@@ -79,11 +79,11 @@ def connectcells():
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.001, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.0001, 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
     inhconnectcells(ncell*i, ncell*(i+1), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
 
-  inhconnectcells(ncell*19, ncell*20, 0.1, 1, ncell*14, ncell*15, 32)
+  #inhconnectcells(ncell*19, ncell*20, 0.1, 1, ncell*14, ncell*15, 32)
   # skin inputs
 
   #C1
@@ -108,8 +108,8 @@ def connectcells():
 
   #C5
   stimconnectcells(ncell*39+nIP+nMN+2*nAff+4*ncell, ncell*39+nIP+nMN+2*nAff+5*ncell, 1, 1, ncells+5, ncells+5, 50)
-  stimconnectcells(ncell*4, ncell*5, 0.00028, 1, ncells+5, ncells+5, 52)
-  stimconnectcells(ncell*14, ncell*15, 0.00028, 1, ncells+5, ncells+5, 52)
+  stimconnectcells(ncell*3, ncell*5, 0.00028, 1, ncells+5, ncells+5, 30)
+  stimconnectcells(ncell*13, ncell*15, 0.00028, 1, ncells+5, ncells+5, 30)
   
   # between delays
   exconnectcells(ncell*35, ncell*36, 0.05, 1, 0, ncell, 27)
@@ -118,8 +118,8 @@ def connectcells():
     exconnectcells(ncell*(i+1), ncell*(i+2), 0.05, 2, ncell*i, ncell*(i+1), 27)
 
   for i in range(1, 5): 
-    exconnectcells(ncell*i, ncell*(i+1), 0.00038, 1, ncell*(i+34), ncell*(i+35), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.00038, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.00037, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*(i+10), ncell*(i+11), 0.00037, 1, ncell*(i+34), ncell*(i+35), 27)
   
   # generators
   for i in range(20, 25):
@@ -136,7 +136,7 @@ def connectcells():
 
 
   # inhibitory projections
-  for i in range(20, 24):
+  for i in range(20, 23):
     inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*39+nIP+nMN+2*nAff+4*ncell, ncell*39+nIP+nMN+2*nAff+5*ncell, 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*39+nIP+nMN+2*nAff+4*ncell, ncell*39+nIP+nMN+2*nAff+5*ncell, 27)
 
@@ -216,12 +216,12 @@ def addees():
         ncstim.delay = 0
         ncstim.weight[0] = 1
 
-def addskininputs():
+def addskininputs(speed):
   global skinstim, skinstims, ncskin, rank
   for n in range(6):
     skinstim = h.NetStim()
-    skinstim.number = 5
-    skinstim.start = 1+25*n
+    skinstim.number = speed/5
+    skinstim.start = 1+speed*n
     skinstim.interval = 5
     #skinstim.noise = 0.1
     skinstims.append(skinstim)
@@ -283,7 +283,7 @@ def finish():
 if __name__ == '__main__':
   spike_record()
   print("- "*10, "\nstart")
-  prun(150)
+  prun(300)
   print("- "*10, "\nend")
   spikeout()
   if (nhost > 1):
