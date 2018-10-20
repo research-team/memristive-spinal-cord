@@ -25,6 +25,7 @@ skinstims = []
 soma_v_vec = []
 moto_v_vec = []
 
+speed = 125
 ncell = 20       
 nMN = 168      
 nAff = 120
@@ -37,7 +38,7 @@ def addnetwork():
   addmotoneurons(ncell*39+nIP, ncell*39+nIP+nMN)
   addafferents(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff+5*ncell)
   addees()
-  addskininputs(50)
+  addskininputs(speed)
   connectcells()
 
 def addinterneurons(start, end):
@@ -236,10 +237,12 @@ addnetwork()
 def spike_record():
   ''' record spikes from all gids '''
   global moto_v_vec, motoneurons, soma_v_vec, interneurons 
+  '''
   for i in range(len(interneurons)):
     v_vec = h.Vector()
     v_vec.record(interneurons[i].soma(0.5)._ref_v)
     soma_v_vec.append(v_vec)
+  '''
   for i in range(len(motoneurons)):
     moto_vec = h.Vector()
     moto_vec.record(motoneurons[i].soma(0.5)._ref_vext[0])
@@ -254,6 +257,7 @@ def prun(tstop):
 def spikeout():
   ''' report simulation results to stdout '''
   global rank, moto_v_vec, motoneurons, soma_v_vec, interneurons 
+  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
@@ -263,11 +267,11 @@ def spikeout():
         for v in list(soma_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
-  pc.barrier()
+  '''
   for i in range(nhost):
     if i == rank:
       for j in range(len(motoneurons)):
-        path=str('./res/vMN%dr%dv%d'%(j, rank, 0))
+        path=str('./res/vMN%dr%dv%d'%(j, rank, 125))
         f = open(path, 'w')
         for v in list(moto_v_vec[j]):
           f.write(str(v)+"\n")
@@ -283,7 +287,7 @@ def finish():
 if __name__ == '__main__':
   spike_record()
   print("- "*10, "\nstart")
-  prun(300)
+  prun(speed*6)
   print("- "*10, "\nend")
   spikeout()
   if (nhost > 1):
