@@ -24,12 +24,14 @@ stimnclist = []
 skinstims = []
 soma_v_vec = []
 moto_v_vec = []
+ncIalist = []
 
-speed = 125
+speed = 25
+version = 0
 ncell = 20       
 nMN = 168      
-nAff = 120
-nIP = 240
+nAff = 200
+nIP = 480
 ncells = ncell*39+nIP+nMN+2*nAff+5*ncell
 
 def addnetwork():
@@ -38,6 +40,7 @@ def addnetwork():
   addmotoneurons(ncell*39+nIP, ncell*39+nIP+nMN)
   addafferents(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff+5*ncell)
   addees()
+  addIa()
   addskininputs(speed)
   connectcells()
 
@@ -153,7 +156,7 @@ def connectcells():
 
   # mn connections 
   for i in range(0, 12):
-    exconnectcells(ncell*39+nIP, ncell*39+nIP+int(nMN/2), 0.05, 1, ncell*39+20*i, ncell*39+20*(i+1), 12)
+    exconnectcells(ncell*39+nIP, ncell*39+nIP+int(nMN*0.65), 0.05, 1, ncell*39+int(nIP/12)*i, ncell*39+int(nIP/12)*(i+1), 15)
 
   exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.1, 1, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff, 50)
 
@@ -169,7 +172,7 @@ def exconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
         syn = target.synlistex[j]
         nc = pc.gid_connect(srcgid, syn)
         exnclist.append(nc)
-        nc.delay = random.gauss(delay, 0.01)
+        nc.delay = random.gauss(delay, delay/15)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def stimconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
@@ -184,7 +187,7 @@ def stimconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
         syn = target.synlistees[j]
         nc = pc.gid_connect(srcgid, syn)
         stimnclist.append(nc)
-        nc.delay = random.gauss(delay, 0.01)
+        nc.delay = random.gauss(delay, delay/15)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
@@ -216,6 +219,27 @@ def addees():
         eesnclist.append(ncstim)
         ncstim.delay = 0
         ncstim.weight[0] = 1
+
+def addIa():
+  ''' stimulate afferents with NetStim '''
+  global Ia, ncIa, ncIalist
+  Ia = h.spikeGenerator(0.8)
+  Ia.number = 100000000
+  Ia.start = 1
+  if speed == 25:
+    Ia.speed = 21
+  elif speed == 50:
+    Ia.speed = 13.5
+  else:
+    Ia.speed = 6
+  h.setpointer(motoneurons[0].soma(0.5)._ref_v, 'vMN', Ia)
+  for i in range(ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+nAff+int(nAff/80)):
+    if pc.gid_exists(i):
+      for j in range(10):
+        ncIa = h.NetCon(Ia, pc.gid2cell(i).synlistees[j])
+        ncIalist.append(ncIa)
+        ncIa.delay = 0
+        ncIa.weight[0] = random.gauss(0.2, 0.1)
 
 def addskininputs(speed):
   global skinstim, skinstims, ncskin, rank
@@ -268,15 +292,15 @@ def spikeout():
           f.write(str(v)+"\n")
     pc.barrier()
   '''
+  pc.barrier()
   for i in range(nhost):
     if i == rank:
       for j in range(len(motoneurons)):
-        path=str('./res/vMN%dr%dv%d'%(j, rank, 125))
+        path=str('./res/vMN%dr%ds%dv%d'%(j, rank, speed, version))
         f = open(path, 'w')
         for v in list(moto_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
-
 
 def finish():
   ''' proper exit '''

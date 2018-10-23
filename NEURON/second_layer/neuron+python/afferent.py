@@ -84,7 +84,7 @@ class afferent(object):
     h.pop_section()
 
   def connect2target(self, target):
-    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
     nc.threshold = 10
     return nc
 
@@ -94,7 +94,7 @@ class afferent(object):
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
-      s = h.ExpSyn(self.dend(0.8)) # I1
+      s = h.ExpSyn(self.dend(0.5)) # E1
       s.tau = 0.1
       s.e = 50
       self.synlistees.append(s)
