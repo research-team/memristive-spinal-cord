@@ -26,8 +26,8 @@ soma_v_vec = []
 moto_v_vec = []
 ncIalist = []
 
-speed = 25
-version = 0
+speed = 50
+version = 16
 ncell = 20       
 nMN = 168      
 nAff = 200

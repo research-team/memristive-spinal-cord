@@ -77,11 +77,11 @@ def connectcells():
   exconnectcells(ncell*10, ncell*11, 0.05, 0.1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
   
   for i in range(5):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+5), ncell*(i+6), 27)
-    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.05, 4, ncell*(i+5), ncell*(i+6), 27)
+    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 4, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.0001, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.1, 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
     inhconnectcells(ncell*i, ncell*(i+1), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
 
@@ -94,13 +94,13 @@ def connectcells():
     exconnectcells(ncell*(i+1), ncell*(i+2), 0.05, 2, ncell*i, ncell*(i+1), 27)
 
   for i in range(1, 5): 
-    exconnectcells(ncell*i, ncell*(i+1), 0.00037, 1, ncell*(i+34), ncell*(i+35), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.00037, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.0004, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*(i+10), ncell*(i+11), 0.0004, 1, ncell*(i+34), ncell*(i+35), 27)
   
   # generators
   for i in range(20, 25):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 2, ncell*(i+5), ncell*(i+6), 27)
-    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*i, ncell*(i+1), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.05, 4, ncell*(i+5), ncell*(i+6), 27)
+    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 4, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*(i+5), ncell*(i+6), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+10), ncell*(i+11), 27)
@@ -204,12 +204,11 @@ addnetwork()
 def spike_record():
   ''' record spikes from all gids '''
   global moto_v_vec, motoneurons, soma_v_vec, interneurons 
-  '''
   for i in range(len(interneurons)):
     v_vec = h.Vector()
     v_vec.record(interneurons[i].soma(0.5)._ref_v)
     soma_v_vec.append(v_vec)
-  '''
+  
   for i in range(len(motoneurons)):
     moto_vec = h.Vector()
     moto_vec.record(motoneurons[i].soma(0.5)._ref_vext[0])
@@ -224,7 +223,6 @@ def prun(tstop):
 def spikeout():
   ''' report simulation results to stdout '''
   global rank, moto_v_vec, motoneurons, soma_v_vec, interneurons 
-  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
@@ -234,7 +232,6 @@ def spikeout():
         for v in list(soma_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
-  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
