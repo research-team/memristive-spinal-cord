@@ -43,9 +43,11 @@ private:
 	bool hasMultimeter = false;				// if neuron has multimeter
 	bool hasSpikedetector = false;			// if neuron has spikedetector
 	bool hasGenerator = false;				// if neuron has generator
-
+	int begin_spiking = 0;
+	int end_spiking = 0;
+	int spike_each_step = 0;
 	/// Stuff variables
-	const float I_tau = 3.0f;				                            // step of I decreasing/increasing
+	const float I_tau = 6.0f;				                            // step of I decreasing/increasing
 	static constexpr float ms_in_1step = 0.1f;	                        // how much milliseconds in 1 step
 	static const int steps_in_1ms = static_cast<int>(1 / ms_in_1step);  // how much steps in 1 ms
 
@@ -70,7 +72,7 @@ private:
 	float current_ref_t = 0;
 
 public:
-	Synapse* synapses = new Synapse[100];	// array of synapses
+	Synapse* synapses = new Synapse[250];	// array of synapses
 	int num_synapses{0};                    // current number of synapses (neighbors)
 	char* name{};
 
@@ -82,7 +84,7 @@ public:
 	}
 
 	void changeCurrent(float I) {
-		if (!hasGenerator && this->I <= 400 && this->I >= -400) {
+		if (!hasGenerator && this->I <= 600 && this->I >= -600) {
 			this->I += I;
 		}
 	}
@@ -104,9 +106,18 @@ public:
 		spike_times = new float[ ms_to_step(T_sim) / this->ref_t ];
 	}
 
-	void addGenerator(float I) {
+	void addSpikeGenerator(float begin, float end, float hz) {
+		this->begin_spiking = ms_to_step(begin);
+		this->end_spiking = ms_to_step(end);
+		this->spike_each_step = ms_to_step(1.0f / hz * 1000);
+		// set flag that this neuron has the multimeter
 		hasGenerator = true;
-		this->I = I;
+		// allocate memory for recording spikes
+		spike_times = new float[ ms_to_step(T_sim) / this->ref_t ];
+	}
+
+	void addSpikeGenerator() {
+		hasGenerator = true;
 	}
 
 	bool withMultimeter() {
@@ -161,8 +172,8 @@ public:
 		return iterSpikesArray;
 	}
 
-	//#pragma acc routine vector
 	/// Invoked every simulation step, update the neuron state
+	//#pragma acc routine vector
 	void update_state() {
 		if (current_ref_t > 0) {
 			// calculate V_m and U_m WITHOUT synaptic weight
@@ -173,8 +184,14 @@ public:
 		} else {
 			// calculate V_m and U_m WITH synaptic weight
 			// (action potential)
-			V_m = V_old + ms_in_1step * (k * (V_old - V_rest) * (V_old - V_th) - U_old + I) / C;
+			V_m = V_old + ms_in_1step * (k * (V_old - V_rest) * (V_old - V_th) - U_old + I * 200) / C;
 			U_m = U_old + ms_in_1step * a * (b * (V_old - V_rest) - U_old);
+		}
+
+		if (hasGenerator &&
+		simulation_iter >= begin_spiking &&
+		simulation_iter < end_spiking && (simulation_iter % spike_each_step == 0)){
+			I = 400.0;
 		}
 
 		// save the V_m and I value every mm_record_step if hasMultimeter
@@ -186,6 +203,7 @@ public:
 
 		if (V_m < c)
 			V_m = c;
+
 
 		// threshold crossing (spike)
 		if (V_m >= V_peak) {
@@ -228,17 +246,16 @@ public:
 		}
 
 		// update I (currents) of the neuron
-		// doesn't change the I of generator neurons!!!
-		if (!hasGenerator && I != 0) {
-			if (I > 0) {	// turn the current to 0 by I_tau step
-				I -= I_tau;	// decrease I
-				if (I < 0)	// avoid the near value to 0
-					I = 0;
-			} else {
-				I += I_tau; // increase I
-				if (I > 0)	// avoid the near value to 0
-					I = 0;
-			}
+		// doesn't change the I of generator NEURONS!!!
+		if (I != 0) {
+			if (I > 0)
+				I /= 2;	// decrease I
+			if (I < 0)
+				I /= 1.1;	// decrease I
+			if (I > 0 && I <= 1)
+				I = 0;
+			if (I <=0 && I >= -1)	// avoid the near value to 0)
+				I = 0;
 		}
 
 		// update the refractory period timer
