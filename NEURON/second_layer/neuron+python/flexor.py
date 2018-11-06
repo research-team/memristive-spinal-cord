@@ -77,51 +77,57 @@ def connectcells():
   exconnectcells(ncell*10, ncell*11, 0.05, 0.1, ncell*39+nIP+nMN, ncell*39+nIP+nMN+nAff, 27)
   
   for i in range(5):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 4, ncell*(i+5), ncell*(i+6), 27)
-    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 4, ncell*i, ncell*(i+1), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.05, 3, ncell*(i+5), ncell*(i+6), 27)
+    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 3, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.1, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.15, 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
     inhconnectcells(ncell*i, ncell*(i+1), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
 
   #inhconnectcells(ncell*19, ncell*20, 0.1, 1, ncell*14, ncell*15, 32)
   
   # between delays
-  exconnectcells(ncell*35, ncell*36, 0.05, 1, 0, ncell, 27)
+  exconnectcells(ncell*35, ncell*36, 0.05, 1, ncell*15, ncell*16, 27)
+  exconnectcells(ncell*2, ncell*3, 0.00015, 1, ncell*16, ncell*17, 27)
+  exconnectcells(ncell*12, ncell*13, 0.00015, 1, ncell*16, ncell*17, 27)
+  exconnectcells(ncell*4, ncell*5, 0.00015, 1, ncell*18, ncell*19, 27)
+  exconnectcells(ncell*14, ncell*15, 0.00015, 1, ncell*18, ncell*19, 27)
 
   for i in range(35, 38):
     exconnectcells(ncell*(i+1), ncell*(i+2), 0.05, 2, ncell*i, ncell*(i+1), 27)
 
   for i in range(1, 5): 
-    exconnectcells(ncell*i, ncell*(i+1), 0.0004, 1, ncell*(i+34), ncell*(i+35), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.0004, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.00025, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*(i+10), ncell*(i+11), 0.00025, 1, ncell*(i+34), ncell*(i+35), 27)
   
   # generators
   for i in range(20, 25):
-    exconnectcells(ncell*i, ncell*(i+1), 0.05, 4, ncell*(i+5), ncell*(i+6), 27)
-    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 4, ncell*i, ncell*(i+1), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.05, 3, ncell*(i+5), ncell*(i+6), 27)
+    exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 3, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+10), ncell*(i+11), 0.05, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+10), ncell*(i+11), 27)
-    inhconnectcells(ncell*i, ncell*(i+1), 0.08, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*i, ncell*(i+1), 0.04, 1, ncell*(i+10), ncell*(i+11), 27)
 
-  exconnectcells(ncell*22, ncell*23, 0.05, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell*23, ncell*24, 0.05, 1, ncell*22, ncell*23, 27)
 
   # delay -> generator
-  exconnectcells(ncell*20, ncell*21, 0.05, 1, ncell*15, ncell*16, 27)
-  exconnectcells(ncell*21, ncell*22, 0.05, 1, ncell*15, ncell*16, 27)
-  exconnectcells(ncell*22, ncell*23, 0.05, 1, ncell*17, ncell*18, 27)
-  exconnectcells(ncell*24, ncell*25, 0.05, 1, ncell*19, ncell*20, 27)
+  exconnectcells(ncell*20, ncell*21, 0.005, 1, ncell*15, ncell*16, 27)
+  exconnectcells(ncell*21, ncell*22, 0.005, 1, ncell*15, ncell*16, 27)
+  exconnectcells(ncell*22, ncell*23, 0.005, 1, ncell*17, ncell*18, 27)
+  exconnectcells(ncell*24, ncell*25, 0.005, 1, ncell*19, ncell*20, 27)
 
   # generator -> delay
-  exconnectcells(ncell*16, ncell*17, 0.05, 1, ncell*21, ncell*22, 27)
-  exconnectcells(ncell*18, ncell*19, 0.05, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell, ncell*2, 0.00015, 1, ncell*21, ncell*22, 27)
+  exconnectcells(ncell*11, ncell*12, 0.00015, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell*3, ncell*4, 0.00015, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell*13, ncell*14, 0.00015, 1, ncell*23, ncell*24, 27)
 
   # inhibitory projections
   for i in range(20, 23):
-    inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*4, ncell*5, 27)
-    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*4, ncell*5, 27)
+    inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*24, ncell*25, 27)
+    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*24, ncell*25, 27)
 
   inhconnectcells(ncell*20, ncell*21, 0.8, 1, ncell*2, ncell*3, 50)
   inhconnectcells(ncell*25, ncell*26, 0.8, 1, ncell*2, ncell*3, 50)
@@ -227,7 +233,7 @@ def spikeout():
   for i in range(nhost):
     if i == rank:
       for j in range(len(interneurons)):
-        path=str('./res/vIn%dr%dv%d'%(j, rank, 0))
+        path=str('./res/vIn%dr%ds%dv%d'%(j, rank, speed, version))
         f = open(path, 'w')
         for v in list(soma_v_vec[j]):
           f.write(str(v)+"\n")
@@ -251,7 +257,7 @@ def finish():
 if __name__ == '__main__':
   spike_record()
   print("- "*10, "\nstart")
-  prun(speed*6)
+  prun(125)
   print("- "*10, "\nend")
   spikeout()
   if (nhost > 1):
