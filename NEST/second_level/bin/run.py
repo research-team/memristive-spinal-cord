@@ -2,99 +2,91 @@ import os
 import sys
 import nest
 import getopt
+import logging
 
 # Add the work directory to the PATH
 sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-3]))
+logging.basicConfig(level=logging.DEBUG)
 
-from second_level.src.tools.cleaner import Cleaner
-from second_level.src.paths import topologies_path
-from second_level.src.tools.plotter import Plotter
-from second_level.src.tools.miner import Miner
+from NEST.second_level.src.tools.cleaner import Cleaner
+from NEST.second_level.src.paths import topologies_path
+from NEST.second_level.src.tools.plotter import Plotter
+from NEST.second_level.src.tools.miner import Miner
+from NEST.second_level.src.namespace import *
+from NEST.second_level.src.data import *
 
 
-def cleaner():
-	"""Clean the previous results"""
-	Cleaner.clean()
-	Cleaner.create_structure()
-
-def simulate(topology_name, multitest=False, iteration=None):
+def simulate(simulation_params, iteration=None):
 	"""
+	The main function for starting simulation of the chosen topology
 	Args:
-		topology_name:
-		multitest:
-		iteration:
+		simulation_params (dict):
+			parameters of the simulation
+		iteration (int):
+			index number of the iteration. Is need for file naming
 	Returns:
-		class:  Params class
+		object: params of the choosen topology
 	"""
+	# reset NEST settings and set new one
 	nest.ResetKernel()
 	nest.SetKernelStatus({
 		'total_num_virtual_procs': 4,
 		'print_time': True,
 		'resolution': 0.1,
 		'overwrite_files': True})
-	# create topology
-	topology = __import__('{}.{}'.format(topologies_path, topology_name),
-	                      globals(), locals(),
-	                      ['Params', 'Topology'], 0)
-	Params = topology.Params
-	topology.Topology(multitest=multitest, iteration=iteration)
+	# import the topology via topology filename
+	topology = __import__('{}.{}'.format(topologies_path, simulation_params[Params.MODEL.value]),
+	                      fromlist=['Topology'])
+	topology.Topology(simulation_params, test_iteration=iteration)
 
 	# simulate the topology
-	nest.Simulate(Params.SIMULATION_TIME.value)
-
-	return Params
-
-
-def plot_results(params):
-	"""
-	Plotting results
-	Args:
-		params:
-	"""
-
-	to_plot = params.TO_PLOT.value
-	to_plot_with_slices = params.TO_PLOT_WITH_SLICES.value
-
-	# plot voltages for each node
-	for name in to_plot:
-		Plotter.plot_voltage(name, name, with_spikes=True)
-		Plotter.save_voltage(name)
-
-	# plot slices
-	for key in to_plot_with_slices.keys():
-		Plotter.plot_slices(num_slices=to_plot_with_slices[key], name=key)
-
-def single_simulation(topology_name):
-	cleaner()
-	params = simulate(topology_name, multitest=False)
-	plot_results(params)
-
-def multi_simulation(topology_name):
-	"""
-
-	Args:
-		topology_name:
-	"""
-	cleaner()
-	for test_number in range(50):
-		print("Test number", test_number)
-		simulate(topology_name, multitest=True, iteration=test_number)
-	# plot slices
-	Plotter.plot_10test(num_slices=6, name="moto", plot_mean=False, from_memory=False)
+	nest.Simulate(float(simulation_params[Params.SIM_TIME.value]))
 
 
 def main(argv):
+	"""
+	The main function where it cleans the working directory,
+	starts simulation and plots results
+	Args:
+		argv (list[str, int or optional]):
+			first arg is name of the topology, the second
+			is optional -- number of tests
+	"""
 	topology_name = argv[0]
-	if len(argv) >= 2:
-		is_test = argv[1] == "test"
-	else:
-		is_test = False
+	tests_number = int(argv[1]) if len(argv) >= 2 else 1
+	is_multitest = tests_number > 1
 
-	if is_test:
-		multi_simulation(topology_name)
-	else:
-		single_simulation(topology_name)
+	simulation_params = {
+		Params.MODEL.value: topology_name,
+		Params.EES_RATE.value: 40,
+		Params.INH_COEF.value: 1,
+		Params.SPEED.value: 21,
+		Params.SIM_TIME.value: 150,
+		Params.MULTITEST.value: is_multitest
+	}
+
+	# clean the working folder and recreate the structure
+	Cleaner.clean()
+	Cleaner.create_structure()
+
+	# simulate N times
+	for test_index in range(tests_number):
+		logging.info("Test number {}/{} is simulating".format(test_index + 1, tests_number))
+		simulate(simulation_params, iteration=test_index)
+
+	plotter = Plotter(simulation_params)
+	# plot all nodes
+	if not is_multitest:
+		# plot voltages for each node
+		for name in multimeters_dict.keys():
+			plotter.plot_voltage(name, with_spikes=True)
+
+	# plot slices
+	plotter.plot_slices(tests_number=tests_number, from_memory=False)
 
 
 if __name__ == "__main__":
-	main(sys.argv[1:])
+	if len(sys.argv) >= 2:
+		main(sys.argv[1:])
+	else:
+		main(["extensor_v3", 1])
