@@ -11,8 +11,8 @@ import nest
 import pylab
 
 T_sim = 25
-spike_times = [2.0, 10.0, 17.0]
-spike_weights = [150.0, 160.0, 190.0]
+spike_times = [2.0, 2.2, 10.0, 15.0, 15.2]
+spike_weights = [160.0, 160.0, 300.0, 250.0, -100.0]
 
 nest.ResetKernel()
 nest.SetKernelStatus({
@@ -60,13 +60,17 @@ channel_Na = nest.GetStatus(multimeter, "events")[0]['Act_m']
 times_extracellular = [i / 10 for i in range(len(voltages_extracellular))]
 times_intracellular = [i / 10 for i in range(len(voltages_intracellular))]
 
+def draw_spike_time():
+	for t in spike_times:
+		pylab.axvline(x=t, color='gray', linestyle="--")
+
 pylab.figure(figsize=(16, 9))
 pylab.subplot(311)
-#for st in spike_times:
-#	pylab.axvline(x=st, color='gray', linestyle="--")
+
 pylab.xlim(0, T_sim)
 pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("uV")
+draw_spike_time()
 pylab.plot(times_extracellular, voltages_extracellular, label="Extracellular")
 pylab.legend()
 
@@ -74,6 +78,7 @@ pylab.subplot(312)
 pylab.xlim(0, T_sim)
 pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.ylabel("mV")
+draw_spike_time()
 pylab.plot(times_intracellular, voltages_intracellular, label="Intracellular")
 pylab.legend()
 
@@ -85,6 +90,7 @@ pylab.xticks(range(T_sim+1), range(T_sim+1))
 pylab.plot(times_intracellular, channel_Na, label="Na+")
 pylab.plot(times_intracellular, channel_K, label="K+")
 pylab.plot(times_intracellular, channel_leakage, label="Na+/K+ pump")
+draw_spike_time()
 pylab.legend()
 
 pylab.show()
