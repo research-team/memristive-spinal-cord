@@ -22,7 +22,7 @@ def add_multimeter(name, record_from='Extracellular'):
 		n=1,
 		params={
 			'label': os.path.join(raw_data_path, name),
-			'record_from': [record_from],
+			'record_from': [record_from, "g_ex", "g_in"],
 			'withgid': True,
 			'withtime': True,
 			'interval': 0.1,
