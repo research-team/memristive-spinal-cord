@@ -210,7 +210,7 @@ def addees():
   global stim, ncstim, eesnclist
   stim = h.NetStim()
   stim.number = 100000000
-  stim.start = 1
+  stim.start = 0
   stim.interval = 25
   for i in range(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff):
     if pc.gid_exists(i):
@@ -225,7 +225,7 @@ def addIa():
   global Ia, ncIa, ncIalist
   Ia = h.spikeGenerator(0.8)
   Ia.number = 100000000
-  Ia.start = 1
+  Ia.start = 0
   if speed == 25:
     Ia.speed = 21
   elif speed == 50:

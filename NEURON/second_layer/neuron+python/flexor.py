@@ -81,25 +81,28 @@ def connectcells():
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 3, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*i, ncell*(i+1), 27)
     exconnectcells(ncell*(i+15), ncell*(i+16), 0.01, 1, ncell*(i+5), ncell*(i+6), 27)
-    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.15, 1, ncell*(i+10), ncell*(i+11), 27)
+    inhconnectcells(ncell*(i+15), ncell*(i+16), 0.18, 1, ncell*(i+10), ncell*(i+11), 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
     inhconnectcells(ncell*i, ncell*(i+1), 0.08, 1, ncell*(i+15), ncell*(i+16), 27)
+
+    inhconnectcells(ncell*(15), ncell*(16), 0.05, 1, ncell*(10), ncell*(11), 27)
+
 
   #inhconnectcells(ncell*19, ncell*20, 0.1, 1, ncell*14, ncell*15, 32)
   
   # between delays
   exconnectcells(ncell*35, ncell*36, 0.05, 1, ncell*15, ncell*16, 27)
   exconnectcells(ncell*2, ncell*3, 0.00015, 1, ncell*16, ncell*17, 27)
-  exconnectcells(ncell*12, ncell*13, 0.00015, 1, ncell*16, ncell*17, 27)
-  exconnectcells(ncell*4, ncell*5, 0.00015, 1, ncell*18, ncell*19, 27)
-  exconnectcells(ncell*14, ncell*15, 0.00015, 1, ncell*18, ncell*19, 27)
+  exconnectcells(ncell*12, ncell*13, 0.00025, 1, ncell*16, ncell*17, 27)
+  exconnectcells(ncell*4, ncell*5, 0.0002, 1, ncell*18, ncell*19, 27)
+  exconnectcells(ncell*14, ncell*15, 0.00025, 1, ncell*18, ncell*19, 27)
 
   for i in range(35, 38):
     exconnectcells(ncell*(i+1), ncell*(i+2), 0.05, 2, ncell*i, ncell*(i+1), 27)
 
   for i in range(1, 5): 
-    exconnectcells(ncell*i, ncell*(i+1), 0.00025, 1, ncell*(i+34), ncell*(i+35), 27)
-    exconnectcells(ncell*(i+10), ncell*(i+11), 0.00025, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*i, ncell*(i+1), 0.0002, 1, ncell*(i+34), ncell*(i+35), 27)
+    exconnectcells(ncell*(i+10), ncell*(i+11), 0.0002, 1, ncell*(i+34), ncell*(i+35), 27)
   
   # generators
   for i in range(20, 25):
@@ -119,13 +122,17 @@ def connectcells():
   exconnectcells(ncell*24, ncell*25, 0.005, 1, ncell*19, ncell*20, 27)
 
   # generator -> delay
-  exconnectcells(ncell, ncell*2, 0.00015, 1, ncell*21, ncell*22, 27)
-  exconnectcells(ncell*11, ncell*12, 0.00015, 1, ncell*23, ncell*24, 27)
-  exconnectcells(ncell*3, ncell*4, 0.00015, 1, ncell*23, ncell*24, 27)
-  exconnectcells(ncell*13, ncell*14, 0.00015, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell, ncell*2, 0.0002, 1, ncell*21, ncell*22, 27)
+  exconnectcells(ncell*11, ncell*12, 0.0001, 1, ncell*21, ncell*22, 27)
+  exconnectcells(ncell*3, ncell*4, 0.0003, 1, ncell*23, ncell*24, 27)
+  exconnectcells(ncell*13, ncell*14, 0.00025, 1, ncell*23, ncell*24, 27)
 
   # inhibitory projections
   for i in range(20, 23):
+    #inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*4, ncell*5, 27)
+    #inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*4, ncell*5, 27)
+    inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*29, ncell*30, 27)
+    inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*29, ncell*30, 27)
     inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*24, ncell*25, 27)
     inhconnectcells(ncell*(i+5), ncell*(i+6), 0.8, 1, ncell*24, ncell*25, 27)
 
@@ -193,7 +200,7 @@ def addees():
   global stim, ncstim, eesnclist
   stim = h.NetStim()
   stim.number = 100000000
-  stim.start = 1
+  stim.start = 0
   stim.interval = 25
   for i in range(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff):
     if pc.gid_exists(i):
