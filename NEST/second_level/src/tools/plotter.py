@@ -86,9 +86,9 @@ class Plotter:
 		pylab.suptitle("Rate {} Hz, inh {}%".format(self.ees_rate, 100 * self.inh_coef), fontsize=11)
 
 		# plot each slice
-		med = 1
+		med = 5
 		for slice_number, tests in moto_voltage.items():
-			offset = slice_number * 4
+			offset = slice_number * 15
 			yticks.append(-tests[list(tests.keys())[0]][0] - offset)
 			# collect mean data: sum values (mV) step by step (ms) per test and divide by test number
 			mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
@@ -105,14 +105,14 @@ class Plotter:
 			                   alpha=0.35)
 
 			# plot lines to see when activity should be started
-			if slice_number in [0, 1]:
-				pylab.plot([13, 13], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number == 2:
-				pylab.plot([15, 15], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number in [3, 4]:
-				pylab.plot([17, 17], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number == 5:
-				pylab.plot([21, 21], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			#if slice_number in [0, 1]:
+			#	pylab.plot([13, 13], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			#if slice_number == 2:
+			#	pylab.plot([15, 15], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			#if slice_number in [3, 4]:
+			#	pylab.plot([17, 17], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			#if slice_number == 5:
+			#	pylab.plot([21, 21], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
 
 		pylab.axvline(x=5, linewidth=thickline, color='r')
 		# global plot settings

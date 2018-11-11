@@ -56,12 +56,24 @@ def main(argv):
 	tests_number = int(argv[1]) if len(argv) >= 2 else 1
 	is_multitest = tests_number > 1
 
+	speed = 21
+
+	if speed == 21:
+		c_time = 25
+	elif speed == 13:
+		c_time = 50
+	elif speed == 6:
+		c_time = 125
+	else:
+		c_time = -1
+
 	simulation_params = {
 		Params.MODEL.value: topology_name,
 		Params.EES_RATE.value: 40,
 		Params.INH_COEF.value: 1,
-		Params.SPEED.value: 21,
-		Params.SIM_TIME.value: 150,
+		Params.SPEED.value: speed,
+		Params.C_TIME.value: c_time,
+		Params.SIM_TIME.value: c_time * 6,
 		Params.MULTITEST.value: is_multitest
 	}
 

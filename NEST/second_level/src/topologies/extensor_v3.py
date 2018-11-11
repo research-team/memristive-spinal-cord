@@ -5,6 +5,7 @@ from NEST.second_level.src.tools.multimeter import add_multimeter
 from NEST.second_level.src.tools.spike_detector import add_spike_detector
 from NEST.second_level.src.namespace import *
 
+
 HEBBIAN = {
 	'alpha': 1.0,  # Asymmetry parameter (scales depressing increments as  alpha*lambda)
 	'lambda': 0.1,  # Step size
@@ -30,89 +31,6 @@ ANTI_SOMBRERO = {
 	'mu_minus': 0.0
 }
 
-"""
-class Delay:
-	def __init__(self, time=None):
-		global delay_module_number
-		node1 = self.create_with_mmeter('Delay_N{}_node1'.format(delay_module_number))
-		node2 = self.create_with_mmeter('Delay_N{}_node2'.format(delay_module_number))
-		node3 = self.create_with_mmeter('Delay_N{}_node3'.format(delay_module_number))
-		node4 = self.create_with_mmeter('Delay_N{}_node3'.format(delay_module_number))
-
-		connect(node1, node2, weight=10, delay=2)
-		connect(node1, node3, weight=10, delay=2)
-		connect(node2, node1, weight=10, delay=2)
-		connect(node2, node3, weight=10, delay=2)
-		connect(node3, node1, weight=-10, delay=2)
-		connect(node3, node2, weight=-10, delay=2)
-		connect(node4, node3, weight=-10, delay=2)
-
-		delay_module_number += 1
-
-	@property
-	def reset(self):
-		return self.node1 + self.node2
-
-	@property
-	def mod(self):
-		return self.node4
-
-	@property
-	def input(self):
-		return self.node1
-
-	@property
-	def output(self):
-		return self.node3
-class Generator:
-	def __init__(self):
-		global generator_module_number
-		node1 = self.create_with_mmeter('Generator_N{}_node1'.format(generator_module_number))
-		node2 = self.create_with_mmeter('Generator_N{}_node2'.format(generator_module_number))
-		node3 = self.create_with_mmeter('Generator_N{}_node3'.format(generator_module_number))
-
-		connect(node1, node2, weight=10, delay=2)
-		connect(node1, node3, weight=10, delay=2)
-		connect(node2, node1, weight=10, delay=2)
-		connect(node2, node3, weight=10, delay=2)
-		connect(node3, node1, weight=-10, delay=2)
-		connect(node3, node2, weight=-10, delay=2)
-
-		generator_module_number += 1
-
-	@property
-	def output(self):
-		return self.node1 + self.node2
-
-	@property
-	def input(self):
-		return self.node1
-class Subthreshold:
-	def __init__(self):
-		global subthreshold_module_number
-		node1 = self.create_with_mmeter('Subthreshold_N{}_node1'.format(subthreshold_module_number))
-		node2 = self.create_with_mmeter('Subthreshold_N{}_node2'.format(subthreshold_module_number))
-		node3 = self.create_with_mmeter('Subthreshold_N{}_node3'.format(subthreshold_module_number))
-
-		connect(node1, node2, weight=10, delay=2)
-		connect(node1, node3, weight=10, delay=2)
-		connect(node2, node1, weight=10, delay=2)
-		connect(node2, node3, weight=-10, delay=2)
-
-		subthreshold_module_number += 1
-
-	@property
-	def output(self):
-		return self.node3
-
-	@property
-	def reset(self):
-		return self.node1 + self.node2
-
-	@property
-	def input(self):
-		return self.node1 + self.node3
-"""
 
 class Topology:
 	def __init__(self, simulation_params, test_iteration=0):
@@ -121,6 +39,8 @@ class Topology:
 		self.inh_coef = simulation_params[Params.INH_COEF.value]
 		self.sim_time = simulation_params[Params.SIM_TIME.value]
 		self.ees_rate = simulation_params[Params.EES_RATE.value]
+		self.speed = simulation_params[Params.SPEED.value]
+		self.c_time = simulation_params[Params.C_TIME.value]
 
 		neurons_in_moto = 169
 
@@ -130,10 +50,14 @@ class Topology:
 		C4 = self.create_with_mmeter("C4")
 		C5 = self.create_with_mmeter("C5")
 
-		group1 = self.create_with_mmeter("group1")
-		group2 = self.create_with_mmeter("group2")
-		group3 = self.create_with_mmeter("group3")
-		group4 = self.create_with_mmeter("group4")
+		ees_group1 = self.create_with_mmeter("ees_group1")
+		ees_group2 = self.create_with_mmeter("ees_group2")
+		ees_group3 = self.create_with_mmeter("ees_group3")
+		ees_group4 = self.create_with_mmeter("ees_group4")
+
+		inh_group5 = self.create_with_mmeter("inh_group5")
+		inh_group4 = self.create_with_mmeter("inh_group4")
+		inh_group3 = self.create_with_mmeter("inh_group3")
 
 		D1_1 = self.create_with_mmeter("D1_1")
 		D1_2 = self.create_with_mmeter("D1_2")
@@ -167,18 +91,18 @@ class Topology:
 		G2_1 = self.create_with_mmeter("G2_1")
 		G2_2 = self.create_with_mmeter("G2_2")
 		G2_3 = self.create_with_mmeter("G2_3")
-#
-#		G3_1 = self.create_with_mmeter("G3_1")
-#		G3_2 = self.create_with_mmeter("G3_2")
-#		G3_3 = self.create_with_mmeter("G3_3")
-#
-#		G4_1 = self.create_with_mmeter("G4_1")
-#		G4_2 = self.create_with_mmeter("G4_2")
-#		G4_3 = self.create_with_mmeter("G4_3")
-#
-#		G5_1 = self.create_with_mmeter("G5_1")
-#		G5_2 = self.create_with_mmeter("G5_2")
-#		G5_3 = self.create_with_mmeter("G5_3")
+
+		G3_1 = self.create_with_mmeter("G3_1")
+		G3_2 = self.create_with_mmeter("G3_2")
+		G3_3 = self.create_with_mmeter("G3_3")
+
+		G4_1 = self.create_with_mmeter("G4_1")
+		G4_2 = self.create_with_mmeter("G4_2")
+		G4_3 = self.create_with_mmeter("G4_3")
+
+		G5_1 = self.create_with_mmeter("G5_1")
+		G5_2 = self.create_with_mmeter("G5_2")
+		G5_3 = self.create_with_mmeter("G5_3")
 
 		IP_E = self.create_with_mmeter("IP_E", neurons_in_moto)
 #		IP_F = self.create_with_mmeter("IP_F", neurons_in_moto)
@@ -203,83 +127,90 @@ class Topology:
 #		C_0 = self.create_with_mmeter("C=0")
 #		C_1 = self.create_with_mmeter("C=1")
 
-		self.connect_spike_generator(C1, t_start=0, t_end=25, rate=200)
-		self.connect_spike_generator(C2, t_start=25, t_end=50, rate=200)
-		self.connect_spike_generator(C3, t_start=50, t_end=75, rate=200)
-		self.connect_spike_generator(C4, t_start=75, t_end=125, rate=200)
-		self.connect_spike_generator(C5, t_start=125, t_end=150, rate=200)
-		self.connect_spike_generator(EES, t_start=0, t_end=150, rate=self.ees_rate)
+		self.connect_spike_generator(C1, t_start=0, t_end=self.c_time, rate=200)
+		self.connect_spike_generator(C2, t_start=self.c_time, t_end=self.c_time*2, rate=200)
+		self.connect_spike_generator(C3, t_start=self.c_time*2, t_end=self.c_time*3, rate=200)
+		self.connect_spike_generator(C4, t_start=self.c_time*3, t_end=self.c_time*5, rate=200)
+		self.connect_spike_generator(C5, t_start=self.c_time*5, t_end=self.c_time*6, rate=200)
+		self.connect_spike_generator(EES, t_start=0, t_end=self.sim_time, rate=self.ees_rate)
 
+		connect(C3, inh_group3, delay=0.5, weight=20.0)
+		connect(C4, inh_group4, delay=0.5, weight=20.0)
+		connect(C5, inh_group5, delay=0.5, weight=20.0)
+
+		connect(inh_group3, G1_3, delay=4.0, weight=20.0) # 0.5
+		connect(inh_group4, G1_3, delay=1.0, weight=20.0) # 0.5
+		connect(inh_group4, G2_3, delay=1.0, weight=20.0) # 0.5
+		connect(inh_group5, G1_3, delay=4.0, weight=20.0) # 0.5
+		connect(inh_group5, G2_3, delay=1.0, weight=20.0) # 0.5
+		connect(inh_group5, G3_3, delay=1.0, weight=20.0)
+		connect(inh_group5, G4_3, delay=1.0, weight=20.0)
 
 		''' D1 '''
-		# input from
+		# input from sensory
 		connect(C1, D1_1, delay=1.0, weight=3.0)
 		connect(C1, D1_4, delay=1.0, weight=3.0)
 		connect(C2, D1_1, delay=1.0, weight=3.0)
 		connect(C2, D1_4, delay=1.0, weight=3.0)
-		# EES
+		# input from EES
 		connect(EES, D1_1, delay=1.0, weight=17.0)
 		connect(EES, D1_4, delay=1.0, weight=17.0)
-
 		# inner connectomes
-		connect(D1_1, D1_2, delay=2, weight=7.0) # 7
-		connect(D1_1, D1_3, delay=2, weight=16.0)
-		connect(D1_2, D1_1, delay=2, weight=7.0)
-		connect(D1_2, D1_3, delay=2, weight=20.0)
-		connect(D1_3, D1_1, delay=2, weight=-10.0 * self.inh_coef)
-		connect(D1_3, D1_2, delay=2, weight=-10.0 * self.inh_coef)
-		connect(D1_4, D1_3, delay=3, weight=-10.0 * self.inh_coef)
+		connect(D1_1, D1_2, delay=1, weight=7.0) # 7
+		connect(D1_1, D1_3, delay=1, weight=16.0)
+		connect(D1_2, D1_1, delay=1, weight=7.0)
+		connect(D1_2, D1_3, delay=1, weight=20.0)
+		connect(D1_3, D1_1, delay=1, weight=-10.0 * self.inh_coef)
+		connect(D1_3, D1_2, delay=1, weight=-10.0 * self.inh_coef)
+		connect(D1_4, D1_3, delay=2, weight=-10.0 * self.inh_coef)
 		# output to
-		connect(D1_3, G1_1, delay=2, weight=30.0)
-		connect(D1_3, group1, delay=3.0, weight=30) # 13.5
+		connect(D1_3, G1_1, delay=3, weight=12.5)
+		connect(D1_3, ees_group1, delay=1.0, weight=30) # 13.5
 
-		connect(group1, group2, delay=2.0, weight=20.0)
+		connect(ees_group1, ees_group2, delay=1.0, weight=20.0)
 
 		''' D2 '''
-		# input from
+		# input from Sensory
 		connect(C2, D2_1, delay=1.0, weight=4.0)
 		connect(C2, D2_4, delay=1.0, weight=4.0)
 		connect(C3, D2_1, delay=1.0, weight=4.0)
 		connect(C3, D2_4, delay=1.0, weight=4.0)
-
-		connect(group1, D2_1, delay=1.0, weight=6.0)
-		connect(group1, D2_4, delay=1.0, weight=6.0)
-
+		# input from Group (1)
+		connect(ees_group1, D2_1, delay=1.0, weight=5.0)
+		connect(ees_group1, D2_4, delay=1.0, weight=5.0)
 		# inner connectomes
-		connect(D2_1, D2_2, delay=2.0, weight=7.0) # 7
-		connect(D2_1, D2_3, delay=2.0, weight=20.0)
-		connect(D2_2, D2_1, delay=2.0, weight=7.0)
-		connect(D2_2, D2_3, delay=2.0, weight=20.0)
-		connect(D2_3, D2_1, delay=2.0, weight=-10.0 * self.inh_coef)
-		connect(D2_3, D2_2, delay=2.0, weight=-10.0 * self.inh_coef)
-		connect(D2_4, D2_3, delay=3.0, weight=-10.0 * self.inh_coef)
-		# output to
-		connect(D2_3, G2_1, delay=2.0, weight=30.0)
-
-
+		connect(D2_1, D2_2, delay=1.0, weight=7.0) # 7
+		connect(D2_1, D2_3, delay=1.0, weight=20.0)
+		connect(D2_2, D2_1, delay=1.0, weight=7.0)
+		connect(D2_2, D2_3, delay=1.0, weight=20.0)
+		connect(D2_3, D2_1, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(D2_3, D2_2, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(D2_4, D2_3, delay=2.0, weight=-10.0 * self.inh_coef)
+		# output to generator
+		connect(D2_3, G2_1, delay=1.0, weight=12.5)
 
 		''' D3 '''
 		# input from
-		connect(C3, D3_1, delay=1.0, weight=4.0)
-		connect(C3, D3_4, delay=1.0, weight=4.0)
-		connect(C4, D3_1, delay=1.0, weight=4.0)
-		connect(C4, D3_4, delay=1.0, weight=4.0)
+		connect(C3, D3_1, delay=1.0, weight=5.0)
+		connect(C3, D3_4, delay=1.0, weight=5.0)
+		connect(C4, D3_1, delay=1.0, weight=5.0)
+		connect(C4, D3_4, delay=1.0, weight=5.0)
 
-		connect(group2, D3_1, delay=2.0, weight=6.0)
+		connect(ees_group2, D3_1, delay=1, weight=6.0)
 		# inner connectomes
-		connect(D3_1, D3_2, delay=2.0, weight=7.0)
-		connect(D3_1, D3_3, delay=2.0, weight=20.0)
-		connect(D3_2, D3_1, delay=2.0, weight=7.0)
-		connect(D3_2, D3_3, delay=2.0, weight=20.0)
-		connect(D3_3, D3_1, delay=2.0, weight=-10.0 * self.inh_coef)
-		connect(D3_3, D3_2, delay=2.0, weight=-10.0 * self.inh_coef)
+		connect(D3_1, D3_2, delay=1.0, weight=7.0)
+		connect(D3_1, D3_3, delay=1.0, weight=20.0)
+		connect(D3_2, D3_1, delay=1.0, weight=7.0)
+		connect(D3_2, D3_3, delay=1.0, weight=20.0)
+		connect(D3_3, D3_1, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(D3_3, D3_2, delay=1.0, weight=-10.0 * self.inh_coef)
 		connect(D3_4, D3_3, delay=2.0, weight=-10.0 * self.inh_coef)
 		# output to
-		#connect(D3_3, G3_1, delay=3.0, weight=30.0)
+		connect(D3_3, G3_1, delay=1.5, weight=30.0)
 		# suppression
-		connect(D3_3, G1_3, delay=1.0, weight=30.0)
+		connect(D3_3, G1_3, delay=1.5, weight=30.0)
 
-		connect(group2, group3, delay=2.0, weight=20.0)
+		connect(ees_group2, ees_group3, delay=1.0, weight=20.0)
 
 		''' D4 '''
 		# input from
@@ -288,105 +219,105 @@ class Topology:
 		connect(C5, D4_1, delay=1.0, weight=5.0) # 4
 		connect(C5, D4_4, delay=1.0, weight=5.0) # 4
 
-		connect(group3, D4_1, delay=2.0, weight=6.0)
+		connect(ees_group3, D4_1, delay=2.0, weight=6.0)
 		# inner connectomes
-		connect(D4_1, D4_2, delay=2.0, weight=7.0)
-		connect(D4_1, D4_3, delay=2.0, weight=20.0)
-		connect(D4_2, D4_1, delay=2.0, weight=7.0)
-		connect(D4_2, D4_3, delay=2.0, weight=20.0)
-		connect(D4_3, D4_1, delay=2.0, weight=-10.0 * self.inh_coef)
-		connect(D4_3, D4_2, delay=2.0, weight=-10.0 * self.inh_coef)
+		connect(D4_1, D4_2, delay=1.0, weight=7.0)
+		connect(D4_1, D4_3, delay=1.0, weight=20.0)
+		connect(D4_2, D4_1, delay=1.0, weight=7.0)
+		connect(D4_2, D4_3, delay=1.0, weight=20.0)
+		connect(D4_3, D4_1, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(D4_3, D4_2, delay=1.0, weight=-10.0 * self.inh_coef)
 		connect(D4_4, D4_3, delay=2.0, weight=-10.0 * self.inh_coef)
 		# output to
-		#connect(D4_3, G4_1, delay=3.0, weight=20.0)
+		connect(D4_3, G4_1, delay=1.0, weight=20.0)
 		# suppression
 		connect(D4_3, G2_3, delay=1.0, weight=30.0)
 
-		connect(group3, group4, delay=2.0, weight=20.0)
+		connect(ees_group3, ees_group4, delay=2.0, weight=20.0)
 
 		''' D5 '''
 		# input from
-		connect(C5, D5_1, delay=1.0, weight=4.0)
-		connect(C5, D5_4, delay=1.0, weight=4.0)
-		connect(group4, D5_1, delay=2.0, weight=5.0)
+		connect(C5, D5_1, delay=1.0, weight=5.0)
+		connect(C5, D5_4, delay=1.0, weight=5.0)
+		connect(ees_group4, D5_1, delay=2.0, weight=5.0)
 		# inner connectomes
-		connect(D5_1, D5_2, delay=2.0, weight=7.0)
-		connect(D5_1, D5_3, delay=2.0, weight=20.0)
-		connect(D5_2, D5_1, delay=2.0, weight=7.0)
-		connect(D5_2, D5_3, delay=2.0, weight=20.0)
-		connect(D5_3, D5_1, delay=2.0, weight=-10.0 * self.inh_coef)
-		connect(D5_3, D5_2, delay=2.0, weight=-10.0 * self.inh_coef)
+		connect(D5_1, D5_2, delay=1.0, weight=7.0)
+		connect(D5_1, D5_3, delay=1.0, weight=20.0)
+		connect(D5_2, D5_1, delay=1.0, weight=7.0)
+		connect(D5_2, D5_3, delay=1.0, weight=20.0)
+		connect(D5_3, D5_1, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(D5_3, D5_2, delay=1.0, weight=-10.0 * self.inh_coef)
 		connect(D5_4, D5_3, delay=2.0, weight=-10.0 * self.inh_coef)
 		# output to
-		#connect(D5_3, G5_1, 4.0, 30.0)
+		connect(D5_3, G5_1, delay=1.0, weight=30.0)
 		# suppression
 		connect(D5_3, G1_3, delay=1.0, weight=30.0)
 		connect(D5_3, G2_3, delay=1.0, weight=30.0)
-		#connect(D5_3, G3_3, delay=1.0, weight=30.0)
-		#connect(D5_3, G4_3, delay=1.0, weight=30.0)
+		connect(D5_3, G3_3, delay=1.0, weight=30.0)
+		connect(D5_3, G4_3, delay=1.0, weight=30.0)
 
 		''' G1 '''
 		# inner connectomes
-		connect(G1_1, G1_2, delay=2.0, weight=10.0)
+		connect(G1_1, G1_2, delay=1.0, weight=10.0)
 		connect(G1_1, G1_3, delay=1.0, weight=10.0)
-		connect(G1_2, G1_1, delay=2.0, weight=10.0)
+		connect(G1_2, G1_1, delay=1.0, weight=10.0)
 		connect(G1_2, G1_3, delay=1.0, weight=10.0)
-		connect(G1_3, G1_1, delay=1.0, weight=-10.0 * self.inh_coef)
-		connect(G1_3, G1_2, delay=1.0, weight=-10.0 * self.inh_coef)
+		connect(G1_3, G1_1, delay=0.5, weight=-20.0 * self.inh_coef)
+		connect(G1_3, G1_2, delay=0.5, weight=-20.0 * self.inh_coef)
 		# output to IP_E
-		connect(G1_1, IP_E, delay=2.0, weight=20.0) # 25
-		connect(G1_2, IP_E, delay=2.0, weight=20.0) # 25
+		connect(G1_1, IP_E, delay=3, weight=18.0) # 25
+		connect(G1_1, IP_E, delay=3, weight=18.0) # 25
 
-		#''' G2 '''
+		''' G2 '''
 		# inner connectomes
-		connect(G2_1, G2_2, delay=2.0, weight=10.0)
-		connect(G2_1, G2_3, delay=2.0, weight=10.0)
-		connect(G2_2, G2_1, delay=2.0, weight=10.0)
-		connect(G2_2, G2_3, delay=2.0, weight=10.0)
-		connect(G2_3, G2_1, delay=2.0, weight=-30.0 * self.inh_coef)
-		connect(G2_3, G2_2, delay=2.0, weight=-30.0 * self.inh_coef)
+		connect(G2_1, G2_2, delay=1.0, weight=10.0)
+		connect(G2_1, G2_3, delay=1.0, weight=20.0)
+		connect(G2_2, G2_1, delay=1.0, weight=10.0)
+		connect(G2_2, G2_3, delay=1.0, weight=20.0)
+		connect(G2_3, G2_1, delay=0.5, weight=-30.0 * self.inh_coef)
+		connect(G2_3, G2_2, delay=0.5, weight=-30.0 * self.inh_coef)
 		# output to IP_E
-		connect(G2_1, IP_E, delay=2.0, weight=20.0) # 25
-		connect(G2_2, IP_E, delay=2.0, weight=20.0) # 25
-#
-		#''' G3 '''
-		## inner connectomes
-		#connect(G3_1, G3_2, delay=2.0, weight=7.0)
-		#connect(G3_1, G3_3, delay=2.0, weight=10.0)
-		#connect(G3_2, G3_1, delay=2.0, weight=7.0)
-		#connect(G3_2, G3_3, delay=2.0, weight=10.0)
-		#connect(G3_3, G3_1, delay=1.0, weight=-30.0 * self.inh_coef)
-		#connect(G3_3, G3_2, delay=1.0, weight=-30.0 * self.inh_coef)
-		## output to IP_E
-		#connect(G3_1, IP_E, delay=1.0, weight=30.0)
-		#connect(G3_2, IP_E, delay=1.0, weight=30.0)
-#
-		#''' G4 '''
-		## inner connectomes
-		#connect(G4_1, G4_2, delay=2.0, weight=5.0)
-		#connect(G4_1, G4_3, delay=2.0, weight=10.0)
-		#connect(G4_2, G4_1, delay=2.0, weight=5.0)
-		#connect(G4_2, G4_3, delay=2.0, weight=10.0)
-		#connect(G4_3, G4_1, delay=1.0, weight=-30.0 * self.inh_coef)
-		#connect(G4_3, G4_2, delay=1.0, weight=-30.0 * self.inh_coef)
-		## output to IP_E
-		#connect(G4_1, IP_E, delay=3.0, weight=30.0)
-		#connect(G4_2, IP_E, delay=3.0, weight=30.0)
-#
-		#''' G5 '''
-		## inner connectomes
-		#connect(G5_1, G5_2, delay=2.0, weight=7.0)
-		#connect(G5_1, G5_3, delay=2.0, weight=10.0)
-		#connect(G5_2, G5_1, delay=2.0, weight=7.0)
-		#connect(G5_2, G5_3, delay=2.0, weight=10.0)
-		#connect(G5_3, G5_1, delay=1.0, weight=-30.0 * self.inh_coef)
-		#connect(G5_3, G5_2, delay=1.0, weight=-30.0 * self.inh_coef)
-		## output to IP_E
-		#connect(G5_1, IP_E, delay=5.0, weight=30.0)
-		#connect(G5_2, IP_E, delay=5.0, weight=30.0)
+		connect(G2_1, IP_E, delay=1.0, weight=35.0) # 32 - 25
+		connect(G2_2, IP_E, delay=1.0, weight=35.0) # 32 - 25
 
-		connect(IP_E, MP_E, delay=1, weight=20)
-		connect(EES, MP_E, delay=2, weight=30)
+		''' G3 '''
+		# inner connectomes
+		connect(G3_1, G3_2, delay=1.0, weight=12.0)
+		connect(G3_1, G3_3, delay=1.0, weight=20.0)
+		connect(G3_2, G3_1, delay=1.0, weight=12.0)
+		connect(G3_2, G3_3, delay=1.0, weight=20.0)
+		connect(G3_3, G3_1, delay=0.5, weight=-30.0 * self.inh_coef)
+		connect(G3_3, G3_2, delay=0.5, weight=-30.0 * self.inh_coef)
+		# output to IP_E
+		connect(G3_1, IP_E, delay=2, weight=20.0) # 18 - 16
+		connect(G3_1, IP_E, delay=2, weight=20.0) # 18 - 16
+
+		''' G4 '''
+		# inner connectomes
+		connect(G4_1, G4_2, delay=1.0, weight=10.0)
+		connect(G4_1, G4_3, delay=1.0, weight=10.0)
+		connect(G4_2, G4_1, delay=1.0, weight=5.0)
+		connect(G4_2, G4_3, delay=1.0, weight=10.0)
+		connect(G4_3, G4_1, delay=0.5, weight=-30.0 * self.inh_coef)
+		connect(G4_3, G4_2, delay=0.5, weight=-30.0 * self.inh_coef)
+		# output to IP_E
+		connect(G4_1, IP_E, delay=1.0, weight=17.0) # 18
+		connect(G4_1, IP_E, delay=1.0, weight=17.0) # 18
+
+		''' G5 '''
+		# inner connectomes
+		connect(G5_1, G5_2, delay=1.0, weight=7.0)
+		connect(G5_1, G5_3, delay=1.0, weight=10.0)
+		connect(G5_2, G5_1, delay=1.0, weight=7.0)
+		connect(G5_2, G5_3, delay=1.0, weight=10.0)
+		connect(G5_3, G5_1, delay=0.5, weight=-30.0 * self.inh_coef)
+		connect(G5_3, G5_2, delay=0.5, weight=-30.0 * self.inh_coef)
+		# output to IP_E
+		connect(G5_1, IP_E, delay=1.0, weight=18.0) # 30
+		connect(G5_1, IP_E, delay=1.0, weight=18.0) # 30
+
+		connect(IP_E, MP_E, delay=1, weight=7) # 10 - 7
+		connect(EES, MP_E, delay=2, weight=50)
 		#connect(Ia, MP_E, delay=1, weight=50)
 
 

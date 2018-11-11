@@ -7,6 +7,7 @@ class Params(Enum):
 	INH_COEF = "inh_coef"
 	SPEED = "speed"
 	SIM_TIME = "sim_time"
+	C_TIME = "c_time"
 	MULTITEST = "multitest"
 
 
