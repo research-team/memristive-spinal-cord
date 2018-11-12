@@ -8,6 +8,7 @@ class Params(Enum):
 	SPEED = "speed"
 	SIM_TIME = "sim_time"
 	C_TIME = "c_time"
+	RECORD_FROM = "record_from"
 	MULTITEST = "multitest"
 
 

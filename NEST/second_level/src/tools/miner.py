@@ -34,7 +34,13 @@ class Miner:
 
 		if from_memory:
 			# get values from memory
-			voltages = GetStatus(multimeters_dict[test_name])[0]['events']['V_m']
+			record_from = 'Extracellular'
+			try:
+				GetStatus(multimeters_dict[test_name])[0]['events'][record_from]
+			except Exception:
+				record_from = "V_m"
+
+			voltages = GetStatus(multimeters_dict[test_name])[0]['events'][record_from]
 			g_ex = GetStatus(multimeters_dict[test_name])[0]['events']['g_ex']
 			g_in = GetStatus(multimeters_dict[test_name])[0]['events']['g_in']
 
