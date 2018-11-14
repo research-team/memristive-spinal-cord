@@ -34,6 +34,7 @@ class Plotter:
 		self.inh_coef = simulation_parameters[Params.INH_COEF.value]
 		self.speed = simulation_parameters[Params.SPEED.value]
 		self.sim_time = simulation_parameters[Params.SIM_TIME.value]
+		self.record_from = simulation_parameters[Params.RECORD_FROM.value]
 		self.miner = Miner()
 
 		log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
@@ -61,10 +62,6 @@ class Plotter:
 		return voltages
 
 
-	def merge_IP_MP(self):
-		pass
-
-
 	def plot_slices(self, tests_number=1, from_memory=True):
 		"""
 		Method for search and plotting results data
@@ -83,36 +80,51 @@ class Plotter:
 
 		# plot data
 		pylab.figure(figsize=(10, 5))
-		pylab.suptitle("Rate {} Hz, inh {}%".format(self.ees_rate, 100 * self.inh_coef), fontsize=11)
+		#pylab.suptitle("Model {} Speed {} cm/s Rate {} Hz Inh {}% ({})".format(self.model,
+		#                                                                       self.speed,
+		#                                                                       self.ees_rate,
+		#                                                                       100 * self.inh_coef), fontsize=11)
 
 		# plot each slice
 		med = 5
 		for slice_number, tests in moto_voltage.items():
-			offset = slice_number * 15
-			yticks.append(-tests[list(tests.keys())[0]][0] - offset)
+			if self.record_from == 'V_m':
+				offset = slice_number * 10
+			else:
+				offset = slice_number * 200
+
+			i = -1 if self.record_from == 'V_m' else 1
+
+			yticks.append(i * tests[list(tests.keys())[0]][0] + offset)
 			# collect mean data: sum values (mV) step by step (ms) per test and divide by test number
 			mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
 			times = [time / 10 for time in range(len(mean_data))]   # divide by 10 to convert to ms step
 
-			means = [-voltage - offset for voltage in mean_data]
+			means = [i * voltage + offset for voltage in mean_data]
 			minimal_per_step = [min(a) for a in zip(*tests.values())]
 			maximal_per_step = [max(a) for a in zip(*tests.values())]
 			# plot mean with shadows
-			pylab.plot(times, means, linewidth=1, color='gray')
+			pylab.plot(times, means, linewidth=0.5, color='k')
 			pylab.fill_between(times,
-			                   [-i - offset for i in minimal_per_step],  # the minimal values + offset (slice number)
-			                   [-i - offset for i in maximal_per_step],  # the maximal values + offset (slice number)
-			                   alpha=0.35)
+							   [i * mini + offset for mini in minimal_per_step],  # the minimal values + offset (slice number)
+							   [i * maxi + offset for maxi in maximal_per_step],  # the maximal values + offset (slice number)
+							   alpha=0.35)
 
+			if self.speed == 6:
+				num = 5
+			if self.speed == 15:
+				num = 2
+			if self.speed == 21:
+				num = 1
 			# plot lines to see when activity should be started
-			#if slice_number in [0, 1]:
-			#	pylab.plot([13, 13], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			#if slice_number == 2:
-			#	pylab.plot([15, 15], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			#if slice_number in [3, 4]:
-			#	pylab.plot([17, 17], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			#if slice_number == 5:
-			#	pylab.plot([21, 21], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			if slice_number // num in [0, 1]:
+				pylab.plot([13, 13], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			if slice_number // num == 2:
+				pylab.plot([15, 15], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			if slice_number // num in [3, 4]:
+				pylab.plot([17, 17], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+			if slice_number // num == 5:
+				pylab.plot([21, 21], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
 
 		pylab.axvline(x=5, linewidth=thickline, color='r')
 		# global plot settings
@@ -124,10 +136,10 @@ class Plotter:
 
 		# save the plot
 		fig_name = 'sim_{}_eesF{}_i{}_s{}cms_{}'.format(self.model,
-		                                                self.ees_rate,
-		                                                self.inh_coef * 100,
-		                                                self.speed,
-		                                                datetime.datetime.today().strftime('%Y-%m-%d'))
+														self.ees_rate,
+														self.inh_coef * 100,
+														self.speed,
+														datetime.datetime.today().strftime('%Y-%m-%d'))
 		pylab.savefig(os.path.join(img_path, '{}.png'.format(fig_name)), dpi=200)
 		pylab.close('all')
 		logger.info("saved to '{}'".format(os.path.join(img_path, '{}.png'.format(fig_name))))
@@ -170,7 +182,7 @@ class Plotter:
 			pylab.axvline(x=i, linewidth=boldline, color='k')
 		pylab.ylabel('Voltage [mV]')
 		pylab.xticks(range(0, self.sim_time + 1, 5),
-		             [""] * ((self.sim_time + 1) // 5))
+					 [""] * ((self.sim_time + 1) // 5))
 		pylab.xlim(0, self.sim_time)
 		pylab.grid()
 
@@ -186,9 +198,9 @@ class Plotter:
 		pylab.ylabel('Currents [pA]')
 		pylab.xlim(0, self.sim_time)
 		pylab.xticks(range(0, self.sim_time + 1, 5),
-		             ["{}\n{}".format(global_time - 25 * (global_time // 25), global_time)
-		              for global_time in range(0, self.sim_time + 1, 5)],
-		             fontsize=8)
+					 ["{}\n{}".format(global_time - 25 * (global_time // 25), global_time)
+					  for global_time in range(0, self.sim_time + 1, 5)],
+					 fontsize=8)
 		pylab.yticks(fontsize=8)
 		pylab.grid()
 		pylab.subplots_adjust(hspace=0.05)

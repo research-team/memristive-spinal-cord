@@ -236,6 +236,7 @@ def prun(tstop):
 def spikeout():
   ''' report simulation results to stdout '''
   global rank, moto_v_vec, motoneurons, soma_v_vec, interneurons 
+  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
@@ -245,6 +246,7 @@ def spikeout():
         for v in list(soma_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
+  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
