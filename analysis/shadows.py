@@ -1,124 +1,113 @@
 import os
-import sys
+import pylab
 import numpy as np
-from matplotlib import pylab
-from enum import Enum
-
-topologies_path = 'second_level.src.topologies'
+import h5py as hdf5
+from collections import defaultdict
 
 
-class Params(Enum):
-    NUM_SUBLEVELS = 6
-    NUM_SPIKES = 1
-    RATE = 40
-    SIMULATION_TIME = 150.
-    INH_COEF = 1.
-    PLOT_SLICES_SHIFT = 12.  # ms
-frequency_of_discretization = 0.025
-duration_of_one_slice = 25
+def __read_data(filepath):
+	"""
+	Read all data from hdf5 file
+	Args:
+		filepath (str):
+			path to the file
+	Returns:
+		dict[str, list]: voltage data for each test
+	"""
+	data_by_test = {}
+	with hdf5.File(filepath) as file:
+		for test_name, test_values in file.items():
+			data_by_test[test_name] = test_values[:]  # [:] will return ndarray, don't use list() !!!
+	return data_by_test
 
-neuron_number = 169
-tests_number = 25    # 25
-neuron_number = 21
-threads = 8
-# num_slices = 5
-speeds = [25, 50, 125]
-frequencies = [20, 40]
-# collect data from each test
-testsNeuron = {k: {} for k in range(tests_number)}
-for neuron_test_number in range(tests_number):
-    for speed in speeds:
-        if speed == 25:
-            sp = '21'
-            for thread in range(threads):
-                for neuron_id in range(neuron_number):
-                    with open(
-                            '../neuron-data/res3010/vMN{}r{}s{}v{}'.format(neuron_id, thread, speed,
-                                                                                           neuron_test_number),
-                            'r') as file:
-                        print("opened", 'res3010/vMN{}r{}s{}v{}'.format(neuron_id, thread, speed,
-                                                                                           neuron_test_number))
-                        value = [float(i) for i in file.read().split("\n")[1:-1]]
-                        time_iter = 0.0
-                        for offset in range(len(value)):
-                            if time_iter not in testsNeuron[neuron_test_number]:
-                                testsNeuron[neuron_test_number][time_iter] = 0
-                            testsNeuron[neuron_test_number][time_iter] += value[offset]
-                            time_iter += 0.1
-    for time in testsNeuron[neuron_test_number].keys():
-        testsNeuron[neuron_test_number][time] *= 10 ** 13
-        testsNeuron[neuron_test_number][time] /= 169
-print("len(testsNeuron) = ", len(testsNeuron[0]))
-def plot_n_tests():
-    """
-    Function that draws the plot of shadows by the number of slices: line in each slice is the mean value of each slice by 25 
-    runs of Neuron, shadows indicate the scatter between min and max value in each slice 
-    Returns
-    -------
-    Plot
-    """
-    # test_number = 2
-    slices = {}
-    yticks = []
-    num_slices = int(len(testsNeuron[0]) * frequency_of_discretization / duration_of_one_slice)
-    # tests_number = 2
 
-    for test_number, test_data in testsNeuron.items():
-        raw_times = sorted(test_data.keys())
-        chunk = len(raw_times) / num_slices
+def __restructure_data(original_data, sim_step):
+	"""
+	Restructuring data from test -> slices to slices -> test
+	Args:
+		original_data (dict[str, list]):
+			data container of voltages for each test
+	Returns:
+		dict[int, dict[str, list]]: restuctured data for easiest way to build the shadows.
+		slice index -> [test name -> test values which are corresponed to the current slice ]
+	"""
+	# constant
+	slice_duration = 25
+	# get simulation time by len of records and multiplication by simulation step
+	sim_time = len(next(iter(original_data.values()))) * sim_step
+	# get number of slices by floor division of slice duration (25 ms)
+	num_slices = int(sim_time) // slice_duration
+	# get normlization coefficient from slice duration and simulation step
+	normalized_time_from_index = int(slice_duration / sim_step)
+	# generate dict container
+	voltages_by_slice = {slice_index: defaultdict(list) for slice_index in range(num_slices)}
+	# relocate voltage data by their test and slice affiliation
+	for test_name, test_values in original_data.items():
+		for index, voltage in enumerate(test_values):
+			# get index of the slice by floor division of normalize to 1 ms time
+			slice_index = index // normalized_time_from_index
+			# collect current voltage to the affiliated test name and slice number
+			voltages_by_slice[slice_index][test_name].append(voltage)
+	return voltages_by_slice
 
-        for slice_number in range(num_slices):
-            start_time = int(slice_number * chunk)
-            end_time = int(slice_number * chunk + chunk)
-            if slice_number not in slices.keys():
-                slices[slice_number] = dict()
-            slices[slice_number][test_number] = [test_data[time] * (-1) for time in raw_times[start_time:end_time]]
 
-    # print(len(slices), "slices = ", slices)
-    pylab.figure(figsize=(9, 3))
-    pylab.suptitle("Rate {} Hz, inh {}%, speed {} cm/s".format(Params.RATE.value, 100 * Params.INH_COEF.value, sp), fontsize=11)
-    # plot each slice
-    for slice_number, tests in slices.items():
-        offset = slice_number * 10000
-        yticks.append(tests[list(tests.keys())[0]][0] + offset)
-        # collect mean data: sum values (mV) step by step (ms) per test and divide by test number
-        mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
-        # collect values
-        times = [time / 10 for time in range(len(mean_data))]  # divide by 10 to convert to ms step
-        means = [voltage + offset for voltage in mean_data]
-        minimal_per_step = [min(a) for a in zip(*tests.values())]
-        maximal_per_step = [max(a) for a in zip(*tests.values())]
+def __plot(slices, sim_step, raw_data_filename, save_path=None):
+	"""
+	Plot shadows with mean
+	Args:
+		slices (dict[int, dict[str, list]]):
+			restructured data: dict[slice index, dict[test name, voltages]]
+		sim_step (float):
+			simulation step
+		raw_data_filename (str):
+			path to the raw data
+		save_path (str or None):
+			folder path for saving results
+	"""
+	yticks = []
+	pylab.figure(figsize=(10, 5))
+	for slice_number, tests in slices.items():
+		offset = -slice_number * 10
 
-        # print(len(minimal_per_step), "minimal_per_step = ", minimal_per_step)
-        # print(len(maximal_per_step), "maximal_per_step = ", maximal_per_step)
+		mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
+		times = [time * sim_step for time in range(len(mean_data))]  # divide by 10 to convert to ms step
 
-        # plot mean with shadows.py
-        pylab.plot(times, means, linewidth=1, color='gray')
-        pylab.fill_between(times,
-                           [i + offset for i in minimal_per_step],  # the minimal values + offset (slice number)
-                           [i + offset for i in maximal_per_step],  # the maximal values + offset (slice number)
-                           alpha=0.35)
-    ticks = []
-    for x in range(20,101, 20):
-        ticks.append(x)
-    labels = []
-    for x in range(5,26, 5):
-        labels.append(x)
-    # global plot settings
-    pylab.xlim(0, 100)
-    pylab.xticks(ticks, labels)
-    pylab.yticks(yticks, range(1, num_slices + 1))
-    pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
-    pylab.subplots_adjust(left=0.03, bottom=0.07, right=0.99, top=0.93, wspace=0.0, hspace=0.09)
-    pylab.gca().invert_yaxis()
-    pylab.show()
-    # save the plot
-    fig_name = 'slices_mean_{}Hz_{}inh-{}sublevels'.format(Params.RATE.value,
-                                                           Params.INH_COEF.value,
-                                                           Params.NUM_SUBLEVELS.value)
-    pylab.savefig(os.path.join(os.getcwd(), '{}.png'.format(fig_name)), dpi=200)
-    pylab.close('all')
+		means = [voltage + offset for voltage in mean_data]
+		yticks.append(means[0])
+		minimal_per_step = [min(a) for a in zip(*tests.values())]
+		maximal_per_step = [max(a) for a in zip(*tests.values())]
+		# plot mean with shadows
+		pylab.plot(times, means, linewidth=0.5, color='k')
+		pylab.fill_between(times,
+		                   [mini + offset for mini in minimal_per_step],  # the minimal values + offset (slice number)
+		                   [maxi + offset for maxi in maximal_per_step],  # the maximal values + offset (slice number)
+		                   alpha=0.35)
+	pylab.xticks(range(26), [i if i % 5 == 0 else "" for i in range(26)])
+	pylab.yticks(yticks, range(1, len(slices) + 1), fontsize=7)
+	pylab.xlim(0, 25)
+	pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+
+	# if the save path is not specified
+	if not save_path:
+		save_path = "/".join(raw_data_filename.split("/")[:-1])
+	pylab.savefig(os.path.join(save_path, "shadows.png"), format="png", dpi=512)
+
+
+def plot_shadows(raw_data_filename, sim_step, save_path=None):
+	data = __read_data(raw_data_filename)
+	slices, sim_time = __restructure_data(data, sim_step=sim_step)
+	__plot(slices, sim_step, raw_data_filename, save_path)
+
+
+def debugging():
+	path = 'PASTE/PATH/TO/THE/RESULTS'
+	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
+	sim_step = 0.025
+
+	data = __read_data(path)
+	slices = __restructure_data(data, sim_step=sim_step)
+	__plot(slices, sim_step, path)
 
 
 if __name__ == "__main__":
-    plot_n_tests()
+	debugging()
