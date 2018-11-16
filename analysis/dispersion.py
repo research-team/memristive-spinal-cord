@@ -58,12 +58,15 @@ normal_neuron_means_s125_one_list = normalization(neuron_means_s125_one_list, 0.
 # converting list of neuron data into the list of lists
 temo = []
 normal_neuron = []
+offset = 0
 for i in range(25):
-    for j in range(27000):
+    for j in range(offset, offset + 27000):
         temo.append(normal_neuron_means_s125_one_list[j])
     normal_neuron.append(temo.copy())
     temo.clear()
-neuron_dots_arrays = []
+    offset += 27000
+# converting 25 lists of 27000 values into the 2700 lists of 250 dots
+neuron_dots_arrays = [] # correct
 tmp = []
 offset = 0
 for iter_begin in range(len(normal_real)):
@@ -73,12 +76,24 @@ for iter_begin in range(len(normal_real)):
     neuron_dots_arrays.append(tmp.copy())
     tmp.clear()
     offset += 10
+print("len(neuron_dots_arrays) = ", len(neuron_dots_arrays))
+print("len(neuron_dots_arrays[0]) = ", len(neuron_dots_arrays[0]))
+# calculating mean values of 10 dots
+means = []
+temp_means = []
+for inner_list in neuron_dots_arrays:
+    offset = 0
+    for test in range(25):
+        temp_means.append(np.mean(inner_list[offset:offset + 10]))
+        offset += 10
+    means.append(temp_means.copy())
+    temp_means.clear()
 maxes = []
 mins = []
 dif = []
 diffs = []
 i = 0
-for inner_list in neuron_dots_arrays:
+for inner_list in means:
     real_dot = normal_real[i]
     for neuron_dot in inner_list:
         dif.append(abs(real_dot - neuron_dot))
