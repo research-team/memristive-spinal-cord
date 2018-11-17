@@ -90,11 +90,10 @@ def plot():
 		logging.info("Plotting {} ({}/{})".format(key_name, key_index + 1, len_nodes))
 		mean_voltage = list(map(lambda x: np.mean(x), zip(*voltage_nodes[key_name])))
 
-		if key_name in ["MP_E", "MP_F"]:
-			pool_key = "IP_E" if key_name == "MP_E" else "IP_F"
-			logging.info("Plotting slices of {} and {}".format(key_name, pool_key))
+		if key_name == "MP_E":
+			logging.info("Plotting slices {}".format(key_name))
 			# create plot
-			plt.figure()
+			plt.figure(figsize=(10, 5))
 			plt.suptitle("Voltage Slices {}".format(key_name))
 
 			# split data
@@ -103,30 +102,17 @@ def plot():
 			for pool_index, slice_data in enumerate(moto_slices):
 				times = [time / 10 for time in range(len(slice_data))]
 				voltages = [-(y + pool_index * 30) for y in slice_data]
-				plt.plot(times, voltages, color=moto_color)
-
-			# split data
-			mean_pool_voltage = list(map(lambda x: np.mean(x), zip(*voltage_nodes[pool_key])))
-			pool_slices, yticks = get_slices(mean_pool_voltage)
-			# plot data
-			for pool_index, slice_data in enumerate(pool_slices):
-				times = [time / 10 for time in range(len(slice_data))]
-				voltages = [-(y + pool_index * 30) for y in slice_data]
-				plt.plot(times, voltages, color=pool_color)
+				plt.plot(times, voltages, color='k', linewidth=0.5)
 
 			# plot lines (which of them)
-			#for slice_index, time_line in enumerate([13, 13, 15, 17, 17, 21]):
-			#	plt.plot([time_line, time_line],
-			#	         [yticks[slice_index] - 15, yticks[slice_index] + 15],
-			#	         color='k', linewidth=1)
-
-			moto_label = mpatches.Patch(color=moto_color, label=key_name)
-			pool_label = mpatches.Patch(color=pool_color, label=pool_key)
+			for slice_index, time_line in enumerate([13, 13, 15, 17, 17, 21]):
+				plt.plot([time_line, time_line],
+				         [yticks[slice_index] - 15, yticks[slice_index] + 15],
+				         color='r', linewidth=1.5)
+			plt.axvline(x=5, linewidth=0.8, color='r')
 			plt.xticks(range(0, 26), range(0, 26))
-			plt.yticks(yticks, range(1, len(pool_slices)+1))
+			plt.yticks(yticks, range(1, len(moto_slices)+1))
 			plt.xlim(0, 25)
-			plt.legend(handles=[moto_label, pool_label],
-			           loc="upper left",)
 			plt.grid()
 
 			plt.subplots_adjust(left=0.12, bottom=0.10, right=0.97, top=0.88, wspace=0.0, hspace=0.04)
@@ -134,7 +120,7 @@ def plot():
 			plt.close('all')
 
 		# create plot
-		plt.figure()
+		plt.figure(figsize=(10, 5))
 		plt.suptitle("Mean voltage '{}'".format(key_name))
 
 		plt.subplot(2, 1, 1)
@@ -143,20 +129,30 @@ def plot():
 		plt.plot([time / 10 for time in range(len(mean_voltage))], mean_voltage)
 		plt.plot(spikes_nodes[key_name], [0] * len(spikes_nodes[key_name]), '.', color='r', markersize=2)
 		plt.xlim(0, sim_time)
-		xticks = range(0, sim_time+1, 5)
-		plt.xticks(xticks, [""] * len(xticks))
+		# plot the slice border
+		for i in range(0, int(sim_time), 25):
+			plt.axvline(x=i, linewidth=1.5, color='k')
+		plt.xticks(range(0, int(sim_time) + 1, 5),
+					 [""] * ((int(sim_time) + 1) // 5))
 		plt.ylim(-100, 40)
 		plt.ylabel("Voltage [mV]")
 
 		plt.subplot(2, 1, 2)
 		mean_currents = list(map(lambda x: np.mean(x), zip(*nodes_curr[key_name])))
 		plt.plot([time / 10 for time in range(len(mean_currents))], mean_currents, color='green')
+		# plot the slice border
+		for i in range(0, int(sim_time), 25):
+			plt.axvline(x=i, linewidth=1.5, color='k')
 		plt.xlim(0, sim_time)
-		plt.xticks(xticks, [a if a % 25 == 0 else "" for a in xticks])
+		plt.xticks(range(0, int(sim_time) + 1, 5),
+					 ["{}\n{}".format(global_time - 25 * (global_time // 25), global_time)
+					  for global_time in range(0, int(sim_time) + 1, 5)],
+					 fontsize=8)
+		plt.yticks(fontsize=8)
 		plt.ylabel("Current [pA]")
 		plt.xlabel("Simulation time [ms]")
 
-		plt.subplots_adjust(left=0.15, bottom=0.10, right=0.97, top=0.88, wspace=0.0, hspace=0.1)
+		#plt.subplots_adjust(left=0.15, bottom=0.10, right=0.97, top=0.88, wspace=0.0, hspace=0.1)
 		plt.grid()
 		plt.savefig("{}/results/{}.png".format(os.getcwd(), key_name), dpi=200)
 		plt.close('all')
