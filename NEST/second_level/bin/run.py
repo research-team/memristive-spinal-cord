@@ -56,6 +56,7 @@ def main(argv):
 	tests_number = int(argv[1]) if len(argv) >= 2 else 1
 	is_multitest = tests_number > 1
 	speed = 21
+	threshold = True
 
 	if speed == 21:
 		c_time = 25
@@ -70,10 +71,11 @@ def main(argv):
 		Params.MODEL.value: topology_name,
 		Params.EES_RATE.value: 40,
 		Params.RECORD_FROM.value: 'V_m',
-		Params.INH_COEF.value: 0,
+		Params.INH_COEF.value: 1,
 		Params.SPEED.value: speed,
 		Params.C_TIME.value: c_time,
 		Params.SIM_TIME.value: c_time * 6,
+		Params.ESS_THRESHOLD.value: threshold,
 		Params.MULTITEST.value: is_multitest
 	}
 
@@ -101,4 +103,4 @@ if __name__ == "__main__":
 	if len(sys.argv) >= 2:
 		main(sys.argv[1:])
 	else:
-		main(["extensor_v3", 25])
+		main(["flexor_v1", 1])
