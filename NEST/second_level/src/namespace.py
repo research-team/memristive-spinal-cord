@@ -10,6 +10,7 @@ class Params(Enum):
 	C_TIME = "c_time"
 	RECORD_FROM = "record_from"
 	MULTITEST = "multitest"
+	ESS_THRESHOLD = "ees_threshold"
 
 
 class Name(Enum):

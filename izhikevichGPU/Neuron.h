@@ -56,10 +56,19 @@ private:
 	const float V_rest = -72.0f;	// [mV] resting membrane potential
 	const float V_th = -55.0f;		// [mV] spike threshold
 	const float k = 0.7f;			// [pA * mV-1] constant ("1/R")
-	const float a = 0.03f;			// [ms-1] time scale of the recovery variable U_m
-	const float b = -2.0f;			// [pA * mV-1]  sensitivity of U_m to the sub-threshold fluctuations of the V_m
+	const float a = 0.02f;			//  0.03 [ms-1] time scale of the recovery variable U_m
+	//determines the time scale of the recovery variable u. The larger the value of a, the quicker the recovery
+	const float b = 0.2f;			// -2 [pA * mV-1]  sensitivity of U_m to the sub-threshold fluctuations of the V_m
+	/* describes the sensitivity of the recovery variable U to the sub-threshold fluctuations
+	 * of the membrane potential V. Larger values of b couple U and  V more strongly,
+	 * resulting in possible sub-threshold oscillations and low-threshold spiking dynamics
+	 */
 	const float c = -80.0f;			// [mV] after-spike reset value of V_m
-	const float d = 100.0f;			// [pA] after-spike reset value of U_m
+	const float d = 6.0f;			// [pA] after-spike reset value of U_m
+	/*
+	 * describes the after-spike reset of the recovery variable ucaused by slow high-threshold Na+
+	 * and K+conductances.
+	 */
 	const float V_peak = 35.0f;		// [mV] spike cutoff value
 	int ref_t{}; 					// [step] refractory period
 
@@ -72,7 +81,7 @@ private:
 	float current_ref_t = 0;
 
 public:
-	Synapse* synapses = new Synapse[250];	// array of synapses
+	Synapse* synapses = new Synapse[400];	// array of synapses
 	int num_synapses{0};                    // current number of synapses (neighbors)
 	char* name{};
 
@@ -204,7 +213,6 @@ public:
 		if (V_m < c)
 			V_m = c;
 
-
 		// threshold crossing (spike)
 		if (V_m >= V_peak) {
 			// set timers for all neuron synapses
@@ -249,7 +257,7 @@ public:
 		// doesn't change the I of generator NEURONS!!!
 		if (I != 0) {
 			if (I > 0)
-				I /= 2;	// decrease I
+				I /= 2;	// decrease I = 2
 			if (I < 0)
 				I /= 1.1;	// decrease I
 			if (I > 0 && I <= 1)
