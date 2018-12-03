@@ -52,31 +52,7 @@ def remove_ees_from_min_max(slices_max_time, slices_max_value, slices_min_time, 
     return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
-def calc_durations_nest(slices_max_time, slices_min_time):
-    """
-	Parameters
-	----------
-	slices_max_time: dict
-		key is index of slice, value is the list of max times in slice without the time of EES
-	slices_min_time: dict
-		key is index of slice, value is the list of min times in slice without the time of EES
-	Returns
-	-------
-	duration_maxes: list
-		durations (difference between the last and the first time of max peak) in each slice
-	duration_mins: list
-		durations (difference between the last and the first time of min peak) in each slice
-	"""
-    duration_maxes = []
-    duration_mins = []
-    for index in slices_max_time.values():
-        duration_maxes.append(round(index[-1] - index[0], 3))
-    for index in slices_min_time.values():
-        duration_mins.append(round(index[-1] - index[0], 3))
-    return duration_maxes, duration_mins
-
-
-def calc_durations_neuron(slices_max_time, slices_min_time, slices_min_value):
+def calc_durations(slices_max_time, slices_min_time, slices_min_value, min_border, max_border, simulator):
     """
 
 	Parameters
@@ -85,6 +61,14 @@ def calc_durations_neuron(slices_max_time, slices_min_time, slices_min_value):
 		key is index of slice, value is the list of max times in slice without the time of EES
 	slices_min_time: dict
 		key is index of slice, value is the list of min times in slice without the time of EES
+    slices_min_valus: dict
+        key is index of slice, value is the list of min values in slice
+    min_border: int or float
+        number bigger that which the value should be to be considered as the min peak value
+    max_border: int or float
+        number less that which the value should be to be considered as the min peak value
+    simulator: string
+        nest or neuron
 
 	Returns
 	-------
@@ -103,47 +87,51 @@ def calc_durations_neuron(slices_max_time, slices_min_time, slices_min_value):
         duration_maxes.append(round(index[-1] - index[0], 3))
     for index in slices_min_value.values():
         for i in range(len(index)):
-            if -1.5 * 10 ** (-9) < index[i] < -8 * 10 ** (-10):
+            if min_border < index[i] < max_border:   # -15 < index[i] < -3.6 for 21 cm/s (neuron)
+                #  -15 < index[i] < -4.4: for 15 cm/s (neuron)
+                #  -1.5 * 10 ** (-9) < index[i] < -8 * 10 ** (-10) for 6 cm/s
                 tmp_list_of_true_min_peaks.append(i)
-                # print("here")
-            # print("i = ", i)
-            # print("tmp_list_of_true_min_peaks.append(i) = ", tmp_list_of_true_min_peaks)
         list_of_true_min_peaks.append(tmp_list_of_true_min_peaks.copy())
         tmp_list_of_true_min_peaks.clear()
-    print(list_of_true_min_peaks[26][0])
-    del list_of_true_min_peaks[26][0]
-    print("list_of_true_min_peaks = ", list_of_true_min_peaks)
+    if simulator == 'neuron':
+        del list_of_true_min_peaks[26][0] # needed only for 6 cm/s
+        #     del list_of_true_min_peaks[0][0]    # for neuron 21 cm/s
+        #     del list_of_true_min_peaks[1][0]    # for neuron 21 cm/s
+        #     del list_of_true_min_peaks[4][0]    # for neuron 21 cm/s
+        #     del list_of_true_min_peaks[5][0]    # for neuron 21 cm/s
+        #     del list_of_true_min_peaks[5][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[5][0]    # for neuron 15cm/s
+        # del list_of_true_min_peaks[11][0]   # for neuron 15cm/s
     for sl in range(len(list_of_true_min_peaks)):
         for key in slices_min_time:
-            # print("key = ", key)
-            # print("sl = ", sl)
             if key == sl + 1:
-                # print("len(list_of_true_min_peaks[{}]) = ".format(sl), len(list_of_true_min_peaks[sl]))
                 for i in range(len(list_of_true_min_peaks[sl])):
-                    # print("i = ", i)
                     list_of_true_min_peak_times_tmp.append(round(slices_min_time[key][list_of_true_min_peaks[sl][i]], 3))
                 list_of_true_min_peak_times.append(list_of_true_min_peak_times_tmp.copy())
                 list_of_true_min_peak_times_tmp.clear()
-            # delays_mins.append(round(slices_min_time[key][list_of_true_min_peaks[sl][0]], 3))
-    # duration_mins.append(round(index[-1] - index[0], 3))
     print("list_of_true_min_peak_times = ", list_of_true_min_peak_times)
     for sl in list_of_true_min_peak_times:
-        # print("sl = ", sl)
         duration_mins.append(round(sl[-1] - sl[0], 3))
     return duration_maxes, duration_mins
 
 
-def delays_neuron(slices_max_time, slices_min_time, slices_min_value):
+def delays(slices_max_time, slices_min_time, slices_min_value, min_border, max_border, simulator):
     """
 
 	Parameters
 	----------
 	slices_max_time: dict
-		key is index of slice, value is the list of max times in slice without the time of EES
+		key is index of slice, value is the list of max times in slice
 	slices_min_time: dict
-		key is index of slice, value is the list of min times in slice without the time of EES
-
-
+		key is index of slice, value is the list of min times in slice
+    slices_min_valus: dict
+        key is index of slice, value is the list of min values in slice
+    min_border: int or float
+        number bigger that which the value should be to be considered as the min peak value
+    max_border: int or float
+        number less that which the value should be to be considered as the min peak value
+    simulator: string
+        nest or neuron
 	Returns
 	-------
 	delays_maxes: list
@@ -161,57 +149,29 @@ def delays_neuron(slices_max_time, slices_min_time, slices_min_value):
     for index in slices_max_time.values():
         delays_maxes.append(round(index[0], 3))
     for index in slices_min_value.values():
+        print("index = ", index)
         for i in range(len(index)):
-            if -1.5 * 10 ** (-9) < index[i] < -8 * 10 ** (-10):
-                # -1.5 * 10 ** (-9) < index[i] < -8 * 10 ** (-10) for 6 cm/s
+            if min_border < index[i] < max_border:   # -15 < index[i] < -3.6 for 21 cm/s (neuron)
+                #  -15 < index[i] < -4.4: for 15 cm/s (neuron)
+                # -1.5 * 10 ** (-9) < index[i] < -8 * 10 ** (-10) for 6 cm/s (neuron)
                 tmp_list_of_true_min_peaks.append(i)
-            # print("i = ", i)
-            # print("tmp_list_of_true_min_peaks.append(i) = ", tmp_list_of_true_min_peaks)
         list_of_true_min_peaks.append(tmp_list_of_true_min_peaks.copy())
+        print("list_of_true_min_peaks = ", list_of_true_min_peaks)
         tmp_list_of_true_min_peaks.clear()
-    del list_of_true_min_peaks[26][0]
-
+    if simulator == 'neuron':
+        del list_of_true_min_peaks[26][0] # for neuron 6cm/s
+        # del list_of_true_min_peaks[0][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[1][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[4][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[5][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[5][0]    # for neuron 21 cm/s
+        # del list_of_true_min_peaks[5][0]    # for neuron 15cm/s
+        # del list_of_true_min_peaks[11][0]   # for neuron 15cm/s
     print("list_of_true_min_peaks_delays = ", list_of_true_min_peaks)
     for sl in range(len(list_of_true_min_peaks)):
         for key in slices_min_time:
-            # print("key = ", key)
-            # print("sl = ", sl)
             if key == sl + 1:
-                # for slice in slices_min_time.values():
-                #         print("sl = ", sl)
-                # delays_mins.append(sl[0])
-                # print("slices_min_time[{}] = ".format(key), slices_min_time[key])
-                # print("list_of_true_min_peaks[sl][0] = ", list_of_true_min_peaks[sl][0])
                 delays_mins.append(round(slices_min_time[key][list_of_true_min_peaks[sl][0]], 3))
-    return delays_maxes, delays_mins
-
-
-def delays_nest(slices_max_time, slices_min_time):
-    delays_maxes = []
-    delays_mins = []
-    for index in slices_max_time.values():
-        delays_maxes.append(round(index[0], 3))
-    for index in slices_min_time.values():
-        delays_mins.append(round(index[0], 3))
-    # for value in slices_min_value.values():
-    #     value_id += 1
-    #     for i in range(len(value)):
-    #         if value[i] < -0.5 * 10 ** (-10):
-    #             min_index = i
-    #             for key in slices_min_time:
-    #                 if key == value_id:
-    #                     delays_mins.append(slices_min_time[key][min_index])
-    #                 break
-    # for index in range(len(slices_min_time.values())):
-    #     print("slices_min_time.values() = ", slices_min_time.values())
-    #     for value_index in slices_min_value.values():
-    #         print("value_index = ", value_index)
-    #         for i in range(len(value_index)):
-    #             if value_index[index][i] < -5 * 10 ** (-10):
-    #                 min_index = i
-    #                 print("min_index = ", min_index)
-    #         break
-    #     delays_mins.append(round(index[min_index], 3))
     return delays_maxes, delays_mins
 
 
