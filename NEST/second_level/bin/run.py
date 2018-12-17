@@ -32,7 +32,7 @@ def simulate(simulation_params, iteration=None):
 	nest.SetKernelStatus({
 		'total_num_virtual_procs': 4,
 		'print_time': True,
-		'resolution': 0.1,
+		'resolution': 0.025,
 		'overwrite_files': True})
 	# import the topology via topology filename
 	topology = __import__('{}.{}'.format(topologies_path, simulation_params[Params.MODEL.value]),
@@ -55,8 +55,8 @@ def main(argv):
 	topology_name = argv[0]
 	tests_number = int(argv[1]) if len(argv) >= 2 else 1
 	is_multitest = tests_number > 1
-	speed = 21
 	threshold = True
+	speed = 21
 
 	if speed == 21:
 		c_time = 25
@@ -74,7 +74,7 @@ def main(argv):
 		Params.INH_COEF.value: 1,
 		Params.SPEED.value: speed,
 		Params.C_TIME.value: c_time,
-		Params.SIM_TIME.value: c_time * 6,
+		Params.SIM_TIME.value: c_time * 5, # flexor 5, extensor 6
 		Params.ESS_THRESHOLD.value: threshold,
 		Params.MULTITEST.value: is_multitest
 	}
@@ -103,4 +103,4 @@ if __name__ == "__main__":
 	if len(sys.argv) >= 2:
 		main(sys.argv[1:])
 	else:
-		main(["flexor_v1", 1])
+		main(["flexor_v1", 10])

@@ -19,7 +19,7 @@ logger = log.getLogger('Plotter')
 
 boldline = 1.5
 thickline = 0.8
-
+sim_step = 0.025
 
 class Plotter:
 	def __init__(self, simulation_parameters):
@@ -75,30 +75,29 @@ class Plotter:
 		yticks = []
 
 		# collect data for Motoneuron pool
-		test_names = ["{}-MP_E".format(test_number) for test_number in range(tests_number)]
+		test_names = ["{}-MP_F".format(test_number) for test_number in range(tests_number)]
 		moto_voltage = self.__split_to_slices(test_names, from_memory)
 
 		# plot data
 		pylab.figure(figsize=(10, 5))
-		#pylab.suptitle("Model {} Speed {} cm/s Rate {} Hz Inh {}% ({})".format(self.model,
-		#                                                                       self.speed,
-		#                                                                       self.ees_rate,
-		#                                                                       100 * self.inh_coef), fontsize=11)
+		pylab.suptitle("Model {} Speed {} cm/s Rate {} Hz Inh {}%".format(self.model,
+		                                                                  self.speed,
+		                                                                  self.ees_rate,
+		                                                                  100 * self.inh_coef), fontsize=11)
 
 		# plot each slice
-		med = 5
 		for slice_number, tests in moto_voltage.items():
 			if self.record_from == 'V_m':
-				offset = slice_number * 10
+				offset = -slice_number * 30
 			else:
-				offset = slice_number * 200
+				offset = -slice_number * 1500
 
 			i = -1 if self.record_from == 'V_m' else 1
 
 			yticks.append(i * tests[list(tests.keys())[0]][0] + offset)
 			# collect mean data: sum values (mV) step by step (ms) per test and divide by test number
 			mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
-			times = [time / 10 for time in range(len(mean_data))]   # divide by 10 to convert to ms step
+			times = [time * sim_step for time in range(len(mean_data))]   # divide by 10 to convert to ms step
 
 			means = [i * voltage + offset for voltage in mean_data]
 			minimal_per_step = [min(a) for a in zip(*tests.values())]
@@ -112,21 +111,19 @@ class Plotter:
 
 			if self.speed == 6:
 				num = 5
-			if self.speed == 15:
+			elif self.speed == 15:
 				num = 2
-			if self.speed == 21:
+			elif self.speed == 21:
 				num = 1
+			else:
+				raise Exception("Can't recognize the speed")
 			# plot lines to see when activity should be started
-			if slice_number // num in [0, 1]:
-				pylab.plot([13, 13], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number // num == 2:
-				pylab.plot([15, 15], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number // num in [3, 4]:
-				pylab.plot([17, 17], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
-			if slice_number // num == 5:
-				pylab.plot([21, 21], [means[0]+med, means[0]-med], color='r', linewidth=boldline)
+		pylab.axvline(x=5, color='r', linewidth=thickline)
+		pylab.axvline(x=7, color='r', linewidth=thickline)
+		pylab.axvline(x=13, color='r', linewidth=thickline)
+		pylab.axvline(x=17, color='r', linewidth=thickline)
+		pylab.axvline(x=20, color='r', linewidth=thickline)
 
-		pylab.axvline(x=5, linewidth=thickline, color='r')
 		# global plot settings
 		pylab.xlim(0, 25)
 		pylab.xticks(range(26), [i if i % 5 == 0 else "" for i in range(26)])
@@ -206,3 +203,20 @@ class Plotter:
 		pylab.subplots_adjust(hspace=0.05)
 		pylab.savefig(os.path.join(img_path, '{}.png'.format(group_name)), dpi=200)
 		pylab.close('all')
+
+
+if __name__ == "__main__":
+	simulation_params = {
+		Params.MODEL.value: "flexor",
+		Params.EES_RATE.value: 40,
+		Params.RECORD_FROM.value: 'V_m',
+		Params.INH_COEF.value: 1,
+		Params.SPEED.value: 21,
+		Params.C_TIME.value: 25,
+		Params.SIM_TIME.value: 25 * 5,  # flexor 5, extensor 6
+		Params.ESS_THRESHOLD.value: True,
+		Params.MULTITEST.value: True
+	}
+
+	k = Plotter(simulation_params)
+	k.plot_slices(tests_number=25, from_memory=False)
