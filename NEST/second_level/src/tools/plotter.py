@@ -6,6 +6,9 @@ import numpy as np
 import logging as log
 import matplotlib.patches as mpatches
 
+sys.path.append('/'.join(os.path.realpath(__file__).split('/')[:-4]))
+print('/'.join(os.path.realpath(__file__).split('/')[:-5]))
+
 from nest import GetStatus
 from collections import defaultdict
 from NEST.second_level.src.data import *
@@ -54,7 +57,8 @@ class Plotter:
 		voltages = {k: defaultdict(list) for k in range(num_slices) }
 		for test_name in test_names:
 			self.logger.info("Plot the figure {}".format(test_name))
-			test_voltage_data, g_ex, g_in = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)
+			#test_voltage_data, g_ex, g_in = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)
+			test_voltage_data = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)
 			# split data for slices
 			for time in sorted(test_voltage_data.keys()):
 				slice_number = int(time // 25)
@@ -62,7 +66,7 @@ class Plotter:
 		return voltages
 
 
-	def plot_slices(self, tests_number=1, from_memory=True):
+	def plot_slices(self, tests_number=1, from_memory=True, test_name="MP_E"):
 		"""
 		Method for search and plotting results data
 		Args:
@@ -75,7 +79,7 @@ class Plotter:
 		yticks = []
 
 		# collect data for Motoneuron pool
-		test_names = ["{}-MP_F".format(test_number) for test_number in range(tests_number)]
+		test_names = ["{}-{}".format(test_number, test_name) for test_number in range(tests_number)]
 		moto_voltage = self.__split_to_slices(test_names, from_memory)
 
 		# plot data
@@ -88,7 +92,7 @@ class Plotter:
 		# plot each slice
 		for slice_number, tests in moto_voltage.items():
 			if self.record_from == 'V_m':
-				offset = -slice_number * 30
+				offset = -slice_number * 10
 			else:
 				offset = -slice_number * 1500
 
@@ -118,11 +122,10 @@ class Plotter:
 			else:
 				raise Exception("Can't recognize the speed")
 			# plot lines to see when activity should be started
-		pylab.axvline(x=5, color='r', linewidth=thickline)
-		pylab.axvline(x=7, color='r', linewidth=thickline)
 		pylab.axvline(x=13, color='r', linewidth=thickline)
+		pylab.axvline(x=15, color='r', linewidth=thickline)
 		pylab.axvline(x=17, color='r', linewidth=thickline)
-		pylab.axvline(x=20, color='r', linewidth=thickline)
+		pylab.axvline(x=21, color='r', linewidth=thickline)
 
 		# global plot settings
 		pylab.xlim(0, 25)
@@ -185,8 +188,8 @@ class Plotter:
 
 		# CURRENTS
 		pylab.subplot(2, 1, 2)
-		pylab.plot(g_ex_data.keys(), g_ex_data.values(), color='r')
-		pylab.plot(g_in_data.keys(), g_in_data.values(), color='b')
+		#pylab.plot(g_ex_data.keys(), g_ex_data.values(), color='r')
+		#pylab.plot(g_in_data.keys(), g_in_data.values(), color='b')
 		# plot the slice border
 		for i in np.arange(0, self.sim_time, 25):
 			pylab.axvline(x=i, linewidth=boldline, color='k')
@@ -207,16 +210,16 @@ class Plotter:
 
 if __name__ == "__main__":
 	simulation_params = {
-		Params.MODEL.value: "flexor",
+		Params.MODEL.value: "extensor",
 		Params.EES_RATE.value: 40,
 		Params.RECORD_FROM.value: 'V_m',
 		Params.INH_COEF.value: 1,
 		Params.SPEED.value: 21,
 		Params.C_TIME.value: 25,
-		Params.SIM_TIME.value: 25 * 5,  # flexor 5, extensor 6
+		Params.SIM_TIME.value: 25 * 6,  # flexor 5, extensor 6
 		Params.ESS_THRESHOLD.value: True,
 		Params.MULTITEST.value: True
 	}
 
 	k = Plotter(simulation_params)
-	k.plot_slices(tests_number=25, from_memory=False)
+	k.plot_slices(tests_number=5, from_memory=False, test_name='MP_E')

@@ -29,6 +29,7 @@ class Neuron {
 			this-> changing_weight = w;
 		}
 	};
+
 private:
 	/// Object variables
 	int id{};								// neuron ID
@@ -64,7 +65,7 @@ private:
 	 * resulting in possible sub-threshold oscillations and low-threshold spiking dynamics
 	 */
 	const float c = -80.0f;			// [mV] after-spike reset value of V_m
-	const float d = 6.0f;			// [pA] after-spike reset value of U_m
+	const float d = 6.0f;			// 100 [pA] after-spike reset value of U_m
 	/*
 	 * describes the after-spike reset of the recovery variable ucaused by slow high-threshold Na+
 	 * and K+conductances.
@@ -77,6 +78,7 @@ private:
 	float U_m = 0.0f;		// [pA] membrane potential recovery variable
 	float I = 0.0f;			// [pA] input current
 	float V_old = V_m;		// [mV] previous value for the V_m
+	float step_I = 2.0f;		// [mV] previous value for the V_m
 	float U_old = U_m;		// [pA] previous value for the U_m
 	float current_ref_t = 0;
 
@@ -92,10 +94,10 @@ public:
 		this->ref_t = ms_to_step(ref_t);
 	}
 
-	void changeCurrent(float I) {
-		if (!hasGenerator && this->I <= 600 && this->I >= -600) {
-			this->I += I;
-		}
+
+
+	void changeIstep(float step_I) {
+		this->step_I = step_I;
 	}
 
 	void addMultimeter() {
@@ -198,14 +200,14 @@ public:
 		}
 
 		if (hasGenerator &&
-		simulation_iter >= begin_spiking &&
-		simulation_iter < end_spiking && (simulation_iter % spike_each_step == 0)){
+			simulation_iter >= begin_spiking &&
+			simulation_iter < end_spiking && (simulation_iter % spike_each_step == 0)){
 			I = 400.0;
 		}
 
 		// save the V_m and I value every mm_record_step if hasMultimeter
 		if (hasMultimeter && simulation_iter % mm_record_step == 0) {
-			membrane_potential[iterVoltageArray] = V_m;
+			membrane_potential[iterVoltageArray] = V_m; //V_m
 			I_potential[iterVoltageArray] = I;
 			iterVoltageArray++;
 		}
@@ -226,10 +228,9 @@ public:
 
 			// save spike time if hasSpikedetector
 			if (hasSpikedetector) {
-				spike_times[iterSpikesArray] = step_to_ms(simulation_iter);
+				spike_times[iterSpikesArray] = simulation_iter * ms_in_1step; // from step to ms
 				iterSpikesArray++;
 			}
-
 			// set the refractory period
 			current_ref_t = ref_t;
 		} else {
@@ -241,11 +242,12 @@ public:
 		// update timers in all neuron synapses
 		for (int i = 0; i < num_synapses; i++ ) {
 			Synapse* syn = synapses + i;
-			// "send spike"
+			// send spike
 			if (syn->timer == 0) {
-				syn->post_neuron->changeCurrent(syn->weight);
-				// set timer to -1 (thats mean no need to update timer in future without spikes)
-				syn->timer = -1;
+				if (!syn->post_neuron->hasGenerator && syn->post_neuron->I <= 600 && syn->post_neuron->I >= -600) {
+					syn->post_neuron->I += syn->weight;
+				}
+				syn->timer = -1; // set timer to -1 (thats mean no need to update timer in future without spikes)
 			}
 			// decrement timers
 			if (syn->timer > 0) {
@@ -257,7 +259,7 @@ public:
 		// doesn't change the I of generator NEURONS!!!
 		if (I != 0) {
 			if (I > 0)
-				I /= 2;	// decrease I = 2
+				I /= step_I;	// decrease I = 2
 			if (I < 0)
 				I /= 1.1;	// decrease I
 			if (I > 0 && I <= 1)
