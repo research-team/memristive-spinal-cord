@@ -64,7 +64,7 @@ def calc_NEURON(data, debug_show=False):
 	slice_begin_ticks = defaultdict(list)
 	for test_index, test_data in enumerate(neuron_tests):
 		for begin in range(len(test_data))[::offset]:
-			EES_value = max(test_data[begin+140:begin+200])  # remove over 70 ms to find EES
+			EES_value = max(test_data[begin + 140:begin + 200])  # remove over 70 ms to find EES
 			slice_begin_ticks[test_index].append(test_data.index(EES_value))
 	for test_index, test_data in enumerate(neuron_tests):
 		start = slice_begin_ticks[0][0] - prev_additional_step
@@ -79,7 +79,7 @@ def calc_NEURON(data, debug_show=False):
 			# search min/max
 			for i in range(1, len(sliced_values) - 1):
 				if sliced_values[i - 1] < sliced_values[i] > sliced_values[i + 1]:
-					tmp_max_time.append(round(datas_times[i] * neuron_sim_step, 3))   # with normalization to 1 ms
+					tmp_max_time.append(round(datas_times[i] * neuron_sim_step, 3))  # with normalization to 1 ms
 					tmp_max_value.append(sliced_values[i])
 				if sliced_values[i - 1] > sliced_values[i] < sliced_values[i + 1]:
 					tmp_min_time.append(round(datas_times[i] * neuron_sim_step, 3))  # with normalization to 1 ms
@@ -106,11 +106,15 @@ def calc_NEURON(data, debug_show=False):
 			for slice_index, _ in extremum_max_points_times[test_index].items():
 				x = extremum_max_points_times[test_index][slice_index]
 				y = extremum_max_points_values[test_index][slice_index]
-				plt.plot([o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o in x], y, ".", color="r")
+				plt.plot(
+					[o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o
+					 in x], y, ".", color="r")
 			for slice_index, _ in extremum_min_points_times[test_index].items():
 				x = extremum_min_points_times[test_index][slice_index]
 				y = extremum_min_points_values[test_index][slice_index]
-				plt.plot([o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o in x], y, ".", color="b")
+				plt.plot(
+					[o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o
+					 in x], y, ".", color="b")
 			plt.show()
 		plt.close()
 
@@ -137,7 +141,7 @@ def calc_NEST(data, debug_show=False):
 			slice_begin_ticks[test_index].append(test_data.index(EES_value))
 
 	for test_index, test_data in enumerate(nest_tests):
-		start = slice_begin_ticks[0][0] - 10    # remove 10 if you want calculate without EES
+		start = slice_begin_ticks[0][0] - 10  # remove 10 if you want calculate without EES
 		for slice_index in range(len(slice_begin_ticks[0])):
 			tmp_max_time = []
 			tmp_min_time = []
@@ -149,7 +153,7 @@ def calc_NEST(data, debug_show=False):
 			# search min/max
 			for i in range(1, len(sliced_values) - 1):
 				if sliced_values[i - 1] < sliced_values[i] > sliced_values[i + 1]:
-					tmp_max_time.append(round(datas_times[i] * nest_sim_step, 3))   # with normalization to 1 ms
+					tmp_max_time.append(round(datas_times[i] * nest_sim_step, 3))  # with normalization to 1 ms
 					tmp_max_value.append(sliced_values[i])
 				if sliced_values[i - 1] > sliced_values[i] < sliced_values[i + 1]:
 					tmp_min_time.append(round(datas_times[i] * nest_sim_step, 3))  # with normalization to 1 ms
@@ -176,11 +180,13 @@ def calc_NEST(data, debug_show=False):
 			for slice_index, _ in extremum_max_points_times[test_index].items():
 				x = extremum_max_points_times[test_index][slice_index]
 				y = extremum_max_points_values[test_index][slice_index]
-				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="r")
+				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".",
+				         color="r")
 			for slice_index, _ in extremum_min_points_times[test_index].items():
 				x = extremum_min_points_times[test_index][slice_index]
 				y = extremum_min_points_values[test_index][slice_index]
-				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="b")
+				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".",
+				         color="b")
 			plt.show()
 		plt.close()
 
@@ -219,8 +225,8 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 		plt.suptitle("REAL 40Hz (slow) Extensor (0.25 ms step)")
 		plt.plot([x / 4 for x in range(len(volt_data))], volt_data, color="gray")
 		for slice_num in range(0, 6):
-			plt.plot([(x + slice_num * 25) for x in slices_max_time[slice_num+1]],
-			         slices_max_value[slice_num+1], ".", color='red')
+			plt.plot([(x + slice_num * 25) for x in slices_max_time[slice_num + 1]],
+			         slices_max_value[slice_num + 1], ".", color='red')
 			plt.plot([(x + slice_num * 25) for x in slices_min_time[slice_num + 1]],
 			         slices_min_value[slice_num + 1], ".", color='blue')
 		plt.xlim(0, 150)
@@ -230,50 +236,107 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_start_time, test_data, data_step):
+def calc_max_min(slices_start_time, test_data, remove_micro=False):
 	"""
-    Function to collect minimums and maximums based on voltages of myograms.
-	:param slices_start_time: array of slices start times
-	:param list test_data: list of data for processing myograms from matlab. (In our case, Lavrov data)
-	:param float data_step: step with which data is recorded. in our case, data_step = 0.25
-	:return: slices_max_time = {slice_index, time}
-	:return: slices_max_value = {slice_index, value}
-	:return: slices_min_time = {slice_index, time}
-	:return: slices_min_value = {slice_index, value}
+	# Todo add description
+	Args:
+		slices_start_time (list or range):
+			list of slices start times
+		test_data (list):
+			list of data for processing
+		remove_micro (optional or bool):
+			True - if need to remove micro peaks (<0.02 mV of normalized data)
+	Returns:
+		(list): slices_max_time
+		(list): slices_max_value
+		(list): slices_min_time
+		(list): slices_min_value
 	"""
-	datas_times = []
-	k_slice = 1
-	offset = int(slices_start_time[1] - slices_start_time[0])
-	slices_max_time = {}
-	slices_max_value = {}
-	slices_min_time = {}
-	slices_min_value = {}
-	start = 0
-	for slice_index in range(len(slices_start_time) - 1):
+
+	slices_max_time = []
+	slices_max_value = []
+	slices_min_time = []
+	slices_min_value = []
+
+	for slice_index in range(1, len(slices_start_time) + 1):
 		tmp_max_time = []
 		tmp_min_time = []
 		tmp_max_value = []
 		tmp_min_value = []
-		sliced_values = test_data[start:start + offset]
-		datas_times += range(start, start + offset)
-		for c in range(1, len(sliced_values) - 1):
-			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_max_time.append((datas_times[c]) * data_step)
-				tmp_max_value.append(sliced_values[c])
-			if sliced_values[c - 1] > sliced_values[c] <= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_min_time.append((datas_times[c]) * data_step)
-				tmp_min_value.append(sliced_values[c])
 
-		slices_max_time[k_slice] = tmp_max_time
-		slices_max_value[k_slice] = tmp_max_value
-		slices_min_time[k_slice] = tmp_min_time
-		slices_min_value[k_slice] = tmp_min_value
-		start += offset
-		k_slice += 1
-		sliced_values.clear()
+		start = slices_start_time[slice_index - 1]
+		if slice_index == len(slices_start_time):
+			end = len(test_data)
+		else:
+			end = slices_start_time[slice_index]
+
+		sliced_values = test_data[start:end]
+		datas_times = range(end-start)
+
+		for i in range(1, len(sliced_values) - 1):
+			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
+				tmp_max_time.append(datas_times[i])
+				tmp_max_value.append(sliced_values[i])
+			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
+				tmp_min_time.append(datas_times[i])
+				tmp_min_value.append(sliced_values[i])
+
+		slices_max_time.append(tmp_max_time)
+		slices_max_value.append(tmp_max_value)
+		slices_min_time.append(tmp_min_time)
+		slices_min_value.append(tmp_min_value)
+
+	# fixme instead of handle " ..."
+
+	remove_micro_peaks = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
+
+	if remove_micro:
+		# init "False" lists with size based on their "originals"
+		slice_numbers = len(slices_min_value)
+		slices_max_bool = [[True] * len(slices_max_value[index]) for index in range(slice_numbers)]
+		slices_min_bool = [[True] * len(slices_min_value[index]) for index in range(slice_numbers)]
+		diff = 0.02
+		for slice_index in range(len(slices_min_value)):
+			max_i = 0
+			min_i = 0
+			len_max = len(slices_max_time[slice_index])
+			len_min = len(slices_min_time[slice_index])
+
+			while (max_i < len_max - 1) and (min_i < len_min - 1):
+				maxes = slices_max_value[slice_index]
+				mins = slices_min_value[slice_index]
+				if abs(maxes[max_i] - mins[min_i]) < diff: # or abs(slices_max_time[slice_index][max_i] - slices_min_time[slice_index][min_i]) < 5:
+					slices_max_bool[slice_index][max_i] = False
+					slices_min_bool[slice_index][min_i] = False
+
+				if max_i == min_i:
+					max_i += 1
+				else:
+					min_i += 1
+				#else:
+				#	max_i += 1
+				#	min_i += 1
+#				#	tmp_min.append((min_i, mins[min_i]))
+				# if (abs(maxes[max_i+1] - mins[min_i]) >= diff or abs(maxes[max_i] - mins[min_i]) >= diff) and tmp_min:
+				# 	ind = sorted(tmp_min, key=lambda x: x[1])[0][0]
+				# 	print(ind)
+				# 	slices_min_bool[slice_index][ind] = True
+				# 	tmp_min = []
+#						slices_min_bool[slice_index][min_i] = True
+
+
+			slices_max_value[slice_index] = remove_micro_peaks(slices_max_value[slice_index], slices_max_bool[slice_index])
+			slices_max_time[slice_index] = remove_micro_peaks(slices_max_time[slice_index], slices_max_bool[slice_index])
+			slices_min_value[slice_index] = remove_micro_peaks(slices_min_value[slice_index], slices_min_bool[slice_index])
+			slices_min_time[slice_index] = remove_micro_peaks(slices_min_time[slice_index], slices_min_bool[slice_index])
+
+		"""
+		MIN slice 5, len 6, [0.783292318965281, 0.7832392245766084, 0.7828832232402576, 0.7826425653048645, 0.7826674415375634, -0.01867926126758701]
+		MAX slice 5, len 7, [0.9926080967355233, 0.7832926437480148, 0.7832538580117663, 0.7829149123219945, 0.7826780015294563, 0.7828711501250651, 0.8030209866361904]
+		AMP slice 5, len 6, mean 0.168, [0.209, 0.0, 0.0, 0.0, 0.0, 0.802]
+		"""
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
+
 
 def plot(real_results, NEST_results, NEURON_results):
 	"""
@@ -372,5 +435,7 @@ def main():
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
 	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
+
+
 if __name__ == "__main__":
 	main()

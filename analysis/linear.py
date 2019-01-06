@@ -11,30 +11,29 @@ def processing():
 
 	"""
 	datas = read_NEST_data('/home/alex/Downloads/nest_21cms.hdf5')
-	delta_step = 0.3
 
-	sim_step = 0.025
-	bio_step = 0.25
-
+	tests = {}
 	mins_by_slice = []
 	index_by_slice = []
 
-	tests = {}
+	delta_step = 0.3
+	sim_step = 0.025
+	bio_step = 0.25
 
 	for test_index, data in enumerate(datas.values()):
 		sliced_data = {k: [] for k in range(6)}
 
 		for index, d in enumerate(data):
-			sliced_data[index // (25 / sim_step)].append(d)
+			sliced_data[index // (25 / sim_step)].append(d) # -d
 
 		tests[test_index] = sliced_data
 
 		for slice_index, data_loc in enumerate(sliced_data.values()):
 			offset = slice_index * delta_step
-			min_data, min_indexes = find_mins(data_loc[220:], 60)
+			min_data, min_indexes = find_mins(data_loc[250:], 60) # -1 250 60
 			norm_data = normalization_zero_one(data_loc)
-			mins_by_slice.append(min_indexes[0] + 220)
-			index_by_slice.append(offset + norm_data[min_indexes[0] + 220])
+			mins_by_slice.append(min_indexes[0] + 250) # 500
+			index_by_slice.append(offset + norm_data[min_indexes[0] + 250])
 
 	med = {k: [] for k in range(6)}
 
@@ -58,8 +57,7 @@ def processing():
 
 	plt.scatter([t * sim_step for t in x], y, color="#25C7FF", alpha=0.3)
 	plt.plot([t * sim_step for t in xfit],
-	         yfit, color='#0C88CA', linestyle='--', linewidth=3)
-
+	         yfit, color='#0C88CA', linestyle='--', linewidth=3, label='NEST')
 	plt.xlim(0, 25)
 
 
@@ -98,10 +96,14 @@ def processing():
 	xfit = np.linspace(40, 100, 2)
 	yfit = model.predict(xfit[:, np.newaxis])
 
+	plt.yticks([])
+	plt.ylabel("Slices")
+	plt.xlabel("Time, ms")
+
 	plt.scatter([t * bio_step for t in x], y, color='#FF4B25')
 	plt.plot([t * bio_step for t in xfit], yfit,
-	         color='#CA2D0C', linestyle='--', linewidth=3)
-
+	         color='#CA2D0C', linestyle='--', linewidth=3, label='BIO')
+	plt.legend()
 	plt.show()
 
 

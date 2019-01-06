@@ -36,6 +36,55 @@ def normalization_in_bounds(list_of_data_to_normalize, min_value):
     return normal_data
 
 
+def normalization_between(data, a, b):
+    """
+    x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
+    Args:
+        data:
+        a:
+        b:
+
+    Returns:
+
+    """
+    min_x = min(data)
+    max_x = max(data)
+    const = (b - a) / (max_x - min_x)
+    return [(x - min_x) * const + a for x in data]
+
+
+def find_latencies(datas, with_afferent=False):
+    """
+
+    Args:
+        ees_indexes:
+        datas (list of list):
+        with_afferent:
+
+    Returns:
+
+    """
+    sdatas = []
+    # fixme
+    print(datas[0])
+    if not datas[0][-1]:    # if empty list
+        for part in datas:
+            sdatas.append(part[:-1])
+    else:
+        sdatas = datas
+    if not with_afferent:
+        print(sdatas)
+        latencies = [time[0] for time in sdatas[2]]
+    else:
+        latencies = list(map(lambda tup: tup[0][tup[1].index(min(tup[1]))], zip(sdatas[2], sdatas[3])))
+    return latencies
+
+def alex_latency(ees_indexes, mins):
+    latencies = []
+    for ees, minimal in zip(ees_indexes, mins):
+        latencies.append(abs(ees - minimal[0]))
+    return latencies
+
 def normalization_zero_one(list_of_data_to_normalize):
     """
 
@@ -87,13 +136,12 @@ def find_mins(array, matching_criteria):
     return min_elems, indexes
 
 
-neuron_dict = {}
 
 
 def find_mins_without_criteria(array):
-    recording_step = 0.25
-    min_elems = []
     indexes = []
+    min_elems = []
+    recording_step = 0.25
     for index_elem in range(1, len(array) - 1):
         if (array[index_elem - 1] > array[index_elem] <= array[index_elem + 1]) and array[index_elem] < -0.5:
             min_elems.append(index_elem * recording_step)
@@ -101,32 +149,32 @@ def find_mins_without_criteria(array):
     return min_elems, indexes
 
 
-def read_NEURON_data(path):
+def read_neuron_data(path):
     """
 
     Args:
-        path: string
-            path to file
-
+        path (str):
+            path to the file
     Returns:
-        dict
-            data from file
-
+        list : data from file
     """
-    with hdf5.File(path, 'r') as f:
-        for test_name, test_values in f.items():
-            neuron_dict[test_name] = test_values[:]
-    return neuron_dict
+    with hdf5.File(path) as file:
+        neuron_means = [data[:] for data in file.values()]
+    return neuron_means
 
 
-nest_means_dict = {}
-
-
-def read_NEST_data(path):
-    with hdf5.File(path) as f:
-        for test_name, test_values in f.items():
-            nest_means_dict[test_name] = -test_values[:]
-    return nest_means_dict
+def read_nest_data(path):
+    """
+    # todo write description
+    Args:
+        path (str):
+            path to the file
+    Returns:
+        list : data from file
+    """
+    with hdf5.File(path) as file:
+        nest_means = [-data[:] for data in file.values()]
+    return nest_means
 
 
 def list_to_dict(inputing_dict):
@@ -150,9 +198,10 @@ def read_bio_data(path):
 
         raw_data_RMG = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[2]]
         data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]
-    stimulations = find_mins_without_criteria(data_stim)[:-1][0]
+
     indexes = find_mins_without_criteria(data_stim)[1]
-    data_RMG = []
-    for i in range(indexes[0], indexes[-1]):
-        data_RMG.append(raw_data_RMG[i])
-    return data_RMG, indexes
+    data_RMG = raw_data_RMG[indexes[0]:indexes[-1]]
+    # shift indexes to be normalized with data RMG (because a data was sliced)
+    shift_by = indexes[0]
+    shifted_indexes = [d - shift_by for d in indexes]
+    return data_RMG, shifted_indexes
