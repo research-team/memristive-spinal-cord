@@ -1,16 +1,23 @@
 import numpy as np
 import pylab as plt
 from collections import defaultdict
-
 from analysis.real_data_slices import read_data, slice_myogram, plot_1d, plot_by_slice
 
 test_number = 25
-nest_sim_step = 0.1
+nest_sim_step = 0.025
 neuron_sim_step = 0.025
 real_data_step = 0.25
 
 
 def read_data_NEST(file_path):
+	"""
+
+	Args:
+		file_path:
+
+	Returns:
+
+	"""
 	tests_nest = {k: {} for k in range(test_number)}
 	for test_index in range(test_number):
 		nrns_nest = set()
@@ -28,9 +35,16 @@ def read_data_NEST(file_path):
 
 
 def read_data_NEURON(filepath):
+	"""
+
+	Args:
+		filepath:
+
+	Returns:
+
+	"""
 	tests_neuron = {k: {} for k in range(test_number)}
 	V_to_uV = 1000000
-	# ToDo calculate neuron number by uniq file names
 	neuron_number = 169
 	for test_index in range(test_number):
 		for neuron_id in range(neuron_number):
@@ -40,14 +54,19 @@ def read_data_NEURON(filepath):
 					if time not in tests_neuron[test_index].keys():
 						tests_neuron[test_index][time] = 0
 					tests_neuron[test_index][time] += (value * 10 ** 7) / neuron_number
-	# for test_index, test_data in tests_neuron.items():
-	# 	print(test_index)
-	# 	for time, values in test_data.items():
-	# 		print("\t", time, values)
 	return tests_neuron
 
 
 def calc_NEURON(data, debug_show=False):
+	"""
+
+	Args:
+		data:
+		debug_show:
+
+	Returns:
+
+	"""
 	neuron_tests = []
 	offset = 1000
 	prev_additional_step = 1
@@ -122,6 +141,15 @@ def calc_NEURON(data, debug_show=False):
 
 
 def calc_NEST(data, debug_show=False):
+	"""
+
+	Args:
+		data:
+		debug_show:
+
+	Returns:
+
+	"""
 	nest_tests = []
 	offset = 250
 
@@ -196,10 +224,13 @@ def calc_NEST(data, debug_show=False):
 def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	"""
 
-	:param volt_data:
-	:param slices_begin_time:
-	:param debug_show:
-	:return: slices_max_time = {time, value}, slices_min_time = {time, value}
+	Args:
+		volt_data:
+		slices_begin_time:
+		debug_show:
+
+	Returns:
+
 	"""
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
 	real_max_min = calc_max_min(slices_begin_time, volt_data, real_data_step)
@@ -236,7 +267,7 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_start_time, test_data, remove_micro=False):
+def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 	"""
 	# Todo add description
 	Args:
@@ -244,7 +275,9 @@ def calc_max_min(slices_start_time, test_data, remove_micro=False):
 			list of slices start times
 		test_data (list):
 			list of data for processing
-		remove_micro (optional or bool):
+		step (float):
+			step size of data recording
+		remove_micropeaks (optional or bool):
 			True - if need to remove micro peaks (<0.02 mV of normalized data)
 	Returns:
 		(list): slices_max_time
@@ -269,9 +302,8 @@ def calc_max_min(slices_start_time, test_data, remove_micro=False):
 			end = len(test_data)
 		else:
 			end = slices_start_time[slice_index]
-
 		sliced_values = test_data[start:end]
-		datas_times = range(end-start)
+		datas_times = range(end - start)
 
 		for i in range(1, len(sliced_values) - 1):
 			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
@@ -286,63 +318,56 @@ def calc_max_min(slices_start_time, test_data, remove_micro=False):
 		slices_min_time.append(tmp_min_time)
 		slices_min_value.append(tmp_min_value)
 
-	# fixme instead of handle " ..."
-
 	remove_micro_peaks = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
 
-	if remove_micro:
-		# init "False" lists with size based on their "originals"
-		slice_numbers = len(slices_min_value)
-		slices_max_bool = [[True] * len(slices_max_value[index]) for index in range(slice_numbers)]
-		slices_min_bool = [[True] * len(slices_min_value[index]) for index in range(slice_numbers)]
+	# ToDo in future: implement poly-answer border checking (?)
+	if remove_micropeaks:
 		diff = 0.02
 		for slice_index in range(len(slices_min_value)):
+			#
 			max_i = 0
 			min_i = 0
+			#
 			len_max = len(slices_max_time[slice_index])
 			len_min = len(slices_min_time[slice_index])
-
+			maxes_bool = [True] * len_max
+			mins_bool = [True] * len_min
+			#
+			maxes_val = slices_max_value[slice_index]
+			mins_val = slices_min_value[slice_index]
+			maxes_time = slices_max_time[slice_index]
+			mins_time = slices_min_time[slice_index]
+			#
 			while (max_i < len_max - 1) and (min_i < len_min - 1):
-				maxes = slices_max_value[slice_index]
-				mins = slices_min_value[slice_index]
-				if abs(maxes[max_i] - mins[min_i]) < diff: # or abs(slices_max_time[slice_index][max_i] - slices_min_time[slice_index][min_i]) < 5:
-					slices_max_bool[slice_index][max_i] = False
-					slices_min_bool[slice_index][min_i] = False
+				if abs(maxes_val[max_i] - mins_val[min_i]) < diff:
+					maxes_bool[max_i] = False
+					mins_bool[min_i] = False
+				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (3 / step):
+					mins_bool[min_i] = True
 
 				if max_i == min_i:
 					max_i += 1
 				else:
 					min_i += 1
-				#else:
-				#	max_i += 1
-				#	min_i += 1
-#				#	tmp_min.append((min_i, mins[min_i]))
-				# if (abs(maxes[max_i+1] - mins[min_i]) >= diff or abs(maxes[max_i] - mins[min_i]) >= diff) and tmp_min:
-				# 	ind = sorted(tmp_min, key=lambda x: x[1])[0][0]
-				# 	print(ind)
-				# 	slices_min_bool[slice_index][ind] = True
-				# 	tmp_min = []
-#						slices_min_bool[slice_index][min_i] = True
+			#
+			slices_max_value[slice_index] = remove_micro_peaks(maxes_val, maxes_bool)
+			slices_max_time[slice_index] = remove_micro_peaks(maxes_time, maxes_bool)
+			slices_min_value[slice_index] = remove_micro_peaks(mins_val, mins_bool)
+			slices_min_time[slice_index] = remove_micro_peaks(mins_time, mins_bool)
 
-
-			slices_max_value[slice_index] = remove_micro_peaks(slices_max_value[slice_index], slices_max_bool[slice_index])
-			slices_max_time[slice_index] = remove_micro_peaks(slices_max_time[slice_index], slices_max_bool[slice_index])
-			slices_min_value[slice_index] = remove_micro_peaks(slices_min_value[slice_index], slices_min_bool[slice_index])
-			slices_min_time[slice_index] = remove_micro_peaks(slices_min_time[slice_index], slices_min_bool[slice_index])
-
-		"""
-		MIN slice 5, len 6, [0.783292318965281, 0.7832392245766084, 0.7828832232402576, 0.7826425653048645, 0.7826674415375634, -0.01867926126758701]
-		MAX slice 5, len 7, [0.9926080967355233, 0.7832926437480148, 0.7832538580117663, 0.7829149123219945, 0.7826780015294563, 0.7828711501250651, 0.8030209866361904]
-		AMP slice 5, len 6, mean 0.168, [0.209, 0.0, 0.0, 0.0, 0.0, 0.802]
-		"""
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
 def plot(real_results, NEST_results, NEURON_results):
 	"""
-	:param tuple real_results:
-	:param tuple NEST_results:
-	:param tuple NEURON_results:
+
+	Args:
+		real_results:
+		NEST_results:
+		NEURON_results:
+
+	Returns:
+
 	"""
 	for simulator_index, extremums_data in enumerate([NEST_results, NEURON_results]):
 		simulator_name = "NEST" if simulator_index == 0 else "NEURON"

@@ -53,30 +53,65 @@ def normalization_between(data, a, b):
     return [(x - min_x) * const + a for x in data]
 
 
-def find_latencies(datas, with_afferent=False):
+def find_latencies(datas, step, with_afferent=False):
     """
 
     Args:
-        ees_indexes:
-        datas (list of list):
+        datas (list of lis):
+            0 slices_max_time
+            1 slices_max_value
+            2 slices_min_time
+            3 slices_min_value
+        step:
         with_afferent:
 
     Returns:
 
     """
-    sdatas = []
-    # fixme
-    print(datas[0])
-    if not datas[0][-1]:    # if empty list
-        for part in datas:
-            sdatas.append(part[:-1])
-    else:
-        sdatas = datas
+    latencies = []
+    slice_numbers = len(datas[2])
+
     if not with_afferent:
-        print(sdatas)
-        latencies = [time[0] for time in sdatas[2]]
+        slice_indexes = range(slice_numbers)
+        for slice_index in slice_indexes:
+            slice_times = datas[2][slice_index]
+            slice_values = datas[3][slice_index]
+            # set latencies borders
+            # ToDo test this algorithm
+            if slice_index in slice_indexes[:int(slice_numbers / 6 * 2)]:
+                # in the first two (4/8) slices the poly-answer everytime starts before middle of 25ms
+                border_left = 0
+                border_right = 25 / 2
+            elif slice_index in slice_indexes[int(slice_numbers / 6 * 2):int(slice_numbers / 6 * 3)]:
+                border_left = 20 / 3
+                border_right = 20 / (3 / 2)
+            elif slice_index == slice_indexes[-1]:
+                # in the last slice the poly-answer everytime starts after middle of 25ms
+                border_left = 25 / 2
+                border_right = 20
+            else:
+                border_left = 5
+                border_right = 20
+
+            minimal_val_in_border = min([v for i, v in enumerate(slice_values) if (border_left / step) < slice_times[i] < (border_right / step)])
+            index_of_val = slice_values.index(minimal_val_in_border)
+            latencies.append(slice_times[index_of_val])
+            '''
+            elif slice_index == slice_indexes[-1]:
+                # in the last slice the poly-answer everytime starts after middle of 25ms
+                latencies.append([t for t in slice_times if t > (25 / 2 / step)][0])
+            else:
+                latencies.append(slice_times[0])
+            '''
+
     else:
-        latencies = list(map(lambda tup: tup[0][tup[1].index(min(tup[1]))], zip(sdatas[2], sdatas[3])))
+        # Neuron simulator variant
+        latencies = list(map(lambda tup: tup[0][tup[1].index(min(tup[1]))], zip(datas[2], datas[3])))
+
+    # errors checking
+    if len(latencies) != slice_numbers:
+        raise Exception("Latency list length is not equal to number of slices!")
+
     return latencies
 
 def alex_latency(ees_indexes, mins):

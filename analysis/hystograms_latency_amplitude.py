@@ -19,25 +19,42 @@ k_min_val = 3
 k_bio_volt = 0
 k_bio_stim = 1
 
-def debug(voltages, datas, stim_indexes, ees_indexes, latencies):
+def debug(voltages, datas, orig_stim_indexes, ees_indexes, orig_latencies, step):
 	amplitudes_y = []
 	amplitudes_x = []
 
 	ax = plt.subplot(2, 1, 1)
-	plt.plot(voltages, color='grey', linewidth=1)
+	plt.plot([t * step for t in range(len(voltages))], voltages, color='grey', linewidth=1)
+
+	# standartization
+	for slice_index in range(len(datas[0])):
+		datas[0][slice_index] = [d * step for d in datas[0][slice_index]]
+	for slice_index in range(len(datas[2])):
+		datas[2][slice_index] = [d * step for d in datas[2][slice_index]]
+	stim_indexes = list(orig_stim_indexes)
+	for i in range(len(stim_indexes)):
+		stim_indexes[i] *= step
+
+	latencies = list(orig_latencies)
+	for i in range(len(ees_indexes)):
+		ees_indexes[i] *= step
+		latencies[i] *= step
 
 	for i in stim_indexes:
-		plt.axvline(x=i, linestyle='--', color='k', alpha=0.2, linewidth=0.5)
-
-	for i in ees_indexes:
-		plt.axvline(x=i, color='r', alpha=0.5, linewidth=5)
+		plt.axvline(x=i, linestyle='--', color='k', alpha=0.35, linewidth=1)
+		plt.annotate("Stim\n{:.2f}".format(i), xy=(i-1.3, 0), textcoords='data', color='k')
+	for index, v in enumerate(ees_indexes):
+		plt.axvline(x=v, color='r', alpha=0.5, linewidth=5)
+		plt.annotate("EES\n{:.2f}".format(v - stim_indexes[index]), xy=(v + 1, -0.2), textcoords='data', color='r')
 
 	for index, lat in enumerate(latencies):
-		plt.axvline(x=lat + ees_indexes[index], color='g', alpha=0.7, linewidth=2)
+		lat += ees_indexes[index]
+		plt.axvline(x=lat, color='g', alpha=0.7, linewidth=2)
+		plt.annotate("from ees {:.2f}".format(lat - ees_indexes[index]), xy=(lat + 0.2, -0.4), textcoords='data', color='g')
+		plt.annotate("from stim: {:.2f}".format(lat - stim_indexes[index]), xy=(lat + 0.2, -0.5), textcoords='data', color='g')
 
 	for slice_index in range(len(ees_indexes)):
 		print(slice_index)
-
 		# plot mins
 		min_times = datas[k_min_time][slice_index]
 		min_values = datas[k_min_val][slice_index]
@@ -51,9 +68,9 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies):
 		print("LAT slice {}, len {} {}".format(slice_index, len(latencies), latencies))
 		amplitudes_y.append(mean_amp)
 		if slice_index == len(ees_indexes)-1:
-			amplitudes_x.append(range(ees_indexes[slice_index], ees_indexes[slice_index] + int(25 / sim_step)))
+			amplitudes_x.append(np.arange(ees_indexes[slice_index], ees_indexes[slice_index] + 25))
 		else:
-			amplitudes_x.append(range(ees_indexes[slice_index], ees_indexes[slice_index+1]))
+			amplitudes_x.append(np.arange(ees_indexes[slice_index], ees_indexes[slice_index+1]))
 		plt.plot([kek + ees_indexes[slice_index] for kek in min_times], min_values, '.', color='b', markersize=5)
 		plt.plot([kek + ees_indexes[slice_index] for kek in max_times], max_values, '.', color='r', markersize=5)
 #		plt.ylim(-1, 1)
@@ -61,12 +78,10 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies):
 	plt.subplot(2, 1, 2, sharex=ax)
 	for i in ees_indexes:
 		plt.axvline(x=i, color='r')
-	print("- " * 10)
 	for x, y in zip(amplitudes_x, amplitudes_y):
-		print(x, y)
 		plt.plot(x, [y]*len(x), color='g')
-		plt.annotate("{:.2f}".format(y), xy=(np.mean(x)-25, y + 0.05), textcoords='data')
-	plt.xlim(0, len(voltages))
+		plt.annotate("{:.2f}".format(y), xy=(np.mean(x), y + 0.05), textcoords='data')
+	plt.xlim(0, 150)
 	plt.ylim(0, 1)
 	plt.show()
 	plt.close()
@@ -90,46 +105,46 @@ def processing_data(neuron_tests, nest_tests, bio):
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
 	nest_means = list(map(lambda voltages: np.mean(voltages), zip(*nest_tests)))
 	# calculate EES stim indexes
-	sim_stim_indexes = range(0, len(nest_means), int(25 / sim_step))
-
-	bio_datas = calc_max_min(bio_stim_indexes, bio_voltages)
+	sim_stim_indexes = list(range(0, len(nest_means), int(25 / sim_step)))
+	#
+	bio_datas = calc_max_min(bio_stim_indexes, bio_voltages, bio_step)
 	bio_ees_indexes = find_ees_indexes(bio_stim_indexes, bio_datas)
-
 	# remove unnesesary bio data
-	index_last_useful_slice = bio_ees_indexes[slice_numbers]
-	bio_voltages = bio_voltages[:index_last_useful_slice]
-	bio_ees_indexes = bio_ees_indexes[:slice_numbers+1] # +1 because we need to get over 25ms points
-
+	bio_voltages = bio_voltages[:bio_ees_indexes[slice_numbers]]
+	bio_ees_indexes = bio_ees_indexes[:slice_numbers]
+	#
 	bio_voltages = normalization_between(bio_voltages, -1, 1)
-	bio_datas = calc_max_min(bio_ees_indexes, bio_voltages, remove_micro=True)
-	# fixme empty last unnecesary slice
-	bio_lat = find_latencies(bio_datas)
+	bio_datas = calc_max_min(bio_ees_indexes, bio_voltages, bio_step, remove_micropeaks=True)
+	bio_lat = find_latencies(bio_datas, bio_step)
 
-	debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat)
+	debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat, bio_step)
 
-	nest_datas = calc_max_min(sim_stim_indexes, nest_means)
+	nest_datas = calc_max_min(sim_stim_indexes, nest_means, sim_step)
 	nest_ees_indexes = find_ees_indexes(sim_stim_indexes, nest_datas)
 	nest_means = normalization_between(nest_means, -1, 1)
-	nest_datas = calc_max_min(nest_ees_indexes, nest_means, remove_micro=True)
-	nest_lat = find_latencies(nest_datas)
+	nest_datas = calc_max_min(nest_ees_indexes, nest_means, sim_step, remove_micropeaks=True)
+	nest_lat = find_latencies(nest_datas, sim_step)
 
-	debug(nest_means, nest_datas, sim_stim_indexes, nest_ees_indexes, nest_lat)
+	debug(nest_means, nest_datas, sim_stim_indexes, nest_ees_indexes, nest_lat, sim_step)
 
-	neuron_datas = calc_max_min(sim_stim_indexes, neuron_means)
+	neuron_datas = calc_max_min(sim_stim_indexes, neuron_means, sim_step)
 	neuron_ees_indexes = find_ees_indexes(sim_stim_indexes, neuron_datas)
 	neuron_means = normalization_between(neuron_means, -1, 1)
-	neuron_datas = calc_max_min(neuron_ees_indexes, neuron_means, remove_micro=True)
-	neuron_lat = find_latencies(neuron_datas, with_afferent=True)
+	neuron_datas = calc_max_min(neuron_ees_indexes, neuron_means, sim_step, remove_micropeaks=True)
+	neuron_lat = find_latencies(neuron_datas, sim_step, with_afferent=True)
 
-	debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat)
+	debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat, sim_step)
 
 	# plot latency
-	plt.bar(range(len(bio_lat)), [d * bio_step for d in bio_lat],
-	        width=bar_width, color='b', alpha=0.7, zorder=2, label="biological")
-	plt.bar([d + bar_width for d in range(len(nest_lat))], [d * sim_step for d in nest_lat],
-	        width=bar_width, color='r', alpha=0.7, zorder=2, label="NEST")
-	plt.bar([d + 2 * bar_width for d in range(len(neuron_lat))], [d * sim_step for d in neuron_lat],
-	        width=bar_width, color='g', alpha=0.7, zorder=2, label="Neuron")
+	plt.bar(range(len(bio_lat)),
+	        [d * bio_step for d in bio_lat],
+	        width=bar_width, color='b', alpha=0.7, label="biological")
+	plt.bar([d + bar_width for d in range(len(nest_lat))],
+	        [d * sim_step for d in nest_lat],
+	        width=bar_width, color='r', alpha=0.7, label="NEST")
+	plt.bar([d + 2 * bar_width for d in range(len(neuron_lat))],
+	        [d * sim_step for d in neuron_lat],
+	        width=bar_width, color='g', alpha=0.7, label="Neuron")
 	plt.legend()
 	plt.show()
 
