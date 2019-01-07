@@ -269,7 +269,7 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 
 def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 	"""
-	# Todo add description
+	Function for finding min/max extrema
 	Args:
 		slices_start_time (list or range):
 			list of slices start times
@@ -302,6 +302,7 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 			end = len(test_data)
 		else:
 			end = slices_start_time[slice_index]
+
 		sliced_values = test_data[start:end]
 		datas_times = range(end - start)
 
@@ -320,7 +321,6 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 
 	remove_micro_peaks = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
 
-	# ToDo in future: implement poly-answer border checking (?)
 	if remove_micropeaks:
 		diff = 0.02
 		for slice_index in range(len(slices_min_value)):
