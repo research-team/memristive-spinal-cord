@@ -305,7 +305,7 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 
 		sliced_values = test_data[start:end]
 		datas_times = range(end - start)
-
+		# compare points
 		for i in range(1, len(sliced_values) - 1):
 			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
 				tmp_max_time.append(datas_times[i])
@@ -313,47 +313,51 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
 				tmp_min_time.append(datas_times[i])
 				tmp_min_value.append(sliced_values[i])
-
+		# append found points per slice to the 'main' lists
 		slices_max_time.append(tmp_max_time)
 		slices_max_value.append(tmp_max_value)
 		slices_min_time.append(tmp_min_time)
 		slices_min_value.append(tmp_min_value)
 
-	remove_micro_peaks = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
+	# small realization of ommiting data marked as False
+	remove_micropeaks_func = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
 
+	# realization of removing micro-peaks from the min/max points
 	if remove_micropeaks:
-		diff = 0.02
+		diff = 0.02 # the lowest difference between two points value which means micro-changing
+		# per slice
 		for slice_index in range(len(slices_min_value)):
-			#
 			max_i = 0
 			min_i = 0
-			#
 			len_max = len(slices_max_time[slice_index])
 			len_min = len(slices_min_time[slice_index])
+			# init by bool the tmp lists for marking points
 			maxes_bool = [True] * len_max
 			mins_bool = [True] * len_min
-			#
+			# just simplification
 			maxes_val = slices_max_value[slice_index]
 			mins_val = slices_min_value[slice_index]
 			maxes_time = slices_max_time[slice_index]
 			mins_time = slices_min_time[slice_index]
-			#
+
 			while (max_i < len_max - 1) and (min_i < len_min - 1):
+				# if points have small differnece mark them as False
 				if abs(maxes_val[max_i] - mins_val[min_i]) < diff:
 					maxes_bool[max_i] = False
 					mins_bool[min_i] = False
+				# but if the current points has the 3ms difference with the next point, remark the current as True
 				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (3 / step):
 					mins_bool[min_i] = True
-
+				# change indexes (walking by pair: min-max, max-min, min-max...)
 				if max_i == min_i:
 					max_i += 1
 				else:
 					min_i += 1
-			#
-			slices_max_value[slice_index] = remove_micro_peaks(maxes_val, maxes_bool)
-			slices_max_time[slice_index] = remove_micro_peaks(maxes_time, maxes_bool)
-			slices_min_value[slice_index] = remove_micro_peaks(mins_val, mins_bool)
-			slices_min_time[slice_index] = remove_micro_peaks(mins_time, mins_bool)
+			# ommit the data marked as False
+			slices_max_value[slice_index] = remove_micropeaks_func(maxes_val, maxes_bool)
+			slices_max_time[slice_index] = remove_micropeaks_func(maxes_time, maxes_bool)
+			slices_min_value[slice_index] = remove_micropeaks_func(mins_val, mins_bool)
+			slices_min_time[slice_index] = remove_micropeaks_func(mins_time, mins_bool)
 
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
