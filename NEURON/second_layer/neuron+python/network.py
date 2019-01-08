@@ -26,12 +26,14 @@ soma_v_vec = []
 moto_v_vec = []
 ncIalist = []
 
-speed = 50
-version = 16
+speed = 25
+version = 1 
+inh = 100
+fr = 40
 ncell = 20       
-nMN = 168      
+nMN = 280      
 nAff = 200
-nIP = 480
+nIP = 200
 ncells = ncell*39+nIP+nMN+2*nAff+5*ncell
 
 def addnetwork():
@@ -138,7 +140,6 @@ def connectcells():
   for i in range(15, 20):
     exconnectcells(ncell*(i+5), ncell*(i+6), 0.05, 2, ncell*(i), ncell*(i+1), 27)
 
-
   # inhibitory projections
   for i in range(20, 23):
     inhconnectcells(ncell*i, ncell*(i+1), 0.8, 1, ncell*39+nIP+nMN+2*nAff+4*ncell, ncell*39+nIP+nMN+2*nAff+5*ncell, 27)
@@ -151,14 +152,14 @@ def connectcells():
   
   # ip connections
   for i in range(0, 5):
-    exconnectcells(ncell*39+int(nIP/10)*i, ncell*39+int(nIP/10)*(i+1), 0.1, 1, ncell*(i+20), ncell*(i+21), 28)
-    exconnectcells(ncell*39+int(nIP/10)*(i+5), ncell*39+int(nIP/10)*(i+6), 0.1, 1, ncell*(i+25), ncell*(i+26), 28)
+    ipconnectcells(ncell*39+int(nIP/10)*i, ncell*39+int(nIP/10)*(i+1), 0.1, 2, ncell*(i+20), ncell*(i+21), 28)
+    ipconnectcells(ncell*39+int(nIP/10)*(i+5), ncell*39+int(nIP/10)*(i+6), 0.1, 2, ncell*(i+25), ncell*(i+26), 28)
 
   # mn connections 
   for i in range(0, 12):
-    exconnectcells(ncell*39+nIP, ncell*39+nIP+int(nMN*0.65), 0.05, 1, ncell*39+int(nIP/12)*i, ncell*39+int(nIP/12)*(i+1), 15)
+    ipconnectcells(ncell*39+nIP, ncell*39+nIP+int(nMN*0.65), 0.05, 1, ncell*39+int(nIP/12)*i, ncell*39+int(nIP/12)*(i+1), 15)
 
-  exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.1, 1, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff, 50)
+  exconnectcells(ncell*39+nIP, ncell*39+nIP+nMN, 0.1, 2, ncell*39+nIP+nMN+nAff, ncell*39+nIP+nMN+2*nAff, 50)
 
 def exconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
   ''' connection with excitatory synapse '''
@@ -174,6 +175,21 @@ def exconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
         exnclist.append(nc)
         nc.delay = random.gauss(delay, delay/15)
         nc.weight[0] = random.gauss(weight, weight/10)
+
+def ipconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
+  ''' connection with excitatory synapse '''
+  global exnclist
+  # not efficient but demonstrates use of pc.gid_exists
+  for i in range(start, end):
+    if pc.gid_exists(i):
+      for j in range(nsyn):
+        srcgid = random.randint(srcstart, srcend-1)
+        target = pc.gid2cell(i)
+        syn = target.synlistex[j]
+        nc = pc.gid_connect(srcgid, syn)
+        exnclist.append(nc)
+        nc.delay = random.gauss(delay, delay/4.5)
+        nc.weight[0] = random.gauss(weight, weight/2)
 
 def stimconnectcells(start, end, weight, delay, srcstart, srcend, nsyn):
   ''' connection with excitatory synapse '''
@@ -210,7 +226,7 @@ def addees():
   global stim, ncstim, eesnclist
   stim = h.NetStim()
   stim.number = 100000000
-  stim.start = 0
+  stim.start = 1
   stim.interval = 25
   for i in range(ncell*39+nIP+nMN, ncell*39+nIP+nMN+2*nAff):
     if pc.gid_exists(i):
@@ -225,7 +241,7 @@ def addIa():
   global Ia, ncIa, ncIalist
   Ia = h.spikeGenerator(0.8)
   Ia.number = 100000000
-  Ia.start = 0
+  Ia.start = 1
   if speed == 25:
     Ia.speed = 21
   elif speed == 50:
@@ -296,7 +312,7 @@ def spikeout():
   for i in range(nhost):
     if i == rank:
       for j in range(len(motoneurons)):
-        path=str('./res/vMN%dr%ds%dv%d'%(j, rank, speed, version))
+        path=str('./res/sim_healthy_vMN%dr%d_extensor_eesF%d_i%d_s21_T_%d_2018-11-21'%(j, rank, fr, inh, version))
         f = open(path, 'w')
         for v in list(moto_v_vec[j]):
           f.write(str(v)+"\n")

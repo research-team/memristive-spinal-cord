@@ -105,27 +105,9 @@ class Topology:
 		G5_3 = self.create_with_mmeter("G5_3")
 
 		IP_E = self.create_with_mmeter("IP_E", neurons_in_moto)
-#		IP_F = self.create_with_mmeter("IP_F", neurons_in_moto)
 
 		MP_E = self.create_with_mmeter("MP_E", neurons_in_moto)
-#		MP_F = self.create_with_mmeter("MP_F", neurons_in_moto)
-#
-#		R_E = self.create_with_mmeter("R_E", neurons_in_moto)
-#		R_F = self.create_with_mmeter("R_F", neurons_in_moto)
-#
-#		Ia_E = self.create_with_mmeter("Ia_E", neurons_in_moto)
-#		Ia_F = self.create_with_mmeter("Ia_F", neurons_in_moto)
-#
-#		Ib_E = self.create_with_mmeter("Ib_E", neurons_in_moto)
-#		Ib_F = self.create_with_mmeter("Ib_F", neurons_in_moto)
-#
-#		Extensor = self.create_with_mmeter("Extensor", neurons_in_moto)
-#		Flexor = self.create_with_mmeter("Flexor", neurons_in_moto)
-#
-#		Ia = self.create_with_mmeter("Ia")
 		EES = self.create_with_mmeter("EES")
-#		C_0 = self.create_with_mmeter("C=0")
-#		C_1 = self.create_with_mmeter("C=1")
 
 		self.connect_spike_generator(C1, t_start=0, t_end=self.c_time, rate=200)
 		self.connect_spike_generator(C2, t_start=self.c_time, t_end=self.c_time*2, rate=200)
@@ -384,8 +366,8 @@ class Topology:
 		name = "{}-{}".format(self.iteration, name)
 		gids = create(n)
 		# decrease useless data recording for 'multitest' case
-		# if self.multitest and "moto" not in name:
-		#	return gids
+		if self.multitest and "MP_E" not in name:
+			return gids
 
 		mm_id = add_multimeter(name, record_from="V_m")
 		sd_id = add_spike_detector(name)
@@ -402,6 +384,17 @@ def rand(a, b):
 	return random.uniform(a, b)
 
 
+def __build_params():
+	neuron_params = {'t_ref': rand(2.0, 4.0),
+	                 'V_m': -70.0,  # [mV] starting value of membrane potential
+	                 'E_L': rand(-75.0, -65.0),
+	                 'g_L': 75.0,  # [nS] leak conductance
+	                 'tau_syn_ex': rand(0.2, 0.35),  # [ms]
+	                 'tau_syn_in': rand(2.5, 3.5),  # [ms]
+	                 'C_m': rand(150.0, 250.0)}
+	return neuron_params
+
+
 def create(neuron_number):
 	"""
 	Function for creating new neruons without multimeter
@@ -412,13 +405,8 @@ def create(neuron_number):
 		list: neurons GIDs
 	"""
 	neuron_model = 'hh_cond_exp_traub'
-	neuron_params = {'t_ref': 2.0, #rand(1.9, 2.1) if self.multitest else 2.0,  # [ms] refractory period
-	                 'V_m': -70.0,  # [mV] starting value of membrane potential
-	                 'E_L': -70.0, #rand(-70.5, -69.5) if self.multitest else -70.0,  # [mV] leak reversal potential
-	                 'g_L': 75.0,  # [nS] leak conductance
-	                 'tau_syn_ex': 0.2,  # [ms]
-	                 'tau_syn_in': 3.0}  # [ms]
-	neuron_ids = Create(model=neuron_model, n=neuron_number, params=neuron_params)
+	neuron_ids = [Create(model=neuron_model, n=1, params=__build_params())[0] for _ in range(neuron_number)]
+
 	return neuron_ids
 
 
@@ -434,14 +422,26 @@ def connect(pre, post, weight=0, delay=1.0, syn_spec=None, degree=40):
 		delay (float): synaptic delay
 	"""
 	# initialize synapse specification
+	weight_median = 10  # 3 10
+	delay_median = 0.5 if delay > 1 else 0.25
+	# initialize synapse specification
 	if syn_spec:
 		syn_spec['model'] = 'stdp_synapse'
-		syn_spec['delay'] = float(delay)
-		syn_spec['weight'] = float(weight)
+		syn_spec['delay'] = {"distribution": "uniform",
+		                     "low": float(delay) - delay_median,
+		                     "high": float(delay) + delay_median}
+		syn_spec['weight'] = {"distribution": "uniform",
+		                      "low": float(weight) - weight_median,
+		                      "high": float(weight) + weight_median}
 	else:
 		syn_spec = {'model': 'static_synapse',
-		            'delay': float(delay),
-		            'weight': float(weight)}
+		            'delay': {"distribution": "uniform",
+		                      "low": float(delay) - delay_median,
+		                      "high": float(delay) + delay_median},
+		            'weight': {"distribution": "uniform",
+		                       "low": float(weight) - weight_median,
+		                       "high": float(weight) + weight_median}
+		            }
 	# initialize connection specification
 	conn_spec = {'rule': 'fixed_outdegree',  # fixed outgoing synapse number
 	             'outdegree': int(degree),  # number of synapses outgoing from PRE neuron

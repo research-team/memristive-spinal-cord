@@ -66,7 +66,7 @@ class interneuron(object):
       sec.Ra = 100
       sec.cm = 1
     self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.4
+    self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -60  
@@ -97,8 +97,8 @@ class interneuron(object):
       s.e = 50
       self.synlistex.append(s)
       s = h.Exp2Syn(self.dend(0.5)) # I1
-      s.tau1 = 1
-      s.tau2 = 1.5
+      s.tau1 = 1.5
+      s.tau2 = 2
       s.e = -80
       self.synlistinh.append(s)  
       s = h.ExpSyn(self.dend(0.8)) # I1
