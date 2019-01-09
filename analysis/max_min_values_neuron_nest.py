@@ -348,6 +348,8 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 				# but if the current points has the 3ms difference with the next point, remark the current as True
 				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (3 / step):
 					mins_bool[min_i] = True
+				if abs(maxes_time[max_i + 1] - maxes_time[max_i]) > (3 / step):
+					maxes_bool[max_i] = True
 				# change indexes (walking by pair: min-max, max-min, min-max...)
 				if max_i == min_i:
 					max_i += 1

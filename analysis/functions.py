@@ -1,18 +1,8 @@
 import csv
 import h5py as hdf5
-import numpy as np
 
 
-def normalization_in_bounds(list_of_data_to_normalize, min_value):
-    fact_min = min(list_of_data_to_normalize)
-    scale = min_value / fact_min
-    normal_data = []
-    for i in range(len(list_of_data_to_normalize)):
-        normal_data.append(list_of_data_to_normalize[i] * scale)
-    return normal_data
-
-
-def normalization(data, a=0, b=1):
+def normalization(data, a=0, b=1, zero_relative=False):
     """
     Normalization in [a, b] interval
     x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
@@ -29,11 +19,17 @@ def normalization(data, a=0, b=1):
     # checking on errors
     if a >= b:
         raise Exception("Left interval 'a' must be fewer than right interval 'b'")
-    # prepare the constans
-    min_x = min(data)
-    max_x = max(data)
-    const = (b - a) / (max_x - min_x)
-    return [(x - min_x) * const + a for x in data]
+
+    if zero_relative:
+        first = data[0]
+        minimal = abs(min(data))
+        return [(volt - first) / minimal for volt in data]
+    else:
+        # prepare the constans
+        min_x = min(data)
+        max_x = max(data)
+        const = (b - a) / (max_x - min_x)
+        return [(x - min_x) * const + a for x in data]
 
 
 def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
@@ -90,7 +86,7 @@ def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
     if len(latencies) != slice_numbers:
         raise Exception("Latency list length is not equal to number of slices!")
     if norm_to_ms:
-        return [lat * step for lat in latencies]
+        return [round(lat * step, 2) for lat in latencies]
     return latencies
 
 
@@ -132,7 +128,6 @@ def read_neuron_data(path):
         neuron_means = [data[:] for data in file.values()]
     return neuron_means
 
-
 def read_nest_data(path):
     """
     FixMe merge with read_neuron_data (!),
@@ -144,9 +139,13 @@ def read_nest_data(path):
     Returns:
         list: data from the file
     """
+    nest_data = []
     with hdf5.File(path) as file:
-        nest_means = [-data[:] for data in file.values()]
-    return nest_means
+        for test_data in file.values():
+            first = -test_data[0]
+            # transforming to extracellular form
+            nest_data.append([-d - first for d in test_data[:]])
+    return nest_data
 
 
 def list_to_dict(inputing_dict):

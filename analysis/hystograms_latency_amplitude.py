@@ -1,8 +1,7 @@
 import numpy as np
 import pylab as plt
-import matplotlib.patches as mpatches
 from analysis.max_min_values_neuron_nest import calc_max_min
-from analysis.functions import read_neuron_data, list_to_dict, find_mins, read_nest_data, read_bio_data, normalization, find_latencies
+from analysis.functions import read_nest_data, read_neuron_data, read_bio_data, normalization, find_latencies
 
 # some constants and keys
 bar_width = 0.2
@@ -19,8 +18,10 @@ k_min_val = 3
 k_bio_volt = 0
 k_bio_stim = 1
 
+debugging_flag = False
 
-def debug(voltages, datas, orig_stim_indexes, ees_indexes, orig_latencies, step):
+
+def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
 	"""
 	Temporal function for visualization of preprocessed data
 	Args:
@@ -28,78 +29,95 @@ def debug(voltages, datas, orig_stim_indexes, ees_indexes, orig_latencies, step)
 			voltage data
 		datas (list of list):
 			includes min/max time min/max value for each slice
-		orig_stim_indexes (list):
+		stim_indexes (list):
 			indexes of EES stimlations
 		ees_indexes (list):
 			indexes of EES answers (mono-answer)
-		orig_latencies (list):
-			latencies of the first poly-answers for each slice
+		latencies (list):
+			latencies of the first poly-answers per slice
+		amplitudes (list):
+			amplitudes per slice
 		step (float):
 			 step size of the data
 	"""
 	amplitudes_y = []
-	amplitudes_x = []
+
+	slice_indexes = range(len(ees_indexes))
+
+	show_text = True
+	show_amplitudes = True
+	show_points = True
+	show_axvlines = True
 
 	# the 1st subplot demonstrates a voltage data, ees answers, ees stimulations and found latencies
 	ax = plt.subplot(2, 1, 1)
 	# plot the voltage data
-	plt.plot([t * step for t in range(len(voltages))], voltages, color='grey', linewidth=1)
+	norm_voltages = normalization(voltages, zero_relative=True)
+
+	plt.plot([t * step for t in range(len(norm_voltages))], norm_voltages, color='grey', linewidth=1)
 	# standartization to the step size
-	for slice_index in range(len(datas[0])):
-		datas[0][slice_index] = [d * step for d in datas[0][slice_index]]
-	for slice_index in range(len(datas[2])):
-		datas[2][slice_index] = [d * step for d in datas[2][slice_index]]
-	stim_indexes = list(orig_stim_indexes)
-	for i in range(len(stim_indexes)):
-		stim_indexes[i] *= step
-	latencies = list(orig_latencies)
-	for i in range(len(ees_indexes)):
-		ees_indexes[i] *= step
+	for slice_index in slice_indexes:
+		datas[k_max_time][slice_index] = [d * step for d in datas[0][slice_index]]
+	for slice_index in slice_indexes:
+		datas[k_min_time][slice_index] = [d * step for d in datas[2][slice_index]]
+
+	stim_indexes = [index * step for index in stim_indexes]
+	ees_indexes = [index * step for index in ees_indexes]
+
 	# plot the EES stimulation
 	for i in stim_indexes:
-		plt.axvline(x=i, linestyle='--', color='k', alpha=0.35, linewidth=1)
-		plt.annotate("Stim\n{:.2f}".format(i), xy=(i-1.3, 0), textcoords='data', color='k')
+		if show_axvlines:
+			plt.axvline(x=i, linestyle='--', color='k', alpha=0.35, linewidth=1)
+		if show_text:
+			plt.annotate("Stim\n{:.2f}".format(i), xy=(i-1.3, 0), textcoords='data', color='k')
 	# plot the EES answers
 	for index, v in enumerate(ees_indexes):
-		plt.axvline(x=v, color='r', alpha=0.5, linewidth=5)
-		plt.annotate("EES\n{:.2f}".format(v - stim_indexes[index]), xy=(v + 1, -0.2), textcoords='data', color='r')
+		if show_axvlines:
+			plt.axvline(x=v, color='r', alpha=0.5, linewidth=5)
+		if show_text:
+			plt.annotate("EES\n{:.2f}".format(v - stim_indexes[index]), xy=(v + 1, -0.2), textcoords='data', color='r')
 	# plot the latencies
 	for index, lat in enumerate(latencies):
 		lat += ees_indexes[index]
-		plt.axvline(x=lat, color='g', alpha=0.7, linewidth=2)
-		plt.annotate("from ees {:.2f}".format(lat - ees_indexes[index]), xy=(lat + 0.2, -0.4), textcoords='data', color='g')
-		plt.annotate("from stim: {:.2f}".format(lat - stim_indexes[index]), xy=(lat + 0.2, -0.5), textcoords='data', color='g')
+		if show_axvlines:
+			plt.axvline(x=lat, color='g', alpha=0.7, linewidth=2)
+		if show_text:
+			plt.annotate("from ees {:.2f}".format(lat - ees_indexes[index]), xy=(lat + 0.2, -0.4), textcoords='data', color='g')
+			plt.annotate("from stim: {:.2f}".format(lat - stim_indexes[index]), xy=(lat + 0.2, -0.5), textcoords='data', color='g')
+
 	# plot min/max points for each slice and calculate their amplitudes
-	for slice_index in range(len(ees_indexes)):
+	plt.axhline(y=0, color='r', linestyle='--', linewidth=1)
+	plt.axhline(y=-1, color='r', linestyle='--', linewidth=1)
+
+	for slice_index in slice_indexes:
 		min_times = datas[k_min_time][slice_index]
 		min_values = datas[k_min_val][slice_index]
 		max_times = datas[k_max_time][slice_index]
 		max_values = datas[k_max_val][slice_index]
-		# calc an amplitude
-		amplitudes = [round(abs(minimal - maximal), 3) for minimal, maximal in zip(min_values, max_values)]
-		mean_amp = round(np.mean(amplitudes), 3)
-		print("AMP slice {}, len {}, mean {}, {}".format(slice_index, len(amplitudes), mean_amp, amplitudes))
-		if slice_index == len(ees_indexes)-1:
-			amplitudes_x.append(np.arange(ees_indexes[slice_index], ees_indexes[slice_index] + 25))
-		else:
-			amplitudes_x.append(np.arange(ees_indexes[slice_index], ees_indexes[slice_index+1]))
-		amplitudes_y.append(mean_amp)
+		amplitudes_y.append(amplitudes[slice_index])
 		# plot them
-		plt.plot([kek + ees_indexes[slice_index] for kek in min_times], min_values, '.', color='b', markersize=5)
-		plt.plot([kek + ees_indexes[slice_index] for kek in max_times], max_values, '.', color='r', markersize=5)
+		if show_points:
+			plt.plot([kek + ees_indexes[slice_index] for kek in min_times], min_values, '.', color='b', markersize=5)
+			plt.plot([kek + ees_indexes[slice_index] for kek in max_times], max_values, '.', color='r', markersize=5)
 	plt.legend()
 
 	# plot the amplitudes with shared x-axis
 	plt.subplot(2, 1, 2, sharex=ax)
 	# plot the EES answers
-	for i in ees_indexes:
-		plt.axvline(x=i, color='r')
-	# plot amplitudes by the horizontal line
-	for x, y in zip(amplitudes_x, amplitudes_y):
-		plt.plot(x, [y]*len(x), color='g')
-		plt.annotate("{:.2f}".format(y), xy=(np.mean(x), y + 0.05), textcoords='data')
+	if show_amplitudes:
+		for i in ees_indexes:
+			plt.axvline(x=i, color='r')
+		# plot amplitudes by the horizontal line
+
+		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat, alpha=0.7, zorder=2)
+		for slice_index in slice_indexes:
+			x = ees_indexes[slice_index] + ees_indexes[0] - 5 / 2
+			y = amplitudes[slice_index]
+			plt.annotate("{:.2f}".format(y), xy=(x, y + 0.01), textcoords='data')
+		plt.ylim(0, 0.8)
+	else:
+		plt.plot([t * step for t in range(len(voltages))], voltages, color='grey', linewidth=1)
 	plt.xlim(0, 150)
-	plt.ylim(0, 1)
 	plt.show()
 	plt.close()
 
@@ -127,25 +145,38 @@ def find_ees_indexes(stim_indexes, datas):
 	return ees_indexes
 
 
-def calc_amplitudes(datas):
+def calc_amplitudes(datas, latencies):
 	"""
 	Function for calculating amplitudes
 	Args:
 		datas (list of list):
 			includes min/max time min/max value for each slice
+		latencies (list):
+			latencies pr slice for calculating only after the first poly-answer
 	Returns:
 		list: amplitudes per slice
-
 	"""
 	amplitudes = []
-	for slice_index in range(len(datas[0])):
-		min_values = datas[k_min_val][slice_index]
-		max_values = datas[k_max_val][slice_index]
-		amplitudes.append(np.mean([abs(minimal - maximal) for minimal, maximal in zip(min_values, max_values)]))
+	slice_numbers = len(datas[0])
+
+	for slice_index in range(slice_numbers):
+		maxes_v = datas[k_max_val][slice_index]
+		maxes_t = datas[k_max_time][slice_index]
+		mins_v = datas[k_min_val][slice_index]
+		mins_t = datas[k_min_time][slice_index]
+
+		max_amp_in_maxes = max([abs(m) for index, m in enumerate(maxes_v) if maxes_t[index] >= latencies[slice_index]])
+		max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
+
+		amplitudes.append(max([max_amp_in_maxes, max_amp_in_mins]))
+
+	if len(amplitudes) != slice_numbers:
+		raise Exception("Length of amplitudes must be equal to slice numbers!")
+
 	return amplitudes
 
 
-def processing_data(neuron_tests, nest_tests, bio):
+def processing_data(bio, nest_tests, neuron_tests):
 	"""
 	Function for demonstrating latencies/amplutudes for each simulator and the bio data
 	Args:
@@ -156,16 +187,18 @@ def processing_data(neuron_tests, nest_tests, bio):
 		bio (list):
 			voltages data
 	Returns:
-		list: amplitudes
-		list: latencies
+		tuple: bio_pack -- bio latencies and amplitudes
+		tuple: nest_pack -- NEST latencies and amplitudes
+		tuple: neuron_pack -- Neuron latencies and amplitudes
 	"""
 	# ToDo collapse the block of codes which answering for finding amp/lat
 
 	# get the slice number in the data
 	slice_numbers = int(len(neuron_tests[0]) * sim_step // 25)
 	# get bio voltages and EES stimulations from the argument
-	bio_voltages = bio[k_bio_volt]
-	bio_stim_indexes = bio[k_bio_stim][:-1]
+	bio_stim_indexes = bio[k_bio_stim][:slice_numbers + 1]
+	# remove unescesary data
+	bio_voltages = bio[k_bio_volt][:bio_stim_indexes[-1]]
 	# calculate mean of voltages for simulators
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
 	nest_means = list(map(lambda voltages: np.mean(voltages), zip(*nest_tests)))
@@ -176,111 +209,131 @@ def processing_data(neuron_tests, nest_tests, bio):
 	# get the min/max extrema based on stimulation indexes
 	bio_datas = calc_max_min(bio_stim_indexes, bio_voltages, bio_step)
 	# find EES answers basing on min/max extrema
-	bio_ees_indexes = find_ees_indexes(bio_stim_indexes, bio_datas)
-	# remove unnesesary bio data (after the last EES answer)
-	bio_voltages = bio_voltages[:bio_ees_indexes[slice_numbers]]
-	bio_ees_indexes = bio_ees_indexes[:slice_numbers]
+	bio_ees_indexes = find_ees_indexes(bio_stim_indexes[:-1], bio_datas)
 	# normalize data
-	bio_voltages = normalization(bio_voltages, -1, 1)
+	norm_bio_voltages = normalization(bio_voltages, zero_relative=True)
 	# get the min/max extrema based on EES answers indexes (because we need the data after 25ms of the slice)
-	bio_datas = calc_max_min(bio_ees_indexes, bio_voltages, bio_step, remove_micropeaks=True)
-	# get the latencies based on min/max extrema
+	bio_datas = calc_max_min(bio_ees_indexes, norm_bio_voltages, bio_step, remove_micropeaks=True)
+	# get the latencies and amplitudes based on min/max extrema
 	bio_lat = find_latencies(bio_datas, bio_step, norm_to_ms=True)
-	# demonstrate the reuslts
-	debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat, bio_step)
+	bio_amp = calc_amplitudes(bio_datas, bio_lat)
 
-	'''block of code for finding latencies and amplitudes in NEST data'''
 	# the steps are the same as above
 	nest_datas = calc_max_min(sim_stim_indexes, nest_means, sim_step)
 	nest_ees_indexes = find_ees_indexes(sim_stim_indexes, nest_datas)
-	nest_means = normalization(nest_means, -1, 1)
-	nest_datas = calc_max_min(nest_ees_indexes, nest_means, sim_step, remove_micropeaks=True)
+	norm_nest_means = normalization(nest_means, zero_relative=True)
+	nest_datas = calc_max_min(nest_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
 	nest_lat = find_latencies(nest_datas, sim_step, norm_to_ms=True)
+	nest_amp = calc_amplitudes(nest_datas, nest_lat)
 
-	debug(nest_means, nest_datas, sim_stim_indexes, nest_ees_indexes, nest_lat, sim_step)
-
-	'''block of code for finding latencies and amplitudes in NEURON data'''
 	# the steps are the same as above
 	neuron_datas = calc_max_min(sim_stim_indexes, neuron_means, sim_step)
 	neuron_ees_indexes = find_ees_indexes(sim_stim_indexes, neuron_datas)
-	neuron_means = normalization(neuron_means, -1, 1)
-	neuron_datas = calc_max_min(neuron_ees_indexes, neuron_means, sim_step, remove_micropeaks=True)
+	norm_neuron_means = normalization(neuron_means, zero_relative=True)
+	neuron_datas = calc_max_min(neuron_ees_indexes, norm_neuron_means, sim_step, remove_micropeaks=True)
 	neuron_lat = find_latencies(neuron_datas, sim_step, with_afferent=True, norm_to_ms=True)
+	neuron_amp = calc_amplitudes(neuron_datas, neuron_lat)
 
-	debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat, sim_step)
+	if debugging_flag:
+		debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat, bio_amp, bio_step)
+		debug(nest_means, nest_datas, sim_stim_indexes, nest_ees_indexes, nest_lat, nest_amp, sim_step)
+		debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat, neuron_amp, sim_step)
 
-	bio_amp = calc_amplitudes(bio_datas)
-	neuron_amp = calc_amplitudes(neuron_datas)
-	nest_amp = calc_amplitudes(nest_datas)
+	# forming data 'packs'
+	bio_pack = ("Biological", bio_lat, bio_amp)
+	nest_pack = ("NEST", nest_lat, nest_amp)
+	neuron_pack = ("Neuron", neuron_lat, neuron_amp)
 
-	scale_bio = max(bio_lat) / max(bio_amp)
-	scale_neuron = max(neuron_lat) / max(neuron_amp)
-	scale_nest = max(nest_lat) / max(nest_amp)
-
-	normal_bio_amp = [amplitude * scale_bio for amplitude in bio_amp]
-	normal_nest_amp = [amplitude * scale_nest for amplitude in nest_amp]
-	normal_neuron_amp = [amplitude * scale_neuron for amplitude in neuron_amp]
-
-	for amp, lat in [(normal_neuron_amp, neuron_lat), (normal_nest_amp, nest_lat)]:
-		draw([abs(sim_a - bio_a) for sim_a, bio_a in zip(amp, bio_amp)],
-		     [abs(sim_l - bio_l) for sim_l, bio_l in zip(lat, bio_lat)])
-
-	raise Exception
-	# plot latency
-	plt.bar(range(len(bio_lat)), [d * bio_step for d in bio_lat],
-	        width=bar_width, color='b', alpha=0.7, label="biological")
-	plt.bar([d + bar_width for d in range(len(nest_lat))], [d * sim_step for d in nest_lat],
-	        width=bar_width, color='r', alpha=0.7, label="NEST")
-	plt.bar([d + 2 * bar_width for d in range(len(neuron_lat))], [d * sim_step for d in neuron_lat],
-	        width=bar_width, color='g', alpha=0.7, label="Neuron")
-	plt.legend()
-	plt.show()
+	return bio_pack, nest_pack, neuron_pack
 
 
-def draw(amplitudes, latencies):
+def draw_lat_amp(bio_pack, nest_pack, neuron_pack, plot_delta=False):
 	"""
-
+	Function for drawing latencies and amplitudes in one plot
 	Args:
-		amplitudes:
-		latencies:
-
-	Returns:
-
+		bio_pack (tuple):
+			biological data pack of latenccies and amplitudes
+		nest_pack (tuple):
+			NEST simulator data pack of latenccies and amplitudes
+		neuron_pack (tuple):
+			Neuron simulator data pack of latenccies and amplitudes
+		plot_delta (bool):
+			Plot and calculate delta of datas or their separated values
 	"""
-	# create axes
-	ax = plt.axes()
-	ax.yaxis.grid()
-	xticks = range(len(amplitudes))
-	print("- " * 10)
-	print(amplitudes)
-	print(latencies)
-	# plot latency
-	lat = plt.bar(xticks, latencies, width=bar_width, color=color_lat, alpha=0.7, zorder=2)
-	# plot amplitudes
-	amp = plt.bar([x + bar_width for x in xticks], amplitudes, width=bar_width, color=color_amp, alpha=0.7, zorder=2)
-	# set xticks by slice numbers
-	plt.xticks(xticks, range(1, len(amplitudes) + 1))
-	# create second axes
-	axis_latency = plt.axes()
-	axis_latency.set_xlabel("Slice")
-	axis_latency.set_ylabel("Δ Latency, ms")
-	# share x-axis
-	axis_amplitude = axis_latency.twinx()
-	axis_amplitude.set_ylabel("Δ Amplitude, mV")
-	# axis_amplitude.axis([-0.5, 6, min(amplitudes_delta), max(amplitudes_delta)])
-	# add legends
-	plt.legend((lat, amp), ("Δ Latency", "Δ Amplitude"), loc='best')
-	plt.show()
+	if plot_delta:
+		for sim_pack in [nest_pack, neuron_pack]:
+			bio_title = bio_pack[0]
+			bio_latencies = bio_pack[1]
+			bio_amplitudes = bio_pack[2]
+
+			sim_title = sim_pack[0]
+			sim_latencies = sim_pack[1]
+			sim_amplitudes = sim_pack[2]
+
+			# create axes
+			fig, lat_axes = plt.subplots(1, 1, figsize=(12, 9))
+			plt.title("Delta of {} data and {} simulator".format(bio_title, sim_title))
+			xticks = range(len(sim_amplitudes))
+
+			lat_deltas = [abs(sim - bio) for sim, bio in zip(sim_latencies, bio_latencies)]
+			lat_plot = lat_axes.bar(xticks, lat_deltas, width=bar_width, color=color_lat, alpha=0.7, zorder=2)
+			lat_axes.set_xlabel('Slice')
+			lat_axes.set_ylabel("Latency, ms")
+
+			amp_axes = lat_axes.twinx()
+			xticks = [x + bar_width for x in xticks]
+			amp_deltas = [abs(sim - bio) for sim, bio in zip(sim_amplitudes, bio_amplitudes)]
+			amp_plot = amp_axes.bar(xticks, amp_deltas, width=bar_width, color=color_amp, alpha=0.7, zorder=2)
+			amp_axes.set_ylabel("Amplitude, mV")
+
+			# plot text annotation for data
+			for index in range(len(sim_amplitudes)):
+				amp = amp_deltas[index]
+				lat = lat_deltas[index]
+				lat_axes.text(index - bar_width / 2, lat + max(lat_deltas) / 50, str(round(lat, 2)))
+				amp_axes.text(index + bar_width / 2, amp + max(amp_deltas) / 50, str(round(amp, 2)))
+
+			plt.legend((lat_plot, amp_plot), ("Latency", "Amplitude"), loc='best')
+			plt.show()
+	else:
+		for pack in [bio_pack, nest_pack, neuron_pack]:
+			title = pack[0]
+			latencies = pack[1]
+			amplitudes = pack[2]
+
+			# create axes
+			fig, lat_axes = plt.subplots(1, 1, figsize=(12, 9))
+			plt.title("{} data".format(title))
+			xticks = range(len(amplitudes))
+
+			lat_plot = lat_axes.bar(xticks, latencies, width=bar_width, color=color_lat, alpha=0.7, zorder=2)
+			lat_axes.set_xlabel('Slice')
+			lat_axes.set_ylabel("Latency, ms")
+
+			amp_axes = lat_axes.twinx()
+			xticks = [x + bar_width for x in xticks]
+			amp_plot = amp_axes.bar(xticks, amplitudes, width=bar_width, color=color_amp, alpha=0.7, zorder=2)
+			amp_axes.set_ylabel("Amplitude, mV")
+
+			# plot text annotation for data
+			for index in range(len(amplitudes)):
+				amp = amplitudes[index]
+				lat = latencies[index]
+				lat_axes.text(index - bar_width / 2, lat + max(latencies) / 50, str(lat))
+				amp_axes.text(index + bar_width / 2, amp + max(amplitudes) / 50, str(amp))
+
+			plt.legend((lat_plot, amp_plot), ("Latency", "Amplitude"), loc='best')
+			plt.show()
 
 
 def run():
-	neuron_tests = read_neuron_data('/home/alex/neuron_21cms.hdf5')
-	nest_tests = read_nest_data('/home/alex/nest_21cms.hdf5')
 	bio = read_bio_data('/home/alex/bio_21cms.txt')
+	nest_tests = read_nest_data('/home/alex/nest_21cms.hdf5')
+	neuron_tests = read_neuron_data('/home/alex/neuron_21cms.hdf5')
 
-	data = processing_data(neuron_tests, nest_tests, bio)
+	bio_pack, nest_pack, neuron_pack = processing_data(bio, nest_tests, neuron_tests)
 
-	draw(*data)
+	draw_lat_amp(bio_pack, nest_pack, neuron_pack, plot_delta=True)
 
 
 if __name__ == "__main__":
