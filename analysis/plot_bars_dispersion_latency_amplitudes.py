@@ -27,7 +27,7 @@ def recolor(boxplot_elements, color, fill_color):
 		patch.set(facecolor=fill_color)
 
 
-def plot_bars(latencies_per_test, amplitudes_per_test):
+def plot_box(latencies_per_test, amplitudes_per_test):
 	"""
 	Args:
 		latencies_per_test (list of list):
@@ -36,7 +36,7 @@ def plot_bars(latencies_per_test, amplitudes_per_test):
 			amplitudes per test data
 	"""
 	slice_indexes = range(len(latencies_per_test[0]))
-	# reshape to 100 dots per slice instad of 100 tests with 6 slices
+	# reshape to M dots per N slices instead of N dots in slices per M tests
 	latencies = list(zip(*latencies_per_test))
 	amplitudes = list(zip(*amplitudes_per_test))
 
@@ -86,7 +86,7 @@ def run():
 			latencies.append(sim_lat)
 			amplitudes.append(sim_amp)
 		# plot simulation data
-		plot_bars(latencies, amplitudes)
+		plot_box(latencies, amplitudes)
 
 
 if __name__ == "__main__":
