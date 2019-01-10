@@ -247,6 +247,19 @@ def processing_data(bio, nest_tests, neuron_tests):
 	return bio_pack, nest_pack, neuron_pack
 
 
+def process(data):
+	sim_stim_indexes = list(range(0, len(data), int(25 / sim_step)))
+	# the steps are the same as above
+	sim_datas = calc_max_min(sim_stim_indexes, data, sim_step)
+	sim_ees_indexes = find_ees_indexes(sim_stim_indexes, sim_datas)
+	norm_nest_means = normalization(data, zero_relative=True)
+	sim_datas = calc_max_min(sim_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
+	sim_lat = find_latencies(sim_datas, sim_step, norm_to_ms=True)
+	sim_amp = calc_amplitudes(sim_datas, sim_lat)
+
+	return sim_lat, sim_amp
+
+
 def draw_lat_amp(bio_pack, nest_pack, neuron_pack, plot_delta=False):
 	"""
 	Function for drawing latencies and amplitudes in one plot
