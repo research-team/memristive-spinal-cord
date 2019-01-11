@@ -94,10 +94,7 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 				additional_border += 1
 
 			if additional_border > 25:
-				print("KEK", slice_index, left, right, slice_times)
-				print(mins_maxes[2:])
-				latencies.append(-10)
-				break
+				raise Exception("Error, out of borders")
 
 	# checking on errors
 	if len(latencies) != slice_numbers:
