@@ -267,7 +267,7 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
+def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, stim_corr=None):
 	"""
 	Function for finding min/max extrema
 	Args:
@@ -297,6 +297,11 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 		tmp_max_value = []
 		tmp_min_value = []
 
+		if stim_corr:
+			offset = slices_start_time[slice_index - 1] - stim_corr[slice_index - 1]
+		else:
+			offset = 0
+
 		start = slices_start_time[slice_index - 1]
 		if slice_index == len(slices_start_time):
 			end = len(test_data)
@@ -308,10 +313,10 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
 		# compare points
 		for i in range(1, len(sliced_values) - 1):
 			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
-				tmp_max_time.append(datas_times[i])
+				tmp_max_time.append(datas_times[i] + offset)
 				tmp_max_value.append(sliced_values[i])
 			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
-				tmp_min_time.append(datas_times[i])
+				tmp_min_time.append(datas_times[i] + offset)
 				tmp_min_value.append(sliced_values[i])
 		# append found points per slice to the 'main' lists
 		slices_max_time.append(tmp_max_time)

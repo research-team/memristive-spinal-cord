@@ -32,77 +32,77 @@ def normalization(data, a=0, b=1, zero_relative=False):
 		return [(x - min_x) * const + a for x in data]
 
 
-def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
+def find_latencies(mins_maxes, step, norm_to_ms=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
 	Args:
-		datas (list of list):
+		mins_maxes (list of list):
 			0 max times by slices
 			1 max values by slices
 			2 min times by slices
 			3 min values by slices
 		step (float or int):
 			step of data recording (e.g. step=0.025 means 40 recorders in 1 ms)
-		with_afferent:
+		norm_to_ms (bool):
+			if True -- convert steps to ms, else return steps
 	Returns:
 		list: includes latencies for each slice
 	"""
 	latencies = []
-	slice_numbers = len(datas[2])
-	# fixme remove "with afferent"
-	if not with_afferent:
-		slice_indexes = range(slice_numbers)
-		for slice_index in slice_indexes:
-			# print("slice_index = ", slice_index)
-			flag = True
-			slice_times = datas[2][slice_index]
-			slice_values = datas[3][slice_index]
-			additional_border = 0
-			while flag:
-				# print(additional_border)
-				# set latencies borders for several layers
-				# in the first two slices the poly-answer everytime located before the first half of 25ms
-				if slice_index in slice_indexes[:int(slice_numbers / 6 * 2)]:
-					border_left = 0
-					border_right = (25 / 2) + additional_border
-				# in the third slice the poly-answer everytime located after 1/3 of 25ms and before 2/3 of 25ms
-				elif slice_index in slice_indexes[int(slice_numbers / 6 * 2):int(slice_numbers / 6 * 3)]:
-					border_left = (20 / 3) - additional_border
-					border_right = (20 / 3 * 2) + additional_border
-				# in the last slice the poly-answer everytime located in the second halfof 25ms
-				elif slice_index == slice_indexes[-1]:
-					border_left = (25 / 2) - additional_border
-					border_right = 22 + additional_border
-				# the poly-answers of another slcies located in interval from 5ms to 20ms
-				else:
-					border_left = 5 - additional_border
-					border_right = 20 + additional_border
-				# print("slice_times = ", slice_times)
-				left = border_left / step if border_left / step >= 0 else 0
-				right = border_right / step if border_right / step <= 25 / step else 25 / step
-				found_points = [v for i, v in enumerate(slice_values) if
-								left <= slice_times[i] <= right]
-				# print("left = ", left)
-				# print("right = ", right)
-				# print(found_points)
-				# find the minimal one of points which located in the current interval
-				# get the index of this element
-				if len(found_points):
-					minimal_val_in_border = min(found_points)
-					# print("hey")
-					index_of_val = slice_values.index(minimal_val_in_border)
-					latencies.append(slice_times[index_of_val])
-					flag = False
-				else:
-					additional_border += 1
-	# use this index to get time
-	else:
-		# Neuron simulator variant where get the minimal one of the layer
-		latencies = list(map(lambda tup: tup[0][tup[1].index(min(tup[1]))], zip(datas[2], datas[3])))
+	slice_numbers = len(mins_maxes[2])
+	slice_indexes = range(slice_numbers)
+
+	slices_index_interval = lambda a, b: slice_indexes[int(slice_numbers / 6 * a):int(slice_numbers / 6 * (b + 1))]
+	step_to_ms = lambda current_step: current_step * step
+
+	# find latencies per slice
+	for slice_index in slice_indexes:
+		additional_border = 0
+		slice_times = mins_maxes[2][slice_index]
+		slice_values = mins_maxes[3][slice_index]
+		# while minimal value isn't found -- find with extended borders [left, right]
+		while True:
+			if slice_index in slices_index_interval(0, 1): # [0,1]
+				left = 11 - additional_border
+				right = 16 + additional_border
+			elif slice_index in slices_index_interval(2, 2): # [2]
+				left = 11 - additional_border
+				right = 17 + additional_border
+			elif slice_index in slices_index_interval(3, 4): # [3, 4]
+				left = 13 - additional_border
+				right = 21 + additional_border
+			elif slice_index in slices_index_interval(5, 6): # [5, 6]
+				left = 15 - additional_border
+				right = 23 + additional_border
+			else:
+				raise Exception("Error in the slice index catching")
+
+			if left < 0:
+				left = 0
+			if right > 25:
+				right = 25
+
+			found_points = [v for i, v in enumerate(slice_values) if left <= step_to_ms(slice_times[i]) <= right]
+
+			# save index of the minimal element in founded points
+			if len(found_points):
+				minimal_val = min(found_points)
+				index_of_minimal = slice_values.index(minimal_val)
+				latencies.append(slice_times[index_of_minimal])
+				break
+			else:
+				additional_border += 1
+
+			if additional_border > 25:
+				print("KEK", slice_index, left, right, slice_times)
+				print(mins_maxes[2:])
+				latencies.append(-10)
+				break
 
 	# checking on errors
 	if len(latencies) != slice_numbers:
 		raise Exception("Latency list length is not equal to number of slices!")
+
 	if norm_to_ms:
 		return [lat * step for lat in latencies]
 	return latencies

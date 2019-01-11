@@ -1,7 +1,7 @@
 from matplotlib import pylab as plt
 import matplotlib.patches as mpatches
 from analysis.functions import read_nest_data, read_neuron_data
-from analysis.hystograms_latency_amplitude import process
+from analysis.hystograms_latency_amplitude import sim_process
 
 color_lat = '#BD821B'
 fill_color_lat = '#F3CB84'
@@ -75,14 +75,13 @@ def run():
 	# get data
 	nest_tests = read_nest_data('/home/alex/nest_21cms.hdf5')
 	neuron_tests = read_neuron_data('/home/alex/neuron_21cms.hdf5')
-
 	# the main loop of simulations data
 	for sim_datas in [nest_tests, neuron_tests]:
 		latencies = []
 		amplitudes = []
 		# collect amplitudes and latencies per test data
 		for test_data in sim_datas:
-			sim_lat, sim_amp = process(test_data)
+			sim_lat, sim_amp = sim_process(test_data)
 			latencies.append(sim_lat)
 			amplitudes.append(sim_amp)
 		# plot simulation data

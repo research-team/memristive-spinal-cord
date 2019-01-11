@@ -78,13 +78,11 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 			plt.annotate("EES\n{:.2f}".format(v - stim_indexes[index]), xy=(v + 1, -0.2), textcoords='data', color='r')
 	# plot the latencies
 	for index, lat in enumerate(latencies):
-		lat += ees_indexes[index]
+		lat_x = stim_indexes[index] + lat
 		if show_axvlines:
-			plt.axvline(x=lat, color='g', alpha=0.7, linewidth=2)
+			plt.axvline(x=lat_x, color='g', alpha=0.7, linewidth=2)
 		if show_text:
-			plt.annotate("from ees {:.2f}".format(lat - ees_indexes[index]), xy=(lat + 0.2, -0.4), textcoords='data', color='g')
-			plt.annotate("from stim: {:.2f}".format(lat - stim_indexes[index]), xy=(lat + 0.2, -0.5), textcoords='data', color='g')
-
+			plt.annotate("Lat: {:.2f}".format(lat), xy=(lat_x + 0.2, -0.4), textcoords='data', color='g')
 	# plot min/max points for each slice and calculate their amplitudes
 	plt.axhline(y=0, color='r', linestyle='--', linewidth=1)
 	plt.axhline(y=-1, color='r', linestyle='--', linewidth=1)
@@ -97,8 +95,8 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 		amplitudes_y.append(amplitudes[slice_index])
 		# plot them
 		if show_points:
-			plt.plot([kek + ees_indexes[slice_index] for kek in min_times], min_values, '.', color='b', markersize=5)
-			plt.plot([kek + ees_indexes[slice_index] for kek in max_times], max_values, '.', color='r', markersize=5)
+			plt.plot([t + stim_indexes[slice_index] for t in min_times], min_values, '.', color='b', markersize=5)
+			plt.plot([t + stim_indexes[slice_index] for t in max_times], max_values, '.', color='r', markersize=5)
 	plt.legend()
 
 	# plot the amplitudes with shared x-axis
@@ -108,7 +106,6 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 		for i in ees_indexes:
 			plt.axvline(x=i, color='r')
 		# plot amplitudes by the horizontal line
-
 		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat, alpha=0.7, zorder=2)
 		for slice_index in slice_indexes:
 			x = ees_indexes[slice_index] + ees_indexes[0] - 5 / 2
@@ -213,7 +210,7 @@ def processing_data(bio, nest_tests, neuron_tests):
 	# normalize data
 	norm_bio_voltages = normalization(bio_voltages, zero_relative=True)
 	# get the min/max extrema based on EES answers indexes (because we need the data after 25ms of the slice)
-	bio_datas = calc_max_min(bio_ees_indexes, norm_bio_voltages, bio_step, remove_micropeaks=True)
+	bio_datas = calc_max_min(bio_ees_indexes, norm_bio_voltages, bio_step, stim_corr=bio_stim_indexes)
 	# get the latencies and amplitudes based on min/max extrema
 	bio_lat = find_latencies(bio_datas, bio_step, norm_to_ms=True)
 	bio_amp = calc_amplitudes(bio_datas, bio_lat)
@@ -222,7 +219,7 @@ def processing_data(bio, nest_tests, neuron_tests):
 	nest_datas = calc_max_min(sim_stim_indexes, nest_means, sim_step)
 	nest_ees_indexes = find_ees_indexes(sim_stim_indexes, nest_datas)
 	norm_nest_means = normalization(nest_means, zero_relative=True)
-	nest_datas = calc_max_min(nest_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
+	nest_datas = calc_max_min(nest_ees_indexes, norm_nest_means, sim_step, stim_corr=sim_stim_indexes)
 	nest_lat = find_latencies(nest_datas, sim_step, norm_to_ms=True)
 	nest_amp = calc_amplitudes(nest_datas, nest_lat)
 
@@ -230,8 +227,8 @@ def processing_data(bio, nest_tests, neuron_tests):
 	neuron_datas = calc_max_min(sim_stim_indexes, neuron_means, sim_step)
 	neuron_ees_indexes = find_ees_indexes(sim_stim_indexes, neuron_datas)
 	norm_neuron_means = normalization(neuron_means, zero_relative=True)
-	neuron_datas = calc_max_min(neuron_ees_indexes, norm_neuron_means, sim_step, remove_micropeaks=True)
-	neuron_lat = find_latencies(neuron_datas, sim_step, with_afferent=True, norm_to_ms=True)
+	neuron_datas = calc_max_min(neuron_ees_indexes, norm_neuron_means, sim_step, stim_corr=sim_stim_indexes)
+	neuron_lat = find_latencies(neuron_datas, sim_step, norm_to_ms=True)
 	neuron_amp = calc_amplitudes(neuron_datas, neuron_lat)
 
 	if debugging_flag:
@@ -247,17 +244,17 @@ def processing_data(bio, nest_tests, neuron_tests):
 	return bio_pack, nest_pack, neuron_pack
 
 
-def process(data):
-	sim_stim_indexes = list(range(0, len(data), int(25 / sim_step)))
-	# the steps are the same as above
-	sim_datas = calc_max_min(sim_stim_indexes, data, sim_step)
-	sim_ees_indexes = find_ees_indexes(sim_stim_indexes, sim_datas)
-	norm_nest_means = normalization(data, zero_relative=True)
-	sim_datas = calc_max_min(sim_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
-	sim_lat = find_latencies(sim_datas, sim_step, norm_to_ms=True)
-	sim_amp = calc_amplitudes(sim_datas, sim_lat)
+def sim_process(voltages):
+	stim_indexes = list(range(0, len(voltages), int(25 / sim_step)))
+	mins_maxes = calc_max_min(stim_indexes, voltages, sim_step)
+	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
+	norm_voltages = normalization(voltages, zero_relative=True)
+	mins_maxes = calc_max_min(ees_indexes, norm_voltages, sim_step, stim_corr=stim_indexes)
 
-	return sim_lat, sim_amp
+	lat = find_latencies(mins_maxes, sim_step, norm_to_ms=True)
+	amp = calc_amplitudes(mins_maxes, lat)
+
+	return lat, amp
 
 
 def draw_lat_amp(bio_pack, nest_pack, neuron_pack, plot_delta=False):
@@ -346,7 +343,7 @@ def run():
 
 	bio_pack, nest_pack, neuron_pack = processing_data(bio, nest_tests, neuron_tests)
 
-	draw_lat_amp(bio_pack, nest_pack, neuron_pack, plot_delta=True)
+	draw_lat_amp(bio_pack, nest_pack, neuron_pack)
 
 
 if __name__ == "__main__":
