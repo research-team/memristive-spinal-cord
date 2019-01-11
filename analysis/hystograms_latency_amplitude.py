@@ -19,7 +19,7 @@ k_min_val = 3
 k_bio_volt = 0
 k_bio_stim = 1
 
-debugging_flag = True
+debugging_flag = False
 
 
 def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
@@ -254,7 +254,7 @@ def draw_lat_amp(data_pack):
 
 
 def run():
-	plot_delta = True
+	plot_delta = False
 
 	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
 	nest_tests = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
@@ -274,8 +274,8 @@ def run():
 		draw_lat_amp(res_pack)
 	else:
 		bio_pack = bio_process(bio, slice_numbers)
-		nest_pack = sim_process(nest_tests)
-		neuron_pack = sim_process(neuron_tests)
+		nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))))
+		neuron_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests))))
 
 		draw_lat_amp(bio_pack)
 		draw_lat_amp(nest_pack)
