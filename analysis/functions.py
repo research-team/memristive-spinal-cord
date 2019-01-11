@@ -73,7 +73,7 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 				right = 21 + additional_border
 			elif slice_index in slices_index_interval(5, 6): # [5, 6]
 				left = 15 - additional_border
-				right = 23 + additional_border
+				right = 24 + additional_border
 			else:
 				raise Exception("Error in the slice index catching")
 
