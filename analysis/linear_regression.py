@@ -1,15 +1,11 @@
 import numpy as np
 import pylab as plt
+from analysis.functions import *
+from analysis.namespaces import *
 from sklearn.linear_model import LinearRegression
-from analysis.hystograms_latency_amplitude import sim_process, bio_process
-from analysis.functions import read_nest_data, read_neuron_data, read_bio_data, normalization
 
-bio_step = 0.25
-sim_step = 0.025
 delta_step = 0.3
 
-k_bio_volt = 0
-k_bio_stim = 1
 k_mean = 0
 k_lat = 1
 k_amp = 2

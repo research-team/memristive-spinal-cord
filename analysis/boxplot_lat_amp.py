@@ -1,7 +1,7 @@
 from matplotlib import pylab as plt
 import matplotlib.patches as mpatches
 from analysis.functions import read_nest_data, read_neuron_data
-from analysis.hystograms_latency_amplitude import sim_process
+from analysis.histogram_lat_amp import sim_process
 
 color_lat = '#BD821B'
 fill_color_lat = '#F3CB84'
