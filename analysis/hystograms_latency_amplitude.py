@@ -210,7 +210,7 @@ def processing_data(bio, nest_tests):
 	# remove unescesary data
 	bio_voltages = bio[k_bio_volt][:bio_stim_indexes[-1]]
 	# calculate mean of voltages for simulators
-	# neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
+	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
 	nest_means = list(map(lambda voltages: np.mean(voltages), zip(*nest_tests)))
 	# calculate EES stimulation indexes for the simulators
 	sim_stim_indexes = list(range(0, len(nest_means), int(25 / sim_step)))
@@ -239,24 +239,24 @@ def processing_data(bio, nest_tests):
 	nest_datas = calc_max_min(nest_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
 	nest_lat = find_latencies(nest_datas, sim_step, norm_to_ms=True)
 	nest_amp = calc_amplitudes(nest_datas, nest_lat)
-	print("nest_amp = ", nest_amp)
+
 	# the steps are the same as above
-	# neuron_datas = calc_max_min(sim_stim_indexes, neuron_means, sim_step)
-	# neuron_ees_indexes = find_ees_indexes(sim_stim_indexes, neuron_datas)
-	# norm_neuron_means = normalization(neuron_means, zero_relative=True)
-	# neuron_datas = calc_max_min(neuron_ees_indexes, norm_neuron_means, sim_step, remove_micropeaks=True)
-	# neuron_lat = find_latencies(neuron_datas, sim_step, with_afferent=True, norm_to_ms=True)
-	# neuron_amp = calc_amplitudes(neuron_datas, neuron_lat)
+	neuron_datas = calc_max_min(sim_stim_indexes, neuron_means, sim_step)
+	neuron_ees_indexes = find_ees_indexes(sim_stim_indexes, neuron_datas)
+	norm_neuron_means = normalization(neuron_means, zero_relative=True)
+	neuron_datas = calc_max_min(neuron_ees_indexes, norm_neuron_means, sim_step, remove_micropeaks=True)
+	neuron_lat = find_latencies(neuron_datas, sim_step, with_afferent=True, norm_to_ms=True)
+	neuron_amp = calc_amplitudes(neuron_datas, neuron_lat)
 
 	if debugging_flag:
 		debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat, bio_amp, bio_step)
 		debug(nest_means, nest_datas, sim_stim_indexes, nest_ees_indexes, nest_lat, nest_amp, sim_step)
-		# debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat, neuron_amp, sim_step)
+		debug(neuron_means, neuron_datas, sim_stim_indexes, neuron_ees_indexes, neuron_lat, neuron_amp, sim_step)
 
 	# forming data 'packs'
 	bio_pack = ("Biological", bio_lat, bio_amp)
 	nest_pack = ("NEST", nest_lat, nest_amp)
-	# neuron_pack = ("Neuron", neuron_lat, neuron_amp)
+	neuron_pack = ("Neuron", neuron_lat, neuron_amp)
 
 	# return bio_pack, nest_pack, neuron_pack
 	return bio_pack, nest_pack
@@ -342,6 +342,7 @@ def draw_lat_amp(bio_pack, nest_pack, plot_delta=False):
 				lat = round(latencies[index], 2)
 				lat_axes.text(index - bar_width / 2, lat + max(latencies) / 50, str(lat))
 				amp_axes.text(index + bar_width / 2, amp + max(amplitudes) / 50, str(amp))
+
 			plt.legend((lat_plot, amp_plot), ("Latency", "Amplitude"), loc='best')
 			# plt.tick_params(labelsize=42)
 			plt.show()
