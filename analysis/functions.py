@@ -1,7 +1,9 @@
 import csv
+import numpy as np
 import h5py as hdf5
 import pylab as plt
 from analysis.namespaces import *
+from sklearn.linear_model import LinearRegression
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -26,18 +28,31 @@ def normalization(data, a=0, b=1, zero_relative=False):
 		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
 
 	if zero_relative:
+		# prepare the constans
 		first = data[0]
 		minimal = abs(min(data))
+
 		return [(volt - first) / minimal for volt in data]
 	else:
 		# prepare the constans
 		min_x = min(data)
 		max_x = max(data)
 		const = (b - a) / (max_x - min_x)
+
 		return [(x - min_x) * const + a for x in data]
 
 
-def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, stim_corr=None):
+def calc_linear(x, y):
+	model = LinearRegression(fit_intercept=True)
+	model.fit(x[:, np.newaxis], y)
+
+	xfit = np.linspace(0, 25, 2)
+	yfit = model.predict(X=xfit[:, np.newaxis])
+
+	return xfit, yfit
+
+
+def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None):
 	"""
 	Function for finding min/max extrema
 
@@ -97,11 +112,12 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, st
 		slices_min_time.append(tmp_min_time)
 		slices_min_value.append(tmp_min_value)
 
-	# small realization of ommiting data marked as False
-	remove_micropeaks_func = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
-
-	# realization of removing micro-peaks from the min/max points
+	# FixMe remove this functionality in future
 	if remove_micropeaks:
+		raise Warning("This functionality is deprecated and will be removed soon")
+		# small realization of ommiting data marked as False
+		remove_micropeaks_func = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
+
 		diff = 0.02 # the lowest difference between two points value which means micro-changing
 		# per slice
 		for slice_index in range(len(slices_min_value)):
@@ -124,9 +140,9 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, st
 					maxes_bool[max_i] = False
 					mins_bool[min_i] = False
 				# but if the current points has the 3ms difference with the next point, remark the current as True
-				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (3 / step):
+				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (1 / sim_step):
 					mins_bool[min_i] = True
-				if abs(maxes_time[max_i + 1] - maxes_time[max_i]) > (3 / step):
+				if abs(maxes_time[max_i + 1] - maxes_time[max_i]) > (1 / sim_step):
 					maxes_bool[max_i] = True
 				# change indexes (walking by pair: min-max, max-min, min-max...)
 				if max_i == min_i:
@@ -243,6 +259,7 @@ def find_ees_indexes(stim_indexes, datas):
 def calc_amplitudes(datas, latencies):
 	"""
 	Function for calculating amplitudes
+
 	Args:
 		datas (list of list):
 			includes min/max time min/max value for each slice
@@ -388,10 +405,10 @@ def __process(voltages, stim_indexes, step, debugging):
 		list: latencies -- latency per slice
 		list: amplitudes -- amplitude per slice
 	"""
-	mins_maxes = calc_max_min(stim_indexes, voltages, step)
+	mins_maxes = calc_max_min(stim_indexes, voltages)
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
 	norm_voltages = normalization(voltages, zero_relative=True)
-	mins_maxes = calc_max_min(ees_indexes, norm_voltages, step, stim_corr=stim_indexes)
+	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
 	latencies = find_latencies(mins_maxes, step, norm_to_ms=True)
 	amplitudes = calc_amplitudes(mins_maxes, latencies)
 
@@ -404,6 +421,7 @@ def __process(voltages, stim_indexes, step, debugging):
 def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
+
 	Args:
 		voltages_and_stim (list):
 			 voltages data and EES stim indexes
@@ -412,8 +430,7 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 		debugging (bool):
 			If True -- plot all found variables for debugging them
 	Returns:
-		list: bio_lat -- latencies per slice
-		list: bio_amp -- amplitudes per slice
+		tuple: bio_lat, bio_amp -- latencies and amplitudes per slice
 	"""
 	# form EES stimulations indexes (use only from 0 to slice_numbers + 1)
 	stim_indexes = voltages_and_stim[k_bio_stim][:slice_numbers + 1]
@@ -430,14 +447,14 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 def sim_process(voltages, debugging=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
+
 	Args:
 		voltages (list):
 			 voltages data
 		debugging (bool):
 			If True -- plot all found variables for debugging them
 	Returns:
-		list: sim_lat -- latencies per slice
-		list: sim_amp -- amplitudes per slice
+		tuple: sim_lat, sim_amp -- latencies and amplitudes per slice
 	"""
 	# form EES stimulations indexes (in simulators begin from 0)
 	stim_indexes = list(range(0, len(voltages), int(25 / sim_step)))
@@ -450,14 +467,15 @@ def sim_process(voltages, debugging=False):
 def find_mins(data_array, matching_criteria=None):
 	"""
 	Function for finding the minimal extrema in the data
+
 	Args:
 		data_array (list):
 			data what is needed to find mins in
 		matching_criteria (int or float or None):
 			number less than which min peak should be to be considered as the start of a new slice
 	Returns:
-		list: min_elems -- values of the starts of new slice
-		list: indexes -- indexes of the starts of new slice
+		tuple: min_elems -- values of the starts of new slice
+		       indexes -- indexes of the starts of new slice
 	"""
 	indexes = []
 	min_elems = []
