@@ -8,6 +8,7 @@ def normalization(data, a=0, b=1, zero_relative=False):
 	"""
 	Normalization in [a, b] interval
 	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
+
 	Args:
 		data (list):
 			data for normalization
@@ -39,6 +40,7 @@ def normalization(data, a=0, b=1, zero_relative=False):
 def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, stim_corr=None):
 	"""
 	Function for finding min/max extrema
+
 	Args:
 		slices_start_time (list or range):
 			list of slices start times
@@ -48,6 +50,8 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, st
 			step size of data recording
 		remove_micropeaks (optional or bool):
 			True - if need to remove micro peaks (<0.02 mV of normalized data)
+		stim_corr (list):
+			EES stimulation indexes for correction the time of found min/max points (to be relative from EES stim)
 	Returns:
 		(list): slices_max_time
 		(list): slices_max_value
@@ -141,6 +145,7 @@ def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False, st
 def find_latencies(mins_maxes, step, norm_to_ms=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
+
 	Args:
 		mins_maxes (list of list):
 			0 max times by slices
@@ -214,6 +219,7 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 def find_ees_indexes(stim_indexes, datas):
 	"""
 	Function for finding the indexes of the EES mono-answer in borders formed by stimulations time
+
 	Args:
 		stim_indexes (list):
 			indexes of the EES stimulations
@@ -268,6 +274,7 @@ def calc_amplitudes(datas, latencies):
 def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
 	"""
 	Temporal function for visualization of preprocessed data
+
 	Args:
 		voltages (list):
 			voltage data
@@ -364,40 +371,78 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 
 
 
-def bio_process(bio, slice_numbers, debugging=False):
-	# get bio voltages and EES stimulations from the argument
-	bio_stim_indexes = bio[k_bio_stim][:slice_numbers + 1]
-	# remove unescesary data
-	bio_voltages = bio[k_bio_volt][:bio_stim_indexes[-1]]
-	# get the min/max extrema based on stimulation indexes
-	bio_datas = calc_max_min(bio_stim_indexes, bio_voltages, bio_step)
-	# find EES answers basing on min/max extrema
-	bio_ees_indexes = find_ees_indexes(bio_stim_indexes[:-1], bio_datas)
-	# normalize data
-	norm_bio_voltages = normalization(bio_voltages, zero_relative=True)
-	# get the min/max extrema based on EES answers indexes (because we need the data after 25ms of the slice)
-	bio_datas = calc_max_min(bio_ees_indexes, norm_bio_voltages, bio_step, stim_corr=bio_stim_indexes)
-	# get the latencies and amplitudes based on min/max extrema
-	bio_lat = find_latencies(bio_datas, bio_step, norm_to_ms=True)
-	bio_amp = calc_amplitudes(bio_datas, bio_lat)
+def __process(voltages, stim_indexes, step, debugging):
+	"""
+	Unified functionality for finding latencies and amplitudes
+
+	Args:
+		voltages (list):
+			voltage data
+		stim_indexes (list):
+			EES stimulations indexes
+		step (float):
+			step size of data
+		debugging (bool):
+			If True -- plot all found variables for debugging them
+	Returns:
+		list: latencies -- latency per slice
+		list: amplitudes -- amplitude per slice
+	"""
+	mins_maxes = calc_max_min(stim_indexes, voltages, step)
+	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
+	norm_voltages = normalization(voltages, zero_relative=True)
+	mins_maxes = calc_max_min(ees_indexes, norm_voltages, step, stim_corr=stim_indexes)
+	latencies = find_latencies(mins_maxes, step, norm_to_ms=True)
+	amplitudes = calc_amplitudes(mins_maxes, latencies)
 
 	if debugging:
-		debug(bio_voltages, bio_datas, bio_stim_indexes, bio_ees_indexes, bio_lat, bio_amp, bio_step)
+		debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
+
+	return latencies, amplitudes
+
+
+def bio_process(voltages_and_stim, slice_numbers, debugging=False):
+	"""
+	Find latencies in EES mono-answer borders and amplitudes relative from zero
+	Args:
+		voltages_and_stim (list):
+			 voltages data and EES stim indexes
+		slice_numbers (int):
+			number of slices which we need to use in comparing with simulation data
+		debugging (bool):
+			If True -- plot all found variables for debugging them
+	Returns:
+		list: bio_lat -- latencies per slice
+		list: bio_amp -- amplitudes per slice
+	"""
+	# form EES stimulations indexes (use only from 0 to slice_numbers + 1)
+	stim_indexes = voltages_and_stim[k_bio_stim][:slice_numbers + 1]
+	# remove unescesary voltage data by the last EES stimulation index
+	voltages = voltages_and_stim[k_bio_volt][:stim_indexes[-1]]
+	# remove the last EES stimulation (it's useless value)
+	stim_indexes = stim_indexes[:-1]
+	# calculate the latencies and amplitudes
+	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging)
 
 	return bio_lat, bio_amp
 
 
-def sim_process(data, debugging=False):
-	sim_stim_indexes = list(range(0, len(data), int(25 / sim_step)))
-	mins_maxes = calc_max_min(sim_stim_indexes, data, sim_step)
-	sim_ees_indexes = find_ees_indexes(sim_stim_indexes, mins_maxes)
-	norm_nest_means = normalization(data, zero_relative=True)
-	mins_maxes = calc_max_min(sim_ees_indexes, norm_nest_means, sim_step, stim_corr=sim_stim_indexes)
-	sim_lat = find_latencies(mins_maxes, sim_step, norm_to_ms=True)
-	sim_amp = calc_amplitudes(mins_maxes, sim_lat)
-
-	if debugging:
-		debug(data, mins_maxes, sim_stim_indexes, sim_ees_indexes, sim_lat, sim_amp, sim_step)
+def sim_process(voltages, debugging=False):
+	"""
+	Find latencies in EES mono-answer borders and amplitudes relative from zero
+	Args:
+		voltages (list):
+			 voltages data
+		debugging (bool):
+			If True -- plot all found variables for debugging them
+	Returns:
+		list: sim_lat -- latencies per slice
+		list: sim_amp -- amplitudes per slice
+	"""
+	# form EES stimulations indexes (in simulators begin from 0)
+	stim_indexes = list(range(0, len(voltages), int(25 / sim_step)))
+	# calculate the latencies and amplitudes
+	sim_lat, sim_amp = __process(voltages, stim_indexes, sim_step, debugging)
 
 	return sim_lat, sim_amp
 
@@ -416,20 +461,24 @@ def find_mins(data_array, matching_criteria=None):
 	"""
 	indexes = []
 	min_elems = []
+
 	# FixMe taken from the old function find_mins_without_criteria. Why -0.5 (?)
 	if matching_criteria is None:
 		matching_criteria = -0.5
+
 	for index_elem in range(1, len(data_array) - 1):
 		if (data_array[index_elem - 1] > data_array[index_elem] <= data_array[index_elem + 1]) \
 				and data_array[index_elem] < matching_criteria:
 			min_elems.append(data_array[index_elem])
 			indexes.append(index_elem)
+
 	return min_elems, indexes
 
 
 def read_neuron_data(path):
 	"""
 	Reading hdf5 data for Neuron simulator
+
 	Args:
 		path (str):
 			path to the file
@@ -438,6 +487,7 @@ def read_neuron_data(path):
 	"""
 	with hdf5.File(path) as file:
 		neuron_means = [data[:] for data in file.values()]
+
 	return neuron_means
 
 
@@ -458,6 +508,7 @@ def read_nest_data(path):
 			first = -test_data[0]
 			# transforming to extracellular form
 			nest_data.append([-d - first for d in test_data[:]])
+
 	return nest_data
 
 
