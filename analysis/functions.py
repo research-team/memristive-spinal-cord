@@ -52,7 +52,7 @@ def calc_linear(x, y):
 	return xfit, yfit
 
 
-def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None):
+def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None, find_EES=False):
 	"""
 	Function for finding min/max extrema
 
@@ -96,14 +96,16 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 		else:
 			end = slices_start_time[slice_index]
 
+
 		sliced_values = test_data[start:end]
+		border = len(sliced_values) / 3 if find_EES else len(sliced_values)
 		datas_times = range(end - start)
 		# compare points
 		for i in range(1, len(sliced_values) - 1):
-			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
+			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1] and i < border:
 				tmp_max_time.append(datas_times[i] + offset)
 				tmp_max_value.append(sliced_values[i])
-			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
+			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1] and i < border:
 				tmp_min_time.append(datas_times[i] + offset)
 				tmp_min_value.append(sliced_values[i])
 		# append found points per slice to the 'main' lists
@@ -405,7 +407,7 @@ def __process(voltages, stim_indexes, step, debugging):
 		list: latencies -- latency per slice
 		list: amplitudes -- amplitude per slice
 	"""
-	mins_maxes = calc_max_min(stim_indexes, voltages)
+	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
 	norm_voltages = normalization(voltages, zero_relative=True)
 	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
@@ -457,9 +459,9 @@ def sim_process(voltages, debugging=False):
 		tuple: sim_lat, sim_amp -- latencies and amplitudes per slice
 	"""
 	# form EES stimulations indexes (in simulators begin from 0)
-	stim_indexes = list(range(0, len(voltages), int(25 / sim_step)))
+	stim_indexes = list(range(0, len(voltages), int(25 / gpu_step)))
 	# calculate the latencies and amplitudes
-	sim_lat, sim_amp = __process(voltages, stim_indexes, sim_step, debugging)
+	sim_lat, sim_amp = __process(voltages, stim_indexes, gpu_step, debugging)   # change the step
 
 	return sim_lat, sim_amp
 
@@ -480,6 +482,8 @@ def find_mins(data_array, matching_criteria=None):
 	indexes = []
 	min_elems = []
 
+	print(*data_array, sep="\n")
+	raise Exception
 	# FixMe taken from the old function find_mins_without_criteria. Why -0.5 (?)
 	if matching_criteria is None:
 		matching_criteria = -0.5
@@ -530,6 +534,33 @@ def read_nest_data(path):
 	return nest_data
 
 
+def read_bio_hdf5(path):
+	voltages = []
+	stimulations = []
+
+	with hdf5.File(path) as file:
+		for title, values in file.items():
+			if 'Stim' == title:
+				stimulations = values[:]
+			elif 'RMG' == title:
+				voltages = values[:]
+			else:
+				raise Exception("Out of the itles border")
+
+	indexes = []
+	ms_pause = 0
+	bio_step = 0.25
+
+	for index in range(1, len(stimulations) - 1):
+		if stimulations[index - 1] < stimulations[index] > stimulations[index + 1] and ms_pause <= 0 and stimulations[index] > 1:
+			indexes.append(index)
+			ms_pause = int(3 / bio_step)
+			print(index, stimulations[index])
+		ms_pause -= 1
+
+	return voltages, indexes
+
+
 def read_bio_data(path):
 	with open(path) as file:
 		# skipping headers of the file
@@ -549,3 +580,9 @@ def read_bio_data(path):
 	shifted_indexes = [d - indexes[0] for d in indexes]
 
 	return data_RMG, shifted_indexes
+
+
+def convert_bio_to_hdf5(voltages, stimulations, filename, path=None):
+	with hdf5.File('{}{}.hdf5'.format(path + "/" if path else "", filename), 'w') as file:
+		file.create_dataset('Stim', data=stimulations, compression="gzip")
+		file.create_dataset('RMG', data=voltages, compression="gzip")

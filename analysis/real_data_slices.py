@@ -1,6 +1,7 @@
 import numpy as np
 import pylab as plt
 import scipy.io as sio
+from analysis.functions import convert_bio_to_hdf5
 
 datas_max = []
 datas_min = []
@@ -22,28 +23,43 @@ def read_data(file_path):
 	return mat_data
 
 
-def slice_myogram(raw_data, slicing_index ='Stim'):
+def slice_myogram(raw_data, path, slicing_index='Stim'):
 	"""
 	The function to slice the data from the matlab file of myogram.
 	:param dict raw_data:  the myogram data loaded from matlab file.
 	:param str slicing_index: the index to be used as the base for slicing, default 'Stim'.
 	:return: list volt_data: the voltages array
 	:return: list slices_begin_time: the staring time of each slice array.
+
 	"""
 	# Collect data
 	volt_data = []
 	stim_data = []
 	slices_begin_time = []
+	global title
+
+
 
 	# data processing
+	title_stim = 'Stim'
+	title_rmg = 'RMG'
 	for index, data_title in enumerate(raw_data['titles']):
 		data_start = int(raw_data['datastart'][index]) - 1
 		data_end = int(raw_data['dataend'][index])
 		float_data = [round(float(x), 3) for x in raw_data['data'][0][data_start:data_end]]
-		if slicing_index not in data_title:
+		if title_rmg in data_title:
 			volt_data = float_data
-		else:
+		if title_stim in data_title:
 			stim_data = float_data
+
+	convert_bio_to_hdf5(volt_data, stim_data, path)
+
+	import h5py as hdf5
+	with hdf5.File(path + ".hdf5") as file:
+		for k,v in file.items():
+			print(k, v[:])
+
+	raise Exception
 
 	# find peaks in stimulations data
 	for index in range(1, len(stim_data) - 1):
@@ -75,10 +91,13 @@ def plot_1d(volt_data, slices_begin_time):
 
 
 def plot_by_slice(volt_data, slices_begin_time):
+	plt.plot(volt_data)
+	plt.show()
 	for index, slice_begin_time in enumerate(slices_begin_time[:-1]):
 		start_time = int(slice_begin_time * 4)
-		plt.plot([x / 4 for x in range(100)],
-		         [volt + 2.5 * index  for volt in volt_data[start_time:start_time + 100]],
+		y = volt_data[start_time:start_time + 100]
+		plt.plot([x / 4 for x in range(len(y))],
+		         [volt + 2.5 * index  for volt in y],
 		         color='gray')
 	plt.xlim(0, 25)
 	plt.xticks(np.arange(0, 26), np.arange(0, 26))

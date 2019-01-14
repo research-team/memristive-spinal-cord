@@ -73,9 +73,10 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 
 def run():
 	# get data
-	nest_tests = read_nest_data('/home/alex/nest_21cms.hdf5')
-	neuron_tests = read_neuron_data('/home/alex/neuron_21cms.hdf5')
+	nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s21cms_T.hdf5')
+	neuron_tests = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
 	# the main loop of simulations data
+	# print(nest_tests)
 	for sim_datas in [nest_tests, neuron_tests]:
 		latencies = []
 		amplitudes = []
