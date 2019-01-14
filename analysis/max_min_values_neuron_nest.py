@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as plt
+from analysis.functions import *
 from collections import defaultdict
 from analysis.real_data_slices import read_data, slice_myogram, plot_1d, plot_by_slice
 
@@ -265,103 +266,6 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 		plt.close()
 
 	return slices_max_time, slices_min_time
-
-
-def calc_max_min(slices_start_time, test_data, step, remove_micropeaks=False):
-	"""
-	Function for finding min/max extrema
-	Args:
-		slices_start_time (list or range):
-			list of slices start times
-		test_data (list):
-			list of data for processing
-		step (float):
-			step size of data recording
-		remove_micropeaks (optional or bool):
-			True - if need to remove micro peaks (<0.02 mV of normalized data)
-	Returns:
-		(list): slices_max_time
-		(list): slices_max_value
-		(list): slices_min_time
-		(list): slices_min_value
-	"""
-
-	slices_max_time = []
-	slices_max_value = []
-	slices_min_time = []
-	slices_min_value = []
-
-	for slice_index in range(1, len(slices_start_time) + 1):
-		tmp_max_time = []
-		tmp_min_time = []
-		tmp_max_value = []
-		tmp_min_value = []
-
-		start = slices_start_time[slice_index - 1]
-		if slice_index == len(slices_start_time):
-			end = len(test_data)
-		else:
-			end = slices_start_time[slice_index]
-
-		sliced_values = test_data[start:end]
-		datas_times = range(end - start)
-		# compare points
-		for i in range(1, len(sliced_values) - 1):
-			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
-				tmp_max_time.append(datas_times[i])
-				tmp_max_value.append(sliced_values[i])
-			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
-				tmp_min_time.append(datas_times[i])
-				tmp_min_value.append(sliced_values[i])
-		# append found points per slice to the 'main' lists
-		slices_max_time.append(tmp_max_time)
-		slices_max_value.append(tmp_max_value)
-		slices_min_time.append(tmp_min_time)
-		slices_min_value.append(tmp_min_value)
-
-	# small realization of ommiting data marked as False
-	remove_micropeaks_func = lambda datas, booleans: [data for data, boolean in zip(datas, booleans) if boolean]
-
-	# realization of removing micro-peaks from the min/max points
-	if remove_micropeaks:
-		diff = 0.02 # the lowest difference between two points value which means micro-changing
-		# per slice
-		for slice_index in range(len(slices_min_value)):
-			max_i = 0
-			min_i = 0
-			len_max = len(slices_max_time[slice_index])
-			len_min = len(slices_min_time[slice_index])
-			# init by bool the tmp lists for marking points
-			maxes_bool = [True] * len_max
-			mins_bool = [True] * len_min
-			# just simplification
-			maxes_val = slices_max_value[slice_index]
-			mins_val = slices_min_value[slice_index]
-			maxes_time = slices_max_time[slice_index]
-			mins_time = slices_min_time[slice_index]
-
-			while (max_i < len_max - 1) and (min_i < len_min - 1):
-				# if points have small differnece mark them as False
-				if abs(maxes_val[max_i] - mins_val[min_i]) < diff:
-					maxes_bool[max_i] = False
-					mins_bool[min_i] = False
-				# but if the current points has the 3ms difference with the next point, remark the current as True
-				if abs(mins_time[min_i + 1] - mins_time[min_i]) > (3 / step):
-					mins_bool[min_i] = True
-				if abs(maxes_time[max_i + 1] - maxes_time[max_i]) > (3 / step):
-					maxes_bool[max_i] = True
-				# change indexes (walking by pair: min-max, max-min, min-max...)
-				if max_i == min_i:
-					max_i += 1
-				else:
-					min_i += 1
-			# ommit the data marked as False
-			slices_max_value[slice_index] = remove_micropeaks_func(maxes_val, maxes_bool)
-			slices_max_time[slice_index] = remove_micropeaks_func(maxes_time, maxes_bool)
-			slices_min_value[slice_index] = remove_micropeaks_func(mins_val, mins_bool)
-			slices_min_time[slice_index] = remove_micropeaks_func(mins_time, mins_bool)
-
-	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
 def plot(real_results, NEST_results, NEURON_results):
