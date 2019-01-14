@@ -53,13 +53,11 @@ def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
 	if not with_afferent:
 		slice_indexes = range(slice_numbers)
 		for slice_index in slice_indexes:
-			# print("slice_index = ", slice_index)
 			flag = True
 			slice_times = datas[2][slice_index]
 			slice_values = datas[3][slice_index]
 			additional_border = 0
 			while flag:
-				# print(additional_border)
 				# set latencies borders for several layers
 				# in the first two slices the poly-answer everytime located before the first half of 25ms
 				if slice_index in slice_indexes[:int(slice_numbers / 6 * 2)]:
@@ -77,19 +75,14 @@ def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
 				else:
 					border_left = 5 - additional_border
 					border_right = 20 + additional_border
-				# print("slice_times = ", slice_times)
 				left = border_left / step if border_left / step >= 0 else 0
 				right = border_right / step if border_right / step <= 25 / step else 25 / step
 				found_points = [v for i, v in enumerate(slice_values) if
 				                left <= slice_times[i] <= right]
-				# print("left = ", left)
-				# print("right = ", right)
-				# print(found_points)
 				# find the minimal one of points which located in the current interval
 				# get the index of this element
 				if len(found_points):
 					minimal_val_in_border = min(found_points)
-					# print("hey")
 					index_of_val = slice_values.index(minimal_val_in_border)
 					latencies.append(slice_times[index_of_val])
 					flag = False
@@ -108,7 +101,7 @@ def find_latencies(datas, step, with_afferent=False, norm_to_ms=False):
 	return latencies
 
 
-def find_mins(data_array, matching_criteria=None):
+def find_mins(data_array, matching_criteria):
 	"""
 	Function for finding the minimal extrema in the data
 	Args:
@@ -124,13 +117,18 @@ def find_mins(data_array, matching_criteria=None):
 	min_elems = []
 	# FixMe taken from the old function find_mins_without_criteria. Why -0.5 (?)
 	if matching_criteria is None:
-		matching_criteria = -0.5
+		matching_criteria = -0.5    # later was -0.5 # this number is taken from the stim values in the file
 	for index_elem in range(1, len(data_array) - 1):
+		# print("all", data_array[index_elem] )
 		if (data_array[index_elem - 1] > data_array[index_elem] <= data_array[index_elem + 1]) \
 				and data_array[index_elem] < matching_criteria:
+			# print(index_elem)
+			# print(data_array[index_elem] )
 			min_elems.append(data_array[index_elem])
 			indexes.append(index_elem)
+	# print(indexes)
 	return min_elems, indexes
+
 
 def read_NEST_data(path):
 	nest_means_dict = {}
@@ -172,6 +170,7 @@ def read_neuron_data(path):
 		neuron_means = [data[:] for data in file.values()]
 	return neuron_means
 
+
 def read_nest_data(path):
 	"""
 	FixMe merge with read_neuron_data (!),
@@ -204,7 +203,7 @@ def list_to_dict(inputing_dict):
 	return returning_list
 
 
-def read_bio_data(path):
+def read_bio_data(path, matching_criteria):
 	with open(path) as file:
 		# skipping headers of the file
 		for i in range(6):
@@ -214,9 +213,11 @@ def read_bio_data(path):
 		grouped_elements_by_column = list(zip(*reader))
 		# avoid of NaN data
 		raw_data_RMG = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[2]]
-		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]
+		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]  # was [7] for the old data and[5] for the new
 	# preprocessing: finding minimal extrema an their indexes
-	mins, indexes = find_mins(data_stim)
+	# print("data_stim = ", data_stim)
+	mins, indexes = find_mins(data_stim, matching_criteria)
+	# print(indexes)
 	# remove raw data before the first EES and after the last (slicing)
 	data_RMG = raw_data_RMG[indexes[0]:indexes[-1]]
 	# shift indexes to be normalized with data RMG (because a data was sliced) by value of the first EES

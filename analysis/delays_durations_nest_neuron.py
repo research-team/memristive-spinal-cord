@@ -11,6 +11,7 @@ from analysis.max_min_values_neuron_nest import calc_max_min
 import matplotlib.patches as mpatches
 # from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from analysis.hystograms_latency_amplitude import processing_data, calc_amplitudes, debug
+import statistics
 neuron_dict = {}
 
 
@@ -111,14 +112,21 @@ bio_step = 0.25
 sim_step = 0.025
 
 neuron_tests = read_NEURON_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
-print("neuron_tests = ", type(neuron_tests))
+# print("neuron_tests = ", type(neuron_tests))
 nest_tests = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
 
-bio = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt')
+bio = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt', matching_criteria=None)
 bio_voltages = bio[k_bio_volt]
 bio_stim_indexes = bio[k_bio_stim][:-1]
+plt.plot(bio_voltages)
+for sl in bio_stim_indexes:
+	plt.axvline(x=sl, linestyle='--', color='gray')
+plt.show()
+print(bio_voltages)
 bio_datas = calc_max_min(bio_stim_indexes, bio_voltages, bio_step)
 # find EES answers basing on min/max extrema
+print(bio_stim_indexes)
+print(bio_datas)
 bio_ees_indexes = find_ees_indexes(bio_stim_indexes, bio_datas)
 # remove unnesesary bio data (after the last EES answer)
 # normalize data
@@ -129,7 +137,7 @@ bio_datas = calc_max_min(bio_ees_indexes, bio_voltages, bio_step, remove_micrope
 bio_lat = find_latencies(bio_datas, bio_step, norm_to_ms=True)
 
 neuron_list = list_to_dict(neuron_tests)
-print("neuron_list = ", neuron_list)
+# print("neuron_list = ", neuron_list)
 slice_numbers = int(len(neuron_list[0]) * sim_step // 25)
 bio_voltages = bio_voltages[:bio_ees_indexes[slice_numbers]]
 bio_ees_indexes = bio_ees_indexes[:slice_numbers]
@@ -238,8 +246,31 @@ for sl in range(len(nest_amp[0])):
 		# print("dot = ", dot)
 		amplitudes_all_runs_nest_tmp.append(nest_amp[dot][sl])
 	amplitudes_all_runs_nest.append(amplitudes_all_runs_nest_tmp)
-print("amplitudes_all_runs_nest = ", amplitudes_all_runs_nest)
-
+# print("amplitudes_all_runs_nest = ", amplitudes_all_runs_nest)
+expected_value = []
+std = []
+for dot in amplitudes_all_runs_neuron:
+	print("dot = ", dot)
+	expected_value_tmp = statistics.mean(dot)
+	std_tmp = statistics.stdev(dot)
+	expected_value.append(expected_value_tmp)
+	std.append(std_tmp)
+print("expected_value = ", expected_value)
+print("std = ", std)
+amplitudes_all_runs_neuron_3sigma = []
+amplitudes_all_runs_neuron_dot_3sigma = []
+for dot in range(len(amplitudes_all_runs_neuron)):
+	print("len(dot) = ", len(amplitudes_all_runs_neuron[dot]))
+	for i in amplitudes_all_runs_neuron[dot]:
+		# print("expected_value[dot] - 3 * std[dot]  = ", expected_value[dot] - 3 * std[dot])
+		# print("expected_value[dot] + 3 * std[dot] = ", expected_value[dot] + 3 * std[dot])
+		# print("i = ", i)
+		if (expected_value[dot] - 3 * std[dot]) < i < (expected_value[dot] + 3 * std[dot]):
+			# print("*")
+			amplitudes_all_runs_neuron_dot_3sigma.append(i)
+	print(len(amplitudes_all_runs_neuron_dot_3sigma))
+	amplitudes_all_runs_neuron_3sigma.append(amplitudes_all_runs_neuron_dot_3sigma)
+print("amplitudes_all_runs_neuron_3sigma = ", amplitudes_all_runs_neuron_3sigma)
 time = []
 for i in range(len(nest_means_amp)):
     time.append(i)
@@ -250,7 +281,7 @@ for dot in range(len(latencies_all_runs_nest)):
     for l in range(len(latencies_all_runs_nest[dot])):
         times_tmp.append(dot)
     times_nest.append(times_tmp)
-print("len(times_nest) = ", len(times_nest[0]))
+# print("len(times_nest) = ", len(times_nest[0]))
 for dot in range(len(latencies_all_runs_neuron)):
     times_tmp = []
     for l in range(len(latencies_all_runs_neuron[dot])):
@@ -402,7 +433,6 @@ for dot in range(len(latencies_all_runs_nest)):
     ax.add_collection3d(plt.fill_between(y_neuron, z_neuron, min(z_neuron), color='purple', alpha=0.3,
                                          label="filled plot"),
                         x_neuron[dot], zdir='x')
-
     ax.plot(times_convex_nest[dot],
             latencies_convex_nest[dot],
             amplitudes_convex_nest[dot],
@@ -413,7 +443,7 @@ for dot in range(len(latencies_all_runs_nest)):
 for dot in range(len(latencies_all_runs_neuron)):
     ax.plot(times_convex_neuron[dot], latencies_convex_neuron[dot], amplitudes_convex_neuron[dot], color='purple',
             alpha=0.3)
-    ax.plot(times_neuron[dot], latencies_convex_neuron[dot], amplitudes_convex_neuron[dot], '.', color='purple',
+    ax.plot(times_neuron[dot], latencies_all_runs_neuron[dot], amplitudes_all_runs_neuron[dot], '.', color='purple',
             alpha=0.7)
 nest_clouds_patch = mpatches.Patch(color='green', label='nest clouds')
 neuron_clouds_patch = mpatches.Patch(color='purple', label='neuron clouds')

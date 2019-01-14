@@ -180,8 +180,8 @@ def calc_amplitudes(datas, latencies):
 	return amplitudes
 
 
-# def processing_data(bio, nest_tests, neuron_tests):
-def processing_data(bio, nest_tests):
+def processing_data(bio, nest_tests, neuron_tests):
+# def processing_data(bio, nest_tests):
 # def processing_data(nest_tests, neuron_tests):
 	"""
 	Function for demonstrating latencies/amplutudes for each simulator and the bio data
@@ -232,8 +232,8 @@ def processing_data(bio, nest_tests):
 	nest_datas = calc_max_min(sim_stim_indexes, nest_means, sim_step)
 
 
-	print("sim_stim_indexes = ", sim_stim_indexes)
-	print("nest_means = ", nest_means)
+	# print("sim_stim_indexes = ", sim_stim_indexes)
+	# print("nest_means = ", nest_means)
 	nest_ees_indexes = find_ees_indexes(sim_stim_indexes, nest_datas)
 	norm_nest_means = normalization(nest_means, zero_relative=True)
 	nest_datas = calc_max_min(nest_ees_indexes, norm_nest_means, sim_step, remove_micropeaks=True)
@@ -349,12 +349,12 @@ def draw_lat_amp(bio_pack, nest_pack, plot_delta=False):
 
 
 def run():
-	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
+	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt', matching_criteria=None)
 	nest_tests = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
 	neuron_tests = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
 
 	# bio_pack, nest_pack, neuron_pack = processing_data(bio, nest_tests, neuron_tests)
-	bio_pack, nest_pack = processing_data(bio, nest_tests)
+	bio_pack, nest_pack = processing_data(bio, nest_tests, neuron_tests)
 	# nest_pack, neuron_pack = processing_data(nest_tests, neuron_tests)
 	# bio_pack[2] = [round(i, 3) for i in bio_pack[2]]
 	# print(bio_pack)
