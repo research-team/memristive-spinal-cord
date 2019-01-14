@@ -1,16 +1,24 @@
 import numpy as np
 import pylab as plt
+from analysis.functions import *
 from collections import defaultdict
-
 from analysis.real_data_slices import read_data, slice_myogram, plot_1d, plot_by_slice
 
 test_number = 25
-nest_sim_step = 0.1
+nest_sim_step = 0.025
 neuron_sim_step = 0.025
 real_data_step = 0.25
 
 
 def read_data_NEST(file_path):
+	"""
+
+	Args:
+		file_path:
+
+	Returns:
+
+	"""
 	tests_nest = {k: {} for k in range(test_number)}
 	for test_index in range(test_number):
 		nrns_nest = set()
@@ -28,9 +36,16 @@ def read_data_NEST(file_path):
 
 
 def read_data_NEURON(filepath):
+	"""
+
+	Args:
+		filepath:
+
+	Returns:
+
+	"""
 	tests_neuron = {k: {} for k in range(test_number)}
 	V_to_uV = 1000000
-	# ToDo calculate neuron number by uniq file names
 	neuron_number = 169
 	for test_index in range(test_number):
 		for neuron_id in range(neuron_number):
@@ -40,14 +55,19 @@ def read_data_NEURON(filepath):
 					if time not in tests_neuron[test_index].keys():
 						tests_neuron[test_index][time] = 0
 					tests_neuron[test_index][time] += (value * 10 ** 7) / neuron_number
-	# for test_index, test_data in tests_neuron.items():
-	# 	print(test_index)
-	# 	for time, values in test_data.items():
-	# 		print("\t", time, values)
 	return tests_neuron
 
 
 def calc_NEURON(data, debug_show=False):
+	"""
+
+	Args:
+		data:
+		debug_show:
+
+	Returns:
+
+	"""
 	neuron_tests = []
 	offset = 1000
 	prev_additional_step = 1
@@ -64,7 +84,7 @@ def calc_NEURON(data, debug_show=False):
 	slice_begin_ticks = defaultdict(list)
 	for test_index, test_data in enumerate(neuron_tests):
 		for begin in range(len(test_data))[::offset]:
-			EES_value = max(test_data[begin+140:begin+200])  # remove over 70 ms to find EES
+			EES_value = max(test_data[begin + 140:begin + 200])  # remove over 70 ms to find EES
 			slice_begin_ticks[test_index].append(test_data.index(EES_value))
 	for test_index, test_data in enumerate(neuron_tests):
 		start = slice_begin_ticks[0][0] - prev_additional_step
@@ -79,7 +99,7 @@ def calc_NEURON(data, debug_show=False):
 			# search min/max
 			for i in range(1, len(sliced_values) - 1):
 				if sliced_values[i - 1] < sliced_values[i] > sliced_values[i + 1]:
-					tmp_max_time.append(round(datas_times[i] * neuron_sim_step, 3))   # with normalization to 1 ms
+					tmp_max_time.append(round(datas_times[i] * neuron_sim_step, 3))  # with normalization to 1 ms
 					tmp_max_value.append(sliced_values[i])
 				if sliced_values[i - 1] > sliced_values[i] < sliced_values[i + 1]:
 					tmp_min_time.append(round(datas_times[i] * neuron_sim_step, 3))  # with normalization to 1 ms
@@ -106,11 +126,15 @@ def calc_NEURON(data, debug_show=False):
 			for slice_index, _ in extremum_max_points_times[test_index].items():
 				x = extremum_max_points_times[test_index][slice_index]
 				y = extremum_max_points_values[test_index][slice_index]
-				plt.plot([o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o in x], y, ".", color="r")
+				plt.plot(
+					[o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o
+					 in x], y, ".", color="r")
 			for slice_index, _ in extremum_min_points_times[test_index].items():
 				x = extremum_min_points_times[test_index][slice_index]
 				y = extremum_min_points_values[test_index][slice_index]
-				plt.plot([o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o in x], y, ".", color="b")
+				plt.plot(
+					[o / neuron_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - prev_additional_step) for o
+					 in x], y, ".", color="b")
 			plt.show()
 		plt.close()
 
@@ -118,6 +142,15 @@ def calc_NEURON(data, debug_show=False):
 
 
 def calc_NEST(data, debug_show=False):
+	"""
+
+	Args:
+		data:
+		debug_show:
+
+	Returns:
+
+	"""
 	nest_tests = []
 	offset = 250
 
@@ -137,7 +170,7 @@ def calc_NEST(data, debug_show=False):
 			slice_begin_ticks[test_index].append(test_data.index(EES_value))
 
 	for test_index, test_data in enumerate(nest_tests):
-		start = slice_begin_ticks[0][0] - 10    # remove 10 if you want calculate without EES
+		start = slice_begin_ticks[0][0] - 10  # remove 10 if you want calculate without EES
 		for slice_index in range(len(slice_begin_ticks[0])):
 			tmp_max_time = []
 			tmp_min_time = []
@@ -149,7 +182,7 @@ def calc_NEST(data, debug_show=False):
 			# search min/max
 			for i in range(1, len(sliced_values) - 1):
 				if sliced_values[i - 1] < sliced_values[i] > sliced_values[i + 1]:
-					tmp_max_time.append(round(datas_times[i] * nest_sim_step, 3))   # with normalization to 1 ms
+					tmp_max_time.append(round(datas_times[i] * nest_sim_step, 3))  # with normalization to 1 ms
 					tmp_max_value.append(sliced_values[i])
 				if sliced_values[i - 1] > sliced_values[i] < sliced_values[i + 1]:
 					tmp_min_time.append(round(datas_times[i] * nest_sim_step, 3))  # with normalization to 1 ms
@@ -176,11 +209,13 @@ def calc_NEST(data, debug_show=False):
 			for slice_index, _ in extremum_max_points_times[test_index].items():
 				x = extremum_max_points_times[test_index][slice_index]
 				y = extremum_max_points_values[test_index][slice_index]
-				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="r")
+				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".",
+				         color="r")
 			for slice_index, _ in extremum_min_points_times[test_index].items():
 				x = extremum_min_points_times[test_index][slice_index]
 				y = extremum_min_points_values[test_index][slice_index]
-				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".", color="b")
+				plt.plot([o / nest_sim_step + offset * slice_index + (slice_begin_ticks[0][0] - 10) for o in x], y, ".",
+				         color="b")
 			plt.show()
 		plt.close()
 
@@ -190,10 +225,13 @@ def calc_NEST(data, debug_show=False):
 def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	"""
 
-	:param volt_data:
-	:param slices_begin_time:
-	:param debug_show:
-	:return: slices_max_time = {time, value}, slices_min_time = {time, value}
+	Args:
+		volt_data:
+		slices_begin_time:
+		debug_show:
+
+	Returns:
+
 	"""
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
 	real_max_min = calc_max_min(slices_begin_time, volt_data, real_data_step)
@@ -219,8 +257,8 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 		plt.suptitle("REAL 40Hz (slow) Extensor (0.25 ms step)")
 		plt.plot([x / 4 for x in range(len(volt_data))], volt_data, color="gray")
 		for slice_num in range(0, 6):
-			plt.plot([(x + slice_num * 25) for x in slices_max_time[slice_num+1]],
-			         slices_max_value[slice_num+1], ".", color='red')
+			plt.plot([(x + slice_num * 25) for x in slices_max_time[slice_num + 1]],
+			         slices_max_value[slice_num + 1], ".", color='red')
 			plt.plot([(x + slice_num * 25) for x in slices_min_time[slice_num + 1]],
 			         slices_min_value[slice_num + 1], ".", color='blue')
 		plt.xlim(0, 150)
@@ -230,56 +268,16 @@ def calc_real_data(volt_data, slices_begin_time, debug_show=False):
 	return slices_max_time, slices_min_time
 
 
-def calc_max_min(slices_start_time, test_data, data_step):
-	"""
-    Function to collect minimums and maximums based on voltages of myograms.
-	:param slices_start_time: array of slices start times
-	:param list test_data: list of data for processing myograms from matlab. (In our case, Lavrov data)
-	:param float data_step: step with which data is recorded. in our case, data_step = 0.25
-	:return: slices_max_time = {slice_index, time}
-	:return: slices_max_value = {slice_index, value}
-	:return: slices_min_time = {slice_index, time}
-	:return: slices_min_value = {slice_index, value}
-	"""
-	datas_times = []
-	k_slice = 1
-	offset = int(slices_start_time[1] - slices_start_time[0])
-	slices_max_time = {}
-	slices_max_value = {}
-	slices_min_time = {}
-	slices_min_value = {}
-	start = 0
-	for slice_index in range(len(slices_start_time) - 1):
-		tmp_max_time = []
-		tmp_min_time = []
-		tmp_max_value = []
-		tmp_min_value = []
-		sliced_values = test_data[start:start + offset]
-		datas_times += range(start, start + offset)
-		for c in range(1, len(sliced_values) - 1):
-			if sliced_values[c - 1] < sliced_values[c] >= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_max_time.append((datas_times[c]) * data_step)
-				tmp_max_value.append(sliced_values[c])
-			if sliced_values[c - 1] > sliced_values[c] <= sliced_values[c + 1]:
-				# with normalization to 1 ms step size
-				tmp_min_time.append((datas_times[c]) * data_step)
-				tmp_min_value.append(sliced_values[c])
-
-		slices_max_time[k_slice] = tmp_max_time
-		slices_max_value[k_slice] = tmp_max_value
-		slices_min_time[k_slice] = tmp_min_time
-		slices_min_value[k_slice] = tmp_min_value
-		start += offset
-		k_slice += 1
-		sliced_values.clear()
-	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
-
 def plot(real_results, NEST_results, NEURON_results):
 	"""
-	:param tuple real_results:
-	:param tuple NEST_results:
-	:param tuple NEURON_results:
+
+	Args:
+		real_results:
+		NEST_results:
+		NEURON_results:
+
+	Returns:
+
 	"""
 	for simulator_index, extremums_data in enumerate([NEST_results, NEURON_results]):
 		simulator_name = "NEST" if simulator_index == 0 else "NEURON"
@@ -372,5 +370,7 @@ def main():
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_40Hz_RTA_one step.mat')
 	volt, slices_time = slice_myogram(raw_real_data)
 	real_results = calc_real_data(volt, slices_time, debug_show=False)
+
+
 if __name__ == "__main__":
 	main()
