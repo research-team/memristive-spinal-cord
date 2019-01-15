@@ -1,7 +1,6 @@
-/*
- * https://developer.nvidia.com/cuda-gpus
- * GeForce 840M	-- Compute Capability 5.0
- */
+#include <cstdlib>
+#include <stdio.h>
+#include <math.h>
 
 #ifdef __JETBRAINS_IDE__
 	#define __host__
@@ -10,119 +9,124 @@
 	#define __constant__
 	#define __global__
 #endif
-#include <cstdlib>
-#include <stdio.h>
-#include <math.h>
 
-__device__
-int anotherFunc(int id) {
-	return id * 100;
-}
+#define DEBUG
 
-
-class Neuron {
+struct Neuron {
 public:
-	bool has_spike = false;
+	int ref_t{};
+	bool has_spike{};
 };
-
 
 struct Synapse {
 public:
 	Neuron* post_neuron{}; // post neuron
 	Neuron* pre_neuron{}; // pre neuron
 	int syn_delay{};		 // [steps] synaptic delay. Converts from ms to steps
-	int curr_syn_delay{};		 // [steps] synaptic delay. Converts from ms to steps
+	int curr_syn_delay;		 // [steps] synaptic delay. Converts from ms to steps
 	float weight{};		 // [pA] synaptic weight
 	int timer = -1;
 };
 
+__device__
+void neuron_update(Neuron *neuron, int step_time, int thread_id) {
+	neuron->ref_t += 5;
+	#ifdef DEBUG
+		printf("S: %d, T: %d, NRN %p \n", step_time, thread_id, neuron);
+	#endif
+}
+
+__device__
+void synapse_update(Synapse *synapse, int step_time, int thread_id) {
+	synapse->curr_syn_delay += 10;
+	#ifdef DEBUG
+		printf("S: %d, T: %d, SYN %p \n", step_time, thread_id, synapse);
+	#endif
+}
 
 __global__
-void simulation_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int sim_step_time) {
+void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int block_width, int sim_step_time) {
+	// get thread ID
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int thread_id = x + y * 11;
-	if (thread_id < nrn_size) {
-		printf("thread glob : %d, thread X: %d, thread Y : %d \n", thread_id, x, y);
-		for(int step_time = 0; step_time < sim_step_time; ++step_time) {
-			printf("\t %d %d\n", step_time, thread_id);
+	int thread_id = x + y * block_width;
 
-			// wait until all threads in block have finished to this point
-			__syncthreads();
+	// main simulation loop
+	for(int step_time = 0; step_time < sim_step_time; ++step_time) {
+		// update neurons state by pointer
+		if (thread_id < nrn_size) {
+			neuron_update(&neurons[thread_id], step_time, thread_id);
 		}
+		// wait until all threads in block have finished to this point and calculated neurons state
+		__syncthreads();
 
+		// update synapses state by pointer
+		if (thread_id < syn_size) {
+			synapse_update(&synapses[thread_id], step_time, thread_id);
+		}
+		// wait until all threads in block have finished to this point and calculated synapses state
+		__syncthreads();
 	}
 }
 
 
 int main() {
 	// simulation properties
-	int neuron_number = 112;
-	int synapse_number = 10;
+	int neuron_number = 30;
+	int synapse_number = 50;
 	int sim_time = 3;
 	float step = 0.1;
 	int sim_step_time = (int)(sim_time / step);
 
-	// GPU properties
-	int thread_num = 64;
-	int blocks_num = neuron_number / thread_num;
-	if( neuron_number % thread_num)
-		blocks_num++;
-
 	// allocate memory in HOST
 	Neuron *host_neurons = new Neuron[neuron_number];
 	Synapse *host_synapses = new Synapse[synapse_number];
+	// ToDo create a vector, then convert to this type of data (array of pointers)
 
 	// allocate memory in GPU
-	Neuron *device_neurons;
-	cudaMalloc(&device_neurons, sizeof(Neuron) * neuron_number);
+	Neuron *gpu_neurons;
+	cudaMalloc(&gpu_neurons, sizeof(Neuron) * neuron_number);
 
-	Synapse *device_synapses;
-	cudaMalloc(&device_synapses, sizeof(Synapse) * synapse_number);
+	Synapse *gpu_synapses;
+	cudaMalloc(&gpu_synapses, sizeof(Synapse) * synapse_number);
 
-	// prepare data
+	// prepare neuron data
 	for (int i = 0; i < neuron_number; ++i) {
-		host_neurons[i].has_spike = true;
+		host_neurons[i].ref_t = i;
 	}
 
-	// prepare data
+	// prepare synapse data
 	for (int i = 0; i < synapse_number; ++i) {
-		host_synapses[i].curr_syn_delay = 10;
+		host_synapses[i].curr_syn_delay = i;
 	}
 
-	// copy neuron pointers to the GPU
-	cudaMemcpy(device_neurons, host_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyHostToDevice);
-	cudaMemcpy(device_synapses, host_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyHostToDevice);
+	// copy neurons/synapses array to the GPU
+	cudaMemcpy(gpu_neurons, host_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyHostToDevice);
+	cudaMemcpy(gpu_synapses, host_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyHostToDevice);
 
-	// call the GPU calculation
-	printf("N number = %d \n", neuron_number);
-	int x = (int)sqrt(neuron_number) + 1;
-	dim3 nthreads(x, x);
+	// calulate threads block size
+	int block_width = (int)sqrt(synapse_number) + 1;
+	dim3 nthreads(block_width, block_width);	// 2D-square block
 
-	simulation_GPU<<<1, nthreads>>>(device_neurons, device_synapses, neuron_number, synapse_number, sim_step_time);
+	// call the GPU calculation. <<<blocks, threads>>>
+	sim_GPU <<<1, nthreads>>>(gpu_neurons, gpu_synapses, neuron_number, synapse_number, block_width, sim_step_time);
 
-	// copy out neurons pointers to the HOST
-	cudaMemcpy(host_neurons, device_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyDeviceToHost);
-	cudaMemcpy(host_synapses, device_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyDeviceToHost);
+	// copy neurons/synapses array to the HOST
+	cudaMemcpy(host_neurons, gpu_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyDeviceToHost);
+	cudaMemcpy(host_synapses, gpu_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyDeviceToHost);
 
-	/*
-	 // copy out synapse pointers to the HOST
-	// FixMe doesn't work properly
-	for (int i = 0; i < neuron_number; ++i) {
-		Synapse *b;
-		cudaMemcpy(b, device_neurons[i].synapses, sizeof(Synapse) * 10, cudaMemcpyDeviceToHost);
-
-		host_neurons[i].synapses = b;
-	}
-
-	// DEBUGGING : show the data
-	for(int i = 0; i < neuron_number; ++i) {
-		printf("gpu [%d] = %d \n", i, host_neurons[i].tag);
-		for(int j = 0; j < 10; j++)
-			printf("%d ", host_neurons[i].synapses[j].a);
-		printf("\n");
-	}
-	 */
+	#ifdef DEBUG
+		printf("\n---- D E B U G G I N G ----\n");
+		// all nrn
+		for (int i = 0; i < neuron_number; ++i) {
+			printf("DEB NRN: i %d = %d \n", i, host_neurons[i].ref_t);
+		}
+		printf("\n--------\n");
+		// all syn
+		for (int i = 0; i < synapse_number; ++i) {
+			printf("DEB SYN: i %d = %d \n", i, host_synapses[i].curr_syn_delay);
+		}
+	#endif
 
 	return 0;
 }
