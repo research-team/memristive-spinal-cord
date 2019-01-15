@@ -96,7 +96,6 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 		else:
 			end = slices_start_time[slice_index]
 
-
 		sliced_values = test_data[start:end]
 		border = len(sliced_values) / 3 if find_EES else len(sliced_values)
 		datas_times = range(end - start)
@@ -223,7 +222,10 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 				additional_border += 1
 
 			if additional_border > 25:
-				raise Exception("Error, out of borders")
+				# FixMe
+				latencies.append(-999)
+				break
+				# FixMe raise Exception("Error, out of borders")
 
 	# checking on errors
 	if len(latencies) != slice_numbers:
@@ -279,10 +281,14 @@ def calc_amplitudes(datas, latencies):
 		mins_v = datas[k_min_val][slice_index]
 		mins_t = datas[k_min_time][slice_index]
 
-		max_amp_in_maxes = max([abs(m) for index, m in enumerate(maxes_v) if maxes_t[index] >= latencies[slice_index]])
-		max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
+		if mins_v:
+			max_amp_in_maxes = max([abs(m) for index, m in enumerate(maxes_v) if maxes_t[index] >= latencies[slice_index]])
+			max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
 
-		amplitudes.append(max([max_amp_in_maxes, max_amp_in_mins]))
+			amplitudes.append(max([max_amp_in_maxes, max_amp_in_mins]))
+		else:
+			# FixMe
+			amplitudes.append(-999)
 
 	if len(amplitudes) != slice_numbers:
 		raise Exception("Length of amplitudes must be equal to slice numbers!")
@@ -376,7 +382,8 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 		for i in ees_indexes:
 			plt.axvline(x=i, color='r')
 		# plot amplitudes by the horizontal line
-		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat, alpha=0.7, zorder=2)
+		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat,
+		        alpha=0.7, zorder=2)
 		for slice_index in slice_indexes:
 			x = ees_indexes[slice_index] + ees_indexes[0] - 5 / 2
 			y = amplitudes[slice_index]
@@ -387,7 +394,6 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.xlim(0, 150)
 	plt.show()
 	plt.close()
-
 
 
 def __process(voltages, stim_indexes, step, debugging):
@@ -446,7 +452,7 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 	return bio_lat, bio_amp
 
 
-def sim_process(voltages, debugging=False):
+def sim_process(voltages, step, debugging=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
 
@@ -459,14 +465,14 @@ def sim_process(voltages, debugging=False):
 		tuple: sim_lat, sim_amp -- latencies and amplitudes per slice
 	"""
 	# form EES stimulations indexes (in simulators begin from 0)
-	stim_indexes = list(range(0, len(voltages), int(25 / gpu_step)))
+	stim_indexes = list(range(0, len(voltages), int(25 / step)))
 	# calculate the latencies and amplitudes
-	sim_lat, sim_amp = __process(voltages, stim_indexes, gpu_step, debugging)   # change the step
+	sim_lat, sim_amp = __process(voltages, stim_indexes, step, debugging)   # change the step
 
 	return sim_lat, sim_amp
 
 
-def find_mins(data_array, matching_criteria=None):
+def find_mins(data_array): # matching_criteria was None
 	"""
 	Function for finding the minimal extrema in the data
 
@@ -482,17 +488,21 @@ def find_mins(data_array, matching_criteria=None):
 	indexes = []
 	min_elems = []
 
-	print(*data_array, sep="\n")
-	raise Exception
+	# print(*data_array, sep="\n")
+	# raise Exception
 	# FixMe taken from the old function find_mins_without_criteria. Why -0.5 (?)
-	if matching_criteria is None:
-		matching_criteria = -0.5
+	ms_pause = 0
+	data_array = [abs(d) for d in data_array]
 
 	for index_elem in range(1, len(data_array) - 1):
-		if (data_array[index_elem - 1] > data_array[index_elem] <= data_array[index_elem + 1]) \
-				and data_array[index_elem] < matching_criteria:
+		# print(data_array[index_elem])
+		if (data_array[index_elem - 1] < data_array[index_elem] >= data_array[index_elem + 1]) \
+				and ms_pause <= 0 \
+				and data_array[index_elem] >= 0.2:
 			min_elems.append(data_array[index_elem])
 			indexes.append(index_elem)
+			ms_pause = int(3 / bio_step)
+		ms_pause -= 1
 
 	return min_elems, indexes
 
@@ -541,24 +551,13 @@ def read_bio_hdf5(path):
 	with hdf5.File(path) as file:
 		for title, values in file.items():
 			if 'Stim' == title:
-				stimulations = values[:]
+				stimulations = list(values[:])
 			elif 'RMG' == title:
-				voltages = values[:]
+				voltages = list(values[:])
 			else:
 				raise Exception("Out of the itles border")
 
-	indexes = []
-	ms_pause = 0
-	bio_step = 0.25
-
-	for index in range(1, len(stimulations) - 1):
-		if stimulations[index - 1] < stimulations[index] > stimulations[index + 1] and ms_pause <= 0 and stimulations[index] > 1:
-			indexes.append(index)
-			ms_pause = int(3 / bio_step)
-			print(index, stimulations[index])
-		ms_pause -= 1
-
-	return voltages, indexes
+	return voltages, stimulations
 
 
 def read_bio_data(path):
@@ -571,7 +570,8 @@ def read_bio_data(path):
 		grouped_elements_by_column = list(zip(*reader))
 		# avoid of NaN data
 		raw_data_RMG = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[2]]
-		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]
+		# FixMe use 5 if new data else 7
+		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[5]]
 	# preprocessing: finding minimal extrema an their indexes
 	mins, indexes = find_mins(data_stim)
 	# remove raw data before the first EES and after the last (slicing)

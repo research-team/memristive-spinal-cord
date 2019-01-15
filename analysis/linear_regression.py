@@ -78,7 +78,7 @@ def plot_linear(bio_pack, sim_pack, slices_number):
 
 
 def form_bio_pack(volt_and_stim, slice_numbers):
-	bio_lat, bio_amp = bio_process(volt_and_stim, slice_numbers)
+	bio_lat, bio_amp = bio_process(volt_and_stim, slice_numbers, debugging=True)
 
 	voltages = volt_and_stim[0]
 	bio_voltages = normalization(voltages, zero_relative=True)
@@ -93,19 +93,23 @@ def form_bio_pack(volt_and_stim, slice_numbers):
 	return bio_pack
 
 
-def form_sim_pack(tests_data):
+def form_sim_pack(tests_data, step):
 	sim_x = []
 	sim_y = []
 
 	# collect amplitudes and latencies per test data
 	for test_data in tests_data:
-		lat, amp = sim_process(test_data)
+		lat, amp = sim_process(test_data, step)
+
+		# fixme
+		lat = [d for d in lat if d > 0]
+
 		sim_x += lat
 
 		test_data = normalization(test_data, zero_relative=True)
 
 		for slice_index in range(len(lat)):
-			a = slice_index * delta_y_step + test_data[int(lat[slice_index] / sim_step + slice_index * 25 / sim_step)]
+			a = slice_index * delta_y_step + test_data[int(lat[slice_index] / step + slice_index * 25 / step)]
 			sim_y.append(a)
 
 	# form simulation data pack
@@ -116,17 +120,18 @@ def form_sim_pack(tests_data):
 
 
 def run():
-	bio_volt_and_stim = read_bio_data('/home/alex/bio_21cms.txt')
-	nest_tests = read_nest_data('/home/alex/nest_21cms.hdf5')
-	neuron_tests = read_neuron_data('/home/alex/neuron_21cms.hdf5')
+	bio_volt_and_stim = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt')
+	nest_tests = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
+	neuron_tests = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
 
 	slice_numbers = int(len(neuron_tests[0]) * sim_step // 25)
 
+	# FixMe add new functionality for several bio datas
 	bio_pack = form_bio_pack(bio_volt_and_stim, slice_numbers)
 
 	# loop of NEST and Neuron data
-	for sim_tests in [nest_tests, neuron_tests]:
-		sim_pack = form_sim_pack(sim_tests)
+	for sim_tests, step in [(nest_tests, sim_step), (neuron_tests, sim_step)]:
+		sim_pack = form_sim_pack(sim_tests, step=step)
 
 		plot_linear(bio_pack, sim_pack, slice_numbers)
 
