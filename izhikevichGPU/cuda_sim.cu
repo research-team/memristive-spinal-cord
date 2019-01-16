@@ -15,9 +15,6 @@
 
 __global__
 void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int block_width, int sim_step_time) {
-	/*
-	 *
-	 */
 	// get thread ID
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;

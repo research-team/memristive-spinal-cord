@@ -18,13 +18,13 @@ class Synapse {
 public:
 	Synapse() = default;
 
-	Neuron* pre_neuron{};		// pre neuron
-	Neuron* post_neuron{};		// post neuron
+	Neuron* pre_neuron{};		// [pointer] pre neuron
+	Neuron* post_neuron{};		// [pointer] post neuron
 
-	int syn_delay = 4;			// [steps] synaptic delay. Converts from ms to steps
-	int curr_syn_delay{};		// [steps] synaptic delay. Converts from ms to steps
+	int syn_delay = 4;			// [step] synaptic delay. Converts from ms to steps
+	int curr_syn_delay{};		// [step] synaptic delay. Converts from ms to steps
 	float weight{};				// [pA] synaptic weight
-	int syn_delay_timer = -1;	// [steps] timer of synaptic delay
+	int syn_delay_timer = -1;	// [step] timer of synaptic delay
 
 	__device__
 	void update(int sim_iter, int thread_id) {
