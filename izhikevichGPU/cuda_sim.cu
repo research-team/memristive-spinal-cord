@@ -3,25 +3,16 @@
 #include <math.h>
 #include "Synapse.cpp"
 
-#ifdef __JETBRAINS_IDE__
-	#define __host__
-	#define __device__
-	#define __shared__
-	#define __constant__
-	#define __global__
-#endif
-
-#define DEBUG
 
 __global__
-void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int block_width, int sim_step_time) {
+void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int block_width, int sim_time_step) {
 	// get thread ID
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 	int thread_id = x + y * block_width;
 
 	// main simulation loop
-	for(int sim_iter = 0; sim_iter < sim_step_time; ++sim_iter) {
+	for(int sim_iter = 0; sim_iter < sim_time_step; ++sim_iter) {
 		// update neurons state
 		if (thread_id < nrn_size) {
 			neurons[thread_id].update(sim_iter, thread_id);
@@ -38,14 +29,14 @@ void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int
 
 		// unset spike flag (this realization frees up neuron <-> synapses relation for easiest GPU implementation)
 		if (thread_id < nrn_size) {
-			neurons[thread_id].has_spike = false;
+			neurons[thread_id].set_has_spike(false);
 		}
 		__syncthreads();
 	}
 }
 
 
-int main() {
+void simulate() {
 	// simulation properties
 	int neuron_number = 30;
 	int synapse_number = 50;
@@ -69,7 +60,6 @@ int main() {
 	for (int i = 0; i < neuron_number; ++i) {
 		host_neurons[i].set_sim_time(sim_time);
 		host_neurons[i].set_ref_t(3.0);
-		host_neurons[i].set_has_spike();
 	}
 
 	// prepare synapse data
@@ -97,18 +87,28 @@ int main() {
 	cudaMemcpy(host_neurons, gpu_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyDeviceToHost);
 	cudaMemcpy(host_synapses, gpu_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyDeviceToHost);
 
-	#ifdef DEBUG
-		printf("\n---- D E B U G G I N G ----\n");
-		// all nrn
-		for (int i = 0; i < neuron_number; ++i) {
-			printf("DEB NRN: i %d = %d \n", i, host_neurons[i].get_ref_t());
-		}
-		printf("\n--------\n");
-		// all syn
-		for (int i = 0; i < synapse_number; ++i) {
-			printf("DEB SYN: i %d = %d \n", i, host_synapses[i].curr_syn_delay);
-		}
-	#endif
+#ifdef DEBUG
+	printf("\n---- D E B U G G I N G ----\n");
+	// all nrn
+	for (int i = 0; i < neuron_number; ++i) {
+		printf("DEB NRN: i %d = %d \n", i, host_neurons[i].get_ref_t());
+	}
+	printf("\n--------\n");
+	// all syn
+	for (int i = 0; i < synapse_number; ++i) {
+		printf("DEB SYN: i %d = %d \n", i, host_synapses[i].curr_syn_delay);
+	}
+#endif
+}
+
+
+int main() {
+//	srand(time(NULL)); //123
+//	init_neurons();
+//	init_groups();
+//	init_extensor();
+	simulate();
+//	show_results(test_index);
 
 	return 0;
 }

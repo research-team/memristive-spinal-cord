@@ -4,15 +4,6 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef __JETBRAINS_IDE__
-	#define __host__
-	#define __device__
-	#define __shared__
-	#define __constant__
-	#define __global__
-#endif
-
-#define DEBUG
 
 class Synapse {
 public:
@@ -32,13 +23,28 @@ public:
 		printf("iter %d, T: %d, check %s timer %d \n ", sim_iter, thread_id, pre_neuron->has_spike? "YES" : "NO", syn_delay_timer);
 		if (pre_neuron->has_spike and syn_delay_timer == -1) {
 			syn_delay_timer = syn_delay;
-		} else
+		}
 
 		// send spike event because of expiration of synaptic delay
 		if (syn_delay_timer == 0) {
 			post_neuron->spike_event(weight);
 			syn_delay_timer = -1;
 		}
+
+
+		/*
+		 * // send spike
+			if (syn->timer == 0) {
+				if (!syn->post_neuron->hasGenerator && syn->post_neuron->I <= 600 && syn->post_neuron->I >= -600) {
+					syn->post_neuron->I += syn->weight;
+				}
+				syn->timer = -1; // set timer to -1 (thats mean no need to update timer in future without spikes)
+			}
+			// decrement timers
+			if (syn->timer > 0) {
+				syn->timer--;
+			}
+		 */
 
 		curr_syn_delay += 10;
 
