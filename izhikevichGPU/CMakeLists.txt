@@ -4,4 +4,4 @@ project(IzhikevichGPU)
 enable_language(CUDA)
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(IzhikevichGPU cuda_sim.cu)
+add_executable(IzhikevichGPU cuda_sim.cu Neuron.cpp Synapse.cpp)

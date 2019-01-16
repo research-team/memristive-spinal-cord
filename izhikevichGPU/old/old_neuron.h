@@ -94,8 +94,6 @@ public:
 		this->ref_t = ms_to_step(ref_t);
 	}
 
-
-
 	void changeIstep(float step_I) {
 		this->step_I = step_I;
 	}
