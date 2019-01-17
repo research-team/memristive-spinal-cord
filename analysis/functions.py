@@ -4,6 +4,8 @@ import h5py as hdf5
 import pylab as plt
 from analysis.namespaces import *
 from sklearn.linear_model import LinearRegression
+import statistics
+import copy
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -571,7 +573,7 @@ def read_bio_data(path):
 		# avoid of NaN data
 		raw_data_RMG = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[2]]
 		# FixMe use 5 if new data else 7
-		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[5]]
+		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]
 	# preprocessing: finding minimal extrema an their indexes
 	mins, indexes = find_mins(data_stim)
 	# remove raw data before the first EES and after the last (slicing)
@@ -586,3 +588,78 @@ def convert_bio_to_hdf5(voltages, stimulations, filename, path=None):
 	with hdf5.File('{}{}.hdf5'.format(path + "/" if path else "", filename), 'w') as file:
 		file.create_dataset('Stim', data=stimulations, compression="gzip")
 		file.create_dataset('RMG', data=voltages, compression="gzip")
+
+
+def find_fliers(amplitudes_all_runs, latencies_all_runs):
+	expected_value_amp = []
+	std_amp = []
+	for dot in amplitudes_all_runs:
+		expected_value_tmp = statistics.mean(dot)
+		std_tmp = statistics.stdev(dot)
+		expected_value_amp.append(expected_value_tmp)
+		std_amp.append(std_tmp)
+	expected_value_lat = []
+	std_lat = []
+	for dot in latencies_all_runs:
+		expected_value_tmp = statistics.mean(dot)
+		std_tmp = statistics.stdev(dot)
+		expected_value_lat.append(expected_value_tmp)
+		std_lat.append(std_tmp)
+	amplitudes_all_runs_3sigma = []
+	latencies_all_runs_3sigma = []
+	fliers_amplitudes = []
+	fliers_amplitudes_values = []
+	fliers_latencies = []
+	fliers_latencies_values = []
+	for dot in range(len(amplitudes_all_runs)):
+		print("dot = ", dot)
+		amplitudes_all_runs_dot_3sigma_amp = []
+		fliers_amplitudes_tmp = []
+		for i in range(len(amplitudes_all_runs[dot])):
+			if (expected_value_amp[dot] - 3 * std_amp[dot]) < amplitudes_all_runs[dot][i] < \
+					(expected_value_amp[dot] + 3 * std_amp[dot]):
+				amplitudes_all_runs_dot_3sigma_amp.append(amplitudes_all_runs[dot][i])
+			else:
+				fliers_amplitudes_tmp.append(i)
+		print("amplitudes_all_runs_dot_3sigma_amp = ", len(amplitudes_all_runs_dot_3sigma_amp))
+		print("fliers_amplitudes_tmp = ", fliers_amplitudes_tmp)
+		fliers_amplitudes.append(fliers_amplitudes_tmp)
+		amplitudes_all_runs_3sigma.append(amplitudes_all_runs_dot_3sigma_amp)
+	for dot in range(len(latencies_all_runs)):
+		latencies_all_runs_dot_3sigma = []
+		fliers_latencies_tmp = []
+		for i in range(len(latencies_all_runs[dot])):
+			if (expected_value_lat[dot] - 3 * std_lat[dot]) < latencies_all_runs[dot][i] < \
+					(expected_value_lat[dot] + 3 * std_lat[dot]):
+				latencies_all_runs_dot_3sigma.append(latencies_all_runs[dot][i])
+			else:
+				fliers_latencies_tmp.append(i)
+		fliers_latencies.append(fliers_latencies_tmp)
+		latencies_all_runs_3sigma.append(latencies_all_runs_dot_3sigma)
+
+	fliers = fliers_amplitudes
+	for sl in range(len(fliers)):
+		for i in fliers_latencies[sl]:
+			if i:
+				if i not in fliers[sl]:
+					fliers[sl].append(i)
+		fliers[sl] = sorted(fliers[sl])
+	old_latencies_all_runs = copy.deepcopy(latencies_all_runs)
+	old_amplitudes_all_runs = copy.deepcopy(amplitudes_all_runs)
+
+	for dot in range(len(fliers)):
+		fliers_latencies_values_tmp = []
+		for i in fliers[dot]:
+			fliers_latencies_values_tmp.append(old_latencies_all_runs[dot][i])
+		fliers_latencies_values.append(fliers_latencies_values_tmp)
+	for dot in range(len(fliers)):
+		fliers_amplitudes_values_tmp = []
+		for i in fliers[dot]:
+			fliers_amplitudes_values_tmp.append(old_amplitudes_all_runs[dot][i])
+		fliers_amplitudes_values.append(fliers_amplitudes_values_tmp)
+	for sl in range(len(fliers)):
+		for fl in reversed(fliers[sl]):
+			if fl:
+				del latencies_all_runs[sl][fl]
+				del amplitudes_all_runs[sl][fl]
+	return latencies_all_runs, amplitudes_all_runs, fliers, fliers_latencies_values, fliers_amplitudes_values
