@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
+#include <string>
 
 #ifdef __JETBRAINS_IDE__
 	#define __host__
@@ -10,63 +11,70 @@
 
 #define DEBUG
 
+using namespace std;
+
+const int steps_in_ms = 10;		// [step] how much steps in 1 ms
+const float ms_in_step = 1.0f / steps_in_ms;	// [step] how much ms in 1 step
+
+int ms_to_step(float ms) {
+	return (int) (ms * steps_in_ms);	// convert milliseconds to step
+}
+
 class Neuron {
 private:
 	// Object variables
-	int id{};						// neuron ID
-	int sim_time_steps{};			// [step] simulation time in steps
-
-	bool has_multimeter = false;	// if neuron has multimeter
-	bool has_spikedetector = false;	// if neuron has spikedetector
-	bool has_generator = false;		// if neuron has generator
-
-	float *spike_times{};			// [ms] array of spikes time
-	float *membrane_potential{};	// [mV] array of membrane potential values
-	float *current_potential{};		// [pA] array of current values
+	int id{};                       // neuron ID
+	int sim_time_steps{};           // [step] simulation time in steps
 
 	// Stuff variables
-	const float current_tau = 6.0;	// [pA] step of current decreasing/increasing
-	const int steps_in_ms = 10;		// [step] how much steps in 1 ms
-	const float ms_in_step = 1.0f / steps_in_ms;	// [step] how much ms in 1 step
+	float *spike_times{};           // [ms] array of spikes time
+	float *membrane_potential{};    // [mV] array of membrane potential values
+	float *current_potential{};     // [pA] array of current values
+	const float step_I = 2.0f;      // [pA[ step of current decreasing/increasing
 
 	// Parameters (const)
-	const float C = 100.0f;			// [pF] membrane capacitance
-	const float V_rest = -72.0f;	// [mV] resting membrane potential
-	const float V_th = -55.0f;		// [mV] spike threshold
-	const float k = 0.7f;			// [pA * mV-1] constant ("1/R")
-	const float b = 0.2f;			// [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
-	const float a = 0.02f;			// [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
-	const float c = -80.0f;			// [mV] after-spike reset value of V_m
-	const float d = 6.0f;			// [pA] after-spike reset value of U_m
-	const float V_peak = 35.0f;		// [mV] spike cutoff value
-	int ref_t_step{};	 			// [step] refractory period time in steps
+	const float C = 100.0f;         // [pF] membrane capacitance
+	const float V_rest = -72.0f;    // [mV] resting membrane potential
+	const float V_th = -55.0f;      // [mV] spike threshold
+	const float k = 0.7f;           // [pA * mV-1] constant ("1/R")
+	const float b = 0.2f;           // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
+	const float a = 0.02f;          // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
+	const float c = -80.0f;         // [mV] after-spike reset value of V_m
+	const float d = 6.0f;           // [pA] after-spike reset value of U_m
+	const float V_peak = 35.0f;     // [mV] spike cutoff value
+	int ref_t_step{};               // [step] refractory period time in steps
 
 	// State (changable)
-	float V_m = V_rest;				// [mV] membrane potential
-	float U_m = 0.0f;				// [pA] membrane potential recovery variable
-	float I = 0.0f;					// [pA] input current
-	float V_old = V_m;				// [mV] previous value for the V_m
-	float step_I = 2.0f;			// [mV] previous value for the V_m
-	float U_old = U_m;				// [pA] previous value for the U_m
-	int ref_t_timer = 0;			// [step] refractory period timer
+	float V_m = V_rest;             // [mV] membrane potential
+	float U_m = 0.0f;               // [pA] membrane potential recovery variable
+	float I = 0.0f;                 // [pA] input current
+	float V_old = V_m;              // [mV] previous value for the V_m
+	float U_old = U_m;              // [pA] previous value for the U_m
+	int ref_t_timer = 0;            // [step] refractory period timer
 
 	// for neurons with generators
-	int begin_spiking = 0;			// [step]
-	int end_spiking = 0;			// [step]
-	int spike_each_step = 0;		// [step]
+	int begin_spiking = 0;          // [step]
+	int end_spiking = 0;            // [step]
+	int spike_each_step = 0;        // [step]
 
 	// with detectors
-	int index_spikes_array = 0;		// [step] current index of array of the spikes
+	int index_spikes_array = 0;     // [step] current index of array of the spikes
 
 public:
 	Neuron() = default;
 
-	char* group_name{};	// contains name of the nuclei group
-	bool has_spike{};	// flag if neuron has spike
-
-	void change_I_step(float step_I) {
-		this->step_I = step_I;
+	Neuron(int id, string group_name, float ref_t) {
+		this->id = id;
+		this->group_name = group_name;
+		this->ref_t_step = ms_to_step(ref_t);
 	}
+
+	string group_name{};             // contains name of the nuclei group
+	bool has_spike{};               // flag if neuron has spike
+	bool has_multimeter = false;    // if neuron has multimeter
+	bool has_spikedetector = false; // if neuron has spikedetector
+	bool has_generator = false;     // if neuron has generator
+
 	__device__
 	void set_has_spike(bool spike_status) {
 		has_spike = spike_status;
@@ -96,7 +104,7 @@ public:
 		return (int) (ms * steps_in_ms);	// convert milliseconds to step
 	}
 
-	char* get_name() { return group_name; }
+	string get_name() { return group_name; }
 
 	int get_id() { return id; }
 
@@ -110,11 +118,12 @@ public:
 
 	__device__
 	void spike_event(float weight){
-		I += weight;
+		if (I <= 600 && I >= -600)
+			I += weight;
 	}
 
 	__host__
-	void addSpikeGenerator(float begin, float end, float hz) {
+	void add_spike_generator(float begin, float end, float hz) {
 		begin_spiking = ms_to_step(begin);
 		end_spiking = ms_to_step(end);
 		spike_each_step = ms_to_step(1.0f / hz * 1000);

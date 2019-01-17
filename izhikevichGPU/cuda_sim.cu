@@ -1,7 +1,24 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
+#include <vector>
 #include "Synapse.cpp"
+
+using namespace std;
+
+Neuron *gpu_neurons;
+Synapse *gpu_synapses;
+
+vector<Neuron> host_neurons_vector;
+vector<Synapse> host_synapses_vector;
+
+int global_id = 0;
+
+const unsigned int neurons_in_group = 40;
+
+// gropus
+Neuron C1[neurons_in_group];
+Neuron C2[neurons_in_group];
 
 
 __global__
@@ -35,57 +52,100 @@ void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int
 	}
 }
 
+float rand_dist(float data, float delta) {
+	return float(rand()) / float(RAND_MAX) * 2 * delta + data - delta;
+}
+
+int get_random_neighbor(int pre_neuron_id, int post_neurons_number) {
+	int post_neuron_id = rand() % post_neurons_number;
+	while (post_neuron_id == pre_neuron_id)
+		post_neuron_id = rand() % post_neurons_number;
+	return post_neuron_id;
+}
+
+void connect_fixed_outdegree(int pre_id, int post_id, float syn_delay, float weight) {
+//	weight *= 0.4; // 0.8
+//
+//	float time_delta = syn_delay * 0.4f; //0.2
+//	float weight_delta = weight * 0.3f;
+	float syn_delay_dist = rand_dist(syn_delay, 1);
+	float syn_weight_dist = rand_dist(weight, 1);
+//	for (int pre_id = 0; pre_id < post_neuron_number; ++pre_id) {
+//		for (int post_id = 0; post_id < synapses_number; ++post_id) {
+//			int post_neuron_index = get_random_neighbor(pre_id, post_id);
+	// append the anonymous Synapse object
+	host_synapses_vector.push_back(Synapse(&gpu_neurons[pre_id],  // (!) pointers should point to the memory in GPU!
+	                                       &gpu_neurons[post_id],
+	                                       syn_delay_dist,
+	                                       syn_weight_dist));
+}
+
+void form_group(Neuron *nrn_group, string group_name, int nrns_in_group = neurons_in_group) {
+	printf("Formed %s IDs [%d ... %d] = %d\n", group_name, global_id, global_id + nrns_in_group - 1,
+		   nrns_in_group);
+
+	for (int local_id = 0; local_id < nrns_in_group; ++local_id) {
+		Neuron nrn = Neuron(global_id, group_name, 3.0);
+		nrn_group[local_id] = nrn;
+		host_neurons_vector.push_back(nrn);
+		global_id++;
+	}
+}
+
+void init_groups() {
+	form_group(C1, "C1");
+	form_group(C2, "C2");
+}
 
 void simulate() {
 	// simulation properties
-	int neuron_number = 30;
-	int synapse_number = 50;
 	int sim_time = 3;
 	float step = 0.1;
 	int sim_step_time = (int)(sim_time / step);
 
-	// allocate memory in HOST
-	Neuron *host_neurons = new Neuron[neuron_number];
-	Synapse *host_synapses = new Synapse[synapse_number];
-	// ToDo create a vector, then convert to this type of data (array of pointers)
+	// get synapse number
+	int neuron_number = (int)host_neurons_vector.size();
 
+	Neuron host_neurons[neuron_number];
+	// convert host_synapses_vector to the array of pointers
+	copy(host_neurons_vector.begin(), host_neurons_vector.end(), host_neurons);
 	// allocate memory in GPU
-	Neuron *gpu_neurons;
 	cudaMalloc(&gpu_neurons, sizeof(Neuron) * neuron_number);
 
-	Synapse *gpu_synapses;
-	cudaMalloc(&gpu_synapses, sizeof(Synapse) * synapse_number);
-
-	// prepare neuron data
-	for (int i = 0; i < neuron_number; ++i) {
-		host_neurons[i].set_sim_time(sim_time);
-		host_neurons[i].set_ref_t(3.0);
-	}
 
 	// prepare synapse data
-	for (int i = 0; i < synapse_number; ++i) {
+	for (int i = 0; i < neuron_number; ++i) {
 		int pre_id = rand() % neuron_number;
 		int post_id = rand() % neuron_number;
-		host_synapses[i].curr_syn_delay = i;
-		// (!) pointers should point to the memory in GPU!
-		host_synapses[i].pre_neuron = &gpu_neurons[pre_id];
-		host_synapses[i].post_neuron = &gpu_neurons[post_id];
+
+		connect_fixed_outdegree(pre_id, post_id, 10, 5);
 	}
+
+	// get synapse number
+	int synapse_number = (int)host_synapses_vector.size();
+
+	Synapse host_synapses[synapse_number];
+	// convert host_synapses_vector to the array of pointers
+	copy(host_synapses_vector.begin(), host_synapses_vector.end(), host_synapses);
+
+	// allocate memory in GPU
+	cudaMalloc(&gpu_synapses, sizeof(Synapse) * synapse_number);
 
 	// copy neurons/synapses array to the GPU
 	cudaMemcpy(gpu_neurons, host_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyHostToDevice);
 	cudaMemcpy(gpu_synapses, host_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyHostToDevice);
 
-	// calulate threads block size
+	// calculate threads block size (2D-square block)
 	int block_width = (int)sqrt(synapse_number) + 1;
-	dim3 nthreads(block_width, block_width);	// 2D-square block
+	dim3 nthreads(block_width, block_width);
 
 	// call the GPU calculation. <<<blocks, threads>>>
-	sim_GPU <<<1, nthreads>>>(gpu_neurons, gpu_synapses, neuron_number, synapse_number, block_width, sim_step_time);
+	sim_GPU<<<1, nthreads>>>(gpu_neurons, gpu_synapses, neuron_number, synapse_number, block_width, sim_step_time);
 
 	// copy neurons/synapses array to the HOST
 	cudaMemcpy(host_neurons, gpu_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyDeviceToHost);
 	cudaMemcpy(host_synapses, gpu_synapses, sizeof(Synapse) * synapse_number, cudaMemcpyDeviceToHost);
+
 
 #ifdef DEBUG
 	printf("\n---- D E B U G G I N G ----\n");
@@ -96,16 +156,20 @@ void simulate() {
 	printf("\n--------\n");
 	// all syn
 	for (int i = 0; i < synapse_number; ++i) {
-		printf("DEB SYN: i %d = %d \n", i, host_synapses[i].curr_syn_delay);
+		printf("DEB SYN: i %d = %d \n", i, host_synapses[i].syn_delay);
 	}
 #endif
+
+	cudaFree(gpu_neurons);
+	cudaFree(gpu_synapses);
+
+	free(host_neurons);
 }
 
 
 int main() {
 //	srand(time(NULL)); //123
-//	init_neurons();
-//	init_groups();
+	init_groups();
 //	init_extensor();
 	simulate();
 //	show_results(test_index);
