@@ -161,7 +161,7 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
-def find_latencies(mins_maxes, step, norm_to_ms=False):
+def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
 
@@ -193,17 +193,33 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 		# while minimal value isn't found -- find with extended borders [left, right]
 		while True:
 			if slice_index in slices_index_interval(0, 1): # [0,1]
-				left = 11 - additional_border
-				right = 16 + additional_border
+				if reversed_data:
+					left = 15 - additional_border
+					right = 24 + additional_border
+				else:
+					left = 11 - additional_border
+					right = 16 + additional_border
 			elif slice_index in slices_index_interval(2, 2): # [2]
-				left = 11 - additional_border
-				right = 17 + additional_border
+				if reversed_data:
+					left = 13 - additional_border
+					right = 21 + additional_border
+				else:
+					left = 11 - additional_border
+					right = 17 + additional_border
 			elif slice_index in slices_index_interval(3, 4): # [3, 4]
-				left = 13 - additional_border
-				right = 21 + additional_border
+				if reversed_data:
+					left = 11 - additional_border
+					right = 17 + additional_border
+				else:
+					left = 13 - additional_border
+					right = 21 + additional_border
 			elif slice_index in slices_index_interval(5, 6): # [5, 6]
-				left = 15 - additional_border
-				right = 24 + additional_border
+				if reversed_data:
+					left = 11 - additional_border
+					right = 16 + additional_border
+				else:
+					left = 15 - additional_border
+					right = 24 + additional_border
 			else:
 				raise Exception("Error in the slice index catching")
 
