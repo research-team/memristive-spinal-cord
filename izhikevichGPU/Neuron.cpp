@@ -52,13 +52,17 @@ private:
 	float U_old = U_m;              // [pA] previous value for the U_m
 	int ref_t_timer = 0;            // [step] refractory period timer
 
-	// for neurons with generators
-	int begin_spiking = 0;          // [step]
-	int end_spiking = 0;            // [step]
-	int spike_each_step = 0;        // [step]
+	// for neurons with generator
+	int begin_spiking = 0;          // [step] time step of spike begining
+	int end_spiking = 0;            // [step] time step of spike ending
+	int spike_each_step = 0;        // [step] send spike each N step
 
 	// with detectors
 	int index_spikes_array = 0;     // [step] current index of array of the spikes
+
+	bool has_multimeter = false;    // if neuron has multimeter
+	bool has_spikedetector = false; // if neuron has spikedetector
+	bool has_generator = false;     // if neuron has generator
 
 public:
 	Neuron() = default;
@@ -69,40 +73,36 @@ public:
 		this->ref_t_step = ms_to_step(ref_t);
 	}
 
-	string group_name{};             // contains name of the nuclei group
+	string group_name{};            // contains name of the nuclei group
 	bool has_spike{};               // flag if neuron has spike
-	bool has_multimeter = false;    // if neuron has multimeter
-	bool has_spikedetector = false; // if neuron has spikedetector
-	bool has_generator = false;     // if neuron has generator
 
 	__device__
 	void set_has_spike(bool spike_status) {
 		has_spike = spike_status;
 	}
 
-	void add_multimeter() {
+	void add_multimeter(float *mm_data, float* curr_data) {
 		has_multimeter = true;	// set flag that this neuron has the multimeter
-		membrane_potential = new float[sim_time_steps];	// allocate memory for recording V_m
-		current_potential = new float[sim_time_steps];	// allocate memory for recording I
+		membrane_potential = mm_data;
+		current_potential = curr_data;
 	}
 
 	void add_spikedetector() {
 		has_spikedetector = true;	// set flag that this neuron has the spikedetector
-		spike_times = new float[sim_time_steps / ref_t_step];	// allocate memory for recording spikes
 	}
 
-	bool with_wultimeter() { return has_multimeter; }
-
+	bool with_multimeter() { return has_multimeter; }
 	bool with_spikedetector() { return has_spikedetector; }
 
 	__device__
-	float step_to_ms(int step) {
-		return step / steps_in_ms;	// convert steps to milliseconds
-	}
+	// convert steps to milliseconds
+	float step_to_ms(int step) { return step / steps_in_ms; }
 
-	int ms_to_step(float ms) {
-		return (int) (ms * steps_in_ms);	// convert milliseconds to step
-	}
+	// convert milliseconds to step
+	int ms_to_step(float ms) { return (int) (ms * steps_in_ms); }
+
+	float* get_mm_data() { return membrane_potential; }
+	float* get_curr_data() { return current_potential; }
 
 	string get_name() { return group_name; }
 
@@ -111,7 +111,6 @@ public:
 	void set_id(int id) { this->id = id; }
 
 	int get_ref_t() { return ref_t_step; }
-
 	void set_ref_t(float ref_t) { ref_t_step = ms_to_step(ref_t); }
 
 	void set_sim_time(float t_sim) { sim_time_steps = ms_to_step(t_sim); }
@@ -156,8 +155,10 @@ public:
 
 		// save the V_m and I value every iter step if has multimeter
 		if (has_multimeter) {
-			membrane_potential[sim_iter] = V_m;
-			current_potential[sim_iter] = I;
+			// ToDo remove at production
+			// id was added just for testing
+			membrane_potential[sim_iter] = id;// V_m;
+			current_potential[sim_iter] = id * 1000; //I;
 		}
 
 		if (V_m < c)
