@@ -43,7 +43,7 @@ public:
 		syn_delay += 10;
 
 		#ifdef DEBUG
-			printf("S: %d, T: %d, SYN %p \n", sim_iter, thread_id, this);
+			printf("Iter: %d, Thread: %d, SYN (%p), PRE (%p), POST (%p)\n", sim_iter, thread_id, this, pre_neuron, post_neuron);
 		#endif
 	}
 };

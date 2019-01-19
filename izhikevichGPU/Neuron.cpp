@@ -201,7 +201,7 @@ public:
 			ref_t_timer--;
 
 		#ifdef DEBUG
-			printf("S: %d, T: %d, NRN %p \n", sim_iter, thread_id, this);
+			printf("Iter: %d, Thread: %d, NRN (%p) \n", sim_iter, thread_id, this);
 		#endif
 	}
 };

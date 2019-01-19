@@ -2,9 +2,17 @@
 #include <stdio.h>
 #include <math.h>
 #include <vector>
+#include <ctime>
 #include "Synapse.cpp"
+#include "Group.cpp"
 
 using namespace std;
+
+const unsigned int neurons_in_group = 5;
+
+// gropus
+Group C1;
+Group C2;
 
 Neuron *gpu_neurons;
 Synapse *gpu_synapses;
@@ -13,12 +21,6 @@ vector<Neuron> host_neurons_vector;
 vector<Synapse> host_synapses_vector;
 
 int global_id = 0;
-
-const unsigned int neurons_in_group = 40;
-
-// gropus
-Neuron C1[neurons_in_group];
-Neuron C2[neurons_in_group];
 
 
 __global__
@@ -49,6 +51,10 @@ void sim_GPU(Neuron *neurons, Synapse *synapses, int nrn_size, int syn_size, int
 			neurons[thread_id].set_has_spike(false);
 		}
 		__syncthreads();
+
+		#ifdef DEBUG
+			if(thread_id == 0) printf("- - - - -\n");
+		#endif
 	}
 }
 
@@ -56,38 +62,49 @@ float rand_dist(float data, float delta) {
 	return float(rand()) / float(RAND_MAX) * 2 * delta + data - delta;
 }
 
-int get_random_neighbor(int pre_neuron_id, int post_neurons_number) {
+int get_random_neighbor(int pre_id, int post_neurons_number) {
 	int post_neuron_id = rand() % post_neurons_number;
-	while (post_neuron_id == pre_neuron_id)
+	while (post_neuron_id == pre_id)
 		post_neuron_id = rand() % post_neurons_number;
 	return post_neuron_id;
 }
 
-void connect_fixed_outdegree(int pre_id, int post_id, float syn_delay, float weight) {
+void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
 //	weight *= 0.4; // 0.8
 //
 //	float time_delta = syn_delay * 0.4f; //0.2
 //	float weight_delta = weight * 0.3f;
 	float syn_delay_dist = rand_dist(syn_delay, 1);
 	float syn_weight_dist = rand_dist(weight, 1);
-//	for (int pre_id = 0; pre_id < post_neuron_number; ++pre_id) {
-//		for (int post_id = 0; post_id < synapses_number; ++post_id) {
-//			int post_neuron_index = get_random_neighbor(pre_id, post_id);
-	// append the anonymous Synapse object
-	host_synapses_vector.push_back(Synapse(&gpu_neurons[pre_id],  // (!) pointers should point to the memory in GPU!
-	                                       &gpu_neurons[post_id],
-	                                       syn_delay_dist,
-	                                       syn_weight_dist));
+
+	for (int pre_id = 0; pre_id < pre_neurons.group_size; ++pre_id) {
+
+		for (int post_id = 0; post_id < post_neurons.group_size; ++post_id) {
+			int post_neuron_index = get_random_neighbor(pre_id, post_neurons.group_size);
+			// append the anonymous Synapse object
+			host_synapses_vector.push_back(
+			        Synapse(&gpu_neurons[pre_id],  // (!) pointers should point to the memory in GPU!
+			                &gpu_neurons[post_neuron_index],
+			                syn_delay_dist,
+			                syn_weight_dist));
+		}
+	}
 }
 
-void form_group(Neuron *nrn_group, string group_name, int nrns_in_group = neurons_in_group) {
-	printf("Formed %s IDs [%d ... %d] = %d\n", group_name, global_id, global_id + nrns_in_group - 1,
-		   nrns_in_group);
+void form_group(Group &nrn_group, string group_name, int nrns_in_group = neurons_in_group) {
+	printf("Formed %s IDs [%d ... %d] = %d\n",
+			group_name.c_str(), global_id, global_id + nrns_in_group - 1, nrns_in_group);
+
+	nrn_group.group_name = group_name;
+	nrn_group.id_start = global_id;
+	nrn_group.id_end = global_id + nrns_in_group - 1;
+	nrn_group.group_size = nrns_in_group;
 
 	for (int local_id = 0; local_id < nrns_in_group; ++local_id) {
-		Neuron nrn = Neuron(global_id, group_name, 3.0);
-		nrn_group[local_id] = nrn;
-		host_neurons_vector.push_back(nrn);
+		// append the anonymous Neuron object
+		host_neurons_vector.push_back(
+			Neuron(global_id, group_name, 3.0)
+		);
 		global_id++;
 	}
 }
@@ -95,6 +112,11 @@ void form_group(Neuron *nrn_group, string group_name, int nrns_in_group = neuron
 void init_groups() {
 	form_group(C1, "C1");
 	form_group(C2, "C2");
+}
+
+void init_extensor() {
+	connect_fixed_outdegree(C1, C2, 1.0, 10.0);
+	connect_fixed_outdegree(C2, C1, 5.0, 5.0);
 }
 
 void simulate() {
@@ -106,28 +128,22 @@ void simulate() {
 	// get synapse number
 	int neuron_number = (int)host_neurons_vector.size();
 
-	Neuron host_neurons[neuron_number];
-	// convert host_synapses_vector to the array of pointers
-	copy(host_neurons_vector.begin(), host_neurons_vector.end(), host_neurons);
-	// allocate memory in GPU
+	Neuron* host_neurons = host_neurons_vector.data();
+
+	// allocate memory in GPU (only after this you can init connections)
 	cudaMalloc(&gpu_neurons, sizeof(Neuron) * neuron_number);
 
-
-	// prepare synapse data
-	for (int i = 0; i < neuron_number; ++i) {
-		int pre_id = rand() % neuron_number;
-		int post_id = rand() % neuron_number;
-
-		connect_fixed_outdegree(pre_id, post_id, 10, 5);
-	}
+	// only after cudaMalloc (!)
+	init_extensor();
 
 	// get synapse number
 	int synapse_number = (int)host_synapses_vector.size();
 
-	Synapse host_synapses[synapse_number];
-	// convert host_synapses_vector to the array of pointers
-	copy(host_synapses_vector.begin(), host_synapses_vector.end(), host_synapses);
+	printf("Neuron number : %d \n", neuron_number);
+	printf("Synapse number : %d \n", synapse_number);
 
+	// convert vector to the array of pointers
+	Synapse* host_synapses = host_synapses_vector.data();
 	// allocate memory in GPU
 	cudaMalloc(&gpu_synapses, sizeof(Synapse) * synapse_number);
 
@@ -140,7 +156,9 @@ void simulate() {
 	dim3 nthreads(block_width, block_width);
 
 	// call the GPU calculation. <<<blocks, threads>>>
-	sim_GPU<<<1, nthreads>>>(gpu_neurons, gpu_synapses, neuron_number, synapse_number, block_width, sim_step_time);
+	sim_GPU<<<1, nthreads>>>(gpu_neurons, gpu_synapses,
+	                         neuron_number, synapse_number,
+	                         block_width, sim_step_time);
 
 	// copy neurons/synapses array to the HOST
 	cudaMemcpy(host_neurons, gpu_neurons, sizeof(Neuron) * neuron_number, cudaMemcpyDeviceToHost);
@@ -162,15 +180,12 @@ void simulate() {
 
 	cudaFree(gpu_neurons);
 	cudaFree(gpu_synapses);
-
-	free(host_neurons);
 }
 
 
 int main() {
-//	srand(time(NULL)); //123
+	srand(time(NULL)); //123
 	init_groups();
-//	init_extensor();
 	simulate();
 //	show_results(test_index);
 
