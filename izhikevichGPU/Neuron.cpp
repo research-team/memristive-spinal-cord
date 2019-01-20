@@ -128,8 +128,6 @@ public:
 		spike_each_step = ms_to_step(1.0f / hz * 1000);
 		// set flag that this neuron has the multimeter
 		has_generator = true;
-		// allocate memory for recording spikes
-		spike_times = new float[ sim_time_steps / ref_t_step];
 	}
 
 	__device__
@@ -157,8 +155,8 @@ public:
 		if (has_multimeter) {
 			// ToDo remove at production
 			// id was added just for testing
-			membrane_potential[sim_iter] = id;// V_m;
-			current_potential[sim_iter] = id * 1000; //I;
+			membrane_potential[sim_iter] = V_m;
+			current_potential[sim_iter] = I;
 		}
 
 		if (V_m < c)
@@ -201,8 +199,7 @@ public:
 		if (ref_t_timer > 0)
 			ref_t_timer--;
 
-		#ifdef DEBUG
-			printf("Iter: %d, Thread: %d, NRN (%p) \n", sim_iter, thread_id, this);
-		#endif
+
+		//printf("Iter: %d, Thread: %d, NRN (%p) \n", sim_iter, thread_id, this);
 	}
 };

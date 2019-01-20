@@ -39,11 +39,8 @@ public:
 			syn_delay_timer--;
 		}
 
-		// FixMe: remove in production
-		syn_delay += 10;
-
-		#ifdef DEBUG
-			printf("Iter: %d, Thread: %d, SYN (%p), PRE (%p), POST (%p)\n", sim_iter, thread_id, this, pre_neuron, post_neuron);
-		#endif
+//		#ifdef DEBUG
+//			printf("Iter: %d, Thread: %d, SYN (%p), PRE (%p), POST (%p)\n", sim_iter, thread_id, this, pre_neuron, post_neuron);
+//		#endif
 	}
 };
