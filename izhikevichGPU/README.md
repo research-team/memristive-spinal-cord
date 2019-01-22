@@ -24,10 +24,14 @@ nvcc -lineinfo -o output cuda_sim.cu
 nvprof ./output
 ```
 ### Technical description (in progress):
-Number of threads = number of synapses
+*Threads in a block* = 32 (warp size)  
+*Number of blocks* = number of synapses / 32 + 1
 
-Because of thread limitation in 1D grid (1024) in this implementations uses 2D grid (1024x1024).
-2D array of threads (~10^6) is enough to use threadID as index for array of synapses.
-Thus one block (2D grid) of threads process each synapse per iteration of simulation.
+*Total number of threads* = *Number of blocks* * *Threads in a block*. It is a little bit more than number of synapses, so extra threads are not used in simulation (number of extra threads is not bigger than *Threads in a block*)
+```c++
+for(int iter_step = 0; iter_step < ms_to_step(T_sim); iter_step++)
+  GPU_kernel<<<. . .>>>(. . .);
+```
+
 
 ![GPU](doc/GPU.png)
