@@ -3,9 +3,14 @@
 #include <math.h>
 #include <vector>
 #include <ctime>
+
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+
 #include "Synapse.cpp"
 #include "Group.cpp"
-
 
 using namespace std;
 
@@ -24,12 +29,15 @@ Synapse *gpu_synapses;
 
 vector<Neuron> host_neurons_vector;
 vector<Synapse> host_synapses_vector;
+vector<Group> with_multimeter;
 
 int global_id = 0;
 // simulation properties
 float T_sim = speed_to_time * 6;
 float step = 0.1;
 int sim_step_time = (int)(T_sim / step);
+
+void save_result(int test_index, Neuron* host_neurons);
 
 
 Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
@@ -159,20 +167,22 @@ int get_random_neighbor(int pre_id, int post_neurons_number) {
 }
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
-	weight *= 0.4;
+	//weight *= 0.4;
 	float time_delta = syn_delay * 0.4f; //0.4
 	float weight_delta = weight * 0.3f; //0.3
+	printf("Connect %s with %s (1:%d). W=%.2f (±%.2f), D=%.1f (±%.1f)\n",
+		   pre_neurons.group_name.c_str(),
+		   post_neurons.group_name.c_str(),
+		   post_neurons.group_size,
+		   weight, weight_delta,
+		   syn_delay, time_delta);
+
 
 	for (int pre_id = 0; pre_id < pre_neurons.group_size; ++pre_id) {
 		for (int post_id = 0; post_id < post_neurons.group_size; ++post_id) {
 			int post_neuron_index = get_random_neighbor(pre_id, post_neurons.group_size);
 			float syn_delay_dist = rand_dist(syn_delay, time_delta);
 			float syn_weight_dist = rand_dist(weight, weight_delta);
-
-			printf("Connect %s (%d/%d) with %s (%d/%d). W=%f, D=%f \n",
-				   pre_neurons.group_name.c_str(), pre_id, pre_neurons.group_size,
-				   post_neurons.group_name.c_str(), post_neuron_index, post_neurons.group_size,
-				   syn_weight_dist, syn_delay_dist);
 
 			// append the anonymous Synapse object
 			host_synapses_vector.push_back(
@@ -188,6 +198,8 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_de
 
 void group_add_multimeter(Group &nrn_group) {
 	printf("Added multmeter to %s \n", nrn_group.group_name.c_str());
+
+	with_multimeter.push_back(nrn_group);
 
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; ++nrn_id) {
 		float *mm_data;
@@ -213,14 +225,14 @@ void init_extensor() {
 	// - - - - - - - - - - - -
 	// CPG (Extensor)
 	// - - - - - - - - - - - -
-	group_add_multimeter(C1);
+	//group_add_multimeter(C1);
+	group_add_multimeter(D1_1);
 	group_add_spike_generator(C1, 0, speed_to_time, 200);
 	group_add_spike_generator(C2, speed_to_time, 2*speed_to_time, 200);
 	group_add_spike_generator(C3, 2*speed_to_time, 3*speed_to_time, 200);
 	group_add_spike_generator(C4, 3*speed_to_time, 5*speed_to_time, 200);
 	group_add_spike_generator(C5, 5*speed_to_time, 6*speed_to_time, 200);
 	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
-
 
 	connect_fixed_outdegree(C3, inh_group3, 0.5, 20.0);
 	connect_fixed_outdegree(C4, inh_group4, 0.5, 20.0);
@@ -419,6 +431,7 @@ void init_extensor() {
 	//connect_fixed_outdegree(Ia, MP_E, 1, 50)
 }
 
+
 void simulate() {
 	// get synapse number
 	int neuron_number = (int)host_neurons_vector.size();
@@ -468,26 +481,10 @@ void simulate() {
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
-#ifdef DEBUG
-	printf("\n---- D E B U G G I N G ----\n");
-	// all nrn
-	for (int i = 0; i < neuron_number; ++i) {
-		// read written data if neuron has a multimeter
-		if (host_neurons[i].with_multimeter()) {
-			printf("DEB NRN: i %d = %d \n", i, host_neurons[i].get_ref_t());
-			float mm_data[sim_step_time];
-			float curr_data[sim_step_time];
-			// copy data from GPU to HOST
-			cudaMemcpy(mm_data, host_neurons[i].get_mm_data(),
-			           sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
-			cudaMemcpy(curr_data, host_neurons[i].get_curr_data(),
-			           sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
-			for (int j = 0; j < sim_step_time; ++j)
-				printf("\t %d mm = %f, curr = %f \n", j, mm_data[j], curr_data[j]);
-		}
-	}
-	printf("\n--------\n");
-#endif
+	// FixMe sort functions to classes
+	// before cudaFree (!)
+	save_result(0, host_neurons);
+
 	// remove data from HOST
 
 	// remove data from GPU
@@ -496,7 +493,39 @@ void simulate() {
 
 	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
+
 }
+
+void save_result(int test_index, Neuron* host_neurons) {
+	// Printing results function
+	for (auto &group: with_multimeter) {
+		char cwd[256];
+		getcwd(cwd, sizeof(cwd));
+		printf("Save results to: %s", cwd);
+
+		string new_name = "/" + to_string(test_index) + "_" + group.group_name + ".dat";
+
+		ofstream myfile;
+		myfile.open(cwd + new_name);
+
+		for (int id = group.id_start; id <= group.id_end; id++) {
+			float mm_data[sim_step_time];
+			float curr_data[sim_step_time];
+
+			// copy data from GPU to HOST
+			cudaMemcpy(mm_data, host_neurons[id].get_mm_data(), sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
+			cudaMemcpy(curr_data, host_neurons[id].get_curr_data(), sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
+
+			int time = 0;
+			while (time < sim_step_time) {
+				myfile << id << " " << time / 10.0f << " " << mm_data[time] << " " << curr_data[time] << "\n";
+				time += 1;
+			}
+		}
+		myfile.close();
+	}
+}
+
 
 
 int main() {
@@ -504,7 +533,6 @@ int main() {
 	srand(time(NULL));
 
 	simulate();
-//	show_results();
 
 	return 0;
 }
