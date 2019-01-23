@@ -1,24 +1,19 @@
 from analysis.functions import read_neuron_data, read_nest_data, read_bio_data, find_latencies, \
 	normalization, read_bio_hdf5, find_fliers
 import numpy as np
-# import h5py as hdf5
-# from numpy import *
-# import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pylab as plt
 from analysis.functions import calc_max_min
-# from analysis.peaks_of_real_data_without_EES import delays, calc_durations
 import matplotlib.patches as mpatches
-# from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from analysis.histogram_lat_amp import bio_process, sim_process, calc_amplitudes, debug
 import statistics
 import copy
+from analysis.bio_data_6runs import bio_several_runs
 neuron_dict = {}
 
 
 def find_mins(array, matching_criteria):
 	"""
-
     Args:
         array:
             list
@@ -26,7 +21,6 @@ def find_mins(array, matching_criteria):
         matching_criteria:
             int or float
                 number less than which min peak should be to be considered as the start of new slice
-
     Returns:
         min_elems:
             list
@@ -34,7 +28,6 @@ def find_mins(array, matching_criteria):
         indexes:
             list
                 indexes of the starts of new slice
-
     """
 	min_elems = []
 	indexes = []
@@ -48,7 +41,6 @@ def find_mins(array, matching_criteria):
 
 def find_mins_without_criteria(array):
 	"""
-
     Args:
         array:
             list
@@ -60,7 +52,6 @@ def find_mins_without_criteria(array):
         indexes:
             list
                 indexes of the starts of new slice
-
     """
 	min_elems = []
 	indexes = []
@@ -96,35 +87,34 @@ def find_ees_indexes(stim_indexes, datas):
 	return ees_indexes
 
 
-"""def process(data):
-	sim_stim_indexes = list(range(0, len(data), int(25 / sim_step)))
-	# the steps are the same as above
-	sim_datas = calc_max_min(sim_stim_indexes, data, sim_step)
-	sim_ees_indexes = find_ees_indexes(sim_stim_indexes, sim_datas)
-	norm_nest_means = normalization(data, zero_relative=True)
-	sim_datas = calc_max_min(sim_ees_indexes, norm_nest_means,
-	                         sim_step, remove_micropeaks=True)
-	sim_lat = find_latencies(sim_datas, sim_step, norm_to_ms=True)
-	sim_amp = calc_amplitudes(sim_datas, sim_lat)
-	return sim_lat, sim_amp
-"""
-
 k_bio_volt = 0
 k_bio_stim = 1
 bio_step = 0.25
 sim_step = 0.025
 gpu_step = 0.1
-neuron_list = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
+neuron_list = read_neuron_data('../../neuron-data/15cm.hdf5')
 # print("neuron_tests = ", type(neuron_tests))
-nest_list = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
-gpu = read_nest_data('../../GPU_extensor_eesF40_inh100_s21cms_T.hdf5')
-bio = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt')
-d1 = read_bio_hdf5('1_new_bio_1.hdf5')
-d2 = read_bio_hdf5('1_new_bio_2.hdf5')
-d3 = read_bio_hdf5('1_new_bio_3.hdf5')
-d4 = read_bio_hdf5('1_new_bio_4.hdf5')
-d5 = read_bio_hdf5('1_new_bio_5.hdf5')
-bio_data = [d1[0], d2[0], d3[0], d4[0], d5[0]]
+nest_list = read_nest_data('../../nest-data/sim_extensor_eesF40_i100_s15cms_T.hdf5')
+gpu = read_nest_data('../../GPU_extensor_eesF40_inh100_s15cms_T.hdf5')
+# bio = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt')
+bio = bio_several_runs()
+print("bio = ", len(bio))
+print(bio[0])
+print(bio[1])
+bio_data = bio[0]
+print("bio_data = ", bio_data)
+# for run in range(len(bio_data)):
+	# bio_data[run] = normalization(bio_data[run], zero_relative=True)
+print("bio_data = ", bio_data)
+bio_indexes = bio[1]
+print(len(bio_data[2]))
+print("bio_indexes = ", bio_indexes)
+# d1 = read_bio_hdf5('1_new_bio_1.hdf5')
+# d2 = read_bio_hdf5('1_new_bio_2.hdf5')
+# d3 = read_bio_hdf5('1_new_bio_3.hdf5')
+# d4 = read_bio_hdf5('1_new_bio_4.hdf5')
+# d5 = read_bio_hdf5('1_new_bio_5.hdf5')
+# bio_data = [d1[0], d2[0], d3[0], d4[0], d5[0]]
 
 slice_numbers = int(len(neuron_list[0]) * sim_step // 25)
 neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
@@ -134,9 +124,16 @@ print("nest_means = ", nest_means)
 gpu_means = list(map(lambda voltages: np.mean(voltages), zip(*gpu)))
 print("gpu = ", gpu[0])
 print("gpu_means = ", gpu_means)
-
+bio_means = list(map(lambda voltages: np.mean(voltages), zip(*bio_data)))
+print(len(bio_means))
+voltages_and_stim = []
+voltages_and_stim.append(bio_means)
+voltages_and_stim.append(bio_indexes)
+print("voltages_and_stim = ", voltages_and_stim[0])
+print("voltages_and_stim = ", voltages_and_stim[1])
 neuron_means_lat = sim_process(neuron_means, sim_step)[0]
 neuron_means_amp = sim_process(neuron_means, sim_step)[1]
+
 nest_means_lat = sim_process(nest_means, sim_step)[0]
 nest_means_amp = sim_process(nest_means, sim_step)[1]
 
@@ -144,14 +141,38 @@ gpu_means_lat = sim_process(gpu_means, gpu_step)[0]
 gpu_means_amp = sim_process(gpu_means, gpu_step)[1]
 print("gpu_means_amp = ", gpu_means_amp)
 
-bio_lat = bio_process(bio, 6)[0]
-bio_amp = bio_process(bio, 6)[1]
-print("bio_lat = ", bio_lat)
-print("bio_amp = ", bio_amp)
+bio_means_lat = bio_process(voltages_and_stim, slice_numbers, reversed_data=True)[0]
+bio_means_amp = bio_process(voltages_and_stim, slice_numbers, reversed_data=True)[1]
+print("bio_lat = ", bio_means_lat)
+print("bio_amp = ", bio_means_amp)
 print(len(neuron_means_lat), neuron_means_lat)
 print(len(neuron_means_amp), neuron_means_amp)
+
 sim_stim_indexes = list(range(0, len(nest_means), int(25 / 0.025)))
 
+bio_lat = []
+bio_amp = []
+for test_data in bio_data:
+	to_process = []
+	to_process.append(test_data)
+	to_process.append(bio_indexes)
+	print("to_process = ", to_process[0])
+	print("to_process = ", to_process[1])
+	bio_lat_tmp, bio_amp_tmp = bio_process(to_process, slice_numbers, reversed_data=True)
+	# plt.plot(test_data)
+	# for sl in bio_indexes:
+		# plt.axvline(x=sl, linestyle='--', color='gray')
+	# plt.xlim(0, len(test_data))
+	# plt.show()
+	for i in range(len(bio_lat_tmp)):
+		if bio_lat_tmp[i] < 0:
+			bio_lat_tmp[i] = bio_lat_tmp[i - 1]
+		if bio_amp_tmp[i] < 0:
+			bio_amp_tmp[i] = bio_amp_tmp[i - 1]
+	bio_lat.append(bio_lat_tmp)
+	bio_amp.append(bio_amp_tmp)
+	print("bio_lat = ", bio_lat)
+	print("bio_amp = ", bio_amp)
 # debug(nest_means, nest_means_datas, sim_stim_indexes, nest_ees_indexes, nest_means_lat, sim_step)
 # debug(neuron_means, neuron_means_datas, sim_stim_indexes, neuron_ees_indexes, neuron_means_lat, sim_step)
 nest_lat = []
@@ -167,16 +188,24 @@ for test_data in neuron_list:
 	neuron_lat_tmp, neuron_amp_tmp = sim_process(test_data, sim_step)
 	neuron_lat.append(neuron_lat_tmp)
 	neuron_amp.append(neuron_amp_tmp)
+
 gpu_lat = []
 gpu_amp = []
 for test_data in gpu:
 	gpu_lat_tmp, gpu_amp_tmp = sim_process(test_data, gpu_step)
+	for i in range(len(gpu_lat_tmp)):
+		if gpu_lat_tmp[i] < 0:
+			gpu_lat_tmp[i] = gpu_lat_tmp[i - 1]
+		if gpu_amp_tmp[i] < 0:
+			gpu_amp_tmp[i] = gpu_amp_tmp[i - 1]
 	gpu_lat.append(gpu_lat_tmp)
 	gpu_amp.append(gpu_amp_tmp)
 
 latencies_all_runs_neuron = []
 latencies_all_runs_nest = []
 latencies_all_runs_gpu = []
+latencies_all_runs_bio = []
+
 for sl in range(len(neuron_lat[0])):
 	# print("sl = ", sl)
 	latencies_all_runs_neuron_tmp = []
@@ -193,6 +222,7 @@ for sl in range(len(nest_lat[0])):
 		# print("dot = ", dot)
 		latencies_all_runs_nest_tmp.append(nest_lat[dot][sl])
 	latencies_all_runs_nest.append(latencies_all_runs_nest_tmp)
+
 for sl in range(len(gpu_lat[0])):
 	# print("sl = ", sl)
 	latencies_all_runs_gpu_tmp = []
@@ -202,9 +232,17 @@ for sl in range(len(gpu_lat[0])):
 	latencies_all_runs_gpu.append(latencies_all_runs_gpu_tmp)
 # print("latencies_all_runs_nest = ", len(latencies_all_runs_nest[0]))
 
+for sl in range(len(bio_lat[0])):
+	latencies_all_runs_bio_tmp = []
+	for dot in range(len(bio_lat)):
+		latencies_all_runs_bio_tmp.append(bio_lat[dot][sl])
+	latencies_all_runs_bio.append(latencies_all_runs_bio_tmp)
+print("latencies_all_runs_bio = ", len(latencies_all_runs_bio))
+
 amplitudes_all_runs_nest = []
 amplitudes_all_runs_neuron = []
 amplitudes_all_runs_gpu = []
+amplitudes_all_runs_bio = []
 
 for sl in range(len(neuron_amp[0])):
 	# print("sl = ", sl)
@@ -219,18 +257,23 @@ for sl in range(len(nest_amp[0])):
 	# print("sl = ", sl)
 	amplitudes_all_runs_nest_tmp = []
 	for dot in range(len(nest_amp)):
-		# print("dot = ", dot)
 		amplitudes_all_runs_nest_tmp.append(nest_amp[dot][sl])
 	amplitudes_all_runs_nest.append(amplitudes_all_runs_nest_tmp)
 
 for sl in range(len(gpu_amp[0])):
-	# print("sl = ", sl)
 	amplitudes_all_runs_gpu_tmp = []
 	for dot in range(len(gpu_amp)):
 		# print("dot = ", dot)
 		amplitudes_all_runs_gpu_tmp.append(gpu_amp[dot][sl])
 	amplitudes_all_runs_gpu.append(amplitudes_all_runs_gpu_tmp)
 # print("amplitudes_all_runs_nest = ", amplitudes_all_runs_nest)
+
+for sl in range(len(bio_amp[0])):
+	amplitudes_all_runs_bio_tmp = []
+	for dot in range(len(bio_amp)):
+		amplitudes_all_runs_bio_tmp.append(bio_amp[dot][sl])
+	amplitudes_all_runs_bio.append(amplitudes_all_runs_bio_tmp)
+print("amplitudes_all_runs_bio = ", amplitudes_all_runs_bio)
 
 proceed_neuron = find_fliers(amplitudes_all_runs_neuron, latencies_all_runs_neuron)
 corr_latencies_all_runs_neuron = proceed_neuron[0]
@@ -256,19 +299,35 @@ fliers_gpu = proceed_gpu[2]
 fliers_latencies_gpu_values = proceed_gpu[3]
 fliers_amplitudes_gpu_values = proceed_gpu[4]
 
+proceed_bio = find_fliers(amplitudes_all_runs_bio, latencies_all_runs_bio)
+corr_latencies_all_runs_bio = proceed_bio[0]
+corr_amplitudes_all_runs_bio = proceed_bio[1]
+fliers_bio = proceed_bio[2]
+fliers_latencies_bio_values = proceed_bio[3]
+fliers_amplitudes_bio_values = proceed_bio[4]
+print("corr_latencies_all_runs_bio = ", corr_latencies_all_runs_bio)
+print("corr_amplitudes_all_runs_bio = ", corr_amplitudes_all_runs_bio)
+print("fliers_bio = ", fliers_bio)
+print("fliers_latencies_bio_values = ", fliers_latencies_bio_values)
+print("fliers_amplitudes_bio_values = ", fliers_amplitudes_bio_values)
+
 time = []
 time_neuron = []
 time_gpu = []
+time_bio = []
+print("len(nest_means_amp) = ", len(nest_means_amp))
 for i in range(len(nest_means_amp)):
 	time.append(i)
 	time_neuron.append(i + 0.5)
 	time_gpu.append(i + 0.25)
+	time_bio.append(i + 0.15)
 print("time = ", time)
 print("time_neuron = ", time_neuron)
 
 times_nest = []
 times_neuron = []
 times_gpu = []
+times_bio = []
 
 old_times_neuron = []
 old_times_nest = []
@@ -295,6 +354,13 @@ for dot in range(len(corr_latencies_all_runs_gpu)):
 	times_gpu.append(times_tmp)
 print("times_gpu = ", len(times_gpu[0]))
 
+for dot in range(len(corr_latencies_all_runs_bio)):
+	times_tmp = []
+	for l in range(len(corr_latencies_all_runs_bio[dot])):
+		times_tmp.append(dot + 0.15)
+	times_bio.append(times_tmp)
+print("times_bio = ", len(times_bio[0]))
+
 for dot in range(len(corr_latencies_all_runs_neuron)):
 	times_tmp = []
 	for l in range(len(fliers_neuron[dot])):
@@ -313,6 +379,7 @@ for dot in range(len(corr_latencies_all_runs_gpu)):
 		times_tmp.append(dot + 0.25)
 	old_times_gpu.append(times_tmp)
 print("old_times_gpu = ", old_times_gpu)
+
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 ax.plot(time, nest_means_lat, nest_means_amp, color='green')
@@ -322,8 +389,8 @@ ax.plot(time_neuron, neuron_means_lat, neuron_means_amp, '.', lw=0.5, color='r',
 
 ax.plot(time_gpu, gpu_means_lat, gpu_means_amp, color='orange')
 ax.plot(time_gpu, gpu_means_lat, gpu_means_amp, '.', lw=0.5, color='r', markersize=5)
-ax.plot(time, bio_lat, bio_amp, color='black')
-ax.plot(time, bio_lat, bio_amp, '.', lw=0.5, color='r', markersize=5)
+ax.plot(time_bio, bio_means_lat, bio_means_amp, color='black')
+ax.plot(time_bio, bio_means_lat, bio_means_amp, '.', lw=0.5, color='r', markersize=5)
 nest_y = max(corr_latencies_all_runs_nest)
 nest_z = max(corr_amplitudes_all_runs_nest)
 nest = []
@@ -357,6 +424,17 @@ for sl in range(len(corr_latencies_all_runs_gpu)):
 	gpu.append(gpu_sl)
 
 
+bio = []
+for sl in range(len(corr_latencies_all_runs_bio)):
+	bio_sl = []
+	for dot in range(len(corr_latencies_all_runs_bio[sl])):
+		one_dot = []
+		one_dot.append(corr_latencies_all_runs_bio[sl][dot])
+		one_dot.append(corr_amplitudes_all_runs_bio[sl][dot])
+		bio_sl.append(one_dot)
+	bio.append(bio_sl)
+
+
 def rotate(A, B, C):
 	return (B[0] - A[0]) * (C[1] - B[1]) - (B[1] - A[1]) * (C[0] - B[0])
 
@@ -385,6 +463,7 @@ def grahamscan(A):
 convex_nests = []
 convex_neurons = []
 convex_gpus = []
+convex_bios = []
 
 for sl in range(len(nest)):
 	convex_nest = grahamscan(nest[sl])
@@ -397,6 +476,10 @@ for sl in range(len(neuron)):
 for sl in range(len(gpu)):
 	convex_gpu = grahamscan(gpu[sl])
 	convex_gpus.append(convex_gpu)
+
+for sl in range(len(bio)):
+	convex_bio = grahamscan(bio[sl])
+	convex_bios.append(convex_bio)
 
 latencies_convex_nest = []
 amplitudes_convex_nest = []
@@ -430,6 +513,16 @@ for sl in range(len(convex_gpus)):
 		amplitudes_convex_gpu_tmp.append(corr_amplitudes_all_runs_gpu[sl][i])
 	latencies_convex_gpu.append(latencies_convex_gpu_tmp)
 	amplitudes_convex_gpu.append(amplitudes_convex_gpu_tmp)
+latencies_convex_bio = []
+amplitudes_convex_bio = []
+for sl in range(len(convex_bios)):
+	latencies_convex_bio_tmp = []
+	amplitudes_convex_bio_tmp = []
+	for i in convex_bios[sl]:
+		latencies_convex_bio_tmp.append(corr_latencies_all_runs_bio[sl][i])
+		amplitudes_convex_bio_tmp.append(corr_amplitudes_all_runs_bio[sl][i])
+	latencies_convex_bio.append(latencies_convex_bio_tmp)
+	amplitudes_convex_bio.append(amplitudes_convex_bio_tmp)
 lens_nest = []
 for dot in range(len(corr_latencies_all_runs_nest)):
 	lens_nest.append(len(latencies_convex_nest[dot]))
@@ -459,6 +552,15 @@ for i in range(len(lens_gpu)):
 	for j in range(lens_gpu[i]):
 		times_convex_gpu_tmp.append(i + 0.25)
 	times_convex_gpu.append(times_convex_gpu_tmp)
+lens_bio = []
+for dot in range(len(corr_latencies_all_runs_bio)):
+	lens_bio.append(len(latencies_convex_bio[dot]))
+times_convex_bio = []
+for i in range(len(lens_bio)):
+	times_convex_bio_tmp = []
+	for j in range(lens_bio[i]):
+		times_convex_bio_tmp.append(i + 0.15)
+	times_convex_bio.append(times_convex_bio_tmp)
 for dot in range(len(corr_latencies_all_runs_nest)):
 	x_nest = times_convex_nest[dot] + [times_convex_nest[dot][0]]
 	y_nest = latencies_convex_nest[dot] + [latencies_convex_nest[dot][0]]
@@ -472,12 +574,18 @@ for dot in range(len(corr_latencies_all_runs_nest)):
 	y_gpu = latencies_convex_gpu[dot] + [latencies_convex_gpu[dot][0]]
 	z_gpu = amplitudes_convex_gpu[dot] + [amplitudes_convex_gpu[dot][0]]
 
+	x_bio = times_convex_bio[dot] + [times_convex_bio[dot][0]]
+	y_bio = latencies_convex_bio[dot] + [latencies_convex_bio[dot][0]]
+	z_bio = amplitudes_convex_bio[dot] + [amplitudes_convex_bio[dot][0]]
+
 	ax.add_collection3d(plt.fill_between(y_nest, z_nest, min(z_nest), color='green', alpha=0.3, label="filled plot"),
-	                    x_nest[dot], zdir='x')
+	                    x_nest[0], zdir='x')
 	ax.add_collection3d(plt.fill_between(y_neuron, z_neuron, min(z_neuron), color='purple', alpha=0.3,
-	                                     label="filled plot"), x_neuron[dot], zdir='x')
+	                                     label="filled plot"), x_neuron[0], zdir='x')
 	ax.add_collection3d(plt.fill_between(y_gpu, z_gpu, min(z_gpu), color='orange', alpha=0.3,
-	                                     label="filled plot"), x_gpu[dot], zdir='x')
+	                                     label="filled plot"), x_gpu[0], zdir='x')
+	ax.add_collection3d(plt.fill_between(y_bio, z_bio, min(z_bio), color='black', alpha=0.3,
+	                                     label="filled plot"), x_bio[0], zdir='x')
 
 	ax.plot(times_convex_nest[dot], latencies_convex_nest[dot], amplitudes_convex_nest[dot], color='green', alpha=0.3,
 	        label='nest')
@@ -490,6 +598,10 @@ for dot in range(len(corr_latencies_all_runs_nest)):
 	        label='gpu')
 	ax.plot(old_times_gpu[dot], fliers_latencies_gpu_values[dot], fliers_amplitudes_gpu_values[dot], '.',
 	        color='orange', alpha=0.7)
+
+	ax.plot(times_convex_bio[dot], latencies_convex_bio[dot], amplitudes_convex_bio[dot], color='black', alpha=0.3,
+	        label='bio')
+
 for dot in range(len(corr_latencies_all_runs_neuron)):
 	ax.plot(times_convex_neuron[dot], latencies_convex_neuron[dot], amplitudes_convex_neuron[dot], color='purple',
 	        alpha=0.3)
