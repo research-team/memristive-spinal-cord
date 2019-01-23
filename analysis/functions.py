@@ -12,7 +12,6 @@ def normalization(data, a=0, b=1, zero_relative=False):
 	"""
 	Normalization in [a, b] interval
 	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
-
 	Args:
 		data (list):
 			data for normalization
@@ -57,7 +56,6 @@ def calc_linear(x, y):
 def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None, find_EES=False):
 	"""
 	Function for finding min/max extrema
-
 	Args:
 		slices_start_time (list or range):
 			list of slices start times
@@ -109,6 +107,9 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1] and i < border:
 				tmp_min_time.append(datas_times[i] + offset)
 				tmp_min_value.append(sliced_values[i])
+			if not tmp_max_time or not tmp_max_value or not tmp_min_time or not tmp_min_value:
+				border += 1
+
 		# append found points per slice to the 'main' lists
 		slices_max_time.append(tmp_max_time)
 		slices_max_value.append(tmp_max_value)
@@ -164,7 +165,6 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
-
 	Args:
 		mins_maxes (list of list):
 			0 max times by slices
@@ -257,7 +257,6 @@ def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False):
 def find_ees_indexes(stim_indexes, datas):
 	"""
 	Function for finding the indexes of the EES mono-answer in borders formed by stimulations time
-
 	Args:
 		stim_indexes (list):
 			indexes of the EES stimulations
@@ -269,6 +268,7 @@ def find_ees_indexes(stim_indexes, datas):
 	ees_indexes = []
 	for slice_index in range(len(stim_indexes)):
 		min_values = datas[k_min_val][slice_index]
+		# print("min_values = ", min_values)
 		min_times = datas[k_min_time][slice_index]
 		# EES peak is the minimal one
 		ees_value_index = min_values.index(min(min_values))
@@ -281,7 +281,6 @@ def find_ees_indexes(stim_indexes, datas):
 def calc_amplitudes(datas, latencies):
 	"""
 	Function for calculating amplitudes
-
 	Args:
 		datas (list of list):
 			includes min/max time min/max value for each slice
@@ -294,18 +293,16 @@ def calc_amplitudes(datas, latencies):
 	slice_numbers = len(datas[0])
 
 	for slice_index in range(slice_numbers):
-		maxes_v = datas[k_max_val][slice_index]
-		maxes_t = datas[k_max_time][slice_index]
 		mins_v = datas[k_min_val][slice_index]
 		mins_t = datas[k_min_time][slice_index]
 
 		if mins_v:
-			max_amp_in_maxes = max([abs(m) for index, m in enumerate(maxes_v) if maxes_t[index] >= latencies[slice_index]])
 			max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
-
-			amplitudes.append(max([max_amp_in_maxes, max_amp_in_mins]))
+			amplitudes.append(max_amp_in_mins)
 		else:
 			# FixMe
+			# ToDo write a test for checking linear dot concentration impact
+			# (what is better -- remove dot or set data of previous neighbor)
 			amplitudes.append(-999)
 
 	if len(amplitudes) != slice_numbers:
@@ -317,7 +314,6 @@ def calc_amplitudes(datas, latencies):
 def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
 	"""
 	Temporal function for visualization of preprocessed data
-
 	Args:
 		voltages (list):
 			voltage data
@@ -414,10 +410,9 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.close()
 
 
-def __process(voltages, stim_indexes, step, debugging):
+def __process(voltages, stim_indexes, step, debugging, reversed_data=False):
 	"""
 	Unified functionality for finding latencies and amplitudes
-
 	Args:
 		voltages (list):
 			voltage data
@@ -435,7 +430,7 @@ def __process(voltages, stim_indexes, step, debugging):
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
 	norm_voltages = normalization(voltages, zero_relative=True)
 	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
-	latencies = find_latencies(mins_maxes, step, norm_to_ms=True)
+	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data)
 	amplitudes = calc_amplitudes(mins_maxes, latencies)
 
 	if debugging:
@@ -444,10 +439,9 @@ def __process(voltages, stim_indexes, step, debugging):
 	return latencies, amplitudes
 
 
-def bio_process(voltages_and_stim, slice_numbers, debugging=False):
+def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
-
 	Args:
 		voltages_and_stim (list):
 			 voltages data and EES stim indexes
@@ -462,10 +456,11 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 	stim_indexes = voltages_and_stim[k_bio_stim][:slice_numbers + 1]
 	# remove unescesary voltage data by the last EES stimulation index
 	voltages = voltages_and_stim[k_bio_volt][:stim_indexes[-1]]
-	# remove the last EES stimulation (it's useless value)
+	print("voltages = ", len(voltages), voltages)# remove the last EES stimulation (it's useless value)
 	stim_indexes = stim_indexes[:-1]
+	print("stim_indexes = ", stim_indexes)
 	# calculate the latencies and amplitudes
-	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging)
+	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging, reversed_data=reversed_data)
 
 	return bio_lat, bio_amp
 
@@ -473,7 +468,6 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 def sim_process(voltages, step, debugging=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
-
 	Args:
 		voltages (list):
 			 voltages data
@@ -493,7 +487,6 @@ def sim_process(voltages, step, debugging=False):
 def find_mins(data_array): # matching_criteria was None
 	"""
 	Function for finding the minimal extrema in the data
-
 	Args:
 		data_array (list):
 			data what is needed to find mins in
@@ -528,7 +521,6 @@ def find_mins(data_array): # matching_criteria was None
 def read_neuron_data(path):
 	"""
 	Reading hdf5 data for Neuron simulator
-
 	Args:
 		path (str):
 			path to the file
