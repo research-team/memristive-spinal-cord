@@ -571,6 +571,20 @@ def read_bio_hdf5(path):
 
 
 def read_bio_data(path):
+	"""
+	Function for reading of bio data from txt file
+	Args:
+		path: string
+			path to file
+
+	Returns:
+	 	data_RMG :list
+			readed data from the first till the last stimulation,
+		shifted_indexes: list
+			stimulations from the zero
+
+
+	"""
 	with open(path) as file:
 		# skipping headers of the file
 		for i in range(6):
@@ -599,22 +613,49 @@ def convert_bio_to_hdf5(voltages, stimulations, filename, path=None):
 
 
 def find_fliers(amplitudes_all_runs, latencies_all_runs):
+	"""
+	Function for finding the fliers of data
+	Args:
+		amplitudes_all_runs: list of lists
+			amplitudes in all runs
+		latencies_all_runs: list of lists
+			latencies in all runs
+	Returns:
+		 latencies_all_runs: list of lists
+		    latencies of all runs without fliers
+		 amplitudes_all_runs: list of lists
+		    amplitudes of all runs without fliers
+		 fliers: list of lists
+		    indexes of fliers that were deleted from the upper lists
+		 fliers_latencies_values: list of lists
+		    values of fliers in list of the latencies
+		 fliers_amplitudes_values: list of lists
+		    values of fliers in list of the amplitudes
+	"""
+	# calculating the expected value and std in the list
 	expected_value_amp = []
 	std_amp = []
+
 	for dot in amplitudes_all_runs:
 		expected_value_tmp = statistics.mean(dot)
 		std_tmp = statistics.stdev(dot)
 		expected_value_amp.append(expected_value_tmp)
 		std_amp.append(std_tmp)
+
 	expected_value_lat = []
 	std_lat = []
+
 	for dot in latencies_all_runs:
 		expected_value_tmp = statistics.mean(dot)
 		std_tmp = statistics.stdev(dot)
 		expected_value_lat.append(expected_value_tmp)
 		std_lat.append(std_tmp)
+
+	# checking if the value is in the 3-sigma interval
 	amplitudes_all_runs_3sigma = []
 	latencies_all_runs_3sigma = []
+
+	# finding the fliers (values which are outside the 3-sigma interval)
 	fliers_amplitudes = []
 	fliers_amplitudes_values = []
 	fliers_latencies = []
@@ -629,8 +670,6 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 				amplitudes_all_runs_dot_3sigma_amp.append(amplitudes_all_runs[dot][i])
 			else:
 				fliers_amplitudes_tmp.append(i)
-		print("amplitudes_all_runs_dot_3sigma_amp = ", len(amplitudes_all_runs_dot_3sigma_amp))
-		print("fliers_amplitudes_tmp = ", fliers_amplitudes_tmp)
 		fliers_amplitudes.append(fliers_amplitudes_tmp)
 		amplitudes_all_runs_3sigma.append(amplitudes_all_runs_dot_3sigma_amp)
 	for dot in range(len(latencies_all_runs)):
@@ -645,16 +684,21 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 		fliers_latencies.append(fliers_latencies_tmp)
 		latencies_all_runs_3sigma.append(latencies_all_runs_dot_3sigma)
 
+	# gathering the indexes of amplitudes' and latencies' fliers into one list
 	fliers = fliers_amplitudes
 	for sl in range(len(fliers)):
 		for i in fliers_latencies[sl]:
 			if i:
 				if i not in fliers[sl]:
 					fliers[sl].append(i)
+		# sorting the lists in the ascending order
 		fliers[sl] = sorted(fliers[sl])
+
+	# saving the old lists of latencies and amplitudes
 	old_latencies_all_runs = copy.deepcopy(latencies_all_runs)
 	old_amplitudes_all_runs = copy.deepcopy(amplitudes_all_runs)
 
+	# finding the values of the fliers
 	for dot in range(len(fliers)):
 		fliers_latencies_values_tmp = []
 		for i in fliers[dot]:
@@ -665,6 +709,8 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 		for i in fliers[dot]:
 			fliers_amplitudes_values_tmp.append(old_amplitudes_all_runs[dot][i])
 		fliers_amplitudes_values.append(fliers_amplitudes_values_tmp)
+
+	# deleting the fliers in the latencies and amplitudes lists by the found indexes
 	for sl in range(len(fliers)):
 		for fl in reversed(fliers[sl]):
 			if fl:
