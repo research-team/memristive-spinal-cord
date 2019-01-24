@@ -22,10 +22,10 @@ public:
 	float weight{};				// [pA] synaptic weight
 
 	__device__
-	void update(int sim_iter, int thread_id) {
+	void update() {
 		// FixMe (bursting?)
 		// if neuron has spike and synapse is 'free' for sending spike
-		if (pre_neuron->has_spike and syn_delay_timer == -1) {
+		if (pre_neuron->has_spike && syn_delay_timer == -1) {
 			syn_delay_timer = syn_delay;
 		}
 		// send spike event after synaptic delay
@@ -38,9 +38,5 @@ public:
 		if (syn_delay_timer > 0) {
 			syn_delay_timer--;
 		}
-
-//		#ifdef DEBUG
-//			printf("Iter: %d, Thread: %d, SYN (%p), PRE (%p), POST (%p)\n", sim_iter, thread_id, this, pre_neuron, post_neuron);
-//		#endif
 	}
 };

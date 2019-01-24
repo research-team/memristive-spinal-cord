@@ -9,24 +9,20 @@
 	#define __global__
 #endif
 
-#define DEBUG
-
 using namespace std;
 
 const int steps_in_ms = 10;		// [step] how much steps in 1 ms
 const float ms_in_step = 1.0f / steps_in_ms;	// [step] how much ms in 1 step
 
+__host__
 int ms_to_step(float ms) {
 	return (int) (ms * steps_in_ms);	// convert milliseconds to step
 }
 
 class Neuron {
 private:
-	// Object variables
-	int id{};                       // neuron ID
-	int sim_time_steps{};           // [step] simulation time in steps
-
 	// Stuff variables
+	int id{};                       // neuron ID
 	float *spike_times{};           // [ms] array of spikes time
 	float *membrane_potential{};    // [mV] array of membrane potential values
 	float *current_potential{};     // [pA] array of current values
@@ -60,9 +56,9 @@ private:
 	// with detectors
 	int index_spikes_array = 0;     // [step] current index of array of the spikes
 
+	bool has_generator = false;     // if neuron has generator
 	bool has_multimeter = false;    // if neuron has multimeter
 	bool has_spikedetector = false; // if neuron has spikedetector
-	bool has_generator = false;     // if neuron has generator
 
 public:
 	Neuron() = default;
@@ -73,16 +69,16 @@ public:
 		this->ref_t_step = ms_to_step(ref_t);
 	}
 
-	string group_name{};            // contains name of the nuclei group
-	bool has_spike{};               // flag if neuron has spike
+	string group_name = "";         // contains name of the nuclei group
+	bool has_spike = false;         // flag if neuron has spike
 
 	__device__
-	void set_has_spike(bool spike_status) {
-		has_spike = spike_status;
+	void remove_spike_flag() {
+		has_spike = false;
 	}
 
 	void add_multimeter(float *mm_data, float* curr_data) {
-		has_multimeter = true;	// set flag that this neuron has the multimeter
+		has_multimeter = true;      // set flag that this neuron has the multimeter
 		membrane_potential = mm_data;
 		current_potential = curr_data;
 	}
@@ -98,14 +94,12 @@ public:
 	// convert steps to milliseconds
 	float step_to_ms(int step) { return step / steps_in_ms; }
 
-	// convert milliseconds to step
-	int ms_to_step(float ms) { return (int) (ms * steps_in_ms); }
-
 	float* get_mm_data() { return membrane_potential; }
 	float* get_curr_data() { return current_potential; }
 
 	string get_name() { return group_name; }
 
+	__device__
 	int get_id() { return id; }
 
 	void set_id(int id) { this->id = id; }
@@ -113,10 +107,9 @@ public:
 	int get_ref_t() { return ref_t_step; }
 	void set_ref_t(float ref_t) { ref_t_step = ms_to_step(ref_t); }
 
-	void set_sim_time(float t_sim) { sim_time_steps = ms_to_step(t_sim); }
-
 	__device__
 	void spike_event(float weight){
+//		printf("%d\n", id);
 		if (I <= 600 && I >= -600)
 			I += weight;
 	}
@@ -131,7 +124,7 @@ public:
 	}
 
 	__device__
-	void update(int sim_iter, int thread_id){
+	void update(int sim_iter){
 		if (ref_t_timer > 0) {
 			// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight
 			V_m = V_old + ms_in_step * (k * (V_old - V_rest) * (V_old - V_th) - U_old) / C;
@@ -198,8 +191,5 @@ public:
 		// update the refractory period timer
 		if (ref_t_timer > 0)
 			ref_t_timer--;
-
-
-		//printf("Iter: %d, Thread: %d, NRN (%p) \n", sim_iter, thread_id, this);
 	}
 };
