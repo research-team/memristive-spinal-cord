@@ -16,6 +16,7 @@
 #define __host__
 #define __device__
 #define __global__
+#define __shared__
 #endif
 
 using namespace std;
@@ -40,6 +41,9 @@ unsigned int global_id = 0;
 const float T_sim = 1000;
 const float sim_step = 0.25;
 const unsigned int sim_step_time = (unsigned int)(T_sim / sim_step);
+
+__host__
+int ms_to_step(float ms) { return (int)(ms / sim_step); }
 
 struct Metadata{
 	Metadata() = default;
@@ -138,11 +142,15 @@ Group Ia = form_group("Ia", neurons_in_afferent);
 
 vector<vector<Metadata>> metadatas(global_id, vector<Metadata>());
 
+bool* has_multimeter;
+bool* has_generator;
+int* begin_spiking;
+int* end_spiking;
+int* spiking_per_step;
+
 __global__
 void sim_GPU(float* old_v,
              float* old_u,
-             float* new_v,
-             float* new_u,
              float* nrn_current,
              float step_dt,
              int* refractory_time,
@@ -157,93 +165,110 @@ void sim_GPU(float* old_v,
              bool* has_generator,
              bool* has_multimeter,
              float* multimeter_result,
-             int sim_iter) {
+             int* begin_spiking,
+             int* end_spiking,
+             int* spiking_per_step) {
 
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	__shared__ float mm_result;
 
-	if(tid < nrn_size){
-		// Parameters (const)
-		const float C = 100.0f;        // [pF] membrane capacitance
-		const float V_rest = -72.0f;   // [mV] resting membrane potential
-		const float V_thld = -55.0f;   // [mV] spike threshold
-		const float k = 0.7f;          // [pA * mV-1] constant ("1/R")
-		const float b = 0.2f;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
-		const float a = 0.02f;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
-		const float c = -80.0f;        // [mV] after-spike reset value of V_m
-		const float d = 6.0f;          // [pA] after-spike reset value of U_m
-		const float V_peak = 35.0f;    // [mV] spike cutoff value
+	// Parameters (const)
+	const float C = 100.0f;        // [pF] membrane capacitance
+	const float V_rest = -72.0f;   // [mV] resting membrane potential
+	const float V_thld = -55.0f;   // [mV] spike threshold
+	const float k = 0.7f;          // [pA * mV-1] constant ("1/R")
+	const float b = 0.2f;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
+	const float a = 0.02f;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
+	const float c = -80.0f;        // [mV] after-spike reset value of V_m
+	const float d = 6.0f;          // [pA] after-spike reset value of U_m
+	const float V_peak = 35.0f;    // [mV] spike cutoff value
+	const float sim_step = 0.25;
 
-		float V_old = old_v[tid];
-		float U_old = old_u[tid];
-		float I_syn = (refractory_time_timer[tid] > 0)? 0 : nrn_current[tid] * 200;
+	for (int sim_iter = 0; sim_iter < sim_step_time; sim_iter++) {
+		int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-		// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight
-		// action potential : calculate V_m and U_m WITH synaptic weight
-		new_v[tid] = V_old + step_dt * (k * (V_old - V_rest) * (V_old - V_thld) - U_old + I_syn) / C;
-		new_u[tid] = U_old + step_dt * a * (b * (V_old - V_rest) - U_old);
+		if(tid == 0)
+			mm_result = 0;
+		__syncthreads();
 
-		if (new_v[tid] < c)
-			new_v[tid] = c;
-
-		// threshold crossing (spike)
-		if (new_v[tid] >= V_peak) {
-			has_spike[tid] = true;
-			// redefine V_old and U_old
-			old_v[tid] = c;
-			old_u[tid] += d;
-			// set the refractory period
-			refractory_time_timer[tid] = refractory_time[tid];
-		} else {
-			// redefine V_old and U_old
-			old_v[tid] = new_v[tid];
-			old_u[tid] = new_u[tid];
-		}
-
-		if (has_generator[tid]) {
-			//membrane_potential[sim_iteration] = V_m;
-		}
-		//if (has_generator &&
-		//	sim_iteration >= begin_spiking &&
-		//	sim_iteration < end_spiking &&
-		//	(sim_iteration % spike_each_step == 0)){
-		//	I = 400.0;
-		//}
-
-		// save the V_m and I value every iter step if has multimeter
-		if (has_multimeter[tid]) {
-			multimeter_result[sim_iter] += new_v[tid];
-		}
-
-		int* delays = synapses_delay_timer[tid];
-
-		for (int i = 0; i < synapses_number[tid]; i++) {
-			if (has_spike[tid] && delays[i] == -1) {
-				delays[i] = synapses_delay[tid][i];
+		for (; tid < nrn_size; tid += blockDim.x * gridDim.x) {
+			if (has_generator[tid] &&
+				sim_iter >= begin_spiking[tid] &&
+				sim_iter < end_spiking[tid] &&
+				(sim_iter % spiking_per_step[tid] == 0)) {
+				nrn_current[tid] = 10000;
 			}
-			if (delays[i] == 0) {
-				nrn_current[post_ids[tid][i]] += synapses_weight[tid][i];
-				delays[i] = -1;
+
+			float V_old = old_v[tid];
+			float U_old = old_u[tid];
+			float I_syn = (refractory_time_timer[tid] > 0) ? 0 : nrn_current[tid];
+
+			// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight
+			// action potential : calculate V_m and U_m WITH synaptic weight
+			float V_m = V_old + step_dt * (k * (V_old - V_rest) * (V_old - V_thld) - U_old + I_syn) / C;
+			float U_m = U_old + step_dt * a * (b * (V_old - V_rest) - U_old);
+
+			if (V_m < c)
+				V_m = c;
+
+			// save the V_m and I value every iter step if has multimeter
+			if (has_multimeter[tid]) {
+				atomicAdd(&mm_result, V_m);
 			}
-			if (delays[i] > 0) {
-				delays[i]--;
+
+			// threshold crossing (spike)
+			if (V_m >= V_peak) {
+				// set spike status
+				has_spike[tid] = true;
+				// redefine V_old and U_old
+				old_v[tid] = c;
+				old_u[tid] += d;
+				// set the refractory period
+				refractory_time_timer[tid] = refractory_time[tid];
+			} else {
+				// redefine V_old and U_old
+				old_v[tid] = V_m;
+				old_u[tid] = U_m;
 			}
+
+			int *ptr_delay_timers = synapses_delay_timer[tid];
+
+			for (int i = 0; i < synapses_number[tid]; i++) {
+				if (has_spike[tid] && ptr_delay_timers[i] == -1) {
+					ptr_delay_timers[i] = synapses_delay[tid][i];
+				}
+				if (ptr_delay_timers[i] == 0) {
+					int post_id = post_ids[tid][i];
+					if (has_generator[tid] &&
+					nrn_current[post_id] <= 300 &&
+					nrn_current[post_id] >= -300) {
+						nrn_current[post_id] += synapses_weight[tid][i];
+					}
+					ptr_delay_timers[i] = -1;
+				}
+				if (ptr_delay_timers[i] > 0) {
+					ptr_delay_timers[i]--;
+				}
+			}
+
+			has_spike[tid] = false;
+
+			// update currents of the neuron
+			if (I_syn != 0) {
+				// decrease current potential
+				if (I_syn > 0) nrn_current[tid] /= 2;   // for positive current
+				if (I_syn < 0) nrn_current[tid] /= 1.1;   // for negative current
+				// avoid the near value to 0
+				if (I_syn > 0 && I_syn <= 1) nrn_current[tid] = 0;
+				if (I_syn <= 0 && I_syn >= -1) nrn_current[tid] = 0;
+			}
+
+			// update the refractory period timer
+			if (refractory_time_timer[tid] > 0)
+				refractory_time_timer[tid]--;
 		}
 
-		has_spike[tid] = false;
-
-		// update currents of the neuron
-		if (I_syn != 0) {
-			// decrease current potential
-			if (I_syn > 0) nrn_current[tid] /= 2.0f;   // for positive current
-			if (I_syn < 0) nrn_current[tid] /= 1.1f;      // for negative current
-			// avoid the near value to 0
-			if (I_syn > 0 && I_syn <= 1) nrn_current[tid] = 0;
-			if (I_syn <=0 && I_syn >= -1) nrn_current[tid] = 0;
-		}
-
-		// update the refractory period timer
-		if (refractory_time_timer[tid] > 0)
-			refractory_time_timer[tid]--;
+		__syncthreads();
+		multimeter_result[sim_iter] = mm_result;
 	}
 }
 
@@ -277,44 +302,34 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 		}
 	}
 }
-/*
+
 void group_add_multimeter(Group &nrn_group) {
 	printf("Added multmeter to %s \n", nrn_group.group_name.c_str());
 
-	with_multimeter.push_back(nrn_group);
-
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
-		float *mm_data;
-		float *curr_data;
-
-		cudaMalloc(&mm_data, sizeof(float) * sim_step_time);
-		cudaMalloc(&curr_data, sizeof(float) * sim_step_time);
-
-		host_neurons_vector.at(nrn_id).add_multimeter(mm_data, curr_data);
+		has_multimeter[nrn_id] = true;
 	}
 }
-*/
-/*
+
 void group_add_spike_generator(Group &nrn_group, float start, float end, int hz){
 	printf("Added generator to %s \n", nrn_group.group_name.c_str());
 
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
-		host_neurons_vector.at(nrn_id).add_spike_generator(start, end, hz);
+		has_generator[nrn_id] = true;
+		begin_spiking[nrn_id] = ms_to_step(start);
+		end_spiking[nrn_id] = ms_to_step(end);
+		spiking_per_step[nrn_id] = ms_to_step(1.0f / hz * 1000);
 	}
-}*/
+}
 
 void init_extensor() {
-	// - - - - - - - - - - - -
-	// CPG (Extensor)
-	// - - - - - - - - - - - -
-	//group_add_multimeter(D1_1);
-
-//	group_add_spike_generator(C1, 0, speed_to_time, 200);
-//	group_add_spike_generator(C2, speed_to_time, 2*speed_to_time, 200);
-//	group_add_spike_generator(C3, 2*speed_to_time, 3*speed_to_time, 200);
-//	group_add_spike_generator(C4, 3*speed_to_time, 5*speed_to_time, 200);
-//	group_add_spike_generator(C5, 5*speed_to_time, 6*speed_to_time, 200);
-//	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
+	group_add_multimeter(EES);
+	group_add_spike_generator(C1, 0, speed_to_time, 200);
+	group_add_spike_generator(C2, speed_to_time, 2*speed_to_time, 200);
+	group_add_spike_generator(C3, 2*speed_to_time, 3*speed_to_time, 200);
+	group_add_spike_generator(C4, 3*speed_to_time, 5*speed_to_time, 200);
+	group_add_spike_generator(C5, 5*speed_to_time, 6*speed_to_time, 200);
+	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
 
 	connect_fixed_outdegree(C3, inh_group3, 0.5, 20.0);
 	connect_fixed_outdegree(C4, inh_group4, 0.5, 20.0);
@@ -512,43 +527,30 @@ void init_extensor() {
 	connect_fixed_outdegree(EES, MP_E, 2, 50); // 50
 	//connect_fixed_outdegree(Ia, MP_E, 1, 50)
 }
-/*
-void save_result(int test_index, Neuron* host_neurons) {
+
+void save_result(int test_index, float* multimeter_results, int nrn_size) {
 	// Printing results function
-	for (auto &group: with_multimeter) {
-		char cwd[256];
-		getcwd(cwd, sizeof(cwd));
-		printf("Save results to: %s \n", cwd);
+	char cwd[256];
+	getcwd(cwd, sizeof(cwd));
+	printf("Save results to: %s \n", cwd);
 
-		string new_name = "/" + to_string(test_index) + "_" + group.group_name + ".dat";
+	string new_name = "/test.dat";
 
-		ofstream myfile;
-		myfile.open(cwd + new_name);
+	ofstream myfile;
+	myfile.open(cwd + new_name);
 
-		for (int id = group.id_start; id <= group.id_end; id++) {
-			float mm_data[sim_step_time];
-			float curr_data[sim_step_time];
-
-			// copy data from GPU to HOST
-			cudaMemcpy(mm_data, host_neurons[id].get_mm_data(),
-					sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
-			cudaMemcpy(curr_data, host_neurons[id].get_curr_data(),
-					sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
-
-			int time = 0;
-			while (time < sim_step_time) {
-				myfile << id << " " << time / 10.0f << " " << mm_data[time] << " " << curr_data[time] << "\n";
-				time += 1;
-			}
-		}
-		myfile.close();
+	int time = 0;
+	while (time < sim_step_time) {
+		myfile << 0 << " " << time / 10.0f << " " << multimeter_results[time] / nrn_size << "\n";
+		time += 1;
 	}
+	myfile.close();
 }
-*/
+
 
 template <typename type>
 void memcpyHtD(type* gpu, type* host, int size) {
-	cudaMalloc(&gpu, sizeof(type) * size);
+	//cudaMalloc(&gpu, sizeof(type) * size);
 	cudaMemcpy(gpu, host, sizeof(type) * size, cudaMemcpyHostToDevice);
 }
 
@@ -559,11 +561,8 @@ void simulate() {
 	int neurons_number = static_cast<int>(metadatas.size());
 	printf("num %d \n", neurons_number);
 
-	const float step_dt = 0.5;
 	const float V_rest = -72.0f;
 
-	float* gpu_new_v;
-	float* gpu_new_u;
 	float* gpu_old_v;
 	float* gpu_old_u;
 	int* gpu_nrn_refractory_time;
@@ -573,20 +572,27 @@ void simulate() {
 	bool* gpu_has_multimeter;
 	float* gpu_nrn_current;
 	int* gpu_synapses_number;
+	int* gpu_begin_spiking;
+	int* gpu_end_spiking;
+	int* gpu_spiking_per_step;
 
 	float* gpu_multimeter_result;
 
 	float old_v[neurons_number] = {V_rest};
 	float old_u[neurons_number] = {0.0f};
-	float nrn_refractory_time[neurons_number] = {3.0f};
-	int refractory_timer[neurons_number] = {-1};
+	int nrn_refractory_time[neurons_number] = {ms_to_step(3.0)};
+	int nrn_refractory_timer[neurons_number] = {-1};
 	bool has_spike[neurons_number] = {false};
-	bool has_generator[neurons_number] = {false};
-	bool has_multimeter[neurons_number] = {false};
 	float nrn_current[neurons_number] = {0.0f};
 	int synapses_number[neurons_number];
 
 	float multimeter_result[sim_step_time] = {0.0f};
+
+	has_multimeter = (bool *)malloc(neurons_number * sizeof(bool *));
+	has_generator = (bool *)malloc(neurons_number * sizeof(bool *));
+	begin_spiking = (int *)malloc(neurons_number * sizeof(int *));
+	end_spiking = (int *)malloc(neurons_number * sizeof(int *));
+	spiking_per_step = (int *)malloc(neurons_number * sizeof(int *));
 
 	init_extensor();
 
@@ -636,29 +642,26 @@ void simulate() {
 		cudaMalloc((void**)&synapses_weight[neuron_id], data_size * sizeof(float));
 	}
 
-	cudaMemcpy(gpu_post_ids, post_ids, neurons_number * sizeof(int *), cudaMemcpyHostToDevice);
+	memcpyHtD<int *>(gpu_post_ids, post_ids, neurons_number);
 	cudaMemcpy(gpu_synapses_delay, synapses_delay, neurons_number * sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(gpu_synapses_delay_timer, synapses_delay_timer, neurons_number * sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(gpu_synapses_weight, synapses_weight, neurons_number * sizeof(float *), cudaMemcpyHostToDevice);
 
-	cudaMalloc(&gpu_new_v, sizeof(float) * neurons_number);
-	cudaMalloc(&gpu_new_u, sizeof(float) * neurons_number);
 
-//	memcpyHtD<float>(gpu_old_v, old_v, neurons_number);
 	cudaMalloc(&gpu_old_v, sizeof(float) * neurons_number);
-	cudaMemcpy(gpu_old_v, old_v, sizeof(float) * neurons_number, cudaMemcpyHostToDevice);
+	memcpyHtD<float>(gpu_old_v, old_v, neurons_number);
 
 	cudaMalloc(&gpu_old_u, sizeof(float) * neurons_number);
-	cudaMemcpy(gpu_old_u, old_u, sizeof(float) * neurons_number, cudaMemcpyHostToDevice);
+	memcpyHtD<float>(gpu_old_u, old_u, neurons_number);
 
 	cudaMalloc(&gpu_has_spike, sizeof(bool) * neurons_number);
 	cudaMemcpy(gpu_has_spike, has_spike, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
 
-	cudaMalloc(&gpu_nrn_refractory_time, sizeof(float) * neurons_number);
-	cudaMemcpy(gpu_nrn_refractory_time, nrn_refractory_time, sizeof(float) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_nrn_refractory_time, sizeof(int) * neurons_number);
+	cudaMemcpy(gpu_nrn_refractory_time, nrn_refractory_time, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
 
 	cudaMalloc(&gpu_nrn_refractory_timer, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_nrn_refractory_timer, refractory_timer, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMemcpy(gpu_nrn_refractory_timer, nrn_refractory_timer, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
 
 	cudaMalloc(&gpu_nrn_current, sizeof(float) * neurons_number);
 	cudaMemcpy(gpu_nrn_current, nrn_current, sizeof(float) * neurons_number, cudaMemcpyHostToDevice);
@@ -666,17 +669,26 @@ void simulate() {
 	cudaMalloc(&gpu_has_generator, sizeof(bool) * neurons_number);
 	cudaMemcpy(gpu_has_generator, has_generator, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
 
+	cudaMalloc(&gpu_begin_spiking, sizeof(int) * neurons_number);
+	cudaMemcpy(gpu_begin_spiking, begin_spiking, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+
+	cudaMalloc(&gpu_end_spiking, sizeof(int) * neurons_number);
+	cudaMemcpy(gpu_end_spiking, end_spiking, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+
 	cudaMalloc(&gpu_has_multimeter, sizeof(bool) * neurons_number);
 	cudaMemcpy(gpu_has_multimeter, has_multimeter, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
 
 	cudaMalloc(&gpu_synapses_number, sizeof(int) * neurons_number);
 	cudaMemcpy(gpu_synapses_number, synapses_number, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
 
+	cudaMalloc(&gpu_spiking_per_step, sizeof(int) * neurons_number);
+	cudaMemcpy(gpu_spiking_per_step, spiking_per_step, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+
 	cudaMalloc(&gpu_multimeter_result, sizeof(float) * sim_step_time);
 	cudaMemcpy(gpu_multimeter_result, multimeter_result, sizeof(float) * sim_step_time, cudaMemcpyHostToDevice);
 
-	int threads_per_block = 64;
-	int num_blocks = neurons_number / threads_per_block + 1;
+	int threads_per_block = 1024;
+	int num_blocks = 1;//neurons_number / threads_per_block + 1;
 
 	printf("Size of NRN %i \n", neurons_number);
 	printf("Start GPU with %d threads x %d blocks (Total: %d th). With useless %d threads\n\n",
@@ -688,12 +700,10 @@ void simulate() {
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-
+	int shared_mem_size = sim_step_time * sizeof(float);
 	// the main loop
-	for(int sim_iter = 0; sim_iter < sim_step_time; sim_iter++) {
-		sim_GPU<<<num_blocks, threads_per_block>>>(
+		sim_GPU<<<num_blocks, threads_per_block, shared_mem_size>>>(
 				gpu_old_v, gpu_old_u,
-				gpu_new_v, gpu_new_u,
 				gpu_nrn_current,
 				sim_step,
 				gpu_nrn_refractory_time,
@@ -708,9 +718,10 @@ void simulate() {
 				gpu_has_generator,
 				gpu_has_multimeter,
 				gpu_multimeter_result,
-				sim_iter
+				gpu_begin_spiking,
+				gpu_end_spiking,
+				gpu_spiking_per_step
 		);
-	}
 
 	cudaEventRecord(stop);
 
@@ -723,20 +734,16 @@ void simulate() {
 	double t = milliseconds / 1e3;
 	printf("Ellapsed time: %fs (%s) \n", t, t < 1? "YES!": "fuck...");
 
-
 	// copy neurons/synapses array to the HOST
-//	cudaMemcpy(host_neurons, gpu_neurons, sizeof(Neuron) * neurons_number, cudaMemcpyDeviceToHost);
+	cudaMemcpy(multimeter_result, gpu_multimeter_result, sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
-//	cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 
 	// before cudaFree (!)
-//	save_result(0, host_neurons);
+	save_result(0, multimeter_result, neurons_in_group);
 
 	// remove data from HOST
-
-	// remove data from GPU
-//	cudaFree(gpu_neurons);
 
 	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
