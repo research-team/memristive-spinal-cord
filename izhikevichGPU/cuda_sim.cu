@@ -13,10 +13,10 @@
 #include "Group.cpp"
 
 #ifdef __JETBRAINS_IDE__
-#define __host__
-#define __device__
-#define __global__
-#define __shared__
+	#define __host__
+	#define __device__
+	#define __global__
+	#define __shared__
 #endif
 
 using namespace std;
@@ -46,6 +46,9 @@ __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
 
 struct Metadata{
+	/*
+	 *
+	 */
 	Metadata() = default;
 	Metadata(int post_id, float synapse_ref_t, float synapse_weight){
 		this->post_id = post_id;
@@ -58,6 +61,9 @@ struct Metadata{
 };
 
 Group form_group(string group_name, int nrns_in_group = neurons_in_group, float ref_t = 3.0) {
+	/*
+	 *
+	 */
 	Group group = Group();
 
 	group.group_name = group_name;
@@ -65,10 +71,10 @@ Group form_group(string group_name, int nrns_in_group = neurons_in_group, float 
 	group.id_end = global_id + nrns_in_group - 1;
 	group.group_size = nrns_in_group;
 
-	printf("Formed %s IDs [%d ... %d] = %d\n",
-		   group_name.c_str(), global_id, global_id + nrns_in_group - 1, nrns_in_group);
-
 	global_id += nrns_in_group;
+
+	printf("Formed %s IDs [%d ... %d] = %d\n",
+		   group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
 
 	return group;
 }
@@ -149,26 +155,28 @@ int* end_spiking;
 int* spiking_per_step;
 
 __global__
-void sim_GPU(float* old_v,
-             float* old_u,
-             float* nrn_current,
-             float step_dt,
-             int* refractory_time,
-             int* refractory_time_timer,
-             int* synapses_number,
-             bool* has_spike,
-             int** post_ids,
-             int** synapses_delay,
-             int** synapses_delay_timer,
-             float** synapses_weight,
-             unsigned int nrn_size,
-             bool* has_generator,
-             bool* has_multimeter,
-             float* multimeter_result,
-             int* begin_spiking,
-             int* end_spiking,
-             int* spiking_per_step) {
-
+void sim_kernel(float* old_v,
+                float* old_u,
+                float* nrn_current,
+                float step_dt,
+                int* refractory_time,
+                int* refractory_time_timer,
+                int* synapses_number,
+                bool* has_spike,
+                int** post_ids,
+                int** synapses_delay,
+                int** synapses_delay_timer,
+                float** synapses_weight,
+                unsigned int nrn_size,
+                bool* has_generator,
+                bool* has_multimeter,
+                float* multimeter_result,
+                int* begin_spiking,
+                int* end_spiking,
+                int* spiking_per_step) {
+	/*
+	 *
+	 */
 	__shared__ float mm_result;
 
 	// Parameters (const)
@@ -281,16 +289,10 @@ int get_random_neighbor(Group &group) {
 }
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
-		float syn_delay, float weight, int outdegree = syn_outdegree) {
-	//weight *= 0.4;
-	float time_delta = syn_delay * 0.4f;   //0.4
-	float weight_delta = weight * 0.3f;    //0.3
-	printf("Connect %s with %s (1:%d). W=%.2f (±%.2f), D=%.1f (±%.1f)\n",
-		   pre_neurons.group_name.c_str(),
-		   post_neurons.group_name.c_str(),
-		   post_neurons.group_size,
-		   weight, weight_delta,
-		   syn_delay, time_delta);
+                             float syn_delay, float weight, int outdegree = syn_outdegree) {
+	weight *= 0.4 * 200;
+	float time_delta = syn_delay * 0.4f;
+	float weight_delta = weight * 0.3f;
 
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
@@ -301,28 +303,43 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 			metadatas.at(pre_id).push_back(Metadata(rand_post_id, syn_delay_dist, syn_weight_dist));
 		}
 	}
+
+	printf("Connect %s with %s (1:%d). W=%.2f (±%.2f), D=%.1f (±%.1f)\n",
+		   pre_neurons.group_name.c_str(),
+		   post_neurons.group_name.c_str(),
+		   post_neurons.group_size,
+		   weight, weight_delta,
+		   syn_delay, time_delta);
 }
 
 void group_add_multimeter(Group &nrn_group) {
-	printf("Added multmeter to %s \n", nrn_group.group_name.c_str());
-
+	/*
+	 *
+	 */
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
 		has_multimeter[nrn_id] = true;
 	}
+
+	printf("Added multmeter to %s \n", nrn_group.group_name.c_str());
 }
 
 void group_add_spike_generator(Group &nrn_group, float start, float end, int hz){
-	printf("Added generator to %s \n", nrn_group.group_name.c_str());
-
+	/*
+	 *
+	 */
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
 		has_generator[nrn_id] = true;
 		begin_spiking[nrn_id] = ms_to_step(start);
 		end_spiking[nrn_id] = ms_to_step(end);
 		spiking_per_step[nrn_id] = ms_to_step(1.0f / hz * 1000);
 	}
+	printf("Added generator to %s \n", nrn_group.group_name.c_str());
 }
 
 void init_extensor() {
+	/*
+	 *
+	 */
 	group_add_multimeter(EES);
 	group_add_spike_generator(C1, 0, speed_to_time, 200);
 	group_add_spike_generator(C2, speed_to_time, 2*speed_to_time, 200);
@@ -529,7 +546,9 @@ void init_extensor() {
 }
 
 void save_result(int test_index, float* multimeter_results, int nrn_size) {
-	// Printing results function
+	/* Printing results function
+	 *
+	 */
 	char cwd[256];
 	getcwd(cwd, sizeof(cwd));
 	printf("Save results to: %s \n", cwd);
@@ -550,14 +569,24 @@ void save_result(int test_index, float* multimeter_results, int nrn_size) {
 
 template <typename type>
 void memcpyHtD(type* gpu, type* host, int size) {
-	//cudaMalloc(&gpu, sizeof(type) * size);
 	cudaMemcpy(gpu, host, sizeof(type) * size, cudaMemcpyHostToDevice);
+}
+
+template <typename type>
+void memcpyDtH(type* host, type* gpu, int size) {
+	cudaMemcpy(host, gpu, sizeof(type) * size, cudaMemcpyDeviceToHost);
+}
+
+template <typename type>
+unsigned int datasize(int size) {
+	return sizeof(type) * size;
 }
 
 __host__
 void simulate() {
-	// get synapse number
-
+	/*
+	 *
+	 */
 	int neurons_number = static_cast<int>(metadatas.size());
 	printf("num %d \n", neurons_number);
 
@@ -588,11 +617,11 @@ void simulate() {
 
 	float multimeter_result[sim_step_time] = {0.0f};
 
-	has_multimeter = (bool *)malloc(neurons_number * sizeof(bool *));
-	has_generator = (bool *)malloc(neurons_number * sizeof(bool *));
-	begin_spiking = (int *)malloc(neurons_number * sizeof(int *));
-	end_spiking = (int *)malloc(neurons_number * sizeof(int *));
-	spiking_per_step = (int *)malloc(neurons_number * sizeof(int *));
+	has_multimeter = (bool *)malloc(datasize<bool *>(neurons_number));
+	has_generator = (bool *)malloc(datasize<bool *>(neurons_number));
+	begin_spiking = (int *)malloc(datasize<int *>(neurons_number));
+	end_spiking = (int *)malloc(datasize<int *>(neurons_number));
+	spiking_per_step = (int *)malloc(datasize<int *>(neurons_number));
 
 	init_extensor();
 
@@ -601,91 +630,90 @@ void simulate() {
 	int **synapses_delay_timer, **gpu_synapses_delay_timer;
 	float **synapses_weight, **gpu_synapses_weight;
 
-	post_ids = (int **)malloc(neurons_number * sizeof(int **));
-	cudaMalloc((void**)&gpu_post_ids, neurons_number * sizeof(int *));
+	post_ids = (int **)malloc(datasize<int *>(neurons_number));
+	cudaMalloc((void**)&gpu_post_ids, datasize<int *>(neurons_number));
 
-	synapses_delay = (int **)malloc(neurons_number * sizeof(int *));
-	cudaMalloc((void**)&gpu_synapses_delay, neurons_number * sizeof(int *));
+	synapses_delay = (int **)malloc(datasize<int *>(neurons_number));
+	cudaMalloc((void**)&gpu_synapses_delay, datasize<int *>(neurons_number));
 
-	synapses_delay_timer = (int **)malloc(neurons_number * sizeof(int *));
-	cudaMalloc((void**)&gpu_synapses_delay_timer, neurons_number * sizeof(int *));
+	synapses_delay_timer = (int **)malloc(datasize<int *>(neurons_number));
+	cudaMalloc((void**)&gpu_synapses_delay_timer, datasize<int *>(neurons_number));
 
-	synapses_weight = (float **)malloc(neurons_number * sizeof(float *));
-	cudaMalloc((void**)&gpu_synapses_weight, neurons_number * sizeof(float *));
+	synapses_weight = (float **)malloc(datasize<float *>(neurons_number));
+	cudaMalloc((void**)&gpu_synapses_weight, datasize<float *>(neurons_number));
 
 	// synapse info
 	for(unsigned long neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
-		int data_size = static_cast<int>(metadatas.at(neuron_id).size());
-		synapses_number[neuron_id] = data_size;
+		int syn_count = static_cast<int>(metadatas.at(neuron_id).size());
+		synapses_number[neuron_id] = syn_count;
 
-		int post_ids_TMP[data_size];
-		int synapses_delay_TMP[data_size];
-		int synapses_delay_timer_TMP[data_size] = {-1};
-		float synapses_weight_TMP[data_size];
+		int post_ids_tmp[syn_count];
+		int synapses_delay_tmp[syn_count];
+		int synapses_delay_timer_tmp[syn_count] = {-1};
+		float synapses_weight_tmp[syn_count];
 
 		int data_iter = 0;
 		for(Metadata m : metadatas.at(neuron_id)) {
-			post_ids_TMP[data_iter] = m.post_id;
-			synapses_delay_TMP[data_iter] = m.synapse_ref_t;
-			synapses_weight_TMP[data_iter] = m.synapse_weight;
+			post_ids_tmp[data_iter] = m.post_id;
+			synapses_delay_tmp[data_iter] = m.synapse_ref_t;
+			synapses_weight_tmp[data_iter] = m.synapse_weight;
 			data_iter++;
 		}
 
-		post_ids[neuron_id] = post_ids_TMP;
-		synapses_delay[neuron_id] = synapses_delay_TMP;
-		synapses_delay_timer[neuron_id] = synapses_delay_timer_TMP;
-		synapses_weight[neuron_id] = synapses_weight_TMP;
+		post_ids[neuron_id] = post_ids_tmp;
+		synapses_delay[neuron_id] = synapses_delay_tmp;
+		synapses_delay_timer[neuron_id] = synapses_delay_timer_tmp;
+		synapses_weight[neuron_id] = synapses_weight_tmp;
 
-		cudaMalloc((void**)&post_ids[neuron_id], data_size * sizeof(int));
-		cudaMalloc((void**)&synapses_delay[neuron_id], data_size * sizeof(int));
-		cudaMalloc((void**)&synapses_delay_timer[neuron_id], data_size * sizeof(int));
-		cudaMalloc((void**)&synapses_weight[neuron_id], data_size * sizeof(float));
+		cudaMalloc((void**)&post_ids[neuron_id], datasize<int>(syn_count));
+		cudaMalloc((void**)&synapses_delay[neuron_id], datasize<int>(syn_count));
+		cudaMalloc((void**)&synapses_delay_timer[neuron_id], datasize<int>(syn_count));
+		cudaMalloc((void**)&synapses_weight[neuron_id], datasize<float>(syn_count));
 	}
 
 	memcpyHtD<int *>(gpu_post_ids, post_ids, neurons_number);
-	cudaMemcpy(gpu_synapses_delay, synapses_delay, neurons_number * sizeof(int *), cudaMemcpyHostToDevice);
-	cudaMemcpy(gpu_synapses_delay_timer, synapses_delay_timer, neurons_number * sizeof(int *), cudaMemcpyHostToDevice);
-	cudaMemcpy(gpu_synapses_weight, synapses_weight, neurons_number * sizeof(float *), cudaMemcpyHostToDevice);
+	memcpyHtD<int *>(gpu_synapses_delay, synapses_delay, neurons_number);
+	memcpyHtD<int *>(gpu_synapses_delay_timer, synapses_delay_timer, neurons_number);
+	memcpyHtD<float *>(gpu_synapses_weight, synapses_weight, neurons_number);
 
-
-	cudaMalloc(&gpu_old_v, sizeof(float) * neurons_number);
+	cudaMalloc(&gpu_old_v, datasize<float>(neurons_number));
 	memcpyHtD<float>(gpu_old_v, old_v, neurons_number);
 
-	cudaMalloc(&gpu_old_u, sizeof(float) * neurons_number);
+	cudaMalloc(&gpu_old_u, datasize<float>(neurons_number));
 	memcpyHtD<float>(gpu_old_u, old_u, neurons_number);
 
-	cudaMalloc(&gpu_has_spike, sizeof(bool) * neurons_number);
-	cudaMemcpy(gpu_has_spike, has_spike, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_has_spike, datasize<bool>(neurons_number));
+	memcpyHtD<bool>(gpu_has_spike, has_spike, neurons_number);
 
-	cudaMalloc(&gpu_nrn_refractory_time, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_nrn_refractory_time, nrn_refractory_time, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_nrn_refractory_time, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_nrn_refractory_time, nrn_refractory_time, neurons_number);
 
-	cudaMalloc(&gpu_nrn_refractory_timer, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_nrn_refractory_timer, nrn_refractory_timer, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_nrn_refractory_timer, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_nrn_refractory_timer, nrn_refractory_timer, neurons_number);
 
-	cudaMalloc(&gpu_nrn_current, sizeof(float) * neurons_number);
-	cudaMemcpy(gpu_nrn_current, nrn_current, sizeof(float) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_nrn_current, datasize<float>(neurons_number));
+	memcpyHtD<float>(gpu_nrn_current, nrn_current, neurons_number);
 
-	cudaMalloc(&gpu_has_generator, sizeof(bool) * neurons_number);
-	cudaMemcpy(gpu_has_generator, has_generator, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_has_generator, datasize<bool>(neurons_number));
+	memcpyHtD<bool>(gpu_has_generator, has_generator, neurons_number);
 
-	cudaMalloc(&gpu_begin_spiking, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_begin_spiking, begin_spiking, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_begin_spiking, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_begin_spiking, begin_spiking, neurons_number);
 
-	cudaMalloc(&gpu_end_spiking, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_end_spiking, end_spiking, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_end_spiking, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_end_spiking, end_spiking, neurons_number);
 
-	cudaMalloc(&gpu_has_multimeter, sizeof(bool) * neurons_number);
-	cudaMemcpy(gpu_has_multimeter, has_multimeter, sizeof(bool) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_has_multimeter, datasize<bool>(neurons_number));
+	memcpyHtD<bool>(gpu_has_multimeter, has_multimeter, neurons_number);
 
-	cudaMalloc(&gpu_synapses_number, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_synapses_number, synapses_number, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_synapses_number, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_synapses_number, synapses_number, neurons_number);
 
-	cudaMalloc(&gpu_spiking_per_step, sizeof(int) * neurons_number);
-	cudaMemcpy(gpu_spiking_per_step, spiking_per_step, sizeof(int) * neurons_number, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_spiking_per_step, datasize<int>(neurons_number));
+	memcpyHtD<int>(gpu_spiking_per_step, spiking_per_step, neurons_number);
 
-	cudaMalloc(&gpu_multimeter_result, sizeof(float) * sim_step_time);
-	cudaMemcpy(gpu_multimeter_result, multimeter_result, sizeof(float) * sim_step_time, cudaMemcpyHostToDevice);
+	cudaMalloc(&gpu_multimeter_result, datasize<float>(sim_step_time));
+	memcpyHtD<float>(gpu_multimeter_result, multimeter_result, neurons_number);
 
 	int threads_per_block = 1024;
 	int num_blocks = 1;//neurons_number / threads_per_block + 1;
@@ -700,28 +728,27 @@ void simulate() {
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-	int shared_mem_size = sim_step_time * sizeof(float);
-	// the main loop
-		sim_GPU<<<num_blocks, threads_per_block, shared_mem_size>>>(
-				gpu_old_v, gpu_old_u,
-				gpu_nrn_current,
-				sim_step,
-				gpu_nrn_refractory_time,
-				gpu_nrn_refractory_timer,
-				gpu_synapses_number,
-				gpu_has_spike,
-				gpu_post_ids,
-				gpu_synapses_delay,
-				gpu_synapses_delay_timer,
-				gpu_synapses_weight,
-				neurons_number,
-				gpu_has_generator,
-				gpu_has_multimeter,
-				gpu_multimeter_result,
-				gpu_begin_spiking,
-				gpu_end_spiking,
-				gpu_spiking_per_step
-		);
+
+	sim_kernel<<<num_blocks, threads_per_block>>>(
+			gpu_old_v, gpu_old_u,
+			gpu_nrn_current,
+			sim_step,
+			gpu_nrn_refractory_time,
+			gpu_nrn_refractory_timer,
+			gpu_synapses_number,
+			gpu_has_spike,
+			gpu_post_ids,
+			gpu_synapses_delay,
+			gpu_synapses_delay_timer,
+			gpu_synapses_weight,
+			neurons_number,
+			gpu_has_generator,
+			gpu_has_multimeter,
+			gpu_multimeter_result,
+			gpu_begin_spiking,
+			gpu_end_spiking,
+			gpu_spiking_per_step
+	);
 
 	cudaEventRecord(stop);
 
@@ -735,7 +762,7 @@ void simulate() {
 	printf("Ellapsed time: %fs (%s) \n", t, t < 1? "YES!": "fuck...");
 
 	// copy neurons/synapses array to the HOST
-	cudaMemcpy(multimeter_result, gpu_multimeter_result, sizeof(float) * sim_step_time, cudaMemcpyDeviceToHost);
+	memcpyDtH<float>(multimeter_result, gpu_multimeter_result, sim_step_time);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
@@ -743,16 +770,16 @@ void simulate() {
 	// before cudaFree (!)
 	save_result(0, multimeter_result, neurons_in_group);
 
-	// remove data from HOST
-
 	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
 }
 
 
 int main() {
-	// set randon seed
-	srand(time(NULL));
+	/*
+	 *
+	 */
+	srand(time(NULL));	// set randon seed
 	simulate();
 
 	return 0;
