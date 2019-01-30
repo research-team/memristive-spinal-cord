@@ -13,10 +13,10 @@
 #include "Group.cpp"
 
 #ifdef __JETBRAINS_IDE__
-	#define __host__
-	#define __device__
-	#define __global__
-	#define __shared__
+#define __host__
+#define __device__
+#define __global__
+#define __shared__
 #endif
 
 using namespace std;
@@ -74,7 +74,7 @@ Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
 	global_id += nrns_in_group;
 
 	printf("Formed %s IDs [%d ... %d] = %d\n",
-	       group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
+		   group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
 
 	return group;
 }
@@ -189,7 +189,9 @@ void sim_kernel(float* old_v,
                 float* current_result,
                 int* begin_spiking,
                 int* end_spiking,
-                int* spiking_per_step) {
+                int* spiking_per_step,
+                // ToDo remove after debugging
+                float* global_multimeter) {
 
 	__shared__ float moto_Vm_per_step;
 
@@ -216,7 +218,7 @@ void sim_kernel(float* old_v,
 				nrn_current[tid] = 15000;
 			}
 
-			// todo check woth the real neurobiology mechanism
+			// todo check with the real neurobiology mechanism
 			// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight (nrn_current)
 			// action potential : calculate V_m and U_m WITH synaptic weight (nrn_current)
 			nrn_current[tid] = (refractory_time_timer[tid] > 0) ? 0 : nrn_current[tid];
@@ -241,10 +243,13 @@ void sim_kernel(float* old_v,
 
 			// save the V_m value every iter step if has multimeter
 			if (has_multimeter[tid]) {
-				if (V_m >= V_thld)
-					V_old = V_peak;
-				atomicAdd(&multimeter_result[sim_iter], V_old);
+				if(tid == 100)
+					atomicAdd(&multimeter_result[sim_iter], (V_m >= V_thld)? V_peak : V_m);
+//					multimeter_result[sim_iter] = (V_m >= V_thld)? V_peak : V_m;
 			}
+
+			// ToDo remove after debugging
+			global_multimeter[sim_iter + tid * sim_time_in_step] = (V_m >= V_thld)? V_peak : V_m;
 
 			// threshold crossing (spike)
 			if (V_m >= V_thld) {
@@ -320,7 +325,7 @@ int get_random_neighbor(Group &group) {
 }
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
-                             float syn_delay, float weight, int outdegree = syn_outdegree) {
+							 float syn_delay, float weight, int outdegree = syn_outdegree) {
 	weight *= 0.8;
 	float time_delta = syn_delay * 0.2f;
 	float weight_delta = weight * 0.1f;
@@ -336,11 +341,11 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	}
 
 	printf("Connect %s with %s (1:%d). W=%.2f (±%.2f), D=%.1f (±%.1f)\n",
-	       pre_neurons.group_name.c_str(),
-	       post_neurons.group_name.c_str(),
-	       post_neurons.group_size,
-	       weight, weight_delta,
-	       syn_delay, time_delta);
+		   pre_neurons.group_name.c_str(),
+		   post_neurons.group_name.c_str(),
+		   post_neurons.group_size,
+		   weight, weight_delta,
+		   syn_delay, time_delta);
 }
 
 void group_add_multimeter(Group &nrn_group) {
@@ -577,7 +582,7 @@ void init_extensor() {
 	connect_fixed_outdegree(Ia, MP_E, 1, 1);
 }
 
-void save_result(int test_index, float* multimeter_results, float* current_results, int nrn_size) {
+void save_result(int test_index, float* global_multimeter, int neurons_number) {
 	/* Printing results function
 	 *
 	 */
@@ -590,17 +595,15 @@ void save_result(int test_index, float* multimeter_results, float* current_resul
 	ofstream myfile;
 	myfile.open(cwd + new_name);
 
-	int time = 0;
-	while (time < sim_time_in_step) {
-		myfile << 0 << " " <<
-		time / 10.0f << " " <<
-		multimeter_results[time] / nrn_size << " " <<
-		current_results[time] << "\n";
-		time += 1;
+	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
+		myfile << "id " << nrn_id << " ";
+		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
+			myfile << global_multimeter[sim_iter + nrn_id * sim_time_in_step] << " ";
+		myfile << "\n";
 	}
+
 	myfile.close();
 }
-
 
 template <typename type>
 void memcpyHtD(type* gpu, type* host, int size) {
@@ -645,6 +648,9 @@ void simulate() {
 	float* gpu_multimeter_result;
 	float* gpu_current_result;
 
+	// ToDo remove after debugging
+	float* gpu_global_multimeter;
+
 	int synapses_number[neurons_number];
 
 	float old_v[neurons_number];
@@ -671,6 +677,10 @@ void simulate() {
 	float current_result[sim_time_in_step];
 	init_array<float>(current_result, sim_time_in_step, 0);
 
+	// ToDo remove after debugging
+	float global_multimeter[neurons_number * sim_time_in_step];
+	init_array<float>(global_multimeter, neurons_number * sim_time_in_step, 0);
+
 	has_multimeter = (bool *)malloc(datasize<bool *>(neurons_number));
 	has_generator = (bool *)malloc(datasize<bool *>(neurons_number));
 	begin_spiking = (int *)malloc(datasize<int *>(neurons_number));
@@ -683,6 +693,7 @@ void simulate() {
 	int **gpu_synapses_delay, **synapses_delay = (int **)malloc(datasize<int* >(neurons_number));
 	int **gpu_synapses_delay_timer, **synapses_delay_timer = (int **)malloc(datasize<int* >(neurons_number));
 	float **gpu_synapses_weight, **synapses_weight = (float **)malloc(datasize<float* >(neurons_number));
+
 
 	// fill arrays of synapses
 	for(int neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
@@ -769,6 +780,10 @@ void simulate() {
 	cudaMalloc(&gpu_current_result, datasize<float>(sim_time_in_step));
 	memcpyHtD<float>(gpu_current_result, current_result, sim_time_in_step);
 
+	// FixMe debugging functionality
+	cudaMalloc(&gpu_global_multimeter, datasize<float>(neurons_number * sim_time_in_step));
+	memcpyHtD<float>(gpu_global_multimeter, global_multimeter, neurons_number * sim_time_in_step);
+
 	int threads_per_block = 1024;
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
 
@@ -801,7 +816,9 @@ void simulate() {
 	    gpu_current_result,
 	    gpu_begin_spiking,
 	    gpu_end_spiking,
-	    gpu_spiking_per_step
+	    gpu_spiking_per_step,
+	    // ToDo remove after debugging
+	    gpu_global_multimeter
 	);
 
 	cudaEventRecord(stop);
@@ -813,17 +830,19 @@ void simulate() {
 	double t = milliseconds / 1e3;
 	float realtime_factor = T_sim / t / 1e3;
 	printf("Ellapsed time: %fs. Realtime factor: x%f (%s than realtime)\n",
-			t, realtime_factor, realtime_factor > 1? "faster":"slower");
+		   t, realtime_factor, realtime_factor > 1? "faster":"slower");
 
 	// copy neurons/synapses array to the HOST
 	memcpyDtH<float>(multimeter_result, gpu_multimeter_result, sim_time_in_step);
 	memcpyDtH<float>(current_result, gpu_current_result, sim_time_in_step);
+	// ToDo remove after debugging
+	memcpyDtH<float>(global_multimeter, gpu_global_multimeter, neurons_number * sim_time_in_step);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
 	// before cudaFree (!)
-	save_result(0, multimeter_result, current_result, neurons_in_group);
+	save_result(0, global_multimeter, neurons_number);
 
 	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
