@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <ctime>
-#include "old_neuron.h"
+#include "neuron.h"
 
 using namespace std;
 

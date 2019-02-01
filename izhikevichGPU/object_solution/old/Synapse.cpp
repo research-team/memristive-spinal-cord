@@ -1,13 +1,14 @@
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
+
 #include "Neuron.cpp"
 
-class Synapse {
+class Synaps1e {
 public:
-	Synapse() = default;
+	Synaps1e() = default;
 
-	Synapse(Neuron *pre_neuron, Neuron* post_neuron, float syn_delay, float weight) {
+	Synaps1e(Neuron *pre_neuron, Neuron* post_neuron, float syn_delay, float weight) {
 		this->pre_neuron = pre_neuron;
 		this->post_neuron = post_neuron;
 		this->syn_delay = ms_to_step(syn_delay);
@@ -40,3 +41,4 @@ public:
 		}
 	}
 };
+
