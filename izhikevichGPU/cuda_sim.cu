@@ -164,8 +164,8 @@ const float C = 100.0f;        // [pF] membrane capacitance
 const float V_rest = -72.0f;   // [mV] resting membrane potential
 const float V_thld = -55.0f;   // [mV] spike threshold
 const float k = 0.7f;          // [pA * mV-1] constant ("1/R")
-const float b = 0.2f;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
 const float a = 0.02f;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
+const float b = 0.2f;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
 const float c = -80.0f;        // [mV] after-spike reset value of V_m
 const float d = 6.0f;          // [pA] after-spike reset value of U_m
 const float V_peak = 35.0f;    // [mV] spike cutoff value
@@ -174,8 +174,8 @@ __global__
 void sim_kernel(float* old_v,
                 float* old_u,
                 float* nrn_current,
-                int* refractory_time,
-                int* refractory_time_timer,
+                int* nrn_ref_time,
+                int* nrn_ref_time_timer,
                 int* synapses_number,
                 bool* has_spike,
                 int** synapses_post_nrn_id,
@@ -186,15 +186,17 @@ void sim_kernel(float* old_v,
                 bool* has_generator,
                 bool* has_multimeter,
                 float* multimeter_result,
-                float* current_result,
                 int* begin_spiking,
                 int* end_spiking,
                 int* spiking_per_step,
                 // ToDo remove after debugging
-                float* global_multimeter,
-                float* global_currents) {
+                float* voltage_recording,
+                float* current_recording,
+                int* spike_recording) {
 
 	__shared__ float moto_Vm_per_step;
+
+	int local_spike_array_iter = 0;
 
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
@@ -209,50 +211,53 @@ void sim_kernel(float* old_v,
 		// wait all threads
 		__syncthreads();
 
-		// thread stride loop (0, 1024, 1, 1025, 2, 1026 ...)
+		// neuron (tid = neuron id) stride loop (0, 1024, 1, 1025 ...)
 		for (int tid = thread_id; tid < nrn_size; tid += blockDim.x * gridDim.x) {
 			// spike-generator invoking
 			if (has_generator[tid] &&
 				sim_iter >= begin_spiking[tid] &&
 				sim_iter < end_spiking[tid] &&
 				(sim_iter % spiking_per_step[tid] == 0)) {
-				nrn_current[tid] = 15000;
+				nrn_current[tid] = 5000; // 15 000
 			}
 
 			// todo check with the real neurobiology mechanism
 			// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight (nrn_current)
 			// action potential : calculate V_m and U_m WITH synaptic weight (nrn_current)
-			nrn_current[tid] = (refractory_time_timer[tid] > 0) ? 0 : nrn_current[tid];
+			if (nrn_ref_time_timer[tid] > 0)
+				nrn_current[tid] = 0;
 
 			float V_old = old_v[tid];
 			float U_old = old_u[tid];
 			float I_current = nrn_current[tid];
 
-//			if(tid == 100)
-//				current_result[sim_iter] = I_current;
+			if (I_current > 120000)
+				I_current = 120000;
+			if (I_current < -120000)
+				I_current = -120000;
 
+			// re-calculate V_m and U_m
 			float V_m = V_old + sim_step * (k * (V_old - V_rest) * (V_old - V_thld) - U_old + I_current) / C;
 			float U_m = U_old + sim_step * a * (b * (V_old - V_rest) - U_old);
 
-			// set bottom border of membrane potential
+			// set bottom border of the membrane potential
 			if (V_m < c)
 				V_m = c;
 
-//			if (tid >= 996 && tid <= 1164) {
-//				atomicAdd(&moto_Vm_per_step, V_m);
-//			}
+			// save membrane potential of the Motorneuron
+			if (tid >= 996 && tid <= 1164) {
+				atomicAdd(&moto_Vm_per_step, V_m);
+			}
 
-			// save the V_m value every iter step if has multimeter
-//			if (has_multimeter[tid]) {
-//				if(tid == 100)
-//					atomicAdd(&multimeter_result[sim_iter], (V_m >= V_thld)? V_peak : V_m);
-////					multimeter_result[sim_iter] = (V_m >= V_thld)? V_peak : V_m;
-//			}
+			// record the membrane potential value every iter step if neuron has multimeter
+			if (has_multimeter[tid]) {
+				atomicAdd(&multimeter_result[sim_iter], (V_m >= V_thld)? V_peak : V_m);
+			}
 
 			// ToDo remove after debugging
 			int index = sim_iter + tid * sim_time_in_step;
-			global_multimeter[index] = (V_m >= V_thld)? V_peak : V_m;
-			global_currents[index] = I_current;
+			voltage_recording[index] = (V_m >= V_thld)? V_peak : V_m;
+			current_recording[index] = I_current;
 
 			// threshold crossing (spike)
 			if (V_m >= V_thld) {
@@ -261,9 +266,12 @@ void sim_kernel(float* old_v,
 				// redefine V_old and U_old
 				old_v[tid] = c;
 				old_u[tid] += d;
-
 				// set the refractory period
-				refractory_time_timer[tid] = refractory_time[tid];
+				nrn_ref_time_timer[tid] = nrn_ref_time[tid];
+
+				// ToDo remove after debugging
+				spike_recording[local_spike_array_iter + tid * sim_time_in_step] = sim_iter;
+				local_spike_array_iter++;
 			} else {
 				// redefine V_old and U_old
 				old_v[tid] = V_m;
@@ -272,40 +280,44 @@ void sim_kernel(float* old_v,
 
 			// pointers to current neuronID synapses_delay_timer (decrease array calls)
 			int *ptr_delay_timers = synapses_delay_timer[tid];
-
+			// synapse updating loop
 			for (int syn_id = 0; syn_id < synapses_number[tid]; syn_id++) {
+				// add synaptic delay if neuron has spike
 				if (has_spike[tid] && ptr_delay_timers[syn_id] == -1) {
 					ptr_delay_timers[syn_id] = synapses_delay[tid][syn_id];
 				}
+				// if synaptic delay is zero it means the time when synapse increase I by synaptic weight
 				if (ptr_delay_timers[syn_id] == 0) {
-					int post_nrn_id = synapses_post_nrn_id[tid][syn_id];
-					if (nrn_current[post_nrn_id] <= 120000 && nrn_current[post_nrn_id] >= -120000) {
-						nrn_current[post_nrn_id] += synapses_weight[tid][syn_id];
-					}
+					// post neuron ID = synapses_post_nrn_id[tid][syn_id]
+					nrn_current[ synapses_post_nrn_id[tid][syn_id] ] += synapses_weight[tid][syn_id];
+					// make synapse timer a "free" for next spikes
 					ptr_delay_timers[syn_id] = -1;
 				}
+				// update synapse delay timer
 				if (ptr_delay_timers[syn_id] > 0) {
 					ptr_delay_timers[syn_id]--;
 				}
 			} // end synapse updating loop
 
+			// reset spike flag of the current neuron
 			has_spike[tid] = false;
 
 			// update currents of the neuron
 			if (I_current != 0) {
-				// decrease current potential
-				if (I_current > 0) nrn_current[tid] /= 2;   // for positive current
-				if (I_current < 0) nrn_current[tid] /= 1.1;   // for negative current
+				// decrease current potential for positive and negative current
+				if (I_current > 0) nrn_current[tid] = I_current / 2;
+				if (I_current < 0) nrn_current[tid] = I_current / 1.1f;
 				// avoid the near value to 0
 				if (I_current > 0 && I_current <= 1) nrn_current[tid] = 0;
 				if (I_current <= 0 && I_current >= -1) nrn_current[tid] = 0;
 			}
 
 			// update the refractory period timer
-			if (refractory_time_timer[tid] > 0)
-				refractory_time_timer[tid]--;
-		} // end of stride loop
+			if (nrn_ref_time_timer[tid] > 0)
+				nrn_ref_time_timer[tid]--;
+		} // end of neuron stride loop
 
+		// calculate Ia afferent
 		if (thread_id == 0) {
 			// mean time between spikes (ms)
 			float Ia_interval = (1000 / (6.2 * pow(speed, 0.6) + 0.17 + 0.06 * (moto_Vm_per_step / neurons_in_moto)));
@@ -316,6 +328,7 @@ void sim_kernel(float* old_v,
 
 		// wait all threads
 		__syncthreads();
+
 	} // end of sim iteration
 }
 
@@ -329,7 +342,7 @@ int get_random_neighbor(Group &group) {
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 							 float syn_delay, float weight, int outdegree = syn_outdegree) {
-	weight *= 0.8;
+	weight *= (0.8 * 200);
 	float time_delta = syn_delay * 0.2f;
 	float weight_delta = weight * 0.1f;
 
@@ -368,7 +381,7 @@ void group_add_spike_generator(Group &nrn_group, float start, float end, int hz)
 	 */
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
 		has_generator[nrn_id] = true;
-		begin_spiking[nrn_id] = ms_to_step(start + 0.1);
+		begin_spiking[nrn_id] = ms_to_step(start + 0.2);
 		end_spiking[nrn_id] = ms_to_step(end);
 		spiking_per_step[nrn_id] = ms_to_step(1000.0f / hz);
 	}
@@ -585,7 +598,11 @@ void init_extensor() {
 	connect_fixed_outdegree(Ia, MP_E, 1, 1);
 }
 
-void save_result(int test_index, float* global_multimeter, float* global_currents, int neurons_number) {
+void save_result(int test_index,
+                 float* voltage_recording,
+                 float* current_recording,
+                 int* spike_recording,
+                 int neurons_number) {
 	/* Printing results function
 	 *
 	 */
@@ -601,7 +618,7 @@ void save_result(int test_index, float* global_multimeter, float* global_current
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
 		myfile << nrn_id << " ";
 		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << global_multimeter[sim_iter + nrn_id * sim_time_in_step] << " ";
+			myfile << voltage_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
 		myfile << "\n";
 	}
 
@@ -614,7 +631,23 @@ void save_result(int test_index, float* global_multimeter, float* global_current
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
 		myfile << nrn_id << " ";
 		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << global_currents[sim_iter + nrn_id * sim_time_in_step] << " ";
+			myfile << current_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
+		myfile << "\n";
+	}
+
+	myfile.close();
+
+	new_name = "/spikes.dat";
+
+	myfile.open(cwd + new_name);
+
+	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
+		myfile << nrn_id << " ";
+		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
+			float spike_time = spike_recording[sim_iter + nrn_id * sim_time_in_step] * sim_step;
+			if (spike_time != 0)
+				myfile << spike_time << " ";
+		}
 		myfile << "\n";
 	}
 
@@ -647,6 +680,7 @@ void simulate() {
 	/*
 	 *
 	 */
+
 	int neurons_number = static_cast<int>(metadatas.size());
 
 	float* gpu_old_v;
@@ -662,11 +696,11 @@ void simulate() {
 	int* gpu_end_spiking;
 	int* gpu_spiking_per_step;
 	float* gpu_multimeter_result;
-	float* gpu_current_result;
 
 	// ToDo remove after debugging
-	float* gpu_global_multimeter;
-	float* gpu_global_currents;
+	float* gpu_voltage_recording;
+	float* gpu_current_recording;
+	int* gpu_spike_recording;
 
 	int synapses_number[neurons_number];
 
@@ -691,15 +725,13 @@ void simulate() {
 	float multimeter_result[sim_time_in_step];
 	init_array<float>(multimeter_result, sim_time_in_step, 0);
 
-	float current_result[sim_time_in_step];
-	init_array<float>(current_result, sim_time_in_step, 0);
-
 	// ToDo remove after debugging
-	float global_multimeter[neurons_number * sim_time_in_step];
-	init_array<float>(global_multimeter, neurons_number * sim_time_in_step, 0);
-	// ToDo remove after debugging
-	float global_currents[neurons_number * sim_time_in_step];
-	init_array<float>(global_currents, neurons_number * sim_time_in_step, 0);
+	float* voltage_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
+	init_array<float>(voltage_recording, neurons_number * sim_time_in_step, 0);
+	float* current_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
+	init_array<float>(current_recording, neurons_number * sim_time_in_step, 0);
+	int* spike_recording = (int *)malloc(datasize<int *>(neurons_number * sim_time_in_step));
+	init_array<int>(spike_recording, neurons_number * sim_time_in_step, 0);
 
 	has_multimeter = (bool *)malloc(datasize<bool *>(neurons_number));
 	has_generator = (bool *)malloc(datasize<bool *>(neurons_number));
@@ -713,7 +745,6 @@ void simulate() {
 	int **gpu_synapses_delay, **synapses_delay = (int **)malloc(datasize<int* >(neurons_number));
 	int **gpu_synapses_delay_timer, **synapses_delay_timer = (int **)malloc(datasize<int* >(neurons_number));
 	float **gpu_synapses_weight, **synapses_weight = (float **)malloc(datasize<float* >(neurons_number));
-
 
 	// fill arrays of synapses
 	for(int neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
@@ -729,7 +760,7 @@ void simulate() {
 			tmp_synapses_post_nrn_id[syn_id] = m.post_id;
 			tmp_synapses_delay[syn_id] = m.synapse_ref_t;
 			tmp_synapses_delay_timer[syn_id] = -1;
-			tmp_synapses_weight[syn_id] = m.synapse_weight * 200;
+			tmp_synapses_weight[syn_id] = m.synapse_weight;
 			syn_id++;
 		}
 
@@ -797,15 +828,14 @@ void simulate() {
 	cudaMalloc(&gpu_multimeter_result, datasize<float>(sim_time_in_step));
 	memcpyHtD<float>(gpu_multimeter_result, multimeter_result, sim_time_in_step);
 
-	cudaMalloc(&gpu_current_result, datasize<float>(sim_time_in_step));
-	memcpyHtD<float>(gpu_current_result, current_result, sim_time_in_step);
+	// FixMe debugging functionality
+	cudaMalloc(&gpu_voltage_recording, datasize<float>(neurons_number * sim_time_in_step));
+	memcpyHtD<float>(gpu_voltage_recording, voltage_recording, neurons_number * sim_time_in_step);
+	cudaMalloc(&gpu_current_recording, datasize<float>(neurons_number * sim_time_in_step));
+	memcpyHtD<float>(gpu_current_recording, current_recording, neurons_number * sim_time_in_step);
+	cudaMalloc(&gpu_spike_recording, datasize<int>(neurons_number * sim_time_in_step));
+	memcpyHtD<int>(gpu_spike_recording, spike_recording, neurons_number * sim_time_in_step);
 
-	// FixMe debugging functionality
-	cudaMalloc(&gpu_global_multimeter, datasize<float>(neurons_number * sim_time_in_step));
-	memcpyHtD<float>(gpu_global_multimeter, global_multimeter, neurons_number * sim_time_in_step);
-	// FixMe debugging functionality
-	cudaMalloc(&gpu_global_currents, datasize<float>(neurons_number * sim_time_in_step));
-	memcpyHtD<float>(gpu_global_currents, global_currents, neurons_number * sim_time_in_step);
 
 	int threads_per_block = 1024;
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
@@ -836,13 +866,13 @@ void simulate() {
 	    gpu_has_generator,
 	    gpu_has_multimeter,
 	    gpu_multimeter_result,
-	    gpu_current_result,
 	    gpu_begin_spiking,
 	    gpu_end_spiking,
 	    gpu_spiking_per_step,
 	    // ToDo remove after debugging
-	    gpu_global_multimeter,
-	    gpu_global_currents
+	    gpu_voltage_recording,
+	    gpu_current_recording,
+	    gpu_spike_recording
 	);
 
 	cudaEventRecord(stop);
@@ -858,16 +888,16 @@ void simulate() {
 
 	// copy neurons/synapses array to the HOST
 	memcpyDtH<float>(multimeter_result, gpu_multimeter_result, sim_time_in_step);
-	memcpyDtH<float>(current_result, gpu_current_result, sim_time_in_step);
 	// ToDo remove after debugging
-	memcpyDtH<float>(global_multimeter, gpu_global_multimeter, neurons_number * sim_time_in_step);
-	memcpyDtH<float>(global_currents, gpu_global_currents, neurons_number * sim_time_in_step);
+	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
+	memcpyDtH<float>(current_recording, gpu_current_recording, neurons_number * sim_time_in_step);
+	memcpyDtH<int>(spike_recording, gpu_spike_recording, neurons_number * sim_time_in_step);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
 	// before cudaFree (!)
-	save_result(0, global_multimeter, global_currents, neurons_number);
+	save_result(0, voltage_recording, current_recording, spike_recording, neurons_number);
 
 	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
