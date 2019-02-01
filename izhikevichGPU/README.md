@@ -24,14 +24,21 @@ nvcc -lineinfo -o output cuda_sim.cu
 nvprof ./output
 ```
 ### Technical description (in progress):
-*Threads in a block* = 32 (warp size)  
-*Number of blocks* = number of synapses / 32 + 1
+*Threads in a block* = 1024
+*Number of blocks* = 1
 
-*Total number of threads* = *Number of blocks* * *Threads in a block*. It is a little bit more than number of synapses, so extra threads are not used in simulation (number of extra threads is not bigger than *Threads in a block*)
+Because of high effiency of GPU calculation was decided to move the main simulation loop to the GPU kernel. 
+The maximum size of threads in a block is 1024, but neuron number is aproximately 1520. What to do?  
+
+Solution #1: use several blocks in the GPU grid (by the formula: *neurons number / threads per block + 1*). This solution is not applicable in our situaton because of strong step-by-step syncronization of sim iteration. A several blocks can't be calculated at the same. To solve this problem we can move the main simulation loop outside the GPU and put to the CPU. It is not a very effective solution: with *dt* step fewer than 0.25ms and simulation time more than 100ms an ellapsed time of simulation becomes higher than real time (!).
+
+Solution #2: To solve the problem *one thread* = *one neuron* was used Grid-Stride Loop.  
+
 ```c++
-for(int iter_step = 0; iter_step < ms_to_step(T_sim); iter_step++)
-  GPU_kernel<<<. . .>>>(. . .);
+for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < neurons_number; i += blockDim.x * gridDim.x) {
+  ... calculations ...
+}
 ```
-
+In this case one thread processing at least two neurons. It is not ideal but more effective than outside loop + easier to synchronize threads at each iteration.
 
 ![GPU](doc/GPU.png)
