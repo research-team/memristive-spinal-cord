@@ -13,18 +13,19 @@ You should have installed CUDA and Nvidia videocard
 2. Open **IzhikevichGPU** folder
 3. Compile by the command:
 ```bash
-nvcc -lineinfo -o output cuda_sim.cu
+nvcc -o output cuda_sim.cu
 ```
 4. Then run the program:
 ```bash
 ./output
 ```
-5. Profiling by:
+5. Checking on errors and profiling by:
 ```bash
+cuda-memcheck ./output
 nvprof ./output
 ```
 ### Technical description (in progress):
-*Threads in a block* = 1024
+*Threads in a block* = 1024  
 *Number of blocks* = 1
 
 Because of high effiency of GPU calculation was decided to move the main simulation loop to the GPU kernel. 
