@@ -196,6 +196,8 @@ void sim_kernel(float* old_v,
 
 	__shared__ float moto_Vm_per_step;
 
+	// FixMe: hidden bug, but will work perfect if number of spikes will be lower than sim_step_time / 2 (usually)
+	// FixMe: explanation -- each thread has local variable, but here is stride loop. So one thread do at least 2 job
 	int local_spike_array_iter = 0;
 
 	// the main simulation loop
@@ -342,7 +344,7 @@ int get_random_neighbor(Group &group) {
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 							 float syn_delay, float weight, int outdegree = syn_outdegree) {
-	weight *= (0.8 * 200);
+	weight *= 100;
 	float time_delta = syn_delay * 0.2f;
 	float weight_delta = weight * 0.1f;
 
@@ -607,12 +609,12 @@ void save_result(int test_index,
 	 *
 	 */
 	char cwd[256];
+	ofstream myfile;
+
 	getcwd(cwd, sizeof(cwd));
 	printf("Save results to: %s \n", cwd);
 
 	string new_name = "/volt.dat";
-
-	ofstream myfile;
 	myfile.open(cwd + new_name);
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
@@ -625,7 +627,6 @@ void save_result(int test_index,
 	myfile.close();
 
 	new_name = "/curr.dat";
-
 	myfile.open(cwd + new_name);
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
@@ -638,7 +639,6 @@ void save_result(int test_index,
 	myfile.close();
 
 	new_name = "/spikes.dat";
-
 	myfile.open(cwd + new_name);
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
@@ -756,11 +756,11 @@ void simulate() {
 		float tmp_synapses_weight[syn_count];
 
 		int syn_id = 0;
-		for(Metadata m : metadatas.at(neuron_id)) {
-			tmp_synapses_post_nrn_id[syn_id] = m.post_id;
-			tmp_synapses_delay[syn_id] = m.synapse_ref_t;
+		for(Metadata metadata : metadatas.at(neuron_id)) {
+			tmp_synapses_post_nrn_id[syn_id] = metadata.post_id;
+			tmp_synapses_delay[syn_id] = metadata.synapse_ref_t;
 			tmp_synapses_delay_timer[syn_id] = -1;
-			tmp_synapses_weight[syn_id] = m.synapse_weight;
+			tmp_synapses_weight[syn_id] = metadata.synapse_weight;
 			syn_id++;
 		}
 
@@ -836,7 +836,6 @@ void simulate() {
 	cudaMalloc(&gpu_spike_recording, datasize<int>(neurons_number * sim_time_in_step));
 	memcpyHtD<int>(gpu_spike_recording, spike_recording, neurons_number * sim_time_in_step);
 
-
 	int threads_per_block = 1024;
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
 
@@ -896,10 +895,8 @@ void simulate() {
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
-	// before cudaFree (!)
 	save_result(0, voltage_recording, current_recording, spike_recording, neurons_number);
 
-	//practice good housekeeping by resetting the device when you are done
 	cudaDeviceReset();
 }
 
