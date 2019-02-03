@@ -29,7 +29,7 @@ const unsigned int neurons_in_afferent = 196;
 
 const int speed = 25;
 const int EES_FREQ = 40;
-const float INH_COEF = 1.0;
+const float INH_COEF = 1.0f;
 
 // 6 cms = 125
 // 15 cms = 50
@@ -902,7 +902,7 @@ void simulate() {
 
 
 int main() {
-	srand(time(NULL));	// set randon seed
+	srand(time(NULL));	// set random seed
 	simulate();
 
 	return 0;
