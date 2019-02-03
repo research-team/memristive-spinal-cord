@@ -43,3 +43,11 @@ for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < neurons_number; i += blo
 In this case one thread processing at least two neurons. It is not ideal but more effective than outside loop + easier to synchronize threads at each iteration.
 
 ![GPU](doc/GPU.png)
+
+## Core
+
+## Neuron
+
+## Synapses
+
+
