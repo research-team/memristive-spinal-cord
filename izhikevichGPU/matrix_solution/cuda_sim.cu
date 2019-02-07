@@ -49,15 +49,16 @@ struct Metadata{
 	/*
 	 *
 	 */
+	int post_id;
+	int synapse_delay;
+	float synapse_weight;
+
 	Metadata() = default;
-	Metadata(int post_id, float synapse_ref_t, float synapse_weight){
+	Metadata(int post_id, float synapse_delay, float synapse_weight){
 		this->post_id = post_id;
-		this->synapse_ref_t = static_cast<int>(synapse_ref_t * (1 / sim_step));
+		this->synapse_delay = static_cast<int>(synapse_delay * (1 / sim_step) + 0.5); // round
 		this->synapse_weight = synapse_weight;
 	}
-	int post_id;
-	int synapse_ref_t;
-	float synapse_weight;
 };
 
 Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
@@ -344,7 +345,7 @@ int get_random_neighbor(Group &group) {
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 							 float syn_delay, float weight, int outdegree = syn_outdegree) {
-	weight *= 100;
+	weight *= (100 * 0.7);
 	float time_delta = syn_delay * 0.2f;
 	float weight_delta = weight * 0.1f;
 
@@ -403,9 +404,9 @@ void init_extensor() {
 	group_add_spike_generator(C5, 5*speed, 6*speed, 200);
 	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
 
-	connect_fixed_outdegree(C3, inh_group3, 0.5, 20.0);
-	connect_fixed_outdegree(C4, inh_group4, 0.5, 20.0);
-	connect_fixed_outdegree(C5, inh_group5, 0.5, 20.0);
+	connect_fixed_outdegree(C3, inh_group3, 0.5, 15.0);
+	connect_fixed_outdegree(C4, inh_group4, 0.5, 15.0);
+	connect_fixed_outdegree(C5, inh_group5, 0.5, 15.0);
 
 	connect_fixed_outdegree(inh_group3, G1_3, 2.8, 20.0);
 
@@ -419,15 +420,15 @@ void init_extensor() {
 
 	/// D1
 	// input from sensory
-	connect_fixed_outdegree(C1, D1_1, 1.0, 1.0); // 3.0
-	connect_fixed_outdegree(C1, D1_4, 1.0, 1.0); // 3.0
-	connect_fixed_outdegree(C2, D1_1, 1.0, 1.0); // 3.0
-	connect_fixed_outdegree(C2, D1_4, 1.0, 1.0); // 3.0
+	connect_fixed_outdegree(C1, D1_1, 1.0, 0.5); // 3.0
+	connect_fixed_outdegree(C1, D1_4, 1.0, 0.5); // 3.0
+	connect_fixed_outdegree(C2, D1_1, 1.0, 0.5); // 3.0
+	connect_fixed_outdegree(C2, D1_4, 1.0, 0.5); // 3.0
 	// input from EES
-	connect_fixed_outdegree(EES, D1_1, 1.0, 17); // was 27 // 17 Threshold / 7 ST
-	connect_fixed_outdegree(EES, D1_4, 1.0, 17); // was 27 // 17 Threshold / 7 ST
+	connect_fixed_outdegree(EES, D1_1, 1.0, 20); // was 27 // 17 Threshold / 7 ST
+	connect_fixed_outdegree(EES, D1_4, 1.0, 20); // was 27 // 17 Threshold / 7 ST
 	// inner connectomes
-	connect_fixed_outdegree(D1_1, D1_2, 1, 7.0);
+	connect_fixed_outdegree(D1_1, D1_2, 1, 1.0); // 7
 	connect_fixed_outdegree(D1_1, D1_3, 1, 16.0);
 	connect_fixed_outdegree(D1_2, D1_1, 1, 7.0);
 	connect_fixed_outdegree(D1_2, D1_3, 1, 20.0);
@@ -443,13 +444,13 @@ void init_extensor() {
 
 	/// D2 ///
 	// input from Sensory
-	connect_fixed_outdegree(C2, D2_1, 0.7, 2.0); // 4
-	connect_fixed_outdegree(C2, D2_4, 0.7, 2.0); // 4
-	connect_fixed_outdegree(C3, D2_1, 0.7, 2.0); // 4
-	connect_fixed_outdegree(C3, D2_4, 0.7, 2.0); // 4
+	connect_fixed_outdegree(C2, D2_1, 0.7, 0.8); // 4 2
+	connect_fixed_outdegree(C2, D2_4, 0.7, 0.3); // 4 2
+	connect_fixed_outdegree(C3, D2_1, 0.7, 0.8); // 4 2
+	connect_fixed_outdegree(C3, D2_4, 0.7, 0.3); // 4 2
 	// input from Group (1)
-	connect_fixed_outdegree(ees_group1, D2_1, 2.0, 1.7); // 5.0
-	connect_fixed_outdegree(ees_group1, D2_4, 2.0, 1.7); // 5.0
+	connect_fixed_outdegree(ees_group1, D2_1, 2.0, 1.4); // 5.0 1.7
+	connect_fixed_outdegree(ees_group1, D2_4, 2.0, 1.0); // 5.0 1.7
 	// inner connectomes
 	connect_fixed_outdegree(D2_1, D2_2, 1.0, 7.0);
 	connect_fixed_outdegree(D2_1, D2_3, 1.0, 20.0);
@@ -466,13 +467,13 @@ void init_extensor() {
 
 	/// D3
 	// input from Sensory
-	connect_fixed_outdegree(C3, D3_1, 0.7, 1.9); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C3, D3_4, 0.7, 1.9); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C4, D3_1, 0.7, 1.9); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C4, D3_4, 0.7, 1.9); // 2.5 - 2.2 - 1.3
+	connect_fixed_outdegree(C3, D3_1, 0.7, 0.8); // 2.5 - 2.2 - 1.3
+	connect_fixed_outdegree(C3, D3_4, 0.7, 0.3); // 2.5 - 2.2 - 1.3
+	connect_fixed_outdegree(C4, D3_1, 0.7, 0.8); // 2.5 - 2.2 - 1.3
+	connect_fixed_outdegree(C4, D3_4, 0.7, 0.3); // 2.5 - 2.2 - 1.3
 	// input from Group (2)
-	connect_fixed_outdegree(ees_group2, D3_1, 1.1, 1.7); // 6
-	connect_fixed_outdegree(ees_group2, D3_4, 1.1, 1.7); // 6
+	connect_fixed_outdegree(ees_group2, D3_1, 1.1, 1.4); // 6
+	connect_fixed_outdegree(ees_group2, D3_4, 1.1, 1.0); // 6
 	// inner connectomes
 	connect_fixed_outdegree(D3_1, D3_2, 1.0, 7.0);
 	connect_fixed_outdegree(D3_1, D3_3, 1.0, 20.0);
@@ -491,13 +492,13 @@ void init_extensor() {
 
 	/// D4
 	// input from Sensory
-	connect_fixed_outdegree(C4, D4_1, 1.0, 2.0); // 2.5
-	connect_fixed_outdegree(C4, D4_4, 1.0, 2.0); // 2.5
-	connect_fixed_outdegree(C5, D4_1, 1.0, 2.0); // 2.5
-	connect_fixed_outdegree(C5, D4_4, 1.0, 2.0); // 2.5
+	connect_fixed_outdegree(C4, D4_1, 1.0, 0.8); // 2.5
+	connect_fixed_outdegree(C4, D4_4, 1.0, 0.3); // 2.5
+	connect_fixed_outdegree(C5, D4_1, 1.0, 0.8); // 2.5
+	connect_fixed_outdegree(C5, D4_4, 1.0, 0.3); // 2.5
 	// input from Group (3)
-	connect_fixed_outdegree(ees_group3, D4_1, 1.0, 1.7); // 6.0
-	connect_fixed_outdegree(ees_group3, D4_4, 1.0, 1.7); // 6.0
+	connect_fixed_outdegree(ees_group3, D4_1, 1.0, 1.4); // 6.0
+	connect_fixed_outdegree(ees_group3, D4_4, 1.0, 1.0); // 6.0
 	// inner connectomes
 	connect_fixed_outdegree(D4_1, D4_2, 1.0, 7.0);
 	connect_fixed_outdegree(D4_1, D4_3, 1.0, 20.0);
@@ -514,11 +515,11 @@ void init_extensor() {
 
 	/// D5
 	// input from Sensory
-	connect_fixed_outdegree(C5, D5_1, 1.0, 2.0);
-	connect_fixed_outdegree(C5, D5_4, 1.0, 2.0);
+	connect_fixed_outdegree(C5, D5_1, 1.0,  0.8);
+	connect_fixed_outdegree(C5, D5_4, 1.0,  0.3);
 	// input from Group (4)
-	connect_fixed_outdegree(ees_group4, D5_1, 1.0, 1.7); // 5.0
-	connect_fixed_outdegree(ees_group4, D5_4, 1.0, 1.7); // 5.0
+	connect_fixed_outdegree(ees_group4, D5_1, 1.0, 1.4); // 5.0
+	connect_fixed_outdegree(ees_group4, D5_4, 1.0, 1.0); // 5.0
 	// inner connectomes
 	connect_fixed_outdegree(D5_1, D5_2, 1.0, 7.0);
 	connect_fixed_outdegree(D5_1, D5_3, 1.0, 20.0);
@@ -541,8 +542,8 @@ void init_extensor() {
 	connect_fixed_outdegree(G1_1, G1_3, 1.0, 10.0);
 	connect_fixed_outdegree(G1_2, G1_1, 1.0, 10.0);
 	connect_fixed_outdegree(G1_2, G1_3, 1.0, 10.0);
-	connect_fixed_outdegree(G1_3, G1_1, 0.7, -50.0 * INH_COEF);
-	connect_fixed_outdegree(G1_3, G1_2, 0.7, -50.0 * INH_COEF);
+	connect_fixed_outdegree(G1_3, G1_1, 0.7, -70.0 * INH_COEF);
+	connect_fixed_outdegree(G1_3, G1_2, 0.7, -70.0 * INH_COEF);
 	// output to IP_E
 	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0); // 18 normal
 	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0); // 18 normal
@@ -705,7 +706,7 @@ void simulate() {
 	int synapses_number[neurons_number];
 
 	float old_v[neurons_number];
-	init_array<float>(old_v, neurons_number, -72);
+	init_array<float>(old_v, neurons_number, V_rest);
 
 	float old_u[neurons_number];
 	init_array<float>(old_u, neurons_number, 0);
@@ -758,7 +759,7 @@ void simulate() {
 		int syn_id = 0;
 		for(Metadata metadata : metadatas.at(neuron_id)) {
 			tmp_synapses_post_nrn_id[syn_id] = metadata.post_id;
-			tmp_synapses_delay[syn_id] = metadata.synapse_ref_t;
+			tmp_synapses_delay[syn_id] = metadata.synapse_delay;
 			tmp_synapses_delay_timer[syn_id] = -1;
 			tmp_synapses_weight[syn_id] = metadata.synapse_weight;
 			syn_id++;
