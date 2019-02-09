@@ -101,7 +101,7 @@ def plot(global_volts, global_currents, global_spikes, step, save_to):
 
 		ax1 = plt.subplot(211)
 		plt.plot([x * step for x in range(len(voltages))], voltages, color='b', label='voltages')
-		plt.plot(spikes, [0] * len(spikes), '.', color='r')
+		plt.plot(spikes, [0] * len(spikes), '.', color='r', alpha=0.7)
 
 		for slice_index in range(6):
 			plt.axvline(x=slice_index * 25, color='grey', linestyle='--')
