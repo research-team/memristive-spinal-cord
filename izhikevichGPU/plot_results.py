@@ -1,23 +1,21 @@
 import sys
-import numpy as np
-import pylab as plt 
-import numpy.ma as ma
+import pylab as plt
 import logging as log
 
 log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
 logger = log.getLogger('Plotting')
 
-nrns_id_start = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300,
-                 320, 340, 360, 380, 400, 420, 440, 460, 480, 500, 520, 540, 560, 580, 600,
-                 620, 640, 660, 680, 700, 720, 740, 760, 780, 800, 996, 1165, 1185, 1205, 1225,
-                 1245, 1265, 1285, 1305, 1325, 1520]
+nrns_id_start = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360,
+                 380, 400, 420, 440, 460, 480, 500, 520, 540, 560, 580, 600, 620, 640, 660, 680, 700, 720,
+                 740, 760, 780, 800, 996, 1192, 1361, 1530, 1550, 1570, 1766, 1786, 1806, 1826, 1846, 1866,
+                 1886, 1906, 1926, 1946, 1966, 1986, 2006, 2026, 2195, 2364, 2384, 2404]
 
-groups_name = ["C1", "C2", "C3", "C4", "C5", "D1_1", "D1_2", "D1_3", "D1_4", "D2_1", "D2_2",
-               "D2_3", "D2_4", "D3_1", "D3_2", "D3_3", "D3_4", "D4_1", "D4_2", "D4_3", "D4_4",
-               "D5_1", "D5_2", "D5_3", "D5_4", "G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3",
-               "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3", "G5_1", "G5_2", "G5_3", "IP_E",
-               "MP_E", "EES", "inh_group3", "inh_group4", "inh_group5", "ees_group1", "ees_group2",
-               "ees_group3", "ees_group4", "Ia"]
+groups_name = ["C1", "C2", "C3", "C4", "C5", "D1_1", "D1_2", "D1_3", "D1_4", "D2_1", "D2_2", "D2_3", "D2_4",
+               "D3_1", "D3_2", "D3_3", "D3_4", "D4_1", "D4_2", "D4_3", "D4_4", "D5_1", "D5_2", "D5_3", "D5_4",
+               "G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3",
+               "G5_1", "G5_2", "G5_3", "IP_E", "IP_F", "MP_E", "MP_F", "EES", "I5", "Ia", "inh_group3",
+               "inh_group4", "inh_group5", "ees_group1", "ees_group2", "ees_group3", "ees_group4", "R_E", "R_F",
+               "Ia_E", "Ia_F", "Ib_E", "Ib_F", "Extensor", "Flexor", "C_0", "C_1"]
 
 
 def read_data(path):
@@ -45,7 +43,6 @@ def process_data(data, form_in_group):
 
 			for nrn_id in range(first_nrn_in_group + 1, first_nrn_in_group + neurons_number):
 				combined_data[group] = [a + b / neurons_number for a, b in zip(combined_data[group], data[nrn_id])]
-			print(group)
 		return combined_data
 	return data
 
@@ -113,17 +110,16 @@ def plot(global_volts, global_currents, global_spikes, step, save_to):
 
 		plt.plot(t, currents, color='r')
 		plt.plot(t, [0] * len(currents), color='grey')
-		
+
+		filename = "{}.png".format(title)
+
 		for slice_index in range(6):
 			plt.axvline(x=slice_index * 25, color='grey', linestyle='--')
 
 		plt.legend()
 		plt.xlim(0, len(voltages) * step)
 
-		filename = "{}.png".format(title)
-
 		plt.savefig("{}/{}".format(save_to, filename), format="png")
-
 		plt.close()
 
 		logger.info(title)
