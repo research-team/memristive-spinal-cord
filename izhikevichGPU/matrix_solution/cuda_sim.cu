@@ -137,8 +137,6 @@ Group MP_E = form_group("MP_E", neurons_in_moto);
 Group MP_F = form_group("MP_F", neurons_in_moto);
 
 Group EES = form_group("EES");
-Group I5 = form_group("I5");
-
 Group Ia = form_group("Ia", neurons_in_afferent);
 
 Group inh_group3 = form_group("inh_group3");
@@ -749,8 +747,8 @@ void init_flexor() {
 	connect_fixed_outdegree(G3_1, G3_3, 1.0, 20.0);
 	connect_fixed_outdegree(G3_2, G3_1, 1.0, 12.0);
 	connect_fixed_outdegree(G3_2, G3_3, 1.0, 20.0);
-	connect_fixed_outdegree(G3_3, G3_1, 0.5, -30.0 * INH_COEF);
-	connect_fixed_outdegree(G3_3, G3_2, 0.5, -30.0 * INH_COEF);
+	connect_fixed_outdegree(G3_3, G3_1, 0.5, -30 * INH_COEF);
+	connect_fixed_outdegree(G3_3, G3_2, 0.5, -30 * INH_COEF);
 	// output to IP_F
 	connect_fixed_outdegree(G3_1, IP_F, 0.5, 55.0);
 	connect_fixed_outdegree(G3_2, IP_F, 0.5, 55.0);
@@ -787,8 +785,14 @@ void init_flexor() {
 	connect_fixed_outdegree(G5_1, IP_F, 1.0, 48.0);
 	connect_fixed_outdegree(G5_2, IP_F, 1.0, 48.0);
 	// output to (inh 5)
-	connect_fixed_outdegree(G5_1, I5, 3.0, 20.0);
-	connect_fixed_outdegree(G5_2, I5, 3.0, 20.0);
+	connect_fixed_outdegree(G5_1, inh_group5, 3.0, 20.0);
+	connect_fixed_outdegree(G5_2, inh_group5, 3.0, 20.0);
+
+	// inhibit Generators
+	connect_fixed_outdegree(inh_group5, G1_3, 3.0, 20.0);
+	connect_fixed_outdegree(inh_group5, G2_3, 3.0, 20.0);
+	connect_fixed_outdegree(inh_group5, G3_3, 3.0, 20.0);
+	connect_fixed_outdegree(inh_group5, G4_3, 3.0, 20.0);
 
 	// ref arc
 	connect_fixed_outdegree(IP_F, MP_F, 1, 12);
