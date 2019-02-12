@@ -85,4 +85,4 @@ def plotFig(filename,fignr=1):
    plt.show()
 
 
-plotFig('/home/anna/Downloads/10_1.6 volts_QuadRat-16_5-09-2017_RMG_13m-min_one_step.fig')
+plotFig('/home/anna/Downloads/7Qbi_3 volts__Rat-1_12-05-2016_RMG_one_step (1).fig')

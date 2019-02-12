@@ -23,7 +23,7 @@ def read_data(file_path):
 	return mat_data
 
 
-def slice_myogram(raw_data, path, slicing_index='Stim'):
+def trim_myogram(raw_data, path, slicing_index='Stim'):
 	"""
 	The function to slice the data from the matlab file of myogram.
 	:param dict raw_data:  the myogram data loaded from matlab file.
@@ -38,8 +38,6 @@ def slice_myogram(raw_data, path, slicing_index='Stim'):
 	slices_begin_time = []
 	global title
 
-
-
 	# data processing
 	title_stim = 'Stim'
 	title_rmg = 'RMG'
@@ -52,26 +50,30 @@ def slice_myogram(raw_data, path, slicing_index='Stim'):
 		if title_stim in data_title:
 			stim_data = float_data
 
-	convert_bio_to_hdf5(volt_data, stim_data, path)
+	# convert_bio_to_hdf5(volt_data, stim_data, path)
 
 	import h5py as hdf5
-	with hdf5.File(path + ".hdf5") as file:
-		for k,v in file.items():
-			print(k, v[:])
-
-	raise Exception
+	# with hdf5.File(path + ".hdf5") as file:
+		# for k,v in file.items():
+			# print(k, v[:])
 
 	# find peaks in stimulations data
+	ms_pause = 0
+	bio_step = 0.25
+	# print("stim_data = ", stim_data)
 	for index in range(1, len(stim_data) - 1):
-		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and stim_data[index] > 4:
-			slices_begin_time.append(index * real_data_step)  # division by 4 gives us the normal 1 ms step size
-
+		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and ms_pause <= 0 and\
+				stim_data[index] > 0.5:
+			slices_begin_time.append(index) # * real_data_step  # division by 4 gives us the normal 1 ms step size
+			ms_pause = int(3 / bio_step)
+		ms_pause -= 1
+	# print("slices_begin_time = ", slices_begin_time)
 	# remove unnecessary data, use only from first stim, and last stim
-	volt_data = volt_data[int(slices_begin_time[0] / real_data_step):int(slices_begin_time[-1] / real_data_step)]
+	volt_data = volt_data[slices_begin_time[0]:slices_begin_time[-1]]
 
 	# move times to the begin (start from 0 ms)
 	slices_begin_time = [t - slices_begin_time[0] for t in slices_begin_time]
-
+	# print("len(volt_data) = ", len(volt_data))
 	return volt_data, slices_begin_time
 
 
@@ -106,7 +108,7 @@ def plot_by_slice(volt_data, slices_begin_time):
 
 def main():
 	raw_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-	volt_data, slices_begin_time = slice_myogram(raw_data)
+	volt_data, slices_begin_time = trim_myogram(raw_data)
 	# plot_1d(volt_data, slices_begin_time)
 	plot_by_slice(volt_data, slices_begin_time)
 
