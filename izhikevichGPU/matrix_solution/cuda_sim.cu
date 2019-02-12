@@ -233,7 +233,7 @@ void sim_kernel(float* old_v,
 				sim_iter >= begin_spiking[tid] &&
 				sim_iter < end_spiking[tid] &&
 				(sim_iter % spiking_per_step[tid] == 0)) {
-				nrn_current[tid] = 5000; // 15 000
+				nrn_current[tid] = 5000; // enough for spike
 			}
 
 			// todo check with the real neurobiology mechanism
@@ -246,10 +246,12 @@ void sim_kernel(float* old_v,
 			float U_old = old_u[tid];
 			float I_current = nrn_current[tid];
 
-			if (I_current > 120000)
-				I_current = 120000;
-			if (I_current < -120000)
-				I_current = -120000;
+			// ToDo check this with biological data (aprx)
+			// the maximal value of input current (10 000 pA = 10 nA)
+			if (I_current > 10000)
+				I_current = 10000;
+			if (I_current < -10000)
+				I_current = -10000;
 
 			// re-calculate V_m and U_m
 			float V_m = V_old + sim_step * (k * (V_old - V_rest) * (V_old - V_thld) - U_old + I_current) / C;
@@ -259,8 +261,8 @@ void sim_kernel(float* old_v,
 			if (V_m < c)
 				V_m = c;
 
-			// save membrane potential of the Motorneuron
-			if (tid >= 996 && tid <= 1164) {
+			// save membrane potential of the MP_E
+			if (tid >= 1192 && tid <= 1360) {
 				atomicAdd(&moto_Vm_per_step, V_m);
 			}
 
@@ -303,8 +305,8 @@ void sim_kernel(float* old_v,
 				}
 				// if synaptic delay is zero it means the time when synapse increase I by synaptic weight
 				if (ptr_delay_timers[syn_id] == 0) {
-					// post neuron ID = synapses_post_nrn_id[tid][syn_id]
-					nrn_current[ synapses_post_nrn_id[tid][syn_id] ] += synapses_weight[tid][syn_id];
+					// post neuron ID = synapses_post_nrn_id[tid][syn_id], thread-safe (!)
+					atomicAdd(&nrn_current[ synapses_post_nrn_id[tid][syn_id] ], synapses_weight[tid][syn_id]);
 					// make synapse timer a "free" for next spikes
 					ptr_delay_timers[syn_id] = -1;
 				}
@@ -348,7 +350,7 @@ void sim_kernel(float* old_v,
 }
 
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
-							 float syn_delay, float weight, int outdegree = syn_outdegree) {
+                             float syn_delay, float weight, int outdegree = syn_outdegree) {
 	// connect neurons with uniform distribution and normal distributon for syn delay and weight
 	weight *= (100 * 0.7);
 
@@ -391,27 +393,21 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 }
 
 void group_add_multimeter(Group &nrn_group) {
-	/*
-	 *
-	 */
+	// function for adding multimeter to the neuron group
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
 		has_multimeter[nrn_id] = true;
 	}
-
 	printf("Added multmeter to %s \n", nrn_group.group_name.c_str());
 }
 
 void group_add_spike_generator(Group &nrn_group, float start, float end, int hz){
-	/*
-	 *
-	 */
+	// function for adding spike-generator to the neuron group
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
 		has_generator[nrn_id] = true;
 		begin_spiking[nrn_id] = ms_to_step(start + 0.2);
 		end_spiking[nrn_id] = ms_to_step(end);
 		spiking_per_step[nrn_id] = ms_to_step(1000.0f / hz);
 	}
-
 	printf("Added generator to %s \n", nrn_group.group_name.c_str());
 }
 
@@ -439,45 +435,45 @@ void init_extensor() {
 
 	/// D1
 	// input from sensory
-	connect_fixed_outdegree(C1, D1_1, 1, 0.5); // 3.0
-	connect_fixed_outdegree(C1, D1_4, 1, 0.5); // 3.0
-	connect_fixed_outdegree(C2, D1_1, 1, 0.5); // 3.0
-	connect_fixed_outdegree(C2, D1_4, 1, 0.5); // 3.0
+	connect_fixed_outdegree(C1, D1_1, 1, 0.4);
+	connect_fixed_outdegree(C1, D1_4, 1, 0.4);
+	connect_fixed_outdegree(C2, D1_1, 1, 0.4);
+	connect_fixed_outdegree(C2, D1_4, 1, 0.4);
 	// input from EES
-	connect_fixed_outdegree(EES, D1_1, 2, 10); // was 27 // 17 Threshold / 7 ST
-	connect_fixed_outdegree(EES, D1_4, 2, 10); // was 27 // 17 Threshold / 7 ST
+	connect_fixed_outdegree(EES, D1_1, 2, 10); // ST value (?)
+	connect_fixed_outdegree(EES, D1_4, 2, 10); // ST value (?)
 	// inner connectomes
-	connect_fixed_outdegree(D1_1, D1_2, 1, 1.0); // 7
+	connect_fixed_outdegree(D1_1, D1_2, 1, 1.0);
 	connect_fixed_outdegree(D1_1, D1_3, 1, 10.0);
 	connect_fixed_outdegree(D1_2, D1_1, 1, 7.0);
 	connect_fixed_outdegree(D1_2, D1_3, 1, 10.0);
-	connect_fixed_outdegree(D1_3, D1_1, 1, -10 * INH_COEF);    // 10
-	connect_fixed_outdegree(D1_3, D1_2, 1, -10 * INH_COEF);    // 10
-	connect_fixed_outdegree(D1_4, D1_3, 3, -20 * INH_COEF);    // 10
+	connect_fixed_outdegree(D1_3, D1_1, 1, -10 * INH_COEF);
+	connect_fixed_outdegree(D1_3, D1_2, 1, -10 * INH_COEF);
+	connect_fixed_outdegree(D1_4, D1_3, 3, -20 * INH_COEF);
 	// output to
 	connect_fixed_outdegree(D1_3, G1_1, 3, 8);
-	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 60); // 30
+	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 60);
 
 	// EES group connectomes
 	connect_fixed_outdegree(ees_group1, ees_group2, 1.0, 20.0);
 
 	/// D2
 	// input from Sensory
-	connect_fixed_outdegree(C2, D2_1, 1, 1); // 4 2
-	connect_fixed_outdegree(C2, D2_4, 1, 1); // 4 2
-	connect_fixed_outdegree(C3, D2_1, 1, 1); // 4 2
-	connect_fixed_outdegree(C3, D2_4, 1, 1); // 4 2
+	connect_fixed_outdegree(C2, D2_1, 1, 0.8);
+	connect_fixed_outdegree(C2, D2_4, 1, 0.8);
+	connect_fixed_outdegree(C3, D2_1, 1, 0.8);
+	connect_fixed_outdegree(C3, D2_4, 1, 0.8);
 	// input from Group (1)
-	connect_fixed_outdegree(ees_group1, D2_1, 1.7, 0.8); // 5.0 1.7
-	connect_fixed_outdegree(ees_group1, D2_4, 1.7, 1.0); // 5.0 1.7
+	connect_fixed_outdegree(ees_group1, D2_1, 1.7, 0.8);
+	connect_fixed_outdegree(ees_group1, D2_4, 1.7, 1.0);
 	// inner connectomes
 	connect_fixed_outdegree(D2_1, D2_2, 1.0, 3.0);
-	connect_fixed_outdegree(D2_1, D2_3, 1.0, 10.0); // 20
+	connect_fixed_outdegree(D2_1, D2_3, 1.0, 10.0);
 	connect_fixed_outdegree(D2_2, D2_1, 1.0, 7.0);
 	connect_fixed_outdegree(D2_2, D2_3, 1.0, 20.0);
-	connect_fixed_outdegree(D2_3, D2_1, 1.0, -20 * INH_COEF);    // 10
-	connect_fixed_outdegree(D2_3, D2_2, 1.0, -20 * INH_COEF);    // 10
-	connect_fixed_outdegree(D2_4, D2_3, 2.0, -20 * INH_COEF);    // 10
+	connect_fixed_outdegree(D2_3, D2_1, 1.0, -20 * INH_COEF);
+	connect_fixed_outdegree(D2_3, D2_2, 1.0, -20 * INH_COEF);
+	connect_fixed_outdegree(D2_4, D2_3, 2.0, -20 * INH_COEF);
 	// output to generator
 	connect_fixed_outdegree(D2_3, G2_1, 1.0, 8);
 
@@ -486,21 +482,21 @@ void init_extensor() {
 
 	/// D3
 	// input from Sensory
-	connect_fixed_outdegree(C3, D3_1, 1, 0.8); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C3, D3_4, 1, 0.5); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C4, D3_1, 1, 0.8); // 2.5 - 2.2 - 1.3
-	connect_fixed_outdegree(C4, D3_4, 1, 0.5); // 2.5 - 2.2 - 1.3
+	connect_fixed_outdegree(C3, D3_1, 1, 0.5);
+	connect_fixed_outdegree(C3, D3_4, 1, 0.5);
+	connect_fixed_outdegree(C4, D3_1, 1, 0.5);
+	connect_fixed_outdegree(C4, D3_4, 1, 0.5);
 	// input from Group (2)
-	connect_fixed_outdegree(ees_group2, D3_1, 1, 1.2); // 6
-	connect_fixed_outdegree(ees_group2, D3_4, 1, 1.2); // 6
+	connect_fixed_outdegree(ees_group2, D3_1, 1, 1.2);
+	connect_fixed_outdegree(ees_group2, D3_4, 1, 1.2);
 	// inner connectomes
 	connect_fixed_outdegree(D3_1, D3_2, 1.0, 3.0);
-	connect_fixed_outdegree(D3_1, D3_3, 1.0, 10.0); // 20
+	connect_fixed_outdegree(D3_1, D3_3, 1.0, 10.0);
 	connect_fixed_outdegree(D3_2, D3_1, 1.0, 7.0);
 	connect_fixed_outdegree(D3_2, D3_3, 1.0, 20.0);
-	connect_fixed_outdegree(D3_3, D3_1, 1.0, -10 * INH_COEF);    // 10
-	connect_fixed_outdegree(D3_3, D3_2, 1.0, -10 * INH_COEF);    // 10
-	connect_fixed_outdegree(D3_4, D3_3, 2.0, -10 * INH_COEF);    // 10
+	connect_fixed_outdegree(D3_3, D3_1, 1.0, -10 * INH_COEF);
+	connect_fixed_outdegree(D3_3, D3_2, 1.0, -10 * INH_COEF);
+	connect_fixed_outdegree(D3_4, D3_3, 2.0, -10 * INH_COEF);
 	// output to generator
 	connect_fixed_outdegree(D3_3, G3_1, 1, 25.0);
 	// suppression of the generator
@@ -511,21 +507,21 @@ void init_extensor() {
 
 	/// D4
 	// input from Sensory
-	connect_fixed_outdegree(C4, D4_1, 1, 1); // 2.5
-	connect_fixed_outdegree(C4, D4_4, 1, 1); // 2.5
-	connect_fixed_outdegree(C5, D4_1, 1, 1); // 2.5
-	connect_fixed_outdegree(C5, D4_4, 1, 1); // 2.5
+	connect_fixed_outdegree(C4, D4_1, 1, 0.5);
+	connect_fixed_outdegree(C4, D4_4, 1, 0.5);
+	connect_fixed_outdegree(C5, D4_1, 1, 0.5);
+	connect_fixed_outdegree(C5, D4_4, 1, 0.5);
 	// input from Group (3)
-	connect_fixed_outdegree(ees_group3, D4_1, 1, 1.2); // 6.0
-	connect_fixed_outdegree(ees_group3, D4_4, 1, 1.2); // 6.0
+	connect_fixed_outdegree(ees_group3, D4_1, 1, 1.2);
+	connect_fixed_outdegree(ees_group3, D4_4, 1, 1.2);
 	// inner connectomes
 	connect_fixed_outdegree(D4_1, D4_2, 1.0, 3.0);
-	connect_fixed_outdegree(D4_1, D4_3, 1.0, 10.0); // 20
+	connect_fixed_outdegree(D4_1, D4_3, 1.0, 10.0);
 	connect_fixed_outdegree(D4_2, D4_1, 1.0, 7.0);
 	connect_fixed_outdegree(D4_2, D4_3, 1.0, 20.0);
-	connect_fixed_outdegree(D4_3, D4_1, 1.0, -20 * INH_COEF); // 10
-	connect_fixed_outdegree(D4_3, D4_2, 1.0, -20 * INH_COEF); // 10
-	connect_fixed_outdegree(D4_4, D4_3, 2.0, -20 * INH_COEF); // 10
+	connect_fixed_outdegree(D4_3, D4_1, 1.0, -20 * INH_COEF);
+	connect_fixed_outdegree(D4_3, D4_2, 1.0, -20 * INH_COEF);
+	connect_fixed_outdegree(D4_4, D4_3, 2.0, -20 * INH_COEF);
 	// output to the generator
 	connect_fixed_outdegree(D4_3, G4_1, 3.0, 20.0);
 	// suppression of the generator
@@ -533,11 +529,11 @@ void init_extensor() {
 
 	/// D5
 	// input from Sensory
-	connect_fixed_outdegree(C5, D5_1, 1, 1);
-	connect_fixed_outdegree(C5, D5_4, 1, 1);
+	connect_fixed_outdegree(C5, D5_1, 1, 0.5);
+	connect_fixed_outdegree(C5, D5_4, 1, 0.5);
 	// input from Group (4)
-	connect_fixed_outdegree(ees_group4, D5_1, 1.0, 1.1); // 5.0
-	connect_fixed_outdegree(ees_group4, D5_4, 1.0, 1.0); // 5.0
+	connect_fixed_outdegree(ees_group4, D5_1, 1.0, 1.1);
+	connect_fixed_outdegree(ees_group4, D5_4, 1.0, 1.0);
 	// inner connectomes
 	connect_fixed_outdegree(D5_1, D5_2, 1.0, 3.0);
 	connect_fixed_outdegree(D5_1, D5_3, 1.0, 15.0);
@@ -563,8 +559,8 @@ void init_extensor() {
 	connect_fixed_outdegree(G1_3, G1_1, 0.7, -70 * INH_COEF);
 	connect_fixed_outdegree(G1_3, G1_2, 0.7, -70 * INH_COEF);
 	// output to IP_E
-	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0); // 18 normal
-	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0); // 18 normal
+	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0);
+	connect_fixed_outdegree(G1_1, IP_E, 3, 25.0);
 
 	/// G2
 	// inner connectomes
@@ -575,20 +571,20 @@ void init_extensor() {
 	connect_fixed_outdegree(G2_3, G2_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G2_3, G2_2, 0.5, -30 * INH_COEF);
 	// output to IP_E
-	connect_fixed_outdegree(G2_1, IP_E, 1.0, 65.0); // 35 normal
-	connect_fixed_outdegree(G2_2, IP_E, 1.0, 65.0); // 35 normal
+	connect_fixed_outdegree(G2_1, IP_E, 1.0, 65.0);
+	connect_fixed_outdegree(G2_2, IP_E, 1.0, 65.0);
 
 	/// G3
 	// inner connectomes
-	connect_fixed_outdegree(G3_1, G3_2, 1.0, 14.0); //12
+	connect_fixed_outdegree(G3_1, G3_2, 1.0, 14.0);
 	connect_fixed_outdegree(G3_1, G3_3, 1.0, 20.0);
 	connect_fixed_outdegree(G3_2, G3_1, 1.0, 12.0);
 	connect_fixed_outdegree(G3_2, G3_3, 1.0, 20.0);
 	connect_fixed_outdegree(G3_3, G3_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G3_3, G3_2, 0.5, -30 * INH_COEF);
 	// output to IP_E
-	connect_fixed_outdegree(G3_1, IP_E, 2, 25.0);   // 20 normal
-	connect_fixed_outdegree(G3_1, IP_E, 2, 25.0);   // 20 normal
+	connect_fixed_outdegree(G3_1, IP_E, 2, 25.0);
+	connect_fixed_outdegree(G3_1, IP_E, 2, 25.0);
 
 	/// G4
 	// inner connectomes
@@ -611,11 +607,11 @@ void init_extensor() {
 	connect_fixed_outdegree(G5_3, G5_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G5_3, G5_2, 0.5, -30 * INH_COEF);
 	// output to IP_E
-	connect_fixed_outdegree(G5_1, IP_E, 2, 20.0); // normal 18
-	connect_fixed_outdegree(G5_1, IP_E, 2, 20.0); // normal 18
+	connect_fixed_outdegree(G5_1, IP_E, 2, 20.0);
+	connect_fixed_outdegree(G5_1, IP_E, 2, 20.0);
 
-	connect_fixed_outdegree(IP_E, MP_E, 1, 11); // 14
-	connect_fixed_outdegree(EES, MP_E, 2, 50); // 50
+	connect_fixed_outdegree(IP_E, MP_E, 1, 11);
+	connect_fixed_outdegree(EES, MP_E, 2, 50);
 	connect_fixed_outdegree(Ia, MP_E, 1, 1);
 }
 
@@ -861,7 +857,7 @@ void save_result(int test_index,
 	ofstream myfile;
 
 	getcwd(cwd, sizeof(cwd));
-	printf("Save results to: %s \n", cwd);
+	printf("[Test #%d] Save results to: %s \n", test_index, cwd);
 
 	string new_name = "/volt.dat";
 	myfile.open(cwd + new_name);
@@ -925,7 +921,7 @@ void init_array(type *array, int size, type value){
 }
 
 __host__
-void simulate() {
+void simulate(int test_index) {
 	int neurons_number = static_cast<int>(metadatas.size());
 
 	float* gpu_old_v;
@@ -1088,7 +1084,7 @@ void simulate() {
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
 
 	printf("Size of network: %i \n", neurons_number);
-	printf("Start GPU with %d threads x %d blocks (Total: %d th) \n",
+	printf("Start GPU with %d threads x %d blocks (Total: %d threads) \n",
 		   threads_per_block, num_blocks, threads_per_block * num_blocks);
 
 	// measure GPU ellapsed time
@@ -1143,13 +1139,13 @@ void simulate() {
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
-	save_result(0, voltage_recording, current_recording, spike_recording, neurons_number);
+	save_result(test_index, voltage_recording, current_recording, spike_recording, neurons_number);
 
 	cudaDeviceReset();
 }
 
 int main() {
-	simulate();
+	simulate(0);
 
 	return 0;
 }
