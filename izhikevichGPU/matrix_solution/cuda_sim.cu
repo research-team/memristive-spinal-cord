@@ -208,16 +208,27 @@ void sim_kernel(float* old_v,
                 int* spike_recording) {
 
 	__shared__ float moto_Vm_per_step;
+	__shared__ int Ia_afferent_spiking_per_step;
 
 	// FixMe: hidden bug, but will work perfect if number of spikes will be lower than sim_step_time / 2 (usually)
 	// FixMe: explanation -- each thread has local variable, but here is stride loop. So one thread do at least 2 job
 	int local_spike_array_iter = 0;
+	float Const1;
+	float Const2;
+
+	// get id of the thread
+	int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if(thread_id == 0) {
+		// init based on any value other than zero
+		Ia_afferent_spiking_per_step = 999;
+		// init constants to decrease calculation time for Ia afferent
+		Const1 = 6.2 * pow(speed, 0.6) + 0.17;
+		Const2 = 0.06f / 2 / sim_step / neurons_in_moto;
+	}
 
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
-		// get id of the thread
-		int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-
 		// init shared values
 		if(thread_id == 0) {
 			moto_Vm_per_step = 0;
@@ -260,20 +271,29 @@ void sim_kernel(float* old_v,
 			// set bottom border of the membrane potential
 			if (V_m < c)
 				V_m = c;
+			// set top border of the membrane potential
+			if (V_m >= V_thld)
+				V_m = V_peak;
 
 			// save membrane potential of the MP_E
 			if (tid >= 1192 && tid <= 1360) {
 				atomicAdd(&moto_Vm_per_step, V_m);
 			}
 
+			if (tid >= 1550 &&
+			    tid <= 1745 &&
+			    (sim_iter % Ia_afferent_spiking_per_step == 0)) {
+				nrn_current[tid] = 5000;
+			}
+
 			// record the membrane potential value every iter step if neuron has multimeter
 			if (has_multimeter[tid]) {
-				atomicAdd(&multimeter_result[sim_iter], (V_m >= V_thld)? V_peak : V_m);
+				atomicAdd(&multimeter_result[sim_iter], V_m);
 			}
 
 			// ToDo remove after debugging
 			int index = sim_iter + tid * sim_time_in_step;
-			voltage_recording[index] = (V_m >= V_thld)? V_peak : V_m;
+			voltage_recording[index] = V_m;
 			current_recording[index] = I_current;
 
 			// threshold crossing (spike)
@@ -336,11 +356,8 @@ void sim_kernel(float* old_v,
 
 		// calculate Ia afferent
 		if (thread_id == 0) {
-			// mean time between spikes (ms)
-			float Ia_interval = (1000 / (6.2 * pow(speed, 0.6) + 0.17 + 0.06 * (moto_Vm_per_step / neurons_in_moto)));
-			// mean number of spikes
-			// 1000 / ((6.2*pow(speed, 0.6) + 0.17 + 0.06*(vMN / neurons_in_moto + 65))*8)
-			// calc_afferent(moto_Vm_per_step / 169);
+			// time between spikes (in steps)
+			Ia_afferent_spiking_per_step = int(Const1 + Const2 * moto_Vm_per_step);
 		}
 
 		// wait all threads
