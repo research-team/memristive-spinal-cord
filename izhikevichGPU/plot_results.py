@@ -1,166 +1,149 @@
-"""
-Run the program as
-python3 plot_results.py /path/to/sim_results.txt
-"""
-
-import os
 import sys
-import logging
-import numpy as np
 import pylab as plt
-import matplotlib.patches as mpatches
-from collections import defaultdict
+import logging as log
 
-logging.basicConfig(level=logging.DEBUG)
+log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
+logger = log.getLogger('Plotting')
 
-moto_color = '#ff8989'
-pool_color = '#9287ff'
+nrns_id_start = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360, 
+                380, 400, 420, 440, 460, 480, 500, 520, 540, 560, 580, 600, 620, 640, 660, 680, 700, 720, 
+                740, 760, 780, 800, 996, 1192, 1361, 1530, 1550, 1746, 1766, 1786, 1806, 1826, 1846, 1866, 
+                1886, 1906, 1926, 1946, 1966, 1986, 2006, 2175, 2344, 2364, 2384]
 
-neuron_ids = []
-spike_data = {}
-weights_data = {}
-voltage_data = {}
-currents_data = {}
+groups_name = ["C1", "C2", "C3", "C4", "C5", "D1_1", "D1_2", "D1_3", "D1_4", "D2_1", "D2_2", "D2_3", "D2_4", 
+              "D3_1", "D3_2", "D3_3", "D3_4", "D4_1", "D4_2", "D4_3", "D4_4", "D5_1", "D5_2", "D5_3", "D5_4", 
+              "G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3", 
+              "G5_1", "G5_2", "G5_3", "IP_E", "IP_F", "MP_E", "MP_F", "EES", "Ia", "inh_group3", "inh_group4", 
+              "inh_group5", "ees_group1", "ees_group2", "ees_group3", "ees_group4", "R_E", "R_F", "Ia_E", "Ia_F", 
+              "Ib_E", "Ib_F", "Extensor", "Flexor", "C_0", "C_1"]
 
-k_id = 0
-k_obj = 1
-k_name = 2
-k_iter = 3
-k_spikes = 4
-k_voltage = 5
-k_currents = 6
-
-sim_time = 0
-voltage_nodes = defaultdict(list)
-spikes_nodes = defaultdict(list)
-nodes_curr = defaultdict(list)
-
-
-def read_data(file_path):
-	global sim_time
-	global spikes_nodes
-	global voltage_nodes
-	global nodes_curr
-	with open(file_path, "r") as file:
-		for data_block in file.read().split("-" * 15 + "\n")[:-1]:
-			data_block = data_block.split("\n")[:-1]
-			gid = int(data_block[k_id].replace("ID: ", ""))
-			group_name = data_block[k_name].replace("Name: ", "")
-			sim_time = int(float(data_block[k_iter].replace("Iter: ", "")) / 10)
-			has_spikes = len(data_block) > 4 and "Spikes" in data_block[k_spikes]
-			has_voltage = len(data_block) > 5 and "Voltage" in data_block[k_voltage]
-			has_currents = len(data_block) > 6 and "I_potential" in data_block[k_currents]
-
-			if has_spikes:
-				raw_data = data_block[k_spikes].replace("Spikes: [", "").replace("]", "")
-				if len(raw_data) > 0:
-					data = [float(i) for i in raw_data.split(",")[:-1]]
-					spikes_nodes[group_name] += data
-
-			if has_voltage:
-				raw_data = data_block[k_voltage].replace("Voltage: [", "").replace("]", "")
-				if len(raw_data) > 0:
-					data = [float(i) for i in raw_data.split(",")[:-1]]
-					voltage_nodes[group_name].append(data)
-			if has_currents:
-				raw_data = data_block[k_currents].replace("I_potential: [", "").replace("]", "")
-				if len(raw_data) > 0:
-					data = [float(i) for i in raw_data.split(",")[:-1]]
-					nodes_curr[group_name].append(data)
-			# currents_data[gid] = [float(i) for i in raw_data.split(",")[:-1]]
+def read_data(path):
+	data_container = {}
+	with open(path) as file:
+		for line in file:
+			gid, *data = line.split()
+			data_container[int(gid)] = [float(d) for d in data]
+	logger.info("done : {}".format(path))
+	return data_container
 
 
-def get_slices(mean_voltage):
-	slices = []
-	yticks = []
-	for index_slice, iter_slice in enumerate(range(len(mean_voltage))[::250]):
-		yticks.append(-(mean_voltage[iter_slice] + index_slice * 30))
-		slices.append(mean_voltage[iter_slice:iter_slice + 250])
-	return slices, yticks
+def process_data(data, form_in_group):
+	logger.info("Start processing...")
+	if form_in_group:
+		combined_data = {}
+
+		for group_index in range(len(nrns_id_start) - 1):
+			group = groups_name[group_index]
+			neurons_number = nrns_id_start[group_index + 1] - nrns_id_start[group_index]
+			first_nrn_in_group = nrns_id_start[group_index]
+
+			if group not in combined_data.keys():
+				combined_data[group] = [v / neurons_number for v in data[first_nrn_in_group]]
+
+			for nrn_id in range(first_nrn_in_group + 1, first_nrn_in_group + neurons_number):
+				combined_data[group] = [a + b / neurons_number for a, b in zip(combined_data[group], data[nrn_id])]
+		return combined_data
+	return data
 
 
-def plot():
-	global voltage_nodes
-	global nodes_curr
-	global sim_time
+def process_data_spikes(data, form_in_group):
+	logger.info("Start processing...")
+	if form_in_group:
+		combined_data = {}
 
-	len_nodes = len(voltage_nodes)
+		for group_index in range(len(nrns_id_start) - 1):
+			group = groups_name[group_index]
+			neurons_number = nrns_id_start[group_index + 1] - nrns_id_start[group_index]
+			first_nrn_in_group = nrns_id_start[group_index]
 
-	for key_index, key_name in enumerate(voltage_nodes.keys()):
-		logging.info("Plotting {} ({}/{})".format(key_name, key_index + 1, len_nodes))
-		mean_voltage = list(map(lambda x: np.mean(x), zip(*voltage_nodes[key_name])))
+			if group not in combined_data.keys():
+				combined_data[group] = data[first_nrn_in_group]
 
-		if key_name == "MP_E":
-			logging.info("Plotting slices {}".format(key_name))
-			# create plot
+			for nrn_id in range(first_nrn_in_group + 1, first_nrn_in_group + neurons_number):
+				combined_data[group] += data[nrn_id]
+		return combined_data
+	return data
+
+
+def plot(global_volts, global_currents, global_spikes, step, save_to):
+	for volt_per_nrn, curr_per_nrn, spikes_per_nrn in zip(global_volts.items(),
+		                                                  global_currents.items(),
+		                                                  global_spikes.items()):
+		title = volt_per_nrn[0]
+		voltages = volt_per_nrn[1]
+		currents = curr_per_nrn[1]
+		spikes = spikes_per_nrn[1]
+
+		if title == "MP_E":
 			plt.figure(figsize=(10, 5))
-			plt.suptitle("Voltage Slices {}".format(key_name))
-
-			# split data
-			moto_slices, yticks = get_slices(mean_voltage)
-			# plot data
-			for pool_index, slice_data in enumerate(moto_slices):
-				times = [time / 10 for time in range(len(slice_data))]
-				voltages = [-(y + pool_index * 30) for y in slice_data]
-				plt.plot(times, voltages, color='k', linewidth=0.5)
-
-			# plot lines (which of them)
-			for slice_index, time_line in enumerate([13, 13, 15, 17, 17, 21]):
-				plt.plot([time_line, time_line],
-				         [yticks[slice_index] - 15, yticks[slice_index] + 15],
-				         color='r', linewidth=1.5)
-			plt.axvline(x=5, linewidth=0.8, color='r')
-			plt.xticks(range(0, 26), range(0, 26))
-			plt.yticks(yticks, range(1, len(moto_slices)+1))
+			plt.suptitle("Sliced {}".format(title))
+			V_rest = 72
+			for slice_index in range(6):
+				chunk_start = int(slice_index * 25 / step)
+				chunk_end = int((slice_index + 1) * 25 / step)
+				Y = [-v - V_rest for v in voltages[chunk_start:chunk_end]]
+				shifted_y = [y + 10 * slice_index for y in Y]
+				X = [x * step for x in range(len(Y))]
+				plt.plot(X, shifted_y, linewidth=0.7)
 			plt.xlim(0, 25)
-			plt.grid()
+			plt.yticks([])
 
-			plt.subplots_adjust(left=0.12, bottom=0.10, right=0.97, top=0.88, wspace=0.0, hspace=0.04)
-			plt.savefig("{}/results/Slices-{}.png".format(os.getcwd(), key_name), dpi=200)
-			plt.close('all')
+			filename = "sliced_{}.png".format(title)
+			plt.savefig("{}/{}".format(save_to, filename), format="png")
+			plt.close()
 
-		# create plot
 		plt.figure(figsize=(10, 5))
-		plt.suptitle("Mean voltage '{}'".format(key_name))
+		plt.suptitle(title)
 
-		plt.subplot(2, 1, 1)
-		mean_voltage = list(map(lambda x: np.mean(x), zip(*voltage_nodes[key_name])))
-		plt.grid()
-		plt.plot([time / 10 for time in range(len(mean_voltage))], mean_voltage)
-		plt.plot(spikes_nodes[key_name], [0] * len(spikes_nodes[key_name]), '.', color='r', markersize=2)
-		plt.xlim(0, sim_time)
-		# plot the slice border
-		for i in range(0, int(sim_time), 25):
-			plt.axvline(x=i, linewidth=1.5, color='k')
-		plt.xticks(range(0, int(sim_time) + 1, 5),
-					 [""] * ((int(sim_time) + 1) // 5))
-		plt.ylim(-100, 40)
-		plt.ylabel("Voltage [mV]")
+		ax1 = plt.subplot(211)
+		plt.plot([x * step for x in range(len(voltages))], voltages, color='b', label='voltages')
+		plt.plot(spikes, [0] * len(spikes), '.', color='r', alpha=0.7)
 
-		plt.subplot(2, 1, 2)
-		mean_currents = list(map(lambda x: np.mean(x), zip(*nodes_curr[key_name])))
-		plt.plot([time / 10 for time in range(len(mean_currents))], mean_currents, color='green')
-		# plot the slice border
-		for i in range(0, int(sim_time), 25):
-			plt.axvline(x=i, linewidth=1.5, color='k')
-		plt.xlim(0, sim_time)
-		plt.xticks(range(0, int(sim_time) + 1, 5),
-					 ["{}\n{}".format(global_time - 25 * (global_time // 25), global_time)
-					  for global_time in range(0, int(sim_time) + 1, 5)],
-					 fontsize=8)
-		plt.yticks(fontsize=8)
-		plt.ylabel("Current [pA]")
-		plt.xlabel("Simulation time [ms]")
+		for slice_index in range(6):
+			plt.axvline(x=slice_index * 25, color='grey', linestyle='--')
+		plt.legend()
+		plt.xlim(0, len(voltages) * step)
 
-		#plt.subplots_adjust(left=0.15, bottom=0.10, right=0.97, top=0.88, wspace=0.0, hspace=0.1)
-		plt.grid()
-		plt.savefig("{}/results/{}.png".format(os.getcwd(), key_name), dpi=200)
-		plt.close('all')
+		plt.subplot(212, sharex=ax1)
+		t = [x * step for x in range(len(currents))]
+
+		plt.plot(t, currents, color='r')
+		plt.plot(t, [0] * len(currents), color='grey')
+
+		filename = "{}.png".format(title)
+
+		for slice_index in range(6):
+			plt.axvline(x=slice_index * 25, color='grey', linestyle='--')
+
+		plt.legend()
+		plt.xlim(0, len(voltages) * step)
+
+		plt.savefig("{}/{}".format(save_to, filename), format="png")
+		plt.close()
+
+		logger.info(title)
+
+
+def run():
+	step = 0.25
+	form_in_group = True
+	path = sys.argv[1]
+
+	filepath_volt = path + "/volt.dat"
+	filepath_curr = path + "/curr.dat"
+	filepath_spike = path + "/spikes.dat"
+
+	neurons_volt = read_data(filepath_volt)
+	neurons_curr = read_data(filepath_curr)
+	neurons_spike = read_data(filepath_spike)
+
+	neurons_volt = process_data(neurons_volt, form_in_group=form_in_group)
+	neurons_curr = process_data(neurons_curr, form_in_group=form_in_group)
+	neurons_spike = process_data_spikes(neurons_spike, form_in_group=form_in_group)
+
+	plot(neurons_volt, neurons_curr, neurons_spike, step=step, save_to=path + "/results/")
 
 
 if __name__ == "__main__":
-	if len(sys.argv) >= 2:
-		read_data(str(sys.argv[1]))
-	else:
-		read_data("/home/alex/GitHub/memristive-spinal-cord/izhikevichGPU/cmake-build-debug/sim_results.txt")
-	plot()
+	run()
+

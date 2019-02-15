@@ -4,13 +4,14 @@ import h5py as hdf5
 import pylab as plt
 from analysis.namespaces import *
 from sklearn.linear_model import LinearRegression
+import statistics
+import copy
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
 	"""
 	Normalization in [a, b] interval
 	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
-
 	Args:
 		data (list):
 			data for normalization
@@ -52,10 +53,9 @@ def calc_linear(x, y):
 	return xfit, yfit
 
 
-def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None):
+def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_corr=None, find_EES=False):
 	"""
 	Function for finding min/max extrema
-
 	Args:
 		slices_start_time (list or range):
 			list of slices start times
@@ -97,15 +97,19 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 			end = slices_start_time[slice_index]
 
 		sliced_values = test_data[start:end]
+		border = len(sliced_values) / 3 if find_EES else len(sliced_values)
 		datas_times = range(end - start)
 		# compare points
 		for i in range(1, len(sliced_values) - 1):
-			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1]:
+			if sliced_values[i - 1] < sliced_values[i] >= sliced_values[i + 1] and i < border:
 				tmp_max_time.append(datas_times[i] + offset)
 				tmp_max_value.append(sliced_values[i])
-			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1]:
+			if sliced_values[i - 1] > sliced_values[i] <= sliced_values[i + 1] and i < border:
 				tmp_min_time.append(datas_times[i] + offset)
 				tmp_min_value.append(sliced_values[i])
+			if not tmp_max_time or not tmp_max_value or not tmp_min_time or not tmp_min_value:
+				border += 1
+
 		# append found points per slice to the 'main' lists
 		slices_max_time.append(tmp_max_time)
 		slices_max_value.append(tmp_max_value)
@@ -158,10 +162,9 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
-def find_latencies(mins_maxes, step, norm_to_ms=False):
+def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhibitionZero=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
-
 	Args:
 		mins_maxes (list of list):
 			0 max times by slices
@@ -187,33 +190,54 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 		additional_border = 0
 		slice_times = mins_maxes[2][slice_index]
 		slice_values = mins_maxes[3][slice_index]
-		# while minimal value isn't found -- find with extended borders [left, right]
+		 # while minimal value isn't found -- find with extended borders [left, right]
 		while True:
-			if slice_index in slices_index_interval(0, 1): # [0,1]
-				left = 11 - additional_border
-				right = 16 + additional_border
-			elif slice_index in slices_index_interval(2, 2): # [2]
-				left = 11 - additional_border
-				right = 17 + additional_border
-			elif slice_index in slices_index_interval(3, 4): # [3, 4]
-				left = 13 - additional_border
-				right = 21 + additional_border
-			elif slice_index in slices_index_interval(5, 6): # [5, 6]
-				left = 15 - additional_border
+			if inhibitionZero:
+				left = 10 - additional_border
 				right = 24 + additional_border
 			else:
-				raise Exception("Error in the slice index catching")
+				if slice_index in slices_index_interval(0, 1): # [0,1]
+					if reversed_data:
+						left = 15 - additional_border
+						right = 24 + additional_border
+					else:
+						left = 11 - additional_border
+						right = 16 + additional_border
+				elif slice_index in slices_index_interval(2, 2): # [2]
+					if reversed_data:
+						left = 13 - additional_border
+						right = 21 + additional_border
+					else:
+						left = 11 - additional_border
+						right = 17 + additional_border
+				elif slice_index in slices_index_interval(3, 4): # [3, 4]
+					if reversed_data:
+						left = 11 - additional_border
+						right = 17 + additional_border
+					else:
+						left = 13 - additional_border
+						right = 21 + additional_border
+				elif slice_index in slices_index_interval(5, 6): # [5, 6]
+					if reversed_data:
+						left = 11 - additional_border
+						right = 16 + additional_border
+					else:
+						left = 15 - additional_border
+						right = 24 + additional_border
+				else:
+					raise Exception("Error in the slice index catching")
 
 			if left < 0:
 				left = 0
 			if right > 25:
 				right = 25
-
 			found_points = [v for i, v in enumerate(slice_values) if left <= step_to_ms(slice_times[i]) <= right]
-
 			# save index of the minimal element in founded points
 			if len(found_points):
-				minimal_val = min(found_points)
+				if inhibitionZero:
+					minimal_val = min(found_points)
+				else:
+					minimal_val = found_points[0]
 				index_of_minimal = slice_values.index(minimal_val)
 				latencies.append(slice_times[index_of_minimal])
 				break
@@ -221,7 +245,10 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 				additional_border += 1
 
 			if additional_border > 25:
-				raise Exception("Error, out of borders")
+				# FixMe
+				latencies.append(-999)
+				break
+				# FixMe raise Exception("Error, out of borders")
 
 	# checking on errors
 	if len(latencies) != slice_numbers:
@@ -235,7 +262,6 @@ def find_latencies(mins_maxes, step, norm_to_ms=False):
 def find_ees_indexes(stim_indexes, datas):
 	"""
 	Function for finding the indexes of the EES mono-answer in borders formed by stimulations time
-
 	Args:
 		stim_indexes (list):
 			indexes of the EES stimulations
@@ -247,6 +273,7 @@ def find_ees_indexes(stim_indexes, datas):
 	ees_indexes = []
 	for slice_index in range(len(stim_indexes)):
 		min_values = datas[k_min_val][slice_index]
+		# print("min_values = ", min_values)
 		min_times = datas[k_min_time][slice_index]
 		# EES peak is the minimal one
 		ees_value_index = min_values.index(min(min_values))
@@ -259,7 +286,6 @@ def find_ees_indexes(stim_indexes, datas):
 def calc_amplitudes(datas, latencies):
 	"""
 	Function for calculating amplitudes
-
 	Args:
 		datas (list of list):
 			includes min/max time min/max value for each slice
@@ -272,15 +298,17 @@ def calc_amplitudes(datas, latencies):
 	slice_numbers = len(datas[0])
 
 	for slice_index in range(slice_numbers):
-		maxes_v = datas[k_max_val][slice_index]
-		maxes_t = datas[k_max_time][slice_index]
 		mins_v = datas[k_min_val][slice_index]
 		mins_t = datas[k_min_time][slice_index]
 
-		max_amp_in_maxes = max([abs(m) for index, m in enumerate(maxes_v) if maxes_t[index] >= latencies[slice_index]])
-		max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
-
-		amplitudes.append(max([max_amp_in_maxes, max_amp_in_mins]))
+		if mins_v:
+			max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
+			amplitudes.append(max_amp_in_mins)
+		else:
+			# FixMe
+			# ToDo write a test for checking linear dot concentration impact
+			# (what is better -- remove dot or set data of previous neighbor)
+			amplitudes.append(-999)
 
 	if len(amplitudes) != slice_numbers:
 		raise Exception("Length of amplitudes must be equal to slice numbers!")
@@ -291,7 +319,6 @@ def calc_amplitudes(datas, latencies):
 def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
 	"""
 	Temporal function for visualization of preprocessed data
-
 	Args:
 		voltages (list):
 			voltage data
@@ -374,7 +401,8 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 		for i in ees_indexes:
 			plt.axvline(x=i, color='r')
 		# plot amplitudes by the horizontal line
-		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat, alpha=0.7, zorder=2)
+		plt.bar([ees_index + ees_indexes[0] for ees_index in ees_indexes], amplitudes, width=5, color=color_lat,
+		        alpha=0.7, zorder=2)
 		for slice_index in slice_indexes:
 			x = ees_indexes[slice_index] + ees_indexes[0] - 5 / 2
 			y = amplitudes[slice_index]
@@ -387,11 +415,9 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.close()
 
 
-
-def __process(voltages, stim_indexes, step, debugging):
+def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhibitionZero=False):
 	"""
 	Unified functionality for finding latencies and amplitudes
-
 	Args:
 		voltages (list):
 			voltage data
@@ -405,11 +431,12 @@ def __process(voltages, stim_indexes, step, debugging):
 		list: latencies -- latency per slice
 		list: amplitudes -- amplitude per slice
 	"""
-	mins_maxes = calc_max_min(stim_indexes, voltages)
+	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
 	norm_voltages = normalization(voltages, zero_relative=True)
 	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
-	latencies = find_latencies(mins_maxes, step, norm_to_ms=True)
+	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
+	                           inhibitionZero=inhibitionZero)
 	amplitudes = calc_amplitudes(mins_maxes, latencies)
 
 	if debugging:
@@ -418,10 +445,9 @@ def __process(voltages, stim_indexes, step, debugging):
 	return latencies, amplitudes
 
 
-def bio_process(voltages_and_stim, slice_numbers, debugging=False):
+def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
-
 	Args:
 		voltages_and_stim (list):
 			 voltages data and EES stim indexes
@@ -436,18 +462,18 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False):
 	stim_indexes = voltages_and_stim[k_bio_stim][:slice_numbers + 1]
 	# remove unescesary voltage data by the last EES stimulation index
 	voltages = voltages_and_stim[k_bio_volt][:stim_indexes[-1]]
-	# remove the last EES stimulation (it's useless value)
+	print("voltages = ", len(voltages), voltages)# remove the last EES stimulation (it's useless value)
 	stim_indexes = stim_indexes[:-1]
+	print("stim_indexes = ", stim_indexes)
 	# calculate the latencies and amplitudes
-	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging)
+	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging, reversed_data=reversed_data)
 
 	return bio_lat, bio_amp
 
 
-def sim_process(voltages, debugging=False):
+def sim_process(voltages, step, debugging=False, inhibitionZero=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
-
 	Args:
 		voltages (list):
 			 voltages data
@@ -457,17 +483,17 @@ def sim_process(voltages, debugging=False):
 		tuple: sim_lat, sim_amp -- latencies and amplitudes per slice
 	"""
 	# form EES stimulations indexes (in simulators begin from 0)
-	stim_indexes = list(range(0, len(voltages), int(25 / sim_step)))
+	stim_indexes = list(range(0, len(voltages), int(25 / step)))
 	# calculate the latencies and amplitudes
-	sim_lat, sim_amp = __process(voltages, stim_indexes, sim_step, debugging)
+	sim_lat, sim_amp = __process(voltages, stim_indexes, step, debugging, inhibitionZero=inhibitionZero)
+	# change the step
 
 	return sim_lat, sim_amp
 
 
-def find_mins(data_array, matching_criteria=None):
+def find_mins(data_array): # matching_criteria was None
 	"""
 	Function for finding the minimal extrema in the data
-
 	Args:
 		data_array (list):
 			data what is needed to find mins in
@@ -480,15 +506,21 @@ def find_mins(data_array, matching_criteria=None):
 	indexes = []
 	min_elems = []
 
+	# print(*data_array, sep="\n")
+	# raise Exception
 	# FixMe taken from the old function find_mins_without_criteria. Why -0.5 (?)
-	if matching_criteria is None:
-		matching_criteria = -0.5
+	ms_pause = 0
+	data_array = [abs(d) for d in data_array]
 
 	for index_elem in range(1, len(data_array) - 1):
-		if (data_array[index_elem - 1] > data_array[index_elem] <= data_array[index_elem + 1]) \
-				and data_array[index_elem] < matching_criteria:
+		# print(data_array[index_elem])
+		if (data_array[index_elem - 1] < data_array[index_elem] >= data_array[index_elem + 1]) \
+				and ms_pause <= 0 \
+				and data_array[index_elem] >= 0.2:
 			min_elems.append(data_array[index_elem])
 			indexes.append(index_elem)
+			ms_pause = int(3 / bio_step)
+		ms_pause -= 1
 
 	return min_elems, indexes
 
@@ -496,7 +528,6 @@ def find_mins(data_array, matching_criteria=None):
 def read_neuron_data(path):
 	"""
 	Reading hdf5 data for Neuron simulator
-
 	Args:
 		path (str):
 			path to the file
@@ -530,7 +561,37 @@ def read_nest_data(path):
 	return nest_data
 
 
+def read_bio_hdf5(path):
+	voltages = []
+	stimulations = []
+
+	with hdf5.File(path) as file:
+		for title, values in file.items():
+			if 'Stim' == title:
+				stimulations = list(values[:])
+			elif 'RMG' == title:
+				voltages = list(values[:])
+			else:
+				raise Exception("Out of the itles border")
+
+	return voltages, stimulations
+
+
 def read_bio_data(path):
+	"""
+	Function for reading of bio data from txt file
+	Args:
+		path: string
+			path to file
+
+	Returns:
+	 	data_RMG :list
+			readed data from the first till the last stimulation,
+		shifted_indexes: list
+			stimulations from the zero
+
+
+	"""
 	with open(path) as file:
 		# skipping headers of the file
 		for i in range(6):
@@ -540,6 +601,7 @@ def read_bio_data(path):
 		grouped_elements_by_column = list(zip(*reader))
 		# avoid of NaN data
 		raw_data_RMG = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[2]]
+		# FixMe use 5 if new data else 7
 		data_stim = [float(x) if x != 'NaN' else 0 for x in grouped_elements_by_column[7]]
 	# preprocessing: finding minimal extrema an their indexes
 	mins, indexes = find_mins(data_stim)
@@ -549,3 +611,116 @@ def read_bio_data(path):
 	shifted_indexes = [d - indexes[0] for d in indexes]
 
 	return data_RMG, shifted_indexes
+
+
+def convert_bio_to_hdf5(voltages, stimulations, filename, path=None):
+	with hdf5.File('{}{}.hdf5'.format(path + "/" if path else "", filename), 'w') as file:
+		file.create_dataset('Stim', data=stimulations, compression="gzip")
+		file.create_dataset('RMG', data=voltages, compression="gzip")
+
+
+def find_fliers(amplitudes_all_runs, latencies_all_runs):
+	"""
+	Function for finding the fliers of data
+	Args:
+		amplitudes_all_runs: list of lists
+			amplitudes in all runs
+		latencies_all_runs: list of lists
+			latencies in all runs
+	Returns:
+		 latencies_all_runs: list of lists
+		    latencies of all runs without fliers
+		 amplitudes_all_runs: list of lists
+		    amplitudes of all runs without fliers
+		 fliers: list of lists
+		    indexes of fliers that were deleted from the upper lists
+		 fliers_latencies_values: list of lists
+		    values of fliers in list of the latencies
+		 fliers_amplitudes_values: list of lists
+		    values of fliers in list of the amplitudes
+	"""
+	# calculating the expected value and std in the list
+	expected_value_amp = []
+	std_amp = []
+
+	for dot in amplitudes_all_runs:
+		expected_value_tmp = statistics.mean(dot)
+		std_tmp = statistics.stdev(dot)
+		expected_value_amp.append(expected_value_tmp)
+		std_amp.append(std_tmp)
+
+	expected_value_lat = []
+	std_lat = []
+
+	for dot in latencies_all_runs:
+		expected_value_tmp = statistics.mean(dot)
+		std_tmp = statistics.stdev(dot)
+		expected_value_lat.append(expected_value_tmp)
+		std_lat.append(std_tmp)
+
+	# checking if the value is in the 3-sigma interval
+	amplitudes_all_runs_3sigma = []
+	latencies_all_runs_3sigma = []
+
+	# finding the fliers (values which are outside the 3-sigma interval)
+	fliers_amplitudes = []
+	fliers_amplitudes_values = []
+	fliers_latencies = []
+	fliers_latencies_values = []
+	for dot in range(len(amplitudes_all_runs)):
+		print("dot = ", dot)
+		amplitudes_all_runs_dot_3sigma_amp = []
+		fliers_amplitudes_tmp = []
+		for i in range(len(amplitudes_all_runs[dot])):
+			if (expected_value_amp[dot] - 3 * std_amp[dot]) < amplitudes_all_runs[dot][i] < \
+					(expected_value_amp[dot] + 3 * std_amp[dot]):
+				amplitudes_all_runs_dot_3sigma_amp.append(amplitudes_all_runs[dot][i])
+			else:
+				fliers_amplitudes_tmp.append(i)
+		fliers_amplitudes.append(fliers_amplitudes_tmp)
+		amplitudes_all_runs_3sigma.append(amplitudes_all_runs_dot_3sigma_amp)
+	for dot in range(len(latencies_all_runs)):
+		latencies_all_runs_dot_3sigma = []
+		fliers_latencies_tmp = []
+		for i in range(len(latencies_all_runs[dot])):
+			if (expected_value_lat[dot] - 3 * std_lat[dot]) < latencies_all_runs[dot][i] < \
+					(expected_value_lat[dot] + 3 * std_lat[dot]):
+				latencies_all_runs_dot_3sigma.append(latencies_all_runs[dot][i])
+			else:
+				fliers_latencies_tmp.append(i)
+		fliers_latencies.append(fliers_latencies_tmp)
+		latencies_all_runs_3sigma.append(latencies_all_runs_dot_3sigma)
+
+	# gathering the indexes of amplitudes' and latencies' fliers into one list
+	fliers = fliers_amplitudes
+	for sl in range(len(fliers)):
+		for i in fliers_latencies[sl]:
+			if i:
+				if i not in fliers[sl]:
+					fliers[sl].append(i)
+		# sorting the lists in the ascending order
+		fliers[sl] = sorted(fliers[sl])
+
+	# saving the old lists of latencies and amplitudes
+	old_latencies_all_runs = copy.deepcopy(latencies_all_runs)
+	old_amplitudes_all_runs = copy.deepcopy(amplitudes_all_runs)
+
+	# finding the values of the fliers
+	for dot in range(len(fliers)):
+		fliers_latencies_values_tmp = []
+		for i in fliers[dot]:
+			fliers_latencies_values_tmp.append(old_latencies_all_runs[dot][i])
+		fliers_latencies_values.append(fliers_latencies_values_tmp)
+	for dot in range(len(fliers)):
+		fliers_amplitudes_values_tmp = []
+		for i in fliers[dot]:
+			fliers_amplitudes_values_tmp.append(old_amplitudes_all_runs[dot][i])
+		fliers_amplitudes_values.append(fliers_amplitudes_values_tmp)
+
+	# deleting the fliers in the latencies and amplitudes lists by the found indexes
+	for sl in range(len(fliers)):
+		for fl in reversed(fliers[sl]):
+			if fl:
+				del latencies_all_runs[sl][fl]
+				del amplitudes_all_runs[sl][fl]
+	return latencies_all_runs, amplitudes_all_runs, fliers, fliers_latencies_values, fliers_amplitudes_values

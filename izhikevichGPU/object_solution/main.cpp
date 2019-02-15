@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <ctime>
-#include "Neuron.h"
+#include "neuron.h"
 
 using namespace std;
 
@@ -101,17 +101,37 @@ void show_results(int test_index) {
 	char cwd[256];
 	getcwd(cwd, sizeof(cwd));
 	printf("Save results to: %s", cwd);
-	string filename = "/" + std::to_string(test_index) + ".dat";
+
 	ofstream myfile;
+	string filename;
+
+	filename = "/volt.dat";
 	myfile.open(cwd + filename);
 	for (auto &neuron : NEURONS) {
-		if (neuron->withMultimeter()) {
-			float time = 0;
-			for (int k = 0; k < neuron->getVoltageArraySize(); k++) {
-				myfile << neuron->getID() << " " << time / 10 << " " << neuron->getVoltage()[k] << "\n";
-				time += 1;
-			}
-		}
+		myfile << neuron->getID() << " ";
+		for (int k = 0; k < neuron->getVoltageArraySize(); k++)
+			myfile << neuron->getVoltage()[k] << " ";
+		myfile << "\n";
+	}
+	myfile.close();
+
+	filename = "/curr.dat";
+	myfile.open(cwd + filename);
+	for (auto &neuron : NEURONS) {
+		myfile << neuron->getID() << " ";
+		for (int k = 0; k < neuron->getVoltageArraySize(); k++)
+			myfile << neuron->getCurrents()[k] << " ";
+		myfile << "\n";
+	}
+	myfile.close();
+
+	filename = "/spikes.dat";
+	myfile.open(cwd + filename);
+	for (auto &neuron : NEURONS) {
+		myfile << neuron->getID() << " ";
+		for (int k = 0; k < neuron->getIterSpikesArray(); k++)
+			myfile << neuron->getSpikes()[k] << " ";
+		myfile << "\n";
 	}
 	myfile.close();
 }
@@ -244,8 +264,10 @@ void init_groups() {
 		neuron->addSpikeGenerator(speed_to_time*5, speed_to_time*6, 200);
 	for (auto &neuron : EES)
 		neuron->addSpikeGenerator(0, T_sim, EES_FREQ);
-	for (auto &neuron : MP_E)
+	for (auto &neuron : NEURONS) {
 		neuron->addMultimeter();
+		neuron->addSpikedetector();
+	}
 }
 
 
@@ -473,12 +495,13 @@ void simulate() {
 
 
 int main() {
-	for(int test_index = 0; test_index < 5; test_index++) {
+	for(int test_index = 0; test_index < 1; test_index++) {
 		srand(time(NULL)); //123
 		init_neurons();
 		init_groups();
 		init_extensor();
 		simulate();
+		printf("end \n");
 		show_results(test_index);
 
 		for (auto &i : NEURONS)

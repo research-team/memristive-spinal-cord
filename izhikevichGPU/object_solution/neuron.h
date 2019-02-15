@@ -94,8 +94,6 @@ public:
 		this->ref_t = ms_to_step(ref_t);
 	}
 
-
-
 	void changeIstep(float step_I) {
 		this->step_I = step_I;
 	}
@@ -123,13 +121,8 @@ public:
 		this->spike_each_step = ms_to_step(1.0f / hz * 1000);
 		// set flag that this neuron has the multimeter
 		hasGenerator = true;
-		// allocate memory for recording spikes
-		spike_times = new float[ ms_to_step(T_sim) / this->ref_t ];
 	}
 
-	void addSpikeGenerator() {
-		hasGenerator = true;
-	}
 
 	bool withMultimeter() {
 		return hasMultimeter;
@@ -208,7 +201,7 @@ public:
 		// save the V_m and I value every mm_record_step if hasMultimeter
 		if (hasMultimeter && simulation_iter % mm_record_step == 0) {
 			membrane_potential[iterVoltageArray] = V_m; //V_m
-			I_potential[iterVoltageArray] = I;
+			I_potential[iterVoltageArray] = I * 200;
 			iterVoltageArray++;
 		}
 
