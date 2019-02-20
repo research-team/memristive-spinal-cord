@@ -38,7 +38,7 @@ class interneuron(object):
     h.pt3dadd(15, 0, 0, 1)
     h.pt3dadd(215, 0, 0, 1)
     h.pop_section()
-    self.dend.push()
+    self.axon.push()
     h.pt3dclear()
     h.pt3dadd(0, 0, 0, 1)
     h.pt3dadd(-150, 0, 0, 1)
