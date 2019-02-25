@@ -11,6 +11,7 @@ class afferent(object):
     self.geom_nseg()
     self.synlistees = []
     self.synlistex = []
+    self.synlistinh = []
     self.synapses()
     self.x = self.y = self.z = 0.
 
@@ -98,6 +99,12 @@ class afferent(object):
       s.tau = 0.1
       s.e = 50
       self.synlistees.append(s)
+      s = h.Exp2Syn(self.dend(0.5)) # I1
+      s.tau1 = 1.5
+      s.tau2 = 2
+      s.e = -80
+      self.synlistinh.append(s)  
+
      
 
   def is_art(self):

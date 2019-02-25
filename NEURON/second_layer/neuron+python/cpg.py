@@ -394,7 +394,12 @@ class cpg:
     inhgenconnect(C_1, G5_2F, 0.8, 1, 50)
     inhgenconnect(C_1, G5_3F, 0.8, 1, 50)
 
-    inhgenconnect(C_1, IP_F, 0.8, 1, 60)
+    inhgenconnect(C_1, IP1_F, 0.8, 1, 60)
+    inhgenconnect(C_1, IP2_F, 0.8, 1, 60)
+    inhgenconnect(C_1, IP3_F, 0.8, 1, 60)
+    inhgenconnect(C_1, IP4_F, 0.8, 1, 60)
+    inhgenconnect(C_1, IP5_F, 0.8, 1, 60)
+
     inhgenconnect(C_1, Ia_aff_F, 0.08, 1, 50)
 
     #C=0 Flexor
@@ -425,7 +430,12 @@ class cpg:
     inhgenconnect(C_0, G5_2E, 0.8, 1, 50)
     inhgenconnect(C_0, G5_3E, 0.8, 1, 50)
 
-    inhgenconnect(C_0, IP_E, 0.8, 1, 60)
+    inhgenconnect(C_0, IP1_E, 0.8, 1, 60)
+    inhgenconnect(C_0, IP2_E, 0.8, 1, 60)
+    inhgenconnect(C_0, IP3_E, 0.8, 1, 60)
+    inhgenconnect(C_0, IP4_E, 0.8, 1, 60)
+    inhgenconnect(C_0, IP5_E, 0.8, 1, 60)
+
     inhgenconnect(C_0, Ia_aff_E, 0.08, 1, 50)
     inhgenconnect(C_00, Ia_aff_E, 0.08, 1, 10)
 
