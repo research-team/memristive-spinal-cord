@@ -29,17 +29,17 @@ const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
 const int speed = 25;
+const int CMS = 21;
 const int EES_FREQ = 40;
 const float INH_COEF = 1.0f;
 
-// 6 cms = 125
-// 15 cms = 50
-// 21 cms = 25
+// 6 CMS = 125	[ms]
+// 15 CMS = 50	[ms]
+// 21 CMS = 25	[ms]
 
 // stuff variable
 unsigned int global_id = 0;
-
-const float T_sim = 150;
+const float T_sim = 125;
 const float sim_step = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
 
@@ -173,15 +173,31 @@ int* end_spiking;
 int* spiking_per_step;
 
 // Parameters (const)
-const float C = 100.0f;        // [pF] membrane capacitance
-const float V_rest = -72.0f;   // [mV] resting membrane potential
-const float V_thld = -55.0f;   // [mV] spike threshold
-const float k = 0.7f;          // [pA * mV-1] constant ("1/R")
-const float a = 0.02f;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
-const float b = 0.2f;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
-const float c = -80.0f;        // [mV] after-spike reset value of V_m
-const float d = 6.0f;          // [pA] after-spike reset value of U_m
-const float V_peak = 35.0f;    // [mV] spike cutoff value
+const float C = 100;        // [pF] membrane capacitance
+const float V_rest = -72;   // [mV] resting membrane potential
+const float V_thld = -55;   // [mV] spike threshold
+const float k = 0.7;          // [pA * mV-1] constant ("1/R")
+const float a = 0.02;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
+const float b = 0.2;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
+const float c = -80;        // [mV] after-spike reset value of V_m
+const float d = 6;          // [pA] after-spike reset value of U_m
+const float V_peak = 35;    // [mV] spike cutoff value
+
+const float V_half = -65;      // [mV] is the half-activation voltage where 50% of the maximal conductance level is reached
+const float k_slope = 1;       // defines the slope of the output function
+
+__device__
+float f(float V) {
+	// The nonlinear function f (V) defines the output activity of (flexor or extensor) motoneuron
+	if (V >= V_thld) {
+		float kek = 1 / (1 + std::exp(-(V - V_half) / k_slope));
+		printf("f(V) = %f \n", kek);
+		return 1 / (1 + std::exp(-(V - V_half) / k_slope));
+	}
+	// else
+	printf("f(V) = 0 \n");
+	return 0;
+}
 
 __global__
 void sim_kernel(float* old_v,
@@ -214,7 +230,7 @@ void sim_kernel(float* old_v,
 	// FixMe: explanation -- each thread has local variable, but here is stride loop. So one thread do at least 2 job
 	int local_spike_array_iter = 0;
 	float Const1;
-	float Const2;
+	float k_nI;
 
 	// get id of the thread
 	int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -223,8 +239,15 @@ void sim_kernel(float* old_v,
 		// init based on any value other than zero
 		Ia_afferent_spiking_per_step = 999;
 		// init constants to decrease calculation time for Ia afferent
-		Const1 = 6.2 * pow(speed, 0.6) + 0.17;
-		Const2 = 0.06f / 2 / sim_step / neurons_in_moto;
+		Const1 = 6.2 * std::pow(CMS, 0.6) + 0.17;
+		k_nI = 0.06f;
+		// Ia = k_v · v_norm ^ p_v + k_dI · d_norm + k_nI · f(V) + const1
+		// k_v = 6.2
+		// v_norm = 21 [cm/s]
+		// p_v = 0.6
+		// k_dI = 2; d_norm = (L − L_th ) / L_th , if L ≥ L th , and 0 otherwise;
+		// k_dI · d_norm = 0.17 (?)
+		// k_nI = 0.06
 	}
 
 	// the main simulation loop
@@ -357,7 +380,7 @@ void sim_kernel(float* old_v,
 		// calculate Ia afferent
 		if (thread_id == 0) {
 			// time between spikes (in steps)
-			Ia_afferent_spiking_per_step = int(Const1 + Const2 * moto_Vm_per_step);
+//			Ia_afferent_spiking_per_step = int(Const1 + k_nI * f(moto_Vm_per_step / neurons_in_moto));
 		}
 
 		// wait all threads
@@ -391,8 +414,8 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
 			int rand_post_id = id_distr(gen);
-			float syn_delay_dist = syn_delay;	// ToDo replace after tuning : delay_distr(gen);
-			float syn_weight_dist = weight;	// ToDo replace after tuning : weight_distr(gen);
+			float syn_delay_dist = syn_delay;   // ToDo replace after tuning : delay_distr(gen);
+			float syn_weight_dist = weight;     // ToDo replace after tuning : weight_distr(gen);
 #ifdef DEBUG
 			printf("weight %f (%f), delay %f (%f) \n",
 					syn_weight_dist, weight, syn_delay_dist, syn_delay);
@@ -402,11 +425,11 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	}
 
 	printf("Connect %s with %s (1:%d). W=%.2f, D=%.1f\n",
-		   pre_neurons.group_name.c_str(),
-		   post_neurons.group_name.c_str(),
-		   post_neurons.group_size,
-		   weight,
-		   syn_delay);
+	       pre_neurons.group_name.c_str(),
+	       post_neurons.group_name.c_str(),
+	       post_neurons.group_size,
+	       weight,
+	       syn_delay);
 }
 
 void group_add_multimeter(Group &nrn_group) {
@@ -640,13 +663,13 @@ void init_flexor() {
 	connect_fixed_outdegree(EES, D1_1, 1, 27.0);
 	connect_fixed_outdegree(EES, D1_4, 1, 27.0);
 	// inner connectomes
-	connect_fixed_outdegree(D1_1, D1_2, 2.5, 15.0);
-	connect_fixed_outdegree(D1_1, D1_3, 3, 9.2);
-	connect_fixed_outdegree(D1_2, D1_1, 2.5, 15.0);
-	connect_fixed_outdegree(D1_2, D1_3, 2, 9.2);
-	connect_fixed_outdegree(D1_3, D1_1, 1, -10 * INH_COEF);
-	connect_fixed_outdegree(D1_3, D1_2, 1, -10 * INH_COEF);
-	connect_fixed_outdegree(D1_4, D1_3, 2, -8 * INH_COEF);
+	connect_fixed_outdegree(D1_1, D1_2, 2.5, 6); // 5
+	connect_fixed_outdegree(D1_1, D1_3, 3, 15);	// 15
+	connect_fixed_outdegree(D1_2, D1_1, 2.5, 5); // 5
+	connect_fixed_outdegree(D1_2, D1_3, 2, 15); // 15
+//	connect_fixed_outdegree(D1_3, D1_1, 1, -5 * INH_COEF);
+//	connect_fixed_outdegree(D1_3, D1_2, 1, -5 * INH_COEF);
+	connect_fixed_outdegree(D1_4, D1_3, 2, -3 * INH_COEF); // 8
 	// output to G1
 	connect_fixed_outdegree(D1_3, G1_1, 0.5, 18);
 	// output to G2
