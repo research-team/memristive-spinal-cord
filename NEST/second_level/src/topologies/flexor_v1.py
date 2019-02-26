@@ -337,13 +337,13 @@ def rand(a, b):
 
 
 def __build_params(tau):
-	neuron_params = {'t_ref': rand(2.0, 4.0),
+	neuron_params = {'t_ref': 3.0, #rand(2.0, 4.0),
 	                 'V_m': -70.0,  # [mV] starting value of membrane potential
-	                 'E_L': rand(-75.0, -65.0),  # if self.multitest else -70.0,  # [mV] leak reversal potential
+	                 'E_L': -70.0, #rand(-75.0, -65.0),  # if self.multitest else -70.0,  # [mV] leak reversal potential
 	                 'g_L': 75.0,  # [nS] leak conductance
 	                 'tau_syn_ex': 0.2,  # [ms]
 	                 'tau_syn_in': float(tau),  # [ms]
-	                 'C_m': rand(150.0, 250.0)}
+	                 'C_m': 200.0} #rand(150.0, 250.0)}
 	return neuron_params
 
 

@@ -96,11 +96,11 @@ def main(argv):
 			plotter.plot_voltage(name, with_spikes=True)
 
 	# plot slices
-	plotter.plot_slices(tests_number=tests_number, from_memory=False)
+	plotter.plot_slices(tests_number=tests_number, from_memory=False, test_name="MP_F")
 
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:
 		main(sys.argv[1:])
 	else:
-		main(["flexor_v1", 10])
+		main(["flexor_v1", 1])

@@ -28,20 +28,23 @@ const unsigned int neurons_in_moto = 169;
 const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
-const int speed = 25;
 const int CMS = 21;
-const int EES_FREQ = 40;
-const float INH_COEF = 1.0f;
-
 // 6 CMS = 125	[ms]
 // 15 CMS = 50	[ms]
 // 21 CMS = 25	[ms]
+const int skin_stim_time = 25;
+const int EES_FREQ = 40;
+const float INH_COEF = 1.0f;
+
 
 // stuff variable
 unsigned int global_id = 0;
 const float T_sim = 125;
 const float sim_step = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
+
+int steps_activation_C0 = (int)(125 / sim_step)	// 500
+int steps_activation_C1 = (int)(skin_stim_time * 6 / sim_step) // 600
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
@@ -183,8 +186,6 @@ const float c = -80;        // [mV] after-spike reset value of V_m
 const float d = 6;          // [pA] after-spike reset value of U_m
 const float V_peak = 35;    // [mV] spike cutoff value
 
-const float V_half = -65;      // [mV] is the half-activation voltage where 50% of the maximal conductance level is reached
-const float k_slope = 1;       // defines the slope of the output function
 
 __device__
 float f(float V) {
@@ -198,6 +199,7 @@ float f(float V) {
 	printf("f(V) = 0 \n");
 	return 0;
 }
+
 
 __global__
 void sim_kernel(float* old_v,
@@ -222,43 +224,35 @@ void sim_kernel(float* old_v,
                 float* voltage_recording,
                 float* current_recording,
                 int* spike_recording) {
-
-	__shared__ float moto_Vm_per_step;
-	__shared__ int Ia_afferent_spiking_per_step;
-
 	// FixMe: hidden bug, but will work perfect if number of spikes will be lower than sim_step_time / 2 (usually)
 	// FixMe: explanation -- each thread has local variable, but here is stride loop. So one thread do at least 2 job
 	int local_spike_array_iter = 0;
-	float Const1;
-	float k_nI;
 
 	// get id of the thread
 	int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
 
+	// activated_C_ 0 - at flexor (TA)
+	// activated_C_ 1 - at extensor (MG)
+	__shared__ short activated_C_;
+
 	if(thread_id == 0) {
-		// init based on any value other than zero
-		Ia_afferent_spiking_per_step = 999;
-		// init constants to decrease calculation time for Ia afferent
-		Const1 = 6.2 * std::pow(CMS, 0.6) + 0.17;
-		k_nI = 0.06f;
-		// Ia = k_v · v_norm ^ p_v + k_dI · d_norm + k_nI · f(V) + const1
-		// k_v = 6.2
-		// v_norm = 21 [cm/s]
-		// p_v = 0.6
-		// k_dI = 2; d_norm = (L − L_th ) / L_th , if L ≥ L th , and 0 otherwise;
-		// k_dI · d_norm = 0.17 (?)
-		// k_nI = 0.06
+		activated_C_ = 0;
 	}
 
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
-		// init shared values
-		if(thread_id == 0) {
-			moto_Vm_per_step = 0;
-		}
-
 		// wait all threads
 		__syncthreads();
+
+		if(activated_C_ == 0) {
+			if ((sim_iter + 1) % steps_activation_C0 == 0) {
+				// change C (because Flexor time is gone)
+				activated_C_ = 0;
+			} else {
+				activated_C_ = 1;
+			}
+		}
+
 
 		// neuron (tid = neuron id) stride loop (0, 1024, 1, 1025 ...)
 		for (int tid = thread_id; tid < nrn_size; tid += blockDim.x * gridDim.x) {
@@ -298,17 +292,6 @@ void sim_kernel(float* old_v,
 			if (V_m >= V_thld)
 				V_m = V_peak;
 
-			// save membrane potential of the MP_E
-			if (tid >= 1192 && tid <= 1360) {
-				atomicAdd(&moto_Vm_per_step, V_m);
-			}
-
-			if (tid >= 1550 &&
-			    tid <= 1745 &&
-			    (sim_iter % Ia_afferent_spiking_per_step == 0)) {
-				nrn_current[tid] = 5000;
-			}
-
 			// record the membrane potential value every iter step if neuron has multimeter
 			if (has_multimeter[tid]) {
 				atomicAdd(&multimeter_result[sim_iter], V_m);
@@ -346,6 +329,13 @@ void sim_kernel(float* old_v,
 				if (has_spike[tid] && ptr_delay_timers[syn_id] == -1) {
 					ptr_delay_timers[syn_id] = synapses_delay[tid][syn_id];
 				}
+
+				if (activated_C_) {
+					// disable flexor's connects
+				} else {
+					// disable exntensor's connects
+				}
+
 				// if synaptic delay is zero it means the time when synapse increase I by synaptic weight
 				if (ptr_delay_timers[syn_id] == 0) {
 					// post neuron ID = synapses_post_nrn_id[tid][syn_id], thread-safe (!)
@@ -376,12 +366,6 @@ void sim_kernel(float* old_v,
 			if (nrn_ref_time_timer[tid] > 0)
 				nrn_ref_time_timer[tid]--;
 		} // end of neuron stride loop
-
-		// calculate Ia afferent
-		if (thread_id == 0) {
-			// time between spikes (in steps)
-//			Ia_afferent_spiking_per_step = int(Const1 + k_nI * f(moto_Vm_per_step / neurons_in_moto));
-		}
 
 		// wait all threads
 		__syncthreads();
@@ -452,11 +436,11 @@ void group_add_spike_generator(Group &nrn_group, float start, float end, int hz)
 }
 
 void init_extensor() {
-	group_add_spike_generator(C1, 0, speed, 200);
-	group_add_spike_generator(C2, speed, 2*speed, 200);
-	group_add_spike_generator(C3, 2*speed, 3*speed, 200);
-	group_add_spike_generator(C4, 3*speed, 5*speed, 200);
-	group_add_spike_generator(C5, 5*speed, 6*speed, 200);
+	group_add_spike_generator(C1, 0, skin_stim_time, 200);
+	group_add_spike_generator(C2, skin_stim_time, 2*skin_stim_time, 200);
+	group_add_spike_generator(C3, 2*skin_stim_time, 3*skin_stim_time, 200);
+	group_add_spike_generator(C4, 3*skin_stim_time, 5*skin_stim_time, 200);
+	group_add_spike_generator(C5, 5*skin_stim_time, 6*skin_stim_time, 200);
 	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
 
 	connect_fixed_outdegree(C3, inh_group3, 0.5, 15.0);

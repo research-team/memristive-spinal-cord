@@ -24,7 +24,7 @@ class Miner:
 			from_memory (bool):
 				True - get data from the RAM, False - get data from files
 		Returns:
-			dict[float, float]: mean voltage for each millisecond
+			tuple: mean voltage for each millisecond
 		"""
 		self.logger.info("get data for '{}' from [{}]".format(test_name, "MEM" if from_memory else "FILE"))
 
