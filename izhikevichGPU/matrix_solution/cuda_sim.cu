@@ -53,6 +53,7 @@ struct Metadata{
 	// struct for human-readable initialization of connectomes
 	int post_id;
 	int synapse_delay;
+	int syn_species = -1;
 	float synapse_weight;
 
 	Metadata() = default;
@@ -60,6 +61,10 @@ struct Metadata{
 		this->post_id = post_id;
 		this->synapse_delay = static_cast<int>(synapse_delay * (1 / sim_step) + 0.5); // round
 		this->synapse_weight = synapse_weight;
+	}
+
+	void set_syn_species(int value) {
+		this->syn_species = value;
 	}
 };
 
@@ -197,6 +202,7 @@ void sim_kernel(float* old_v,
                 int** synapses_post_nrn_id,
                 int** synapses_delay,
                 int** synapses_delay_timer,
+                int** synapses_syn_species,
                 float** synapses_weight,
                 unsigned int nrn_size,
                 bool* has_generator,
@@ -246,10 +252,9 @@ void sim_kernel(float* old_v,
 					master_local_iter = 0;
 				}
 			}
-			printf("step %d [local %d] (%.2f ms) with C%d \n", sim_iter, master_local_iter, sim_iter * sim_step, activated_C_);
+//			printf("step %d [local %d] (%.2f ms) with C%d \n", sim_iter, master_local_iter, sim_iter * sim_step, activated_C_);
 			master_local_iter++;
 		}
-
 
 		// neuron (tid = neuron id) stride loop (0, 1024, 1, 1025 ...)
 		for (int tid = thread_id; tid < nrn_size; tid += blockDim.x * gridDim.x) {
@@ -278,6 +283,14 @@ void sim_kernel(float* old_v,
 			if (I_current < -10000)
 				I_current = -10000;
 
+			// IP_E IDs [800 ... 995] = 196
+			// IP_F IDs [996 ... 1191] = 196
+			if (activated_C_ == 0 && tid >= 800 && tid <= 995){
+				I_current = 0;
+			}
+			if (activated_C_ == 1 && tid >= 996 && tid <= 1191){
+				I_current = 0;
+			}
 			// re-calculate V_m and U_m
 			float V_m = V_old + sim_step * (k * (V_old - V_rest) * (V_old - V_thld) - U_old + I_current) / C;
 			float U_m = U_old + sim_step * a * (b * (V_old - V_rest) - U_old);
@@ -320,21 +333,26 @@ void sim_kernel(float* old_v,
 
 			// pointers to current neuronID synapses_delay_timer (decrease array calls)
 			int *ptr_delay_timers = synapses_delay_timer[tid];
+			int *ptr_syn_species = synapses_syn_species[tid];
+
 			// synapse updating loop
 			for (int syn_id = 0; syn_id < synapses_number[tid]; syn_id++) {
+				// skip calculating if synapse must be inhibited
+				if (activated_C_ == 0 && ptr_syn_species[syn_id] == 0) {
+					// C0 -- disable extensor's connections
+					ptr_delay_timers[syn_id] = -1;
+					continue;
+				}
+				// skip calculating if synapse must be inhibited
+				if (activated_C_ == 1 && ptr_syn_species[syn_id] == 1) {
+					// C1 -- disable flexor's connections
+					ptr_delay_timers[syn_id] = -1;
+					continue;
+				}
 				// add synaptic delay if neuron has spike
 				if (has_spike[tid] && ptr_delay_timers[syn_id] == -1) {
 					ptr_delay_timers[syn_id] = synapses_delay[tid][syn_id];
 				}
-
-				if (activated_C_ == 0) {
-					// C0 -- disable extensor's connections
-
-				} else {
-					// C1 -- disable flexor's connections
-
-				}
-
 				// if synaptic delay is zero it means the time when synapse increase I by synaptic weight
 				if (ptr_delay_timers[syn_id] == 0) {
 					// post neuron ID = synapses_post_nrn_id[tid][syn_id], thread-safe (!)
@@ -415,6 +433,19 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	       syn_delay);
 }
 
+void change_connections_param(Group pre_neurons, Group post_neurons, int c_value) {
+	// get conenctions from pre to post
+	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
+		for (int post_id = post_neurons.id_start; post_id < post_neurons.id_end; post_id++) {
+			for(Metadata synapses : metadatas.at(pre_id)) {
+				if (synapses.post_id == post_id) {
+					synapses.set_syn_species(c_value);
+				}
+			}
+		}
+	}
+}
+
 void group_add_multimeter(Group &nrn_group) {
 	// function for adding multimeter to the neuron group
 	for (int nrn_id = nrn_group.id_start; nrn_id <= nrn_group.id_end; nrn_id++) {
@@ -434,7 +465,7 @@ void group_add_spike_generator(Group &nrn_group, float start, float end, int hz)
 	printf("Added generator to %s \n", nrn_group.group_name.c_str());
 }
 
-void init_extensor() {
+void init_extensor_flexor() {
 	group_add_spike_generator(C1, 0, skin_stim_time, 200);
 	group_add_spike_generator(C2, skin_stim_time, 2*skin_stim_time, 200);
 	group_add_spike_generator(C3, 2*skin_stim_time, 3*skin_stim_time, 200);
@@ -636,6 +667,47 @@ void init_extensor() {
 	connect_fixed_outdegree(IP_E, MP_E, 1, 11);
 	connect_fixed_outdegree(EES, MP_E, 2, 50);
 	connect_fixed_outdegree(Ia, MP_E, 1, 1);
+
+	/// additional flexor connectomes
+	// D1 -> G2
+	connect_fixed_outdegree(D1_3, G2_1, 0.5, 13);
+	// G2 -> D2
+	connect_fixed_outdegree(G2_1, D2_1, 1.0, 15.0);
+	connect_fixed_outdegree(G2_2, D2_1, 1.0, 15.0);
+	connect_fixed_outdegree(G2_1, D2_4, 1.0, 15.0);
+	connect_fixed_outdegree(G2_2, D2_4, 1.0, 15.0);
+	// D2 -> D3
+	connect_fixed_outdegree(D2_3, D3_1, 0.5, 12.5);
+	connect_fixed_outdegree(D2_3, D3_4, 0.5, 12.5);
+	// G3 -> G4
+	connect_fixed_outdegree(G3_1, G4_1, 1.0, 65.0);
+	connect_fixed_outdegree(G3_2, G4_1, 1.0, 65.0);
+	// G4 -> D4
+	connect_fixed_outdegree(G4_1, D4_1, 1.0, 65.0);
+	connect_fixed_outdegree(G4_2, D4_1, 1.0, 65.0);
+	connect_fixed_outdegree(G4_1, D4_4, 1.0, 65.0);
+	connect_fixed_outdegree(G4_2, D4_4, 1.0, 65.0);
+	// D4 -> D5
+	connect_fixed_outdegree(D4_3, D5_1, 1.0, 10);
+	connect_fixed_outdegree(D4_3, D5_4, 1.0, 10);
+	// G1 -> IP_F
+	connect_fixed_outdegree(G1_1, IP_F, 0.5, 15.0);
+	connect_fixed_outdegree(G1_2, IP_F, 0.5, 15.0);
+	// G2 -> IP_F
+	connect_fixed_outdegree(G2_1, IP_F, 1.0, 65.0);
+	connect_fixed_outdegree(G2_2, IP_F, 1.0, 65.0);
+	// G3 -> IP_F
+	connect_fixed_outdegree(G3_1, IP_F, 0.5, 55.0);
+	connect_fixed_outdegree(G3_2, IP_F, 0.5, 55.0);
+	// G4 -> IP_F
+	connect_fixed_outdegree(G4_1, IP_F, 1.0, 17.0);
+	connect_fixed_outdegree(G4_2, IP_F, 1.0, 17.0);
+	// G5 -> IP_F
+	connect_fixed_outdegree(G5_1, IP_F, 1.0, 48.0);
+	connect_fixed_outdegree(G5_2, IP_F, 1.0, 48.0);
+	// G5 -> I5
+	connect_fixed_outdegree(G5_1, inh_group5, 3.0, 20.0);
+	connect_fixed_outdegree(G5_2, inh_group5, 3.0, 20.0);
 }
 
 void init_flexor() {
@@ -643,8 +715,8 @@ void init_flexor() {
 
 	/// D1 
 	// input from EES
-	connect_fixed_outdegree(EES, D1_1, 1, 27.0);
-	connect_fixed_outdegree(EES, D1_4, 1, 27.0);
+//	connect_fixed_outdegree(EES, D1_1, 1, 27.0);		// FixMe F/E duplication
+//	connect_fixed_outdegree(EES, D1_4, 1, 27.0);		// FixMe F/E duplication
 	// inner connectomes
 	connect_fixed_outdegree(D1_1, D1_2, 2.5, 6); // 5
 	connect_fixed_outdegree(D1_1, D1_3, 3, 15);	// 15
@@ -654,19 +726,19 @@ void init_flexor() {
 //	connect_fixed_outdegree(D1_3, D1_2, 1, -5 * INH_COEF);
 	connect_fixed_outdegree(D1_4, D1_3, 2, -3 * INH_COEF); // 8
 	// output to G1
-	connect_fixed_outdegree(D1_3, G1_1, 0.5, 18);
+//	connect_fixed_outdegree(D1_3, G1_1, 0.5, 18);		// FixMe F/E duplication
 	// output to G2
-	connect_fixed_outdegree(D1_3, G2_1, 0.5, 13);
+//	connect_fixed_outdegree(D1_3, G2_1, 0.5, 13);		// FixMe F/E duplication
 	// output to EES group
-	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 30);
+//	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 30);		// FixMe F/E duplication
 
 	// EES group connectomes
-	connect_fixed_outdegree(ees_group1, ees_group2, 2.0, 20.0);
+//	connect_fixed_outdegree(ees_group1, ees_group2, 2.0, 20.0);		// FixMe F/E duplication
 
 	/// D2 
 	// input from Group (1)
-	connect_fixed_outdegree(ees_group1, D2_1, 1.0, 5.0);
-	connect_fixed_outdegree(ees_group1, D2_4, 1.0, 5.0);
+//	connect_fixed_outdegree(ees_group1, D2_1, 1.0, 5.0);		// FixMe F/E duplication
+//	connect_fixed_outdegree(ees_group1, D2_4, 1.0, 5.0);		// FixMe F/E duplication
 	// inner connectomes
 	connect_fixed_outdegree(D2_1, D2_2, 1, 8.0);
 	connect_fixed_outdegree(D2_1, D2_3, 1, 20);
@@ -680,12 +752,12 @@ void init_flexor() {
 	connect_fixed_outdegree(D2_3, D3_4, 0.5, 12.5);
 
 	// EES group connectomes
-	connect_fixed_outdegree(ees_group2, ees_group3, 2.0, 20.0);
+//	connect_fixed_outdegree(ees_group2, ees_group3, 2.0, 20.0);		// FixMe F/E duplication
 
 	/// D3 
 	// input from Group (2)
-	connect_fixed_outdegree(ees_group2, D3_1, 1, 6.0);
-	connect_fixed_outdegree(ees_group2, D3_4, 1, 6.0);
+//	connect_fixed_outdegree(ees_group2, D3_1, 1, 6.0);		// FixMe F/E duplication
+//	connect_fixed_outdegree(ees_group2, D3_4, 1, 6.0);		// FixMe F/E duplication
 	// inner connectomes
 	connect_fixed_outdegree(D3_1, D3_2, 1.0, 7.0);
 	connect_fixed_outdegree(D3_1, D3_3, 1.0, 25.0);
@@ -695,15 +767,15 @@ void init_flexor() {
 	connect_fixed_outdegree(D3_3, D3_2, 1.0, -7 * INH_COEF);
 	connect_fixed_outdegree(D3_4, D3_3, 2.0, -3 * INH_COEF);
 	// output to generator
-	connect_fixed_outdegree(D3_3, G3_1, 0.5, 30.0);
+//	connect_fixed_outdegree(D3_3, G3_1, 0.5, 30.0);		// FixMe F/E duplication
 
 	// EES group connectomes
-	connect_fixed_outdegree(ees_group3, ees_group4, 1.0, 20.0);
+//	connect_fixed_outdegree(ees_group3, ees_group4, 1.0, 20.0);		// FixMe F/E duplication
 
 	/// D4 
 	// input from Group (3)
-	connect_fixed_outdegree(ees_group3, D4_1, 2.0, 6.0);
-	connect_fixed_outdegree(ees_group3, D4_4, 2.0, 6.0);
+//	connect_fixed_outdegree(ees_group3, D4_1, 2.0, 6.0);		// FixMe F/E duplication
+//	connect_fixed_outdegree(ees_group3, D4_4, 2.0, 6.0);
 	// inner connectomes
 	connect_fixed_outdegree(D4_1, D4_2, 2.5, 15.0);
 	connect_fixed_outdegree(D4_1, D4_3, 3, 9.2);
@@ -718,8 +790,8 @@ void init_flexor() {
 
 	/// D5 
 	// input from Group (4)
-	connect_fixed_outdegree(ees_group4, D5_1, 2.0, 3.0);
-	connect_fixed_outdegree(ees_group4, D5_4, 2.0, 3.0);
+//	connect_fixed_outdegree(ees_group4, D5_1, 2.0, 3.0);		// FixMe F/E duplication
+//	connect_fixed_outdegree(ees_group4, D5_4, 2.0, 3.0);		// FixMe F/E duplication
 	// inner connectomes
 	connect_fixed_outdegree(D5_1, D5_2, 1.0, 15.0);
 	connect_fixed_outdegree(D5_1, D5_3, 1.0, 30.0);
@@ -729,7 +801,7 @@ void init_flexor() {
 	connect_fixed_outdegree(D5_3, D5_2, 1.0, -10 * INH_COEF);
 	connect_fixed_outdegree(D5_4, D5_3, 2.0, -10 * INH_COEF);
 	// output to the generator
-	connect_fixed_outdegree(D5_3, G5_1, 1.0, 30.0);
+//	connect_fixed_outdegree(D5_3, G5_1, 1.0, 30.0);		// FixMe F/E duplication
 
 	/// G1 
 	// inner connectomes
@@ -1004,13 +1076,43 @@ void simulate(int test_index) {
 	spiking_per_step = (int *)malloc(datasize<int *>(neurons_number));
 
 	// init connectomes
-	init_extensor();
-//	init_flexor();
+	init_extensor_flexor();
 //	init_ref_arc();
+
+	/// add C=0 connections
+	change_connections_param(D2_3, G2_1, 0);
+	change_connections_param(D4_3, G4_1, 0);
+
+	/// add C=1 connections
+	// D1 -> G2
+	change_connections_param(D1_3, G2_1, 1);
+	// G2 -> D2
+	change_connections_param(G2_1, D2_1, 1);
+	change_connections_param(G2_1, D2_4, 1);
+	change_connections_param(G2_2, D2_1, 1);
+	change_connections_param(G2_2, D2_4, 1);
+	// D2 -> D3
+	change_connections_param(D2_3, D3_1, 1);
+	change_connections_param(D2_3, D3_4, 1);
+	// G3 -> G4
+	change_connections_param(G3_1, G4_1, 1);
+	change_connections_param(G3_2, G4_1, 1);
+	// G3 -> D4
+	change_connections_param(G4_1, D4_1, 1);
+	change_connections_param(G4_1, D4_4, 1);
+	change_connections_param(G4_2, D4_1, 1);
+	change_connections_param(G4_2, D4_4, 1);
+	// D4 -> D5
+	change_connections_param(D4_3, D5_1, 1);
+	change_connections_param(D4_3, D5_4, 1);
+	// G5 -> I5
+	change_connections_param(G5_1, inh_group5, 1);
+	change_connections_param(G5_2, inh_group5, 1);
 
 	int **gpu_synapses_post_nrn_id, **synapses_post_nrn_id = (int **)malloc(datasize<int* >(neurons_number));
 	int **gpu_synapses_delay, **synapses_delay = (int **)malloc(datasize<int* >(neurons_number));
 	int **gpu_synapses_delay_timer, **synapses_delay_timer = (int **)malloc(datasize<int* >(neurons_number));
+	int **gpu_syn_species, **syn_species = (int **)malloc(datasize<int* >(neurons_number));
 	float **gpu_synapses_weight, **synapses_weight = (float **)malloc(datasize<float* >(neurons_number));
 
 	// fill arrays of synapses
@@ -1020,6 +1122,7 @@ void simulate(int test_index) {
 		int tmp_synapses_post_nrn_id[syn_count];
 		int tmp_synapses_delay[syn_count];
 		int tmp_synapses_delay_timer[syn_count];
+		int tmp_syn_species[syn_count];
 		float tmp_synapses_weight[syn_count];
 
 		int syn_id = 0;
@@ -1027,6 +1130,7 @@ void simulate(int test_index) {
 			tmp_synapses_post_nrn_id[syn_id] = metadata.post_id;
 			tmp_synapses_delay[syn_id] = metadata.synapse_delay;
 			tmp_synapses_delay_timer[syn_id] = -1;
+			tmp_syn_species[syn_id] = metadata.syn_species;
 			tmp_synapses_weight[syn_id] = metadata.synapse_weight;
 			syn_id++;
 		}
@@ -1036,11 +1140,13 @@ void simulate(int test_index) {
 		cudaMalloc((void**)&synapses_post_nrn_id[neuron_id], datasize<int>(syn_count));
 		cudaMalloc((void**)&synapses_delay[neuron_id], datasize<int>(syn_count));
 		cudaMalloc((void**)&synapses_delay_timer[neuron_id], datasize<int>(syn_count));
+		cudaMalloc((void**)&syn_species[neuron_id], datasize<int>(syn_count));
 		cudaMalloc((void**)&synapses_weight[neuron_id], datasize<float>(syn_count));
 
 		cudaMemcpy(synapses_post_nrn_id[neuron_id], &tmp_synapses_post_nrn_id, datasize<int>(syn_count), cudaMemcpyHostToDevice);
 		cudaMemcpy(synapses_delay[neuron_id], &tmp_synapses_delay, datasize<int>(syn_count), cudaMemcpyHostToDevice);
 		cudaMemcpy(synapses_delay_timer[neuron_id], &tmp_synapses_delay_timer, datasize<int>(syn_count), cudaMemcpyHostToDevice);
+		cudaMemcpy(syn_species[neuron_id], &tmp_syn_species, datasize<int>(syn_count), cudaMemcpyHostToDevice);
 		cudaMemcpy(synapses_weight[neuron_id], &tmp_synapses_weight, datasize<float>(syn_count), cudaMemcpyHostToDevice);
 	}
 
@@ -1052,6 +1158,9 @@ void simulate(int test_index) {
 
 	cudaMalloc((void ***)&gpu_synapses_delay_timer, datasize<int *>(neurons_number));
 	memcpyHtD<int *>(gpu_synapses_delay_timer, synapses_delay_timer, neurons_number);
+
+	cudaMalloc((void ***)&gpu_syn_species, datasize<int *>(neurons_number));
+	memcpyHtD<int *>(gpu_syn_species, syn_species, neurons_number);
 
 	cudaMalloc((void ***)&gpu_synapses_weight, datasize<float *>(neurons_number));
 	memcpyHtD<float *>(gpu_synapses_weight, synapses_weight, neurons_number);
@@ -1127,6 +1236,7 @@ void simulate(int test_index) {
 	    gpu_synapses_post_nrn_id,
 	    gpu_synapses_delay,
 	    gpu_synapses_delay_timer,
+	    gpu_syn_species,
 	    gpu_synapses_weight,
 	    neurons_number,
 	    gpu_has_generator,
