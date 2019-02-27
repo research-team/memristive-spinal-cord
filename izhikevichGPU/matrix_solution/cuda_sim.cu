@@ -39,12 +39,12 @@ const float INH_COEF = 1.0f;
 
 // stuff variable
 unsigned int global_id = 0;
-const float T_sim = 125;
+const float T_sim = 1000; // 1s
 const float sim_step = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
 
-int steps_activation_C0 = (int)(125 / sim_step)	// 500
-int steps_activation_C1 = (int)(skin_stim_time * 6 / sim_step) // 600
+const unsigned int steps_activation_C0 = (unsigned int)(125 / sim_step); // 500
+const unsigned int steps_activation_C1 = (unsigned int)(skin_stim_time * 6 / sim_step); // 600
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
@@ -186,21 +186,6 @@ const float c = -80;        // [mV] after-spike reset value of V_m
 const float d = 6;          // [pA] after-spike reset value of U_m
 const float V_peak = 35;    // [mV] spike cutoff value
 
-
-__device__
-float f(float V) {
-	// The nonlinear function f (V) defines the output activity of (flexor or extensor) motoneuron
-	if (V >= V_thld) {
-		float kek = 1 / (1 + std::exp(-(V - V_half) / k_slope));
-		printf("f(V) = %f \n", kek);
-		return 1 / (1 + std::exp(-(V - V_half) / k_slope));
-	}
-	// else
-	printf("f(V) = 0 \n");
-	return 0;
-}
-
-
 __global__
 void sim_kernel(float* old_v,
                 float* old_u,
@@ -239,18 +224,30 @@ void sim_kernel(float* old_v,
 		activated_C_ = 0;
 	}
 
+	int master_local_iter = 0;
+
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
 		// wait all threads
 		__syncthreads();
 
-		if(activated_C_ == 0) {
-			if ((sim_iter + 1) % steps_activation_C0 == 0) {
-				// change C (because Flexor time is gone)
-				activated_C_ = 0;
+		// mechanism of changing C0 and C1
+		if(thread_id == 0) {
+			// if flexor C0 activated, find the end of it and change to C1
+			if (activated_C_ == 0) {
+				if (master_local_iter != 0 && master_local_iter % steps_activation_C0 == 0) {
+					activated_C_ = 1;
+					master_local_iter = 0;
+				}
+			// if extensor C1 activated, find the end of it and change to C0
 			} else {
-				activated_C_ = 1;
+				if (master_local_iter != 0 && master_local_iter % steps_activation_C1 == 0) {
+					activated_C_ = 0;
+					master_local_iter = 0;
+				}
 			}
+			printf("step %d [local %d] (%.2f ms) with C%d \n", sim_iter, master_local_iter, sim_iter * sim_step, activated_C_);
+			master_local_iter++;
 		}
 
 
@@ -330,10 +327,12 @@ void sim_kernel(float* old_v,
 					ptr_delay_timers[syn_id] = synapses_delay[tid][syn_id];
 				}
 
-				if (activated_C_) {
-					// disable flexor's connects
+				if (activated_C_ == 0) {
+					// C0 -- disable extensor's connections
+
 				} else {
-					// disable exntensor's connects
+					// C1 -- disable flexor's connections
+
 				}
 
 				// if synaptic delay is zero it means the time when synapse increase I by synaptic weight
