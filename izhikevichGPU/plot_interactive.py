@@ -1,19 +1,25 @@
 import sys
-import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 
 step = 0.25
-sim_time = 125
+sim_time = 1000
 
 # init random data for example
-data = np.random.uniform(-80, 40, int(sim_time / step))  # y
-times = [t * step for t in range(len(data))]  # x
+
+with open("/home/alex/MP_E.dat") as file:
+	voltages1 = [-float(v) for v in file.readline().split()]
+with open("/home/alex/MP_F.dat") as file:
+	voltages2 = [-float(v) - 100 for v in file.readline().split()]
+
+data1 = voltages1 # y
+data2 = voltages2  # y
+times = [t * step for t in range(len(data1))]  # x
 
 xMin = 0
 xMax = sim_time
-yMin = -80
-yMax = 40
+yMin = -150
+yMax = 150
 
 main_pen = {'color': (0, 0, 0), 'width': 1}
 slices_pen = {'color': (255, 0, 0, 200), 'width': 2, 'style': QtCore.Qt.DashLine}
@@ -32,7 +38,8 @@ win.setWindowTitle("Flexor / Extensor visualization")
 # add the first plot
 plot_main = win.addPlot()
 # plotting and settings
-plot_main.plot(times, data, pen=main_pen)
+plot_main.plot(times, data1, pen=main_pen)
+plot_main.plot(times, data2, pen=main_pen)
 plot_main.showGrid(x=True, y=True)
 plot_main.setLabel('left', text="Voltage, mV")
 plot_main.setLimits(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
@@ -49,17 +56,19 @@ win.nextRow()
 # add the second plot
 plot_zoomed = win.addPlot(title="Zoomed data")
 # plotting and settings
-plot_zoomed.plot(times, data, pen=main_pen)
+plot_zoomed.plot(times, data1, pen=main_pen)
+plot_zoomed.plot(times, data2, pen=main_pen)
 plot_zoomed.showGrid(x=True, y=True)
 plot_zoomed.setLabel('left', text="Voltage, mV")
 plot_zoomed.setLabel('bottom', text="Time, ms")
 plot_zoomed.setLimits(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
 
 # add slice times to each plot
-for slice_time in range(0, sim_time, 25):
-	x = [slice_time, slice_time]
-	plot_main.plot(x, [-100, 100], pen=slices_pen)
-	plot_zoomed.plot(x, [-100, 100], pen=slices_pen)
+for slice_time in range(0, sim_time):
+	if slice_time in [125, 275, 400, 550, 675, 675+150, 675+150+125]:
+		x = [slice_time, slice_time]
+		plot_main.plot(x, [-100, 100], pen=slices_pen)
+		plot_zoomed.plot(x, [-100, 100], pen=slices_pen)
 
 
 # update plot after each changing of the region item

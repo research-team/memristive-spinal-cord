@@ -28,10 +28,12 @@ const unsigned int neurons_in_moto = 169;
 const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
-// 6 CMS = 125	[ms]
-// 15 CMS = 50	[ms]
-// 21 CMS = 25	[ms]
+// 6 CMS = 125	[ms] 30
+// 15 CMS = 50	[ms] 15
+// 21 CMS = 25	[ms] 6
 const int skin_stim_time = 25;
+const int slices_number = 6;
+
 const int EES_FREQ = 40;
 const float INH_COEF = 1.0f;
 
@@ -42,8 +44,8 @@ const float T_sim = 1000; // 1s
 const float sim_step = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
 
-const unsigned int steps_activation_C0 = (unsigned int)(125 / sim_step); // 500
-const unsigned int steps_activation_C1 = (unsigned int)(skin_stim_time * 6 / sim_step); // 600
+const unsigned int steps_activation_C0 = (unsigned int)(skin_stim_time * 5 / sim_step);
+const unsigned int steps_activation_C1 = (unsigned int)(skin_stim_time * slices_number / sim_step);
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
@@ -103,13 +105,17 @@ Group G4_2 = form_group("G4_2");
 Group G5_1 = form_group("G5_1");
 Group G5_2 = form_group("G5_2");	// G5_2 IDs [200 ... 219]
 
-// Neuron groups without changable synapses
+// groups of neurons without changable synapses
+
+// groups of neurons with generators
 Group C1 = form_group("C1");
 Group C2 = form_group("C2");
 Group C3 = form_group("C3");
 Group C4 = form_group("C4");
 Group C5 = form_group("C5");
+Group EES = form_group("EES");
 
+// just groups of neurons
 Group D1_1 = form_group("D1_1");
 Group D1_2 = form_group("D1_2");
 Group D1_4 = form_group("D1_4");
@@ -150,7 +156,6 @@ Group IP_F = form_group("IP_F", neurons_in_ip);
 Group MP_E = form_group("MP_E", neurons_in_moto);
 Group MP_F = form_group("MP_F", neurons_in_moto);
 
-Group EES = form_group("EES");
 Group Ia = form_group("Ia", neurons_in_afferent);
 
 Group inh_group3 = form_group("inh_group3");
@@ -204,8 +209,6 @@ void sim_kernel(float* old_v,
                 int** synapses_delay_timer,
                 float** synapses_weight,
                 unsigned int nrn_size,
-                bool* has_generator,
-                bool* has_multimeter,
                 float* multimeter_result,
                 int* begin_spiking,
                 int* end_spiking,
@@ -224,9 +227,11 @@ void sim_kernel(float* old_v,
 	// activated_C_ 0 - at flexor (TA)
 	// activated_C_ 1 - at extensor (MG)
 	__shared__ short activated_C_;
+	__shared__ short shift_time_by_step ;
 
 	if(thread_id == 0) {
 		activated_C_ = 0;
+		shift_time_by_step = 0;
 	}
 
 	int master_local_iter = 0;
@@ -243,12 +248,16 @@ void sim_kernel(float* old_v,
 				if (master_local_iter != 0 && master_local_iter % steps_activation_C0 == 0) {
 					activated_C_ = 1;
 					master_local_iter = 0;
+
+					shift_time_by_step += steps_activation_C0; // add const 125 ms
 				}
 			// if extensor C1 activated, find the end of it and change to C0
 			} else {
 				if (master_local_iter != 0 && master_local_iter % steps_activation_C1 == 0) {
 					activated_C_ = 0;
 					master_local_iter = 0;
+
+					shift_time_by_step += steps_activation_C1; // add layers * 25 to the shift
 				}
 			}
 			// printf("step %d [local %d] (%.2f ms) with C%d \n", sim_iter, master_local_iter, sim_iter * sim_step, activated_C_);
@@ -257,12 +266,17 @@ void sim_kernel(float* old_v,
 
 		// neuron (tid = neuron id) stride loop (0, 1024, 1, 1025 ...)
 		for (int tid = thread_id; tid < nrn_size; tid += blockDim.x * gridDim.x) {
-			// spike-generator invoking
-			if (has_generator[tid] &&
-				sim_iter >= begin_spiking[tid] &&
-				sim_iter < end_spiking[tid] &&
-				(sim_iter % spiking_per_step[tid] == 0)) {
-				nrn_current[tid] = 5000; // enough for spike
+			// generatoring spikes for C0-5
+			if (activated_C_ == 1 && 220 <= tid && tid <= 319) {
+				if (sim_iter >= (begin_spiking[tid] + shift_time_by_step) &&
+					sim_iter < (end_spiking[tid] + shift_time_by_step) &&
+					(sim_iter % spiking_per_step[tid] == 0)) {
+					nrn_current[tid] = 5000; // enough for spike
+				}
+			}
+			// generatoring spikes for EES
+			if (320 <= tid && tid <= 339 && (sim_iter % spiking_per_step[tid] == 0)) {
+				nrn_current[tid] = 5000;
 			}
 
 			// todo check with the real neurobiology mechanism
@@ -282,12 +296,12 @@ void sim_kernel(float* old_v,
 			if (I_current < -10000)
 				I_current = -10000;
 
-			// inhibit IP_E IDs [800 ... 995]
-			if (activated_C_ == 0 && tid >= 800 && tid <= 995){
+			// inhibit IP_E IDs [820 ... 1015]
+			if (activated_C_ == 0 && 820 <= tid && tid <= 1015){
 				I_current = 0;
 			}
-			// inhibit IP_F IDs [996 ... 1191]
-			if (activated_C_ == 1 && tid >= 996 && tid <= 1191){
+			// inhibit IP_F IDs [1016 ... 1211]
+			if (activated_C_ == 1 && 1016 <= tid && tid <= 1211){
 				I_current = 0;
 			}
 			// re-calculate V_m and U_m
@@ -306,7 +320,7 @@ void sim_kernel(float* old_v,
 //				atomicAdd(&multimeter_result[sim_iter], V_m);
 //			}
 
-//			// ToDo remove after debugging
+			// ToDo remove after debugging
 			int index = sim_iter + tid * sim_time_in_step;
 			voltage_recording[index] = V_m;
 			current_recording[index] = I_current;
@@ -336,12 +350,12 @@ void sim_kernel(float* old_v,
 			int syn_id_begin = 0;
 			int syn_id_end = synapses_number[tid];
 			// C=0 -- "slice" as [:-27] -- skip the last 27 synapses because they must be inhibited
-			if(activated_C_ == 0 && 0 <= tid <= 39){
+			if(activated_C_ == 0 && 0 <= tid && tid <= 39){
 				syn_id_end -= 27;
 			}
 			// C=1 -- "slice" as [27:] -- skip the first 27 synapses because they must be inhibited
-			if(activated_C_ == 1 && 0 <= tid <= 219){
-				syn_id_begin = 27;
+			if(activated_C_ == 1 && 0 <= tid && tid <= 219){
+				syn_id_begin = 54; // 27 * 2
 			}
 
 			// synapse updating loop (with formed begin/end borders)
@@ -450,11 +464,13 @@ void group_add_spike_generator(Group &nrn_group, float start, float end, int hz)
 }
 
 void init_extensor_flexor() {
+	// FixMe REPEAT AT EACH C=1 activation
 	group_add_spike_generator(C1, 0, skin_stim_time, 200);
 	group_add_spike_generator(C2, skin_stim_time, 2*skin_stim_time, 200);
 	group_add_spike_generator(C3, 2*skin_stim_time, 3*skin_stim_time, 200);
 	group_add_spike_generator(C4, 3*skin_stim_time, 5*skin_stim_time, 200);
 	group_add_spike_generator(C5, 5*skin_stim_time, 6*skin_stim_time, 200);
+
 	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
 
 	connect_fixed_outdegree(C3, inh_group3, 0.5, 15.0);
@@ -482,7 +498,7 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(EES, D1_4, 2, 10); // ST value (?)
 	// inner connectomes
 	connect_fixed_outdegree(D1_1, D1_2, 1, 1.0);
-	connect_fixed_outdegree(D1_1, D1_3, 1, 10.0);
+	connect_fixed_outdegree(D1_1, D1_3, 1, 10.0); // 10
 	connect_fixed_outdegree(D1_2, D1_1, 1, 7.0);
 	connect_fixed_outdegree(D1_2, D1_3, 1, 10.0);
 	connect_fixed_outdegree(D1_3, D1_1, 1, -10 * INH_COEF);
@@ -668,186 +684,6 @@ void init_extensor_flexor() {
 	// G5 -> IP_F
 	connect_fixed_outdegree(G5_1, IP_F, 1.0, 48.0);
 	connect_fixed_outdegree(G5_2, IP_F, 1.0, 48.0);
-}
-
-void init_flexor() {
-	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
-
-	/// D1 
-	// input from EES
-//	connect_fixed_outdegree(EES, D1_1, 1, 27.0);		// FixMe F/E duplication
-//	connect_fixed_outdegree(EES, D1_4, 1, 27.0);		// FixMe F/E duplication
-	// inner connectomes
-	connect_fixed_outdegree(D1_1, D1_2, 2.5, 6); // 5
-	connect_fixed_outdegree(D1_1, D1_3, 3, 15);	// 15
-	connect_fixed_outdegree(D1_2, D1_1, 2.5, 5); // 5
-	connect_fixed_outdegree(D1_2, D1_3, 2, 15); // 15
-//	connect_fixed_outdegree(D1_3, D1_1, 1, -5 * INH_COEF);
-//	connect_fixed_outdegree(D1_3, D1_2, 1, -5 * INH_COEF);
-	connect_fixed_outdegree(D1_4, D1_3, 2, -3 * INH_COEF); // 8
-	// output to G1
-//	connect_fixed_outdegree(D1_3, G1_1, 0.5, 18);		// FixMe F/E duplication
-	// output to G2
-//	connect_fixed_outdegree(D1_3, G2_1, 0.5, 13);		// FixMe F/E duplication
-	// output to EES group
-//	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 30);		// FixMe F/E duplication
-
-	// EES group connectomes
-//	connect_fixed_outdegree(ees_group1, ees_group2, 2.0, 20.0);		// FixMe F/E duplication
-
-	/// D2 
-	// input from Group (1)
-//	connect_fixed_outdegree(ees_group1, D2_1, 1.0, 5.0);		// FixMe F/E duplication
-//	connect_fixed_outdegree(ees_group1, D2_4, 1.0, 5.0);		// FixMe F/E duplication
-	// inner connectomes
-	connect_fixed_outdegree(D2_1, D2_2, 1, 8.0);
-	connect_fixed_outdegree(D2_1, D2_3, 1, 20);
-	connect_fixed_outdegree(D2_2, D2_1, 1, 8.0);
-	connect_fixed_outdegree(D2_2, D2_3, 2, 25);
-	connect_fixed_outdegree(D2_3, D2_1, 1, -4 * INH_COEF);
-	connect_fixed_outdegree(D2_3, D2_2, 1, -4 * INH_COEF);
-	connect_fixed_outdegree(D2_4, D2_3, 2, -4 * INH_COEF);
-	// output to D3
-	connect_fixed_outdegree(D2_3, D3_1, 0.5, 12.5);
-	connect_fixed_outdegree(D2_3, D3_4, 0.5, 12.5);
-
-	// EES group connectomes
-//	connect_fixed_outdegree(ees_group2, ees_group3, 2.0, 20.0);		// FixMe F/E duplication
-
-	/// D3 
-	// input from Group (2)
-//	connect_fixed_outdegree(ees_group2, D3_1, 1, 6.0);		// FixMe F/E duplication
-//	connect_fixed_outdegree(ees_group2, D3_4, 1, 6.0);		// FixMe F/E duplication
-	// inner connectomes
-	connect_fixed_outdegree(D3_1, D3_2, 1.0, 7.0);
-	connect_fixed_outdegree(D3_1, D3_3, 1.0, 25.0);
-	connect_fixed_outdegree(D3_2, D3_1, 1.0, 7.0);
-	connect_fixed_outdegree(D3_2, D3_3, 1.0, 25.0);
-	connect_fixed_outdegree(D3_3, D3_1, 1.0, -7 * INH_COEF);
-	connect_fixed_outdegree(D3_3, D3_2, 1.0, -7 * INH_COEF);
-	connect_fixed_outdegree(D3_4, D3_3, 2.0, -3 * INH_COEF);
-	// output to generator
-//	connect_fixed_outdegree(D3_3, G3_1, 0.5, 30.0);		// FixMe F/E duplication
-
-	// EES group connectomes
-//	connect_fixed_outdegree(ees_group3, ees_group4, 1.0, 20.0);		// FixMe F/E duplication
-
-	/// D4 
-	// input from Group (3)
-//	connect_fixed_outdegree(ees_group3, D4_1, 2.0, 6.0);		// FixMe F/E duplication
-//	connect_fixed_outdegree(ees_group3, D4_4, 2.0, 6.0);
-	// inner connectomes
-	connect_fixed_outdegree(D4_1, D4_2, 2.5, 15.0);
-	connect_fixed_outdegree(D4_1, D4_3, 3, 9.2);
-	connect_fixed_outdegree(D4_2, D4_1, 2.5, 15.0);
-	connect_fixed_outdegree(D4_2, D4_3, 2, 9.2);
-	connect_fixed_outdegree(D4_3, D4_1, 1, -10 * INH_COEF);
-	connect_fixed_outdegree(D4_3, D4_2, 1, -10 * INH_COEF);
-	connect_fixed_outdegree(D4_4, D4_3, 2, -8 * INH_COEF);
-	// output to D5
-	connect_fixed_outdegree(D4_3, D5_1, 1.0, 10);
-	connect_fixed_outdegree(D4_3, D5_4, 1.0, 10);
-
-	/// D5 
-	// input from Group (4)
-//	connect_fixed_outdegree(ees_group4, D5_1, 2.0, 3.0);		// FixMe F/E duplication
-//	connect_fixed_outdegree(ees_group4, D5_4, 2.0, 3.0);		// FixMe F/E duplication
-	// inner connectomes
-	connect_fixed_outdegree(D5_1, D5_2, 1.0, 15.0);
-	connect_fixed_outdegree(D5_1, D5_3, 1.0, 30.0);
-	connect_fixed_outdegree(D5_2, D5_1, 1.0, 7.0);
-	connect_fixed_outdegree(D5_2, D5_3, 1.0, 30.0);
-	connect_fixed_outdegree(D5_3, D5_1, 1.0, -10 * INH_COEF);
-	connect_fixed_outdegree(D5_3, D5_2, 1.0, -10 * INH_COEF);
-	connect_fixed_outdegree(D5_4, D5_3, 2.0, -10 * INH_COEF);
-	// output to the generator
-//	connect_fixed_outdegree(D5_3, G5_1, 1.0, 30.0);		// FixMe F/E duplication
-
-	/// G1 
-	// inner connectomes
-	connect_fixed_outdegree(G1_1, G1_2, 1.0, 13.0);
-	connect_fixed_outdegree(G1_1, G1_3, 1.0, 20.0);
-	connect_fixed_outdegree(G1_2, G1_1, 1.0, 10.0);
-	connect_fixed_outdegree(G1_2, G1_3, 1.0, 20.0);
-	connect_fixed_outdegree(G1_3, G1_1, 1.0, -5 * INH_COEF);
-	connect_fixed_outdegree(G1_3, G1_2, 1.0, -5 * INH_COEF);
-	// output to IP_E
-	connect_fixed_outdegree(G1_1, IP_F, 0.5, 15.0);
-	connect_fixed_outdegree(G1_2, IP_F, 0.5, 15.0);
-
-	/// G2 
-	// inner connectomes
-	connect_fixed_outdegree(G2_1, G2_2, 1.0, 30.0);
-	connect_fixed_outdegree(G2_1, G2_3, 1.0, 25.0);
-	connect_fixed_outdegree(G2_2, G2_1, 1.0, 30.0);
-	connect_fixed_outdegree(G2_2, G2_3, 1.0, 25.0);
-	connect_fixed_outdegree(G2_3, G2_1, 0.5, -30 * INH_COEF);
-	connect_fixed_outdegree(G2_3, G2_2, 0.5, -30 * INH_COEF);
-	// output to IP_E
-	connect_fixed_outdegree(G2_1, IP_F, 1.0, 65.0);
-	connect_fixed_outdegree(G2_2, IP_F, 1.0, 65.0);
-	// output to D2
-	connect_fixed_outdegree(G2_1, D2_1, 1.0, 15.0);
-	connect_fixed_outdegree(G2_2, D2_1, 1.0, 15.0);
-	connect_fixed_outdegree(G2_1, D2_4, 1.0, 15.0);
-	connect_fixed_outdegree(G2_2, D2_4, 1.0, 15.0);
-
-	/// G3
-	// inner connectomes
-	connect_fixed_outdegree(G3_1, G3_2, 1.0, 12.0);
-	connect_fixed_outdegree(G3_1, G3_3, 1.0, 20.0);
-	connect_fixed_outdegree(G3_2, G3_1, 1.0, 12.0);
-	connect_fixed_outdegree(G3_2, G3_3, 1.0, 20.0);
-	connect_fixed_outdegree(G3_3, G3_1, 0.5, -30 * INH_COEF);
-	connect_fixed_outdegree(G3_3, G3_2, 0.5, -30 * INH_COEF);
-	// output to IP_F
-	connect_fixed_outdegree(G3_1, IP_F, 0.5, 55.0);
-	connect_fixed_outdegree(G3_2, IP_F, 0.5, 55.0);
-	// output to G4
-	connect_fixed_outdegree(G3_1, G4_1, 1.0, 65.0);
-	connect_fixed_outdegree(G3_2, G4_1, 1.0, 65.0);
-
-	/// G4 
-	// inner connectomes
-	connect_fixed_outdegree(G4_1, G4_2, 1.0, 10.0);
-	connect_fixed_outdegree(G4_1, G4_3, 1.0, 10.0);
-	connect_fixed_outdegree(G4_2, G4_1, 1.0, 5.0);
-	connect_fixed_outdegree(G4_2, G4_3, 1.0, 10.0);
-	connect_fixed_outdegree(G4_3, G4_1, 0.5, -30 * INH_COEF);
-	connect_fixed_outdegree(G4_3, G4_2, 0.5, -30 * INH_COEF);
-	// output to IP_F
-	connect_fixed_outdegree(G4_1, IP_F, 1.0, 17.0);
-	connect_fixed_outdegree(G4_2, IP_F, 1.0, 17.0);
-	// output to D4
-	connect_fixed_outdegree(G4_1, D4_1, 1.0, 65.0);
-	connect_fixed_outdegree(G4_2, D4_1, 1.0, 65.0);
-	connect_fixed_outdegree(G4_1, D4_4, 1.0, 65.0);
-	connect_fixed_outdegree(G4_2, D4_4, 1.0, 65.0);
-
-	/// G5 
-	// inner connectomes
-	connect_fixed_outdegree(G5_1, G5_2, 1.0, 7.0);
-	connect_fixed_outdegree(G5_1, G5_3, 1.0, 10.0);
-	connect_fixed_outdegree(G5_2, G5_1, 1.0, 7.0);
-	connect_fixed_outdegree(G5_2, G5_3, 1.0, 10.0);
-	connect_fixed_outdegree(G5_3, G5_1, 0.5, -30 * INH_COEF);
-	connect_fixed_outdegree(G5_3, G5_2, 0.5, -30 * INH_COEF);
-	// output to IP_F
-	connect_fixed_outdegree(G5_1, IP_F, 1.0, 48.0);
-	connect_fixed_outdegree(G5_2, IP_F, 1.0, 48.0);
-	// output to (inh 5)
-	connect_fixed_outdegree(G5_1, inh_group5, 3.0, 20.0);
-	connect_fixed_outdegree(G5_2, inh_group5, 3.0, 20.0);
-
-	// inhibit Generators
-	connect_fixed_outdegree(inh_group5, G1_3, 3.0, 20.0);
-	connect_fixed_outdegree(inh_group5, G2_3, 3.0, 20.0);
-	connect_fixed_outdegree(inh_group5, G3_3, 3.0, 20.0);
-	connect_fixed_outdegree(inh_group5, G4_3, 3.0, 20.0);
-
-	// ref arc
-	connect_fixed_outdegree(IP_F, MP_F, 1, 12);
-	connect_fixed_outdegree(EES, MP_F, 3, 50);
 }
 
 void init_ref_arc() {
@@ -1039,29 +875,46 @@ void simulate(int test_index) {
 	// REMOVE THEM AS [27:]
 	/// connections which are inhibited by C=1
 	// D1 -> G2
+	// 1
 	connect_fixed_outdegree(D1_3, G2_1, 0.5, 13);
+	connect_fixed_outdegree(D1_3, inh_group5, sim_time_in_step, 0);	 // FixME FAKE
+	// G5 -> I5
+	// 1
+	connect_fixed_outdegree(G5_1, inh_group5, 3.0, 20.0);
+	connect_fixed_outdegree(G5_1, inh_group5, sim_time_in_step, 0);	 // FixME FAKE
+	// 1
+	connect_fixed_outdegree(G5_2, inh_group5, 3.0, 20.0);
+	connect_fixed_outdegree(G5_2, inh_group5, sim_time_in_step, 0);	 // FixME FAKE
+	// G3 -> G4
+	// 1
+	connect_fixed_outdegree(G3_1, G4_1, 1.0, 65.0);
+	connect_fixed_outdegree(G3_1, inh_group5, sim_time_in_step, 0);	 // FixME FAKE
+	// 1
+	connect_fixed_outdegree(G3_2, G4_1, 1.0, 65.0);
+	connect_fixed_outdegree(G3_2, inh_group5, sim_time_in_step, 0);	 // FixME FAKE
 	// G2 -> D2
+	// 2
 	connect_fixed_outdegree(G2_1, D2_1, 1.0, 15.0);
-	connect_fixed_outdegree(G2_2, D2_1, 1.0, 15.0);
 	connect_fixed_outdegree(G2_1, D2_4, 1.0, 15.0);
+	// 2
+	connect_fixed_outdegree(G2_2, D2_1, 1.0, 15.0);
 	connect_fixed_outdegree(G2_2, D2_4, 1.0, 15.0);
 	// D2 -> D3
+	// 2
 	connect_fixed_outdegree(D2_3, D3_1, 0.5, 12.5);
 	connect_fixed_outdegree(D2_3, D3_4, 0.5, 12.5);
-	// G3 -> G4
-	connect_fixed_outdegree(G3_1, G4_1, 1.0, 65.0);
-	connect_fixed_outdegree(G3_2, G4_1, 1.0, 65.0);
 	// G3 -> D4
+	// 2
 	connect_fixed_outdegree(G4_1, D4_1, 1.0, 65.0);
-	connect_fixed_outdegree(G4_2, D4_1, 1.0, 65.0);
 	connect_fixed_outdegree(G4_1, D4_4, 1.0, 65.0);
+	// 2
+	connect_fixed_outdegree(G4_2, D4_1, 1.0, 65.0);
 	connect_fixed_outdegree(G4_2, D4_4, 1.0, 65.0);
 	// D4 -> D5
+	// 2
 	connect_fixed_outdegree(D4_3, D5_1, 1.0, 10);
 	connect_fixed_outdegree(D4_3, D5_4, 1.0, 10);
-	// G5 -> I5
-	connect_fixed_outdegree(G5_1, inh_group5, 3.0, 20.0);
-	connect_fixed_outdegree(G5_2, inh_group5, 3.0, 20.0);
+
 	/// end
 
 	init_extensor_flexor();
@@ -1069,8 +922,8 @@ void simulate(int test_index) {
 
 	// REMOVE THEM AS [:-27]
 	/// connections which are inhibited by C=0
-	connect_fixed_outdegree(D2_3, G2_1, 1.0, 8);	// D2_3 IDs [220 ... 239]
-	connect_fixed_outdegree(D4_3, G4_1, 3.0, 20.0);	// D4_3 IDs [380 ... 399]
+	connect_fixed_outdegree(D2_3, G2_1, 1.0, 8);	// D2_3 IDs [0 ... 1]
+	connect_fixed_outdegree(D4_3, G4_1, 3.0, 20.0);	// D4_3 IDs [20 ... 39]
 	/// end
 
 	int **gpu_synapses_post_nrn_id, **synapses_post_nrn_id = (int **)malloc(datasize<int* >(neurons_number));
@@ -1193,8 +1046,6 @@ void simulate(int test_index) {
 	    gpu_synapses_delay_timer,
 	    gpu_synapses_weight,
 	    neurons_number,
-	    gpu_has_generator,
-	    gpu_has_multimeter,
 	    gpu_multimeter_result,
 	    gpu_begin_spiking,
 	    gpu_end_spiking,

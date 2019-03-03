@@ -7,13 +7,13 @@ logger = log.getLogger('Plotting')
 
 nrns_id_start = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400,
                  420, 440, 460, 480, 500, 520, 540, 560, 580, 600, 620, 640, 660, 680, 700, 720, 740, 760, 780, 800,
-                 996, 1192, 1361, 1530, 1550, 1746, 1766, 1786, 1806, 1826, 1846, 1866, 1886, 1906, 1926, 1946, 1966,
+                 820, 1016, 1212, 1381, 1550, 1746, 1766, 1786, 1806, 1826, 1846, 1866, 1886, 1906, 1926, 1946, 1966,
                  1986, 2006]
 
 groups_name = ["D2_3", "D4_3", "D1_3", "G2_1", "G2_2", "G3_1", "G3_2", "G4_1", "G4_2", "G5_1", "G5_2", "C1", "C2",
-               "C3", "C4", "C5", "D1_1", "D1_2", "D1_4", "D2_1", "D2_2", "D2_4", "D3_1", "D3_2", "D3_3", "D3_4",
-               "D4_1", "D4_2", "D4_4", "D5_1", "D5_2", "D5_3", "D5_4", "G1_1", "G1_2", "G1_3", "G2_3", "G3_3",
-               "G4_3", "G5_3", "IP_E", "IP_F", "MP_E", "MP_F", "EES", "Ia", "inh_group3", "inh_group4",
+               "C3", "C4", "C5", "EES", "D1_1", "D1_2", "D1_4", "D2_1", "D2_2", "D2_4", "D3_1", "D3_2", "D3_3",
+               "D3_4", "D4_1", "D4_2", "D4_4", "D5_1", "D5_2", "D5_3", "D5_4", "G1_1", "G1_2", "G1_3", "G2_3",
+               "G3_3", "G4_3", "G5_3", "IP_E", "IP_F", "MP_E", "MP_F", "Ia", "inh_group3", "inh_group4",
                "inh_group5", "ees_group1", "ees_group2", "ees_group3", "ees_group4", "R_E", "R_F",
                "Ia_E", "Ia_F", "Ib_E", "Ib_F"]
 
@@ -79,8 +79,6 @@ def plot(global_volts, global_currents, global_spikes, step, save_to):
 		currents = curr_per_nrn[1]
 		spikes = spikes_per_nrn[1]
 
-
-
 		sim_time = int(len(voltages) * step)
 		slices_number = int(len(voltages) * step / 25)
 
@@ -97,6 +95,10 @@ def plot(global_volts, global_currents, global_spikes, step, save_to):
 				plt.plot(X, shifted_y, linewidth=0.7)
 			plt.xlim(0, 25)
 			plt.yticks([])
+
+			with open("/home/alex/{}.dat".format(title), "w") as file:
+				for volt in voltages:
+					file.write("{} ".format(volt))
 
 			filename = "sliced_{}.png".format(title)
 			plt.savefig("{}/{}".format(save_to, filename), format="png")
