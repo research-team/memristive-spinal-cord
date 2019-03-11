@@ -8,7 +8,7 @@ class afferent(object):
     self.subsets()
     self.geom()
     self.biophys()
-    self.geom_nseg()
+    #self.geom_nseg()
     self.synlistees = []
     self.synlistex = []
     self.synlistinh = []
@@ -25,7 +25,7 @@ class afferent(object):
     self.axon = h.Section(name='axon', cell= self)
     self.dend.connect(self.soma(1))
     self.axon.connect(self.soma(1))
-    self.basic_shape()  
+    #self.basic_shape()  
 
   def basic_shape(self):
     self.soma.push()

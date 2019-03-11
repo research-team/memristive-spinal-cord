@@ -11,6 +11,7 @@ nhost = int(pc.nhost())
 #param
 speed = 25
 EES_i = 25
+version = 1 
 
 moto_EX_v_vec = []
 moto_FL_v_vec = []
@@ -19,14 +20,15 @@ soma_v_vec = []
 
 from interneuron import interneuron
 from motoneuron import motoneuron
-from afferent import afferent
+from bioaff import bioaff
+
 import random
 
 
 # network creation
 
 class cpg:
-  def __init__(self, speed, EES_int, inh_p, version = 0, N = 20):
+  def __init__(self, speed, EES_int, inh_p, N = 20):
 
     self.interneurons = []
     self.motoneurons = []
@@ -122,6 +124,8 @@ class cpg:
     sens_aff = self.addafferents(nAff)
     Ia_aff_E = self.addafferents(nAff)
     Ia_aff_F = self.addafferents(nAff)
+
+    print("3")
 
     self.mns_E = self.addmotoneurons(nMN)
     self.mns_F = self.addmotoneurons(nMN)
@@ -507,7 +511,8 @@ class cpg:
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
-      cell = afferent()
+      print("1")
+      cell = bioaff(random.randint(2, 10))
       self.afferents.append(cell)
       while(pc.gid_exists(gid)!=0):
         gid+=1
@@ -515,6 +520,7 @@ class cpg:
       pc.set_gid2node(gid, rank)
       nc = cell.connect2target(None)
       pc.cell(gid, nc)
+      print("2")
     return gids
 
   def addgener(self, start, interval, nums):
@@ -550,7 +556,7 @@ def exconnectcells(pre, post, weight, delay, nsyn):
         syn = target.synlistex[j]
         nc = pc.gid_connect(srcgid, syn)
         exnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/6)
+        nc.delay = random.gauss(delay, delay/4)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(pre, post, weight, delay, nsyn):
@@ -578,7 +584,7 @@ def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
         syn = target.synlistees[j]
         nc = pc.gid_connect(gen_gid, syn)
         stimnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/6)
+        nc.delay = random.gauss(delay, delay/4)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
@@ -668,7 +674,7 @@ def spikeout(cpg):
   for i in range(nhost):
     if i == rank:
       for j in range(len(cpg.mns_E)):
-        path=str('./res/vMN_EX%dr%d'%(j, rank))
+        path=str('./res/vMN_EX%dr%dv%d'%(j, rank, version))
         f = open(path, 'w')
         for v in list(moto_EX_v_vec[j]):
           f.write(str(v)+"\n")
@@ -678,21 +684,23 @@ def spikeout(cpg):
   for i in range(nhost):
     if i == rank:
       for j in range(len(cpg.mns_F)):
-        path=str('./res/vMN_FL%dr%d'%(j, rank))
+        path=str('./res/vMN_FL%dr%dv%d'%(j, rank, version))
         f = open(path, 'w')
         for v in list(moto_FL_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
 
+  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
       for j in range(len(cpg.interneurons)):
-        path=str('./res/vIn%dr%dv%d'%(j, rank, 0))
+        path=str('./res/vIn%dr%dv%d'%(j, rank, version))
         f = open(path, 'w')
         for v in list(soma_v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
+  '''
 
 def finish():
   ''' proper exit '''
@@ -704,7 +712,7 @@ if __name__ == '__main__':
   cpg = cpg(speed, EES_i, 100)
   spike_record(cpg)
   print("- "*10, "\nstart")
-  prun(speed*6)#+125)
+  prun(speed*6+125)
   print("- "*10, "\nend")
   spikeout(cpg)
   if (nhost > 1):
