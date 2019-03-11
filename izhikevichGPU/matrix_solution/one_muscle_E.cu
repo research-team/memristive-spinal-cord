@@ -45,14 +45,14 @@ const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
 __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
 
-struct Metadata{
+struct SynapseMetadata{
 	// struct for human-readable initialization of connectomes
 	int post_id;
 	int synapse_delay;
 	float synapse_weight;
 
-	Metadata() = default;
-	Metadata(int post_id, float synapse_delay, float synapse_weight){
+	SynapseMetadata() = default;
+	SynapseMetadata(int post_id, float synapse_delay, float synapse_weight){
 		this->post_id = post_id;
 		this->synapse_delay = static_cast<int>(synapse_delay * (1 / sim_step) + 0.5); // round
 		this->synapse_weight = synapse_weight;
@@ -155,8 +155,8 @@ Group Ia_F = form_group("Ia_F");
 Group Ib_E = form_group("Ib_E");
 Group Ib_F = form_group("Ib_F");
 
-// Global vectors of Metadata of synapses for each neuron
-vector<vector<Metadata>> metadatas(global_id, vector<Metadata>());
+// Global vectors of SynapseMetadata of synapses for each neuron
+vector<vector<SynapseMetadata>> metadatas(global_id, vector<SynapseMetadata>());
 
 // Global stuff variables
 bool* has_multimeter;
@@ -346,7 +346,7 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 			int rand_post_id = id_distr(gen);
 			float syn_delay_dist = syn_delay;   // ToDo replace after tuning : delay_distr(gen);
 			float syn_weight_dist = weight;     // ToDo replace after tuning : weight_distr(gen);
-			metadatas.at(pre_id).push_back(Metadata(rand_post_id, syn_delay_dist, syn_weight_dist));
+			metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay_dist, syn_weight_dist));
 		}
 	}
 
@@ -732,7 +732,7 @@ void simulate(int test_index) {
 		float tmp_synapses_weight[syn_count];
 
 		int syn_id = 0;
-		for(Metadata metadata : metadatas.at(neuron_id)) {
+		for(SynapseMetadata metadata : metadatas.at(neuron_id)) {
 			tmp_synapses_post_nrn_id[syn_id] = metadata.post_id;
 			tmp_synapses_delay[syn_id] = metadata.synapse_delay;
 			tmp_synapses_delay_timer[syn_id] = -1;
