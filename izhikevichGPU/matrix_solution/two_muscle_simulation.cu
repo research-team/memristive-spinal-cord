@@ -508,8 +508,8 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	mt19937 gen(rd());	// Initialize pseudo-random number generator
 
 	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
-	normal_distribution<float> delay_distr(syn_delay, syn_delay / 4);
-	normal_distribution<float> weight_distr(weight, weight / 4);
+	normal_distribution<float> delay_distr(syn_delay, syn_delay / 10);
+	normal_distribution<float> weight_distr(weight, weight / 10);
 
 	#ifdef DEBUG
 	printf("pre group %s (%d, %d) to post %s (%d, %d)\n",
@@ -524,8 +524,8 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
 			int rand_post_id = id_distr(gen);
-			float syn_delay_dist = syn_delay; // delay_distr(gen);
-			float syn_weight_dist = weight; // weight_distr(gen);
+			float syn_delay_dist = syn_delay; //delay_distr(gen);
+			float syn_weight_dist = weight_distr(gen);
 			#ifdef DEBUG
 			printf("weight %f (%f), delay %f (%f) \n",
 					syn_weight_dist, weight, syn_delay_dist, syn_delay);
@@ -803,44 +803,56 @@ void save_result(int test_index,
 	getcwd(cwd, sizeof(cwd));
 	printf("[Test #%d] Save results to: %s \n", test_index, cwd);
 
-	string new_name = "/volt.dat";
+	string new_name = "/matrix_solution/" + std::to_string(test_index) + ".dat";
 	myfile.open(cwd + new_name);
+//	[1212 ... 1380] = 169
 
-	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
-		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << voltage_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
-		myfile << "\n";
-	}
-
-	myfile.close();
-
-	new_name = "/curr.dat";
-	myfile.open(cwd + new_name);
-
-	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
-		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << current_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
-		myfile << "\n";
-	}
-
-	myfile.close();
-
-	new_name = "/spikes.dat";
-	myfile.open(cwd + new_name);
-
-	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
-		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
-			float spike_time = spike_recording[sim_iter + nrn_id * sim_time_in_step] * sim_step;
-			if (spike_time != 0)
-				myfile << spike_time << " ";
+	// take only extensor time
+	for(int sim_iter = ms_to_step(125); sim_iter < sim_time_in_step; sim_iter++) {
+		float mean_volt = 0;
+		// take only MP_E neurons
+		for (int nrn_id = 1212; nrn_id <= 1380; nrn_id++) {
+			mean_volt += voltage_recording[sim_iter + nrn_id * sim_time_in_step];
 		}
-		myfile << "\n";
+		myfile << mean_volt / neurons_in_moto << "\n";
 	}
-
 	myfile.close();
+
+//
+//	for(int nrn_id = 1212; nrn_id <= 1380; nrn_id++){
+//		myfile << nrn_id << " ";
+//		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
+//			myfile << voltage_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
+//		myfile << "\n";
+//	}
+
+//
+//	new_name = "/curr.dat";
+//	myfile.open(cwd + new_name);
+//
+//	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
+//		myfile << nrn_id << " ";
+//		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
+//			myfile << current_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
+//		myfile << "\n";
+//	}
+//
+//	myfile.close();
+//
+//	new_name = "/spikes.dat";
+//	myfile.open(cwd + new_name);
+//
+//	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
+//		myfile << nrn_id << " ";
+//		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
+//			float spike_time = spike_recording[sim_iter + nrn_id * sim_time_in_step] * sim_step;
+//			if (spike_time != 0)
+//				myfile << spike_time << " ";
+//		}
+//		myfile << "\n";
+//	}
+//
+//	myfile.close();
 }
 
 template <typename type>
@@ -1100,8 +1112,8 @@ void simulate(int test_index) {
 	cudaDeviceReset();
 }
 
-int main() {
-	simulate(0);
+int main(int argc, char* argv[]) {
+	simulate(std::atoi(argv[1]));
 
 	return 0;
 }
