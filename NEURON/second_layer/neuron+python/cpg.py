@@ -39,7 +39,7 @@ class cpg:
     nMN = 168
     nAff = 120
     nInt = 196
-
+    
     D1_1E = self.addpool(self.ncell)
     D1_2E = self.addpool(self.ncell)
     D1_3E = self.addpool(self.ncell)
@@ -122,10 +122,8 @@ class cpg:
     I5_F = self.addpool(self.ncell)
         
     sens_aff = self.addafferents(nAff)
-    Ia_aff_E = self.addafferents(nAff)
+    self.Ia_aff_E = self.addafferents(nAff)
     Ia_aff_F = self.addafferents(nAff)
-
-    print("3")
 
     self.mns_E = self.addmotoneurons(nMN)
     self.mns_F = self.addmotoneurons(nMN)
@@ -143,8 +141,11 @@ class cpg:
     IP5_F = self.addpool(self.ncell)
 
     # EES
-    ees = self.addgener(1, EES_int, 10000)
+    self.ees = self.addgener(1, EES_int, 10000)
+    self.dees = self.addgener(25, EES_int, 4)
+    self.tees = self.addgener(50, EES_int, 2)
 
+    
     #skin inputs
     c_int = 5
 
@@ -157,8 +158,6 @@ class cpg:
     C_1 = self.addgener(speed*0, c_int, 6*speed/c_int)
     C_0 = self.addgener(speed*6, c_int, 125/c_int)
 
-    C_00 = self.addgener(speed*0, c_int, 15/c_int)
-
     #reflex arc
     Ib_E = self.addpool(nInt)
     Ia_E = self.addpool(nInt)
@@ -166,7 +165,7 @@ class cpg:
 
     Ib_F = self.addpool(nInt)
     Ia_F = self.addpool(nInt)
-    R_F = self.addpool(nInt) 
+    R_F = self.addpool(nInt)
   
     #delays
     connectdelay_extensor(D1_1E, D1_2E, D1_3E, D1_4E)
@@ -268,16 +267,6 @@ class cpg:
     inhconnectcells(I5_E, G4_1, 0.8, 1, 27)
     inhconnectcells(I5_E, G4_2, 0.8, 1, 27)
 
-    inhconnectcells(I4_E, Ia_aff_E, 0.2, 1, 40)
-    inhconnectcells(I5_E, Ia_aff_E, 0.2, 1, 60)
-
-    inhconnectcells(I5_E, IP5_E, 0.1, 1, 60)
-    inhconnectcells(I5_E, IP4_E, 0.1, 1, 60)
-
-    inhconnectcells(I4_E, IP5_E, 0.1, 1, 40)
-    inhconnectcells(I4_E, IP4_E, 0.1, 1, 40)
-
-
     #flexor
     inhconnectcells(I5_F, G1_1, 0.8, 1, 27)
     inhconnectcells(I5_F, G1_2, 0.8, 1, 27)
@@ -289,9 +278,8 @@ class cpg:
     inhconnectcells(I5_F, G4_2, 0.8, 1, 27)
     
     #EES
-    genconnect(sens_aff, ees, 1, 0, 50)
-    genconnect(Ia_aff_E, ees, 1, 0, 50)
-    genconnect(Ia_aff_F, ees, 1, 0, 50)
+    genconnect(sens_aff, self.ees, 1, 0, 50)
+    genconnect(Ia_aff_F, self.ees, 1, 0, 50)
 
     exconnectcells(sens_aff, D1_1E, 0.5, 0, 50)
     exconnectcells(sens_aff, D1_4E, 0.5, 0, 50)
@@ -299,7 +287,13 @@ class cpg:
     exconnectcells(sens_aff, D1_1F, 0.5, 0, 50)
     exconnectcells(sens_aff, D1_4F, 0.5, 0, 50)
 
-    exconnectcells(Ia_aff_E, self.mns_E, 0.5, 1, 50)
+    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/3)], self.ees, 0.2, 1, 60)
+    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.dees, 0.5, 2, 50)
+    genconnect(self.Ia_aff_E, self.tees, 1.5, 1, 50)
+
+    exconnectcells(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.mns_E[:int(len(self.mns_E)/2 + random.randint(5, 10))], 0.5, 1, 50)
+    exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 50)
+
     exconnectcells(Ia_aff_F, self.mns_F, 0.5, 1, 50)
 
     #IP
@@ -318,13 +312,13 @@ class cpg:
 
     exconnectcells(G5_1E, IP5_E, 0.5, 1, 50)
     exconnectcells(G5_2E, IP5_E, 0.5, 1, 50)
+    
 
-    exconnectcells(IP1_E, self.mns_E, 0.3, 1, 20)
-    exconnectcells(IP2_E, self.mns_E, 0.5, 1, 50)
-    exconnectcells(IP3_E, self.mns_E, 0.7, 1, 50)
-    exconnectcells(IP4_E, self.mns_E, 0.3, 1, 50)
-    exconnectcells(IP5_E, self.mns_E, 0.3, 1, 50)
-
+    exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_E)/5 + random.randint(5, 10))], 0.5, 1, 60)
+    exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(2*len(self.mns_E)/5 + random.randint(5, 10))], 0.7, 1, 60)
+    exconnectcells(IP3_E, self.mns_E, 0.8, 1, 80)
+    exconnectcells(IP4_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.7, 1, 60)
+    exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5 + 2):], 0.65, 1, 60)
 
     #Flexor
     exconnectcells(G1_1, IP1_F, 0.5, 1, 50)
@@ -450,14 +444,11 @@ class cpg:
     inhgenconnect(C_0, IP4_E, 0.8, 1, 60)
     inhgenconnect(C_0, IP5_E, 0.8, 1, 60)
 
-    inhgenconnect(C_0, Ia_aff_E, 0.8, 1, 80)
-    inhgenconnect(C_00, Ia_aff_E, 0.2, 1, 65)
-
-    inhgenconnect(C_00, IP1_E, 0.1, 1, 60)
+    inhgenconnect(C_0, self.Ia_aff_E, 0.8, 1, 80)
 
     #reflex arc
-    exconnectcells(Ia_aff_E, Ib_E, 0.00015, 1, 30)
-    exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
+    exconnectcells(self.Ia_aff_E, Ib_E, 0.00015, 1, 30)
+    exconnectcells(self.Ia_aff_E, Ia_E, 0.01, 1, 30)
     exconnectcells(self.mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ib_E, self.mns_E, 0.01, 1, 45)
     inhconnectcells(Ia_E, self.mns_F, 0.04, 1, 45)
@@ -478,7 +469,7 @@ class cpg:
     inhconnectcells(Ib_F, Ib_E, 0.04, 1, 30)
     inhconnectcells(R_F, R_E, 0.04, 1, 30)
     inhconnectcells(Ia_F, Ia_E, 0.04, 1, 30)
-
+    
   def addpool(self, num):
     gids = []
     gid = 0
@@ -511,7 +502,6 @@ class cpg:
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
-      print("1")
       cell = bioaff(random.randint(2, 10))
       self.afferents.append(cell)
       while(pc.gid_exists(gid)!=0):
@@ -520,7 +510,6 @@ class cpg:
       pc.set_gid2node(gid, rank)
       nc = cell.connect2target(None)
       pc.cell(gid, nc)
-      print("2")
     return gids
 
   def addgener(self, start, interval, nums):
@@ -661,11 +650,27 @@ def spike_record(cpg):
     v_vec.record(cpg.interneurons[i].soma(0.5)._ref_v)
     soma_v_vec.append(v_vec)
 
-def prun(tstop):
+def prun(speed, cpg):
   ''' simulation control '''
+  tstop = 6*speed #+ 125
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
+  '''
+  genconnect(cpg.Ia_aff_E[:30], cpg.ees, 1, 0, 30)
+  exconnectcells(cpg.Ia_aff_E[:30], cpg.mns_E, 0.3, 1, 50)
+  h.continuerun(h.t+speed)
+  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 1, 0, 30)
+  exconnectcells(cpg.Ia_aff_E[:50], cpg.mns_E, 0.5, 1, 50)
+  h.continuerun(h.t+speed)
+  genconnect(cpg.Ia_aff_E, cpg.ees, 1, 0, 50)
+  exconnectcells(cpg.Ia_aff_E, cpg.mns_E, 0.7, 1, 50)
+  h.continuerun(h.t+speed+10)
+  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 0, 0, 30)
+  h.continuerun(h.t+2*speed)
+  genconnect(cpg.Ia_aff_E[50:80], cpg.ees, 0, 0, 30)
+  h.continuerun(h.t+speed) #+125)
+  '''
 
 def spikeout(cpg):
   ''' report simulation results to stdout '''
@@ -712,7 +717,7 @@ if __name__ == '__main__':
   cpg = cpg(speed, EES_i, 100)
   spike_record(cpg)
   print("- "*10, "\nstart")
-  prun(speed*6+125)
+  prun(speed, cpg)
   print("- "*10, "\nend")
   spikeout(cpg)
   if (nhost > 1):

@@ -64,7 +64,7 @@ class motoneuron(object):
     for sec in self.all:
       sec.Ra = 100
       sec.cm = 1
-    self.soma.insert('motoneuron')
+    self.soma.insert('motoneuron_5ht')
     self.soma.insert('extracellular')
 
     self.dend.insert('pas')
