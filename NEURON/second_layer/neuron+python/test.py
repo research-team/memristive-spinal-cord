@@ -3,7 +3,7 @@ import io
 
 
 def test():
-	return os.system("mpiexec -n 2 nrniv -mpi -python network.py")
+	return os.system("mpiexec -n 2 nrniv -mpi -python cpg.py")
 
 def replace_line(file_name, line_num, text):
     lines = open(file_name, 'r').readlines()
@@ -14,19 +14,9 @@ def replace_line(file_name, line_num, text):
 
 print("1")
 
-string = str("        path=str('./res/vMN%dr%dv%d'%(j, rank, 25))\n")
-replace_line('network.py', 27,  'speed = 25\n')
-replace_line('network.py', 273,  string)
-#test()
-
-string = str("        path=str('./res/vMN%dr%dv%d'%(j, rank, 50))\n")
-replace_line('network.py', 27,  'speed = 50\n')
-replace_line('network.py', 273,  string)
-#test()
-
-string = str("        path=str('./res/vMN%dr%dv%d'%(j, rank, 125))\n")
-replace_line('network.py', 27,  'speed = 125\n')
-replace_line('network.py', 273,  string)
-test()
+for i in range(2):
+	string = str('version = %d \n'%(i))
+	replace_line('cpg.py', 13, string)
+	test()
 
 print("2")
