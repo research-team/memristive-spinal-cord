@@ -1,9 +1,11 @@
 from neuron import h
+import random
 h.load_file('stdlib.hoc') #for h.lambda_f
 
 class interneuron(object):
-  def __init__(self):
+  def __init__(self, delay):
     #print 'construct ', self
+    self.delay = delay
     self.topol()
     self.subsets()
     self.geom()
@@ -13,7 +15,7 @@ class interneuron(object):
     self.synlistex = []
     self.synlistees = []
     self.synapses()
-    self.x = self.y = self.z = 0.
+    self.x = self.y = self.z = 0.  
 
   def __del__(self):
     #print 'delete ', self
@@ -75,6 +77,13 @@ class interneuron(object):
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
     self.dend.e_pas = -65
+
+    #if self.delay:
+      #diff = h.diff_slow(self.dend(0.5))
+      #rec = h.r5ht3a(self.dend(0.5))
+      #diff.h = random.gauss(10, 2.5)
+      #diff.tx1 = 1
+      #h.setpointer(diff._ref_subs, 'serotonin', rec)
 
     self.axon.insert('hh')
 
