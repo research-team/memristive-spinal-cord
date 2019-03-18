@@ -100,15 +100,10 @@ class cpg:
     G5_2 = self.addpool(self.ncell, False)
     G5_3 = self.addpool(self.ncell, False)
    
-    E1_E = self.addpool(self.ncell, False)
-    E2_E = self.addpool(self.ncell, False)
-    E3_E = self.addpool(self.ncell, False)
-    E4_E = self.addpool(self.ncell, False)
-
-    E1_F = self.addpool(self.ncell, False)
-    E2_F = self.addpool(self.ncell, False)
-    E3_F = self.addpool(self.ncell, False)
-    E4_F = self.addpool(self.ncell, False)
+    E1 = self.addpool(self.ncell, False)
+    E2 = self.addpool(self.ncell, False)
+    E3 = self.addpool(self.ncell, False)
+    E4 = self.addpool(self.ncell, False)
 
     I3_E = self.addpool(self.ncell, False)
     I4_E = self.addpool(self.ncell, False)
@@ -116,7 +111,7 @@ class cpg:
     I5_F = self.addpool(self.ncell, False)
         
     sens_aff = self.addafferents(nAff)
-    self.Ia_aff_E = self.addafferents(nAff)
+    Ia_aff_E = self.addafferents(nAff)
     Ia_aff_F = self.addafferents(nAff)
 
     self.mns_E = self.addmotoneurons(nMN)
@@ -179,14 +174,12 @@ class cpg:
     connectgenerator(G1_1, G1_2, G1_3)
     
     connectgenerator(G2_1, G2_2, G2_3)
-    connectgenerator(G2_1, G2_2, G2_3)
 
     connectgenerator(G3_1E, G3_2E, G3_3E)
     connectgenerator(G3_1F, G3_2F, G3_3F)
 
     connectgenerator(G4_1, G4_2, G4_3)
 
-    connectgenerator(G5_1, G5_2, G5_3)
     connectgenerator(G5_1, G5_2, G5_3)
 
     #between delays (FLEXOR)
@@ -197,37 +190,26 @@ class cpg:
 
     #between delays via excitatory pools
     #extensor
-    exconnectcells(D1_3E, E1_E, 0.5, 1, 27)
-    exconnectcells(E1_E, E2_E, 0.5, 1, 27)
-    exconnectcells(E2_E, E3_E, 0.5, 1, 27)
-    exconnectcells(E3_E, E4_E, 0.5, 1, 27)
+    exconnectcells(D1_3E, E1, 0.5, 1, 27)
+    exconnectcells(E1, E2, 0.5, 1, 27)
+    exconnectcells(E2, E3, 0.5, 1, 27)
+    exconnectcells(E3, E4, 0.5, 1, 27)
 
-    connectexpools_extensor(D2_1E, D2_4E, E1_E)
-    connectexpools_extensor(D3_1, D3_4, E2_E)
-    connectexpools_extensor(D4_1E, D4_4E, E3_E)
-    connectexpools_extensor(D5_1, D5_4, E4_E)
+    connectexpools_extensor(D2_1E, D2_4E, E1)
+    connectexpools_extensor(D3_1, D3_4, E2)
+    connectexpools_extensor(D4_1E, D4_4E, E3)
+    connectexpools_extensor(D5_1, D5_4, E4)
 
     #flexor
-    '''
-    exconnectcells(D1_3F, E1_F, 0.5, 1, 27)
-    exconnectcells(E1_F, E2_F, 0.5, 1, 27)
-    exconnectcells(E2_F, E3_F, 0.5, 1, 27)
-    exconnectcells(E3_F, E4_F, 0.5, 1, 27)
+    exconnectcells(D1_3F, E1, 0.5, 1, 27)
+    exconnectcells(E1, E2, 0.5, 1, 27)
+    exconnectcells(E2, E3, 0.5, 1, 27)
+    exconnectcells(E3, E4, 0.5, 1, 27)
 
-    connectexpools_flexor(D2_1F, D2_4F, E1_F)
-    connectexpools_flexor(D3_1, D3_4, E2_F)
-    connectexpools_flexor(D4_1F, D4_4F, E3_F)
-    connectexpools_flexor(D5_1, D5_4, E4_F)
-    '''
-    exconnectcells(D1_3F, E1_E, 0.5, 1, 27)
-    exconnectcells(E1_E, E2_E, 0.5, 1, 27)
-    exconnectcells(E2_E, E3_E, 0.5, 1, 27)
-    exconnectcells(E3_E, E4_E, 0.5, 1, 27)
-
-    connectexpools_extensor(D2_1F, D2_4F, E1_E)
-    connectexpools_extensor(D3_1, D3_4, E2_E)
-    connectexpools_extensor(D4_1F, D4_4F, E3_E)
-    connectexpools_extensor(D5_1, D5_4, E4_E)
+    connectexpools_extensor(D2_1F, D2_4F, E1)
+    connectexpools_extensor(D3_1, D3_4, E2)
+    connectexpools_extensor(D4_1F, D4_4F, E3)
+    connectexpools_extensor(D5_1, D5_4, E4)
 
     #delay -> generator
     #extensor
@@ -238,16 +220,12 @@ class cpg:
     exconnectcells(D5_3, G5_1, 0.05, 1, 27)
 
     #flexor
-    exconnectcells(D1_3F, G1_1, 0.005, 2, 27)
-    exconnectcells(D1_3F, G2_1, 0.005, 2, 27)
-    exconnectcells(D3_3, G3_1F, 0.005, 2, 27)
-    exconnectcells(D5_3, G5_1, 0.005, 2, 27)
-
-    #generator -> delay(FLEXOR)
-    exconnectcells(G2_1, D2_1F, 0.0002, 1, 27)
-    exconnectcells(G2_1, D2_4F, 0.0001, 1, 27)
-    exconnectcells(G4_1, D4_1F, 0.0003, 1, 27)
-    exconnectcells(G4_1, D4_4F, 0.00025, 1, 27)
+    exconnectcells(D1_3F, G1_1, 0.05, 2, 27)
+    exconnectcells(D1_3F, G2_1, 0.05, 2, 27)
+    exconnectcells(D2_3F, G2_1, 0.05, 2, 27)
+    exconnectcells(D3_3, G3_1F, 0.05, 2, 27)
+    exconnectcells(D4_3F, G4_1, 0.05, 2, 27)
+    exconnectcells(D5_3, G5_1, 0.05, 2, 27)
 
     #between generators (FLEXOR)
     exconnectcells(G3_1F, G4_1, 0.05, 2, 27)
@@ -284,13 +262,13 @@ class cpg:
     exconnectcells(sens_aff, D1_1F, 0.5, 0, 50)
     exconnectcells(sens_aff, D1_4F, 0.5, 0, 50)
 
-    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/3)], self.ees, 0.2, 1, 60)
-    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.dees, 0.5, 2, 50)
-    genconnect(self.Ia_aff_E, self.tees, 1.5, 1, 50)
+    genconnect(Ia_aff_E[:int(len(Ia_aff_E)/3)], self.ees, 0.2, 1, 60)
+    genconnect(Ia_aff_E[:int(len(Ia_aff_E)/2)], self.dees, 0.5, 2, 50)
+    genconnect(Ia_aff_E, self.tees, 1.5, 1, 50)
 
-    exconnectcells(self.Ia_aff_E[:int(len(self.Ia_aff_E)/3)], self.mns_E[:int(len(self.mns_E)/3 + random.randint(5, 10))], 0.5, 1, 50)
-    exconnectcells(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.mns_E[:int(len(self.mns_E)/2 + random.randint(5, 10))], 0.5, 1, 50)
-    exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 50)
+    exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/3)], self.mns_E[:int(len(self.mns_E)/3 + random.randint(5, 10))], 0.5, 1, 50)
+    exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/2)], self.mns_E[:int(len(self.mns_E)/2 + random.randint(5, 10))], 0.5, 1, 50)
+    exconnectcells(Ia_aff_E, self.mns_E, 0.8, 1, 50)
 
     exconnectcells(Ia_aff_F, self.mns_F, 0.5, 1, 50)
 
@@ -407,11 +385,11 @@ class cpg:
     inhgenconnect(C_0, IP4_E, 0.8, 1, 60)
     inhgenconnect(C_0, IP5_E, 0.8, 1, 60)
 
-    inhgenconnect(C_0, self.Ia_aff_E, 0.8, 1, 80)
+    inhgenconnect(C_0, Ia_aff_E, 0.8, 1, 80)
 
     #reflex arc
-    exconnectcells(self.Ia_aff_E, Ib_E, 0.00015, 1, 30)
-    exconnectcells(self.Ia_aff_E, Ia_E, 0.01, 1, 30)
+    exconnectcells(Ia_aff_E, Ib_E, 0.00015, 1, 30)
+    exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
     exconnectcells(self.mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ib_E, self.mns_E, 0.01, 1, 45)
     inhconnectcells(Ia_E, self.mns_F, 0.04, 1, 45)
@@ -489,7 +467,6 @@ class cpg:
     ncstim = h.NetCon(stim, None)
     pc.cell(gid, ncstim)
     return gid
-
 
 exnclist = []
 inhnclist = []
@@ -581,11 +558,6 @@ def connectgenerator(g1, g2, g3):
 def connectexpools_extensor(d1, d4, ep):
   exconnectcells(ep, d1, 0.00037, 1, 27)
   exconnectcells(ep, d4, 0.00037, 1, 27)
-
-def connectexpools_flexor(d1, d4, ep):
-  exconnectcells(ep, d1, 0.004, 1, 27)
-  exconnectcells(ep, d4, 0.004, 1, 27)
-
 
 def spike_record(cpg):
   ''' record spikes from all gids '''
