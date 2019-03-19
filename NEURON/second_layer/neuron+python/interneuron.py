@@ -9,8 +9,8 @@ class interneuron(object):
     self.topol()
     self.subsets()
     self.geom()
-    self.biophys()
     self.geom_nseg()
+    self.biophys()
     self.synlistinh = []
     self.synlistex = []
     self.synlistees = []
@@ -23,41 +23,33 @@ class interneuron(object):
 
   def topol(self):
     self.soma = h.Section(name='soma', cell=self)
-    self.dend = h.Section(name='dend', cell= self)
     self.axon = h.Section(name='axon', cell= self)
-    self.dend.connect(self.soma(1))
+    if self.delay:
+      self.dend = [h.Section(name='dend[%d]' % i) for i in range(15)]
+      self.dend[0].connect(self.soma(1))
+      for i in range(1, len(self.dend)):
+        self.dend[i].connect(self.dend[i-1])
+    else:
+      self.dend = h.Section(name='dend', cell= self)
+      self.dend.connect(self.soma(1))
     self.axon.connect(self.soma(1))
-    self.basic_shape()  
-
-  def basic_shape(self):
-    self.soma.push()
-    h.pt3dclear()
-    h.pt3dadd(0, 0, 0, 1)
-    h.pt3dadd(15, 0, 0, 1)
-    h.pop_section()
-    self.dend.push()
-    h.pt3dclear()
-    h.pt3dadd(15, 0, 0, 1)
-    h.pt3dadd(215, 0, 0, 1)
-    h.pop_section()
-    self.axon.push()
-    h.pt3dclear()
-    h.pt3dadd(0, 0, 0, 1)
-    h.pt3dadd(-150, 0, 0, 1)
-    h.pop_section()
 
   def subsets(self):
     self.all = h.SectionList()
-    self.all.append(sec=self.soma)
-    self.all.append(sec=self.dend)
-    self.all.append(sec=self.axon)
+    for sec in h.allsec():
+      self.all.append(sec=sec)    
 
   def geom(self):
     self.soma.L = self.soma.diam = 10
-    self.dend.L = 200
-    self.dend.diam = 1
     self.axon.L = 150
     self.axon.diam = 1
+    if self.delay:
+      for sec in self.dend:
+        sec.L = 200
+        sec.diam = 1
+    else:
+      self.dend.L = 200
+      self.dend.diam = 1
 
   def geom_nseg(self):
     for sec in self.all:
@@ -74,16 +66,20 @@ class interneuron(object):
     self.soma.el_hh = -60  
     self.soma.insert('extracellular')
 
-    self.dend.insert('pas')
-    self.dend.g_pas = 0.001
-    self.dend.e_pas = -65
-
-    #if self.delay:
-      #diff = h.diff_slow(self.dend(0.5))
-      #rec = h.r5ht3a(self.dend(0.5))
-      #diff.h = random.gauss(10, 2.5)
-      #diff.tx1 = 1
-      #h.setpointer(diff._ref_subs, 'serotonin', rec)
+    if self.delay:
+      distance = random.uniform(10, 100)
+      for sec in self.dend:
+        sec.insert('hh')
+        diff = h.diff_slow(sec(0.5))
+        rec = h.r5ht3a(sec(0.5))
+        rec.gmax = 2
+        diff.h = random.gauss(distance, distance/5)
+        diff.tx1 = 1+(diff.h/1250)*1000
+        h.setpointer(diff._ref_subs, 'serotonin', rec)
+    else:
+      self.dend.insert('pas')
+      self.dend.g_pas = 0.001
+      self.dend.e_pas = -65
 
     self.axon.insert('hh')
 
@@ -100,20 +96,37 @@ class interneuron(object):
     return nc
 
   def synapses(self):
-    for i in range(100): 
-      s = h.ExpSyn(self.dend(0.5)) # E0
-      s.tau = 0.1
-      s.e = 50
-      self.synlistex.append(s)
-      s = h.Exp2Syn(self.dend(0.5)) # I1
-      s.tau1 = 1.5
-      s.tau2 = 2
-      s.e = -80
-      self.synlistinh.append(s)  
-      s = h.ExpSyn(self.dend(0.8)) # I1
-      s.tau = 0.1
-      s.e = 50
-      self.synlistees.append(s)  
+    if self.delay:
+      for sec in self.dend:
+        for i in range(10): 
+          s = h.ExpSyn(sec(0.5)) # E0
+          s.tau = 0.1
+          s.e = 50
+          self.synlistex.append(s)
+          s = h.Exp2Syn(sec(0.5)) # I1
+          s.tau1 = 1.5
+          s.tau2 = 2
+          s.e = -80
+          self.synlistinh.append(s)  
+          s = h.ExpSyn(sec(0.8)) # I1
+          s.tau = 0.1
+          s.e = 50
+          self.synlistees.append(s)  
+    else:
+      for i in range(100): 
+        s = h.ExpSyn(self.dend(0.5)) # E0
+        s.tau = 0.1
+        s.e = 50
+        self.synlistex.append(s)
+        s = h.Exp2Syn(self.dend(0.5)) # I1
+        s.tau1 = 1.5
+        s.tau2 = 2
+        s.e = -80
+        self.synlistinh.append(s)  
+        s = h.ExpSyn(self.dend(0.8)) # I1
+        s.tau = 0.1
+        s.e = 50
+        self.synlistees.append(s)  
 
   def is_art(self):
     return 0

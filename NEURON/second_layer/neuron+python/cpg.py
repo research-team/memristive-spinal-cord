@@ -100,10 +100,10 @@ class cpg:
     G5_2 = self.addpool(self.ncell, False)
     G5_3 = self.addpool(self.ncell, False)
    
-    E1 = self.addpool(self.ncell, False)
-    E2 = self.addpool(self.ncell, False)
-    E3 = self.addpool(self.ncell, False)
-    E4 = self.addpool(self.ncell, False)
+    E1 = self.addpool(self.ncell, True)
+    E2 = self.addpool(self.ncell, True)
+    E3 = self.addpool(self.ncell, True)
+    E4 = self.addpool(self.ncell, True)
 
     I3_E = self.addpool(self.ncell, False)
     I4_E = self.addpool(self.ncell, False)
@@ -118,22 +118,21 @@ class cpg:
     self.mns_F = self.addmotoneurons(nMN)
 
     #interneuronal pool
-    IP1_E = self.addpool(self.ncell, True)
-    IP1_F = self.addpool(self.ncell, True)
-    IP2_E = self.addpool(self.ncell, True)
-    IP2_F = self.addpool(self.ncell, True)
-    IP3_E = self.addpool(self.ncell, True)
-    IP3_F = self.addpool(self.ncell, True)
-    IP4_E = self.addpool(self.ncell, True)
-    IP4_F = self.addpool(self.ncell, True)
-    IP5_E = self.addpool(self.ncell, True)
-    IP5_F = self.addpool(self.ncell, True)
+    IP1_E = self.addpool(self.ncell, False)
+    IP1_F = self.addpool(self.ncell, False)
+    IP2_E = self.addpool(self.ncell, False)
+    IP2_F = self.addpool(self.ncell, False)
+    IP3_E = self.addpool(self.ncell, False)
+    IP3_F = self.addpool(self.ncell, False)
+    IP4_E = self.addpool(self.ncell, False)
+    IP4_F = self.addpool(self.ncell, False)
+    IP5_E = self.addpool(self.ncell, False)
+    IP5_F = self.addpool(self.ncell, False)
 
     # EES
     self.ees = self.addgener(1, EES_int, 10000)
     self.dees = self.addgener(speed, EES_int, (speed/25)*4)
     self.tees = self.addgener(2*speed, EES_int, (speed/25)*2)
-
     
     #skin inputs
     c_int = 5
@@ -294,7 +293,7 @@ class cpg:
     exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(2*len(self.mns_E)/5 + random.randint(5, 10))], 0.7, 2, 60)
     exconnectcells(IP3_E, self.mns_E, 0.8, 2, 80)
     exconnectcells(IP4_E, self.mns_E[int(2*len(self.mns_E)/5):], 0.8, 2, 80)
-    exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.75, 1, 80)
+    exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.8, 1, 80)
 
     #Flexor
     exconnectcells(G1_1, IP1_F, 0.5, 2, 50)
@@ -476,7 +475,6 @@ stimnclist = []
 def exconnectcells(pre, post, weight, delay, nsyn):
   ''' connection with excitatory synapse '''
   global exnclist
-  # not efficient but demonstrates use of pc.gid_exists
   for i in post:
     if pc.gid_exists(i):
       for j in range(nsyn):
@@ -491,7 +489,6 @@ def exconnectcells(pre, post, weight, delay, nsyn):
 def inhconnectcells(pre, post, weight, delay, nsyn):
   ''' connection with inhibitory synapse '''
   global inhnclist
-  # not efficient but demonstrates use of pc.gid_exists
   for i in post:
     if pc.gid_exists(i):
       for j in range(nsyn):
@@ -504,7 +501,7 @@ def inhconnectcells(pre, post, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
-  ''' stimulate afferents with NetStim '''
+  ''' connection with generator '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
@@ -517,7 +514,7 @@ def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
-  ''' stimulate afferents with NetStim '''
+  ''' connection with inhibitory generator '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
@@ -563,9 +560,9 @@ def spike_record(cpg):
   ''' record spikes from all gids '''
   global moto_EX_v_vec, moto_FL_v_vec, soma_v_vec 
   '''
-  for i in range(len(interneurons)):
+  for i in range(len(cpg.interneurons)):
     v_vec = h.Vector()
-    v_vec.record(interneurons[i].soma(0.5)._ref_v)
+    v_vec.record(cpg.interneurons[i].soma(0.5)._ref_v)
     soma_v_vec.append(v_vec)
   '''
   for i in cpg.mns_E:
@@ -580,10 +577,6 @@ def spike_record(cpg):
     moto_vec.record(moto.soma(0.5)._ref_vext[0])
     moto_FL_v_vec.append(moto_vec)
 
-  for i in range(len(cpg.interneurons)):
-    v_vec = h.Vector()
-    v_vec.record(cpg.interneurons[i].soma(0.5)._ref_v)
-    soma_v_vec.append(v_vec)
 
 def prun(speed, cpg):
   ''' simulation control '''
@@ -591,22 +584,7 @@ def prun(speed, cpg):
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
-  '''
-  genconnect(cpg.Ia_aff_E[:30], cpg.ees, 1, 0, 30)
-  exconnectcells(cpg.Ia_aff_E[:30], cpg.mns_E, 0.3, 1, 50)
-  h.continuerun(h.t+speed)
-  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 1, 0, 30)
-  exconnectcells(cpg.Ia_aff_E[:50], cpg.mns_E, 0.5, 1, 50)
-  h.continuerun(h.t+speed)
-  genconnect(cpg.Ia_aff_E, cpg.ees, 1, 0, 50)
-  exconnectcells(cpg.Ia_aff_E, cpg.mns_E, 0.7, 1, 50)
-  h.continuerun(h.t+speed+10)
-  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 0, 0, 30)
-  h.continuerun(h.t+2*speed)
-  genconnect(cpg.Ia_aff_E[50:80], cpg.ees, 0, 0, 30)
-  h.continuerun(h.t+speed) #+125)
-  '''
-
+ 
 def spikeout(cpg):
   ''' report simulation results to stdout '''
   global rank, moto_EX_v_vec, moto_FL_v_vec, soma_v_vec
@@ -657,4 +635,3 @@ if __name__ == '__main__':
   spikeout(cpg)
   if (nhost > 1):
     finish()
-  
