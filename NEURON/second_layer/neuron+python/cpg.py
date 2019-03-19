@@ -194,10 +194,10 @@ class cpg:
     exconnectcells(E2, E3, 0.5, 1, 27)
     exconnectcells(E3, E4, 0.5, 1, 27)
 
-    connectexpools_extensor(D2_1E, D2_4E, E1)
-    connectexpools_extensor(D3_1, D3_4, E2)
-    connectexpools_extensor(D4_1E, D4_4E, E3)
-    connectexpools_extensor(D5_1, D5_4, E4)
+    connectexpools(D2_1E, D2_4E, E1)
+    connectexpools(D3_1, D3_4, E2)
+    connectexpools(D4_1E, D4_4E, E3)
+    connectexpools(D5_1, D5_4, E4)
 
     #flexor
     exconnectcells(D1_3F, E1, 0.5, 1, 27)
@@ -205,10 +205,10 @@ class cpg:
     exconnectcells(E2, E3, 0.5, 1, 27)
     exconnectcells(E3, E4, 0.5, 1, 27)
 
-    connectexpools_extensor(D2_1F, D2_4F, E1)
-    connectexpools_extensor(D3_1, D3_4, E2)
-    connectexpools_extensor(D4_1F, D4_4F, E3)
-    connectexpools_extensor(D5_1, D5_4, E4)
+    connectexpools(D2_1F, D2_4F, E1)
+    connectexpools(D3_1, D3_4, E2)
+    connectexpools(D4_1F, D4_4F, E3)
+    connectexpools(D5_1, D5_4, E4)
 
     #delay -> generator
     #extensor
@@ -411,6 +411,19 @@ class cpg:
     inhconnectcells(Ia_F, Ia_E, 0.04, 1, 30)
     
   def addpool(self, num, delaytype):
+    '''
+    Returns gids of interneuronal pool
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    delaytype: bool
+        is it have 5ht receptors
+    Returns
+    -------
+    gids[array]
+        the list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
@@ -425,6 +438,17 @@ class cpg:
     return gids
 
   def addmotoneurons(self, num):
+    '''
+    Returns gids of motoneurons
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    Returns
+    -------
+    gids: list
+        list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
@@ -439,6 +463,17 @@ class cpg:
     return gids
 
   def addafferents(self, num):
+    '''
+    Returns gids of afferents
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    Returns
+    -------
+    gids: list
+        list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
@@ -453,6 +488,21 @@ class cpg:
     return gids
 
   def addgener(self, start, interval, nums):
+    '''
+    Returns generator gid
+    Parameters
+    ----------
+    start: int
+        generator start up
+    interval: int
+        interval between signals in generator 
+    nums: int
+        signals number
+    Returns
+    -------
+    gid: int
+        generator gid 
+    '''
     gid = 0
     stim = h.NetStim()
     stim.number = nums
@@ -473,7 +523,20 @@ eesnclist = []
 stimnclist = []
 
 def exconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with excitatory synapse '''
+  ''' connection with excitatory synapse 
+    Parameters
+    ----------
+    pre: list
+        list of presynase gids
+    post: list
+        list of postsynapse gids
+    weight: float
+        weight of synapse
+    delay: int
+        synaptic delay
+    nsyn: int
+        numder of synapses
+  '''
   global exnclist
   for i in post:
     if pc.gid_exists(i):
@@ -487,7 +550,20 @@ def exconnectcells(pre, post, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with inhibitory synapse '''
+  ''' connection with inhibitory synapse 
+    Parameters
+    ----------
+    pre: list
+        list of presynase gids
+    post: list
+        list of postsynapse gids
+    weight: float
+        weight of synapse
+    delay: int
+        synaptic delay
+    nsyn: int
+        numder of synapses
+  '''
   global inhnclist
   for i in post:
     if pc.gid_exists(i):
@@ -501,7 +577,20 @@ def inhconnectcells(pre, post, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
-  ''' connection with generator '''
+  ''' connection with generator 
+    Parameters
+    ----------
+    afferents_gids: list
+        list of presynase gids
+    gen_gid: int
+        generator gid
+    weight: float
+        weight of synapse
+    delay: int
+        synaptic delay
+    nsyn: int
+        numder of synapses
+  '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
@@ -514,7 +603,20 @@ def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
-  ''' connection with inhibitory generator '''
+  ''' connection with generator with inhibitory synapse 
+    Parameters
+    ----------
+    gen_gid: int
+        generator gid
+    afferents_gids: list
+        list of presynase gids
+    weight: float
+        weight of synapse
+    delay: int
+        synaptic delay
+    nsyn: int
+        numder of synapses
+  '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
@@ -527,6 +629,18 @@ def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def connectdelay_extensor(d1, d2, d3, d4):
+  ''' connect extensor delay 
+    Parameters
+    ----------
+    d1: list
+        list of D1 pool gids
+    d2: list
+        list of D2 pool gids
+    d3: list
+        list of D3 pool gids
+    d4: list
+        list of D4 pool gids
+  '''
   exconnectcells(d2, d1, 0.05, 2, 27)
   exconnectcells(d1, d2, 0.05, 2, 27)
   exconnectcells(d1, d3, 0.01, 1, 27)
@@ -536,6 +650,18 @@ def connectdelay_extensor(d1, d2, d3, d4):
   inhconnectcells(d3, d1, 0.08, 1, 27)
 
 def connectdelay_flexor(d1, d2, d3, d4):
+  ''' connect flexor delay 
+    Parameters
+    ----------
+    d1: list
+        list of D1 pool gids
+    d2: list
+        list of D2 pool gids
+    d3: list
+        list of D3 pool gids
+    d4: list
+        list of D4 pool gids
+  '''
   exconnectcells(d2, d1, 0.05, 3, 27)
   exconnectcells(d1, d2, 0.05, 3, 27)
   exconnectcells(d2, d3, 0.01, 1, 27)
@@ -545,6 +671,16 @@ def connectdelay_flexor(d1, d2, d3, d4):
   inhconnectcells(d3, d1, 0.0008, 1, 27)
 
 def connectgenerator(g1, g2, g3):
+  ''' connect generator
+    Parameters
+    ----------
+    g1: list
+        list of G1 pool gids
+    g2: list
+        list of G2 pool gids
+    g3: list
+        list of G3 pool gids
+  '''
   exconnectcells(g1, g2, 0.05, 3, 27)
   exconnectcells(g2, g1, 0.05, 3, 27)
   exconnectcells(g2, g3, 0.005, 1, 27)
@@ -552,12 +688,27 @@ def connectgenerator(g1, g2, g3):
   inhconnectcells(g3, g1, 0.008, 1, 27)
   inhconnectcells(g3, g2, 0.008, 1, 27)
 
-def connectexpools_extensor(d1, d4, ep):
+def connectexpools(d1, d4, ep):
+  ''' connect delays via excitatory pool 
+    Parameters
+    ----------
+    d1: list
+        list of D1 pool gids
+    d4: list
+        list of D4 pool gids
+    ep: list
+        list of excitatory pool gids
+  '''
   exconnectcells(ep, d1, 0.00037, 1, 27)
   exconnectcells(ep, d4, 0.00037, 1, 27)
 
 def spike_record(cpg):
-  ''' record spikes from all gids '''
+  ''' record spikes from gids 
+    Parameters
+    ----------
+    cpg: cpg
+       topology of central pattern generation + reflex arc 
+  '''
   global moto_EX_v_vec, moto_FL_v_vec, soma_v_vec 
   '''
   for i in range(len(cpg.interneurons)):
@@ -578,15 +729,25 @@ def spike_record(cpg):
     moto_FL_v_vec.append(moto_vec)
 
 
-def prun(speed, cpg):
-  ''' simulation control '''
+def prun(speed):
+  ''' simulation control 
+    Parameters
+    ----------
+    speed: int
+        duration of each layer 
+  '''
   tstop = 6*speed + 125
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
  
 def spikeout(cpg):
-  ''' report simulation results to stdout '''
+  ''' report simulation results 
+    Parameters
+    ----------
+    cpg: cpg
+        topology of central pattern generation + reflex arc 
+  '''
   global rank, moto_EX_v_vec, moto_FL_v_vec, soma_v_vec
   pc.barrier()
   for i in range(nhost):
