@@ -3,17 +3,17 @@ logging.basicConfig(level=logging.DEBUG)
 from neuron import h
 h.load_file('nrngui.hoc')
 
-#paralleling
+#paralleling NEURON staff
 pc = h.ParallelContext()
-rank = int(pc.id())
+rank = int(pc.id()) 
 nhost = int(pc.nhost())
 
 #param
-speed = 25
-EES_i = 25
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+EES_i = 25 # interval between EES stimulus 
 version = 1 
 
-moto_EX_v_vec = []
+moto_EX_v_vec = [] 
 moto_FL_v_vec = []
 soma_v_vec = []
 
@@ -24,9 +24,11 @@ from bioaff import bioaff
 
 import random
 
-
-# network creation
-
+'''
+network creation
+see topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+and all will be clear
+'''
 class cpg:
   def __init__(self, speed, EES_int, inh_p, N = 20):
 
@@ -412,16 +414,18 @@ class cpg:
     
   def addpool(self, num, delaytype):
     '''
-    Returns gids of interneuronal pool
+    Creates interneuronal pool and returns gids of pool
     Parameters
     ----------
     num: int
         neurons number in pool
     delaytype: bool
-        is it have 5ht receptors
+        Does it have 5ht receptors?
+        -Yes: True 
+        -No: False
     Returns
     -------
-    gids[array]
+    gids: list
         the list of neurons gids
     '''
     gids = []
@@ -439,7 +443,7 @@ class cpg:
 
   def addmotoneurons(self, num):
     '''
-    Returns gids of motoneurons
+    Creates pool of motoneurons and returns gids of pool
     Parameters
     ----------
     num: int
@@ -464,7 +468,7 @@ class cpg:
 
   def addafferents(self, num):
     '''
-    Returns gids of afferents
+    Creates pool of afferents and returns gids of pool
     Parameters
     ----------
     num: int
@@ -489,7 +493,7 @@ class cpg:
 
   def addgener(self, start, interval, nums):
     '''
-    Returns generator gid
+    Creates generator and returns generator gid
     Parameters
     ----------
     start: int
@@ -523,17 +527,19 @@ eesnclist = []
 stimnclist = []
 
 def exconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with excitatory synapse 
+  ''' Connects with excitatory synapses 
     Parameters
     ----------
     pre: list
-        list of presynase gids
+        list of presynase neurons gids
     post: list
-        list of postsynapse gids
+        list of postsynapse neurons gids
     weight: float
         weight of synapse
+        used with Gaussian distribution
     delay: int
         synaptic delay
+        used with Gaussian distribution
     nsyn: int
         numder of synapses
   '''
@@ -550,17 +556,19 @@ def exconnectcells(pre, post, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with inhibitory synapse 
+  ''' Connects with inhibitory synapses 
     Parameters
     ----------
     pre: list
-        list of presynase gids
+        list of presynase neurons gids
     post: list
-        list of postsynapse gids
+        list of postsynapse neurons gids
     weight: float
         weight of synapse
+        used with Gaussian distribution
     delay: int
         synaptic delay
+        used with Gaussian distribution
     nsyn: int
         numder of synapses
   '''
@@ -577,17 +585,19 @@ def inhconnectcells(pre, post, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
-  ''' connection with generator 
+  ''' Connects with generator 
     Parameters
     ----------
     afferents_gids: list
-        list of presynase gids
+        list of presynase neurons gids
     gen_gid: int
         generator gid
     weight: float
         weight of synapse
+        used with Gaussian distribution
     delay: int
         synaptic delay
+        used with Gaussian distribution
     nsyn: int
         numder of synapses
   '''
@@ -603,17 +613,19 @@ def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
-  ''' connection with generator with inhibitory synapse 
+  ''' Connects with generator via inhibitory synapses 
     Parameters
     ----------
     gen_gid: int
         generator gid
     afferents_gids: list
-        list of presynase gids
+        list of presynase neurons gids
     weight: float
         weight of synapse
+        used with Gaussian distribution
     delay: int
         synaptic delay
+        used with Gaussian distribution
     nsyn: int
         numder of synapses
   '''
@@ -629,7 +641,8 @@ def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def connectdelay_extensor(d1, d2, d3, d4):
-  ''' connect extensor delay 
+  ''' connect extensor delay module
+    see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
     Parameters
     ----------
     d1: list
@@ -650,7 +663,8 @@ def connectdelay_extensor(d1, d2, d3, d4):
   inhconnectcells(d3, d1, 0.08, 1, 27)
 
 def connectdelay_flexor(d1, d2, d3, d4):
-  ''' connect flexor delay 
+  ''' Connects flexor delay module 
+    see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
     Parameters
     ----------
     d1: list
@@ -671,7 +685,8 @@ def connectdelay_flexor(d1, d2, d3, d4):
   inhconnectcells(d3, d1, 0.0008, 1, 27)
 
 def connectgenerator(g1, g2, g3):
-  ''' connect generator
+  ''' Connects generator module
+    see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
     Parameters
     ----------
     g1: list
@@ -689,7 +704,8 @@ def connectgenerator(g1, g2, g3):
   inhconnectcells(g3, g2, 0.008, 1, 27)
 
 def connectexpools(d1, d4, ep):
-  ''' connect delays via excitatory pool 
+  ''' Connects delays via excitatory pool 
+    see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
     Parameters
     ----------
     d1: list
