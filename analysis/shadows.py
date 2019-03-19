@@ -1,219 +1,132 @@
 import os
-import pylab
-import numpy as np
-import h5py as hdf5
-from collections import defaultdict
-from analysis.functions import read_bio_data, normalization
-# from analysis.bio_data_6runs import data_slices
-from analysis.patterns_in_bio_data import bio_data_runs
-from analysis.neuron_data import neuron_data
+import logging
+import pylab as plt
 
+logging.basicConfig(level=logging.DEBUG)
 
-def __read_data(filepath):
+def plot_shadows(data_per_test, step=None, save_folder=None, filename="shadows", debugging=False):
 	"""
-	Read all data from hdf5 file
+	Plot shadows (and/or save) based on the input data
 	Args:
-		filepath (str):
-			path to the file
+		data_per_test (list of list): data per test with list of points
+		step (float): step size of the data for human-read normalization time
+		debugging (bool): show debug info
+		save_folder (str): folder path to save the graphic
+		filename (str): filename
 	Returns:
-		dict[str, list]: voltage data for each test
+		kawai pictures =(^-^)=
 	"""
-	data_by_test = {}
-	with hdf5.File(filepath) as file:
-		for test_name, test_values in file.items():
-			data_by_test[test_name] = test_values[:]  # [:] will return ndarray, don't use list() !!!
-	return data_by_test
+	if len(data_per_test) == 0:
+		raise Exception("Empty input data")
+	if type(data_per_test[0]) is not list:
+		raise Exception("Not valid input data -- should be list of lists [[],[] ... []]")
 
+	# stuff variables
+	slice_time_length = 25
+	slices_number = int(len(data_per_test[0]) / slice_time_length * step)
+	steps_in_slice = int(slice_time_length / step)
+	shared_x = [x * step for x in range(steps_in_slice)]
+	# swap rows and columns
+	data_per_step = list(zip(*data_per_test))
 
-def __restructure_data(original_data, sim_step):
-	"""
-	Restructuring data from test -> slices to slices -> test
-	Args:
-		original_data (dict[str, list]):
-			data container of voltages for each test
-	Returns:
-		dict[int, dict[str, list]]: restuctured data for easiest way to build the shadows.
-		slice index -> [test name -> test values which are corresponed to the current slice ]
-	"""
-	# constant
-	slice_duration = 25
-	i = 0
-	for k, v in original_data.items():
-		# first = -v[0]
-		# transforming to extracellular form
-		# original_data[k] = [-d - first for d in v]
-	# 	# if i % 5 == 0:
-	# 		# pylab.plot(original_data[k])
-		i += 1
-	# pylab.show()
-	# get simulation time by len of records and multiplication by simulation step
-	sim_time = len(next(iter(original_data.values()))) * sim_step #+ 0.1  # for nest
-	# get number of slices by floor division of slice duration (25 ms)
-	num_slices = int(sim_time) // slice_duration
-	# get normlization coefficient from slice duration and simulation step
-	normalized_time_from_index = int(slice_duration / sim_step)
-	# generate dict container
-	voltages_by_slice = {slice_index: defaultdict(list) for slice_index in range(num_slices)}
-	# relocate voltage data by their test and slice affiliation
-	print(len(voltages_by_slice))
-	for test_name, test_values in original_data.items():
-		for index, voltage in enumerate(test_values):
-			# get index of the slice by floor division of normalize to 1 ms time
-			slice_index = index // normalized_time_from_index
-			# collect current voltage to the affiliated test name and slice number
-			voltages_by_slice[slice_index][test_name].append(voltage)
-			# print("voltages_by_slice = ", voltages_by_slice)
-	return voltages_by_slice
+	plt.figure(figsize=(16, 9))
 
-
-def __plot(slices, sim_step, raw_data_filename, save_path=None):
-	"""
-	Plot shadows with mean
-	Args:
-		slices (dict[int, dict[str, list]]):
-			restructured data: dict[slice index, dict[test name, voltages]]
-		sim_step (float):
-			simulation step
-		raw_data_filename (str):
-			path to the raw data
-		save_path (str or None):
-			folder path for saving results
-	"""
-	neuron = neuron_data()
-	a = neuron[1]
-	b = neuron[2]
-	bio_runs = bio_data_runs()
-	print("len(bio_runs) = ", len(bio_runs))
-	for i in range(len(bio_runs)):
-		bio_runs[i] = normalization(bio_runs[i], a[i], b[i])
-	all_bio_slices = []
-
-	# forming list for the plot
-	for k in range(len(bio_runs)):
-		bio_slices = []
-		offset = 0
-		for i in range(int(len(bio_runs[k]) / 100)):
-			bio_slices_tmp = []
-			for j in range(offset, offset + 100):
-				bio_slices_tmp.append(bio_runs[k][j])
-			bio_slices.append(bio_slices_tmp)
-			offset += 100
-		all_bio_slices.append(bio_slices)  # list [4][16][100]
-	print("all_bio_slices = ", len(all_bio_slices))
-	print("all_bio_slices = ", len(all_bio_slices[0]))
-	print("all_bio_slices = ", len(all_bio_slices[0][0]))
-	all_bio_slices = list(zip(*all_bio_slices))  # list [16][4][100]
-
-	for index, sl in enumerate(all_bio_slices):
-		offset = index * 22
-		# print("sl[{}][0]".format(run), sl[run][0])
-		times = [time * 0.25 for time in range(len(all_bio_slices[0][0]))]
-		# for run in range(len(sl)):
-			# pylab.plot(times, [s + offset for s in sl[run]], color='saddlebrown', linewidth=0.5)
-
-	# bio_data = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')[0]
-	# bio_indexes = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')[1]
-	# bio_data = normalization(bio_data, zero_relative=True)
-	# print("bio_data = ", len(bio_data))
-	# print(bio_indexes)
-	# bio_data_list = []
-	# offset = 0
-	# for sl in range(12):
-	# 	bio_data_list_tmp = []
-		# for index in range(offset, bio_indexes[sl + 1]):
-			# bio_data_list_tmp.append(bio_data[index])
-		# bio_data_list.append(bio_data_list_tmp)
-		# offset = bio_indexes[sl + 1]
-	# plot shadows
-	for index, run in enumerate(all_bio_slices):
-		print(len(run), run)
-		offset = index * 20
-		# plt.plot([r + offset for r in run ])
-		mean_data = list(map(lambda elements: np.mean(elements), zip(*run)))
-		times = [time * 0.25 for time in range(len(mean_data))]
-		means = [voltage + offset for voltage in mean_data]
-		# yticks.append(means[0])
-		minimal_per_step = [min(a) for a in zip(*run)]
-		maximal_per_step = [max(a) for a in zip(*run)]
-		pylab.plot(times, means, linewidth=0.5, color='k')
-		pylab.fill_between(times, [mini + offset for mini in minimal_per_step],
-		                 [maxi + offset for maxi in maximal_per_step], alpha=0.35)
-	# pylab.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
-
+	# y ticks for slices
 	yticks = []
-	# pylab.figure(figsize=(10, 5))
-	# times_bio = []
-	# offset_bio = 0
-	# for index, sl in enumerate(range(len(bio_data_list))):
-	# 	times_bio_tmp = []
-	# 	for i in range(offset_bio, offset_bio + len(bio_data_list[sl])):
-	# 		times_bio_tmp.append(i * 10)
-	# 	offset_bio += len(bio_data_list[sl])
-	# 	times_bio.append(times_bio_tmp)
-	# times_for_bio = []
-	# for sl in range(len(times_bio)):
-	# 	times_for_bio_tmp = []
-	# 	for i in range(len(times_bio[sl])):
-	# 		times_for_bio_tmp.append(i * 10)
-	# 	times_for_bio.append(times_for_bio_tmp)
+	# process each slice
+	for slice_index in range(slices_number):
+		logging.info("plot slice #{}".format(slice_index + 1))
+		# set offset for Y
+		y_offset = slice_index * 40
+		# get data for curent slice
+		sliced_data = data_per_step[slice_index * steps_in_slice:(slice_index + 1) * steps_in_slice]
 
-	for slice_number, tests in slices.items():
-		offset = slice_number * 20
-		# for k, v in tests.items():
-			# tests[k] = normalization(v, zero_relative=True)
+		# calculate fliers, whiskers and medians (thanks to pylab <3)
+		tmp_fig = plt.figure()
+		boxplot_data = plt.boxplot(sliced_data, showfliers=True, showcaps=True)
+		plt.close(tmp_fig)
 
-		mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
-		times = [time * sim_step for time in range(len(mean_data))]  # divide by 10 to convert to ms step
-		means = [voltage + offset for voltage in mean_data]
-		yticks.append(means[0])
-		minimal_per_step = [min(a) for a in zip(*tests.values())]
-		maximal_per_step = [max(a) for a in zip(*tests.values())]
-		# plot mean with shadows
-		pylab.plot(times, means, linewidth=1.5, color='k')
-		pylab.fill_between(times,
-		                   [mini + offset for mini in minimal_per_step],  # the minimal values + offset (slice number)
-		                   [maxi + offset for maxi in maximal_per_step],  # the maximal values + offset (slice number)
-		                   alpha=1)
+		# get the necessary data
+		medians = boxplot_data['medians']
+		whiskers_data = boxplot_data['whiskers']
+		fliers = boxplot_data['fliers']
 
-	# for index, sl in enumerate(range(len(bio_data_list))):
-	# 	if index == 9:
-	# 		offset = index - 0.01
-			# print("here")
-		# elif index == 11:
-		# 	offset = index - 0.2
-			# print("h")
-		# else:
-		# 	offset = index - 0.05 * index
-		# pylab.plot([t * 0.25 for t in range(len(data_slices[sl]))], [data + offset for data in data_slices[sl]],
-		#            color='r', linewidth=0.8)
-	pylab.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
-	pylab.yticks(yticks, range(1, len(slices) + 1), fontsize=14)
-	pylab.xlim(0, 25)
-	pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
-	pylab.show()
-	# if the save path is not specified
-	if not save_path:
-		save_path = "/".join(raw_data_filename.split("/")[:-1])
-	pylab.savefig(os.path.join(save_path, "shadows.png"), format="png", dpi=512)
+		whiskers_data_high = whiskers_data[1::2]
+		whiskers_data_low = whiskers_data[::2]
 
+		# check on equal size
+		assert len(whiskers_data_low) == len(whiskers_data_high)
+		assert len(whiskers_data_low) == steps_in_slice
+		assert len(whiskers_data_low) == len(fliers)
 
-def plot_shadows(raw_data_filename, sim_step, save_path=None):
-	data = __read_data(raw_data_filename)
-	slices, sim_time = __restructure_data(data, sim_step=sim_step)
-	__plot(slices, sim_step, raw_data_filename, save_path)
+		# debug info
+		if debugging:
+			# back to previous data structure
+			data_per_test = list(zip(*sliced_data))
+			# plot for each test
+			for data_per_test in data_per_test:
+				plt.plot(shared_x, [y_offset + y for y in data_per_test], color='g')
 
+		# calc Y for median
+		median_y = [y_offset + median.get_ydata()[0] for median in medians]
+		# calc Y for boxes
+		boxes_y_high = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_high]
+		boxes_y_low = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_low]
+		# calc Y for whiskers
+		whiskers_y_high = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_high]
+		whiskers_y_low = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_low]
+		# calc Y for fliers
+		fliers_y_max = []
+		fliers_y_min = []
+		# compute each flier point
+		for index, flier in enumerate(fliers):
+			lowest_whisker = whiskers_y_low[index]
+			highest_whisker = whiskers_y_high[index]
+			flier_y_data = flier.get_ydata()
+			# if more than 1 dot
+			if len(flier_y_data) > 1:
+				flier_max = max(flier_y_data) + y_offset
+				flier_min = min(flier_y_data) + y_offset
+				fliers_y_max.append(highest_whisker if flier_max < highest_whisker else flier_max)
+				fliers_y_min.append(lowest_whisker if flier_min > lowest_whisker else flier_min)
+			# if only 1 dot
+			elif len(flier_y_data) == 1:
+				fliers_y_max.append(max(flier_y_data[0] + y_offset, highest_whisker))
+				fliers_y_min.append(min(flier_y_data[0] + y_offset, lowest_whisker))
+			# no dots in flier -- use whiskers
+			else:
+				fliers_y_max.append(highest_whisker)
+				fliers_y_min.append(lowest_whisker)
 
-def debugging():
-	path = '../../neuron-data/10EX_20tests.hdf5'
-	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
-	sim_step = 0.025    # don't forget to change the step size!
+		# plot fliers shadow (fliers top or bottom)
+		plt.fill_between(shared_x, fliers_y_min, fliers_y_max, alpha=0.1, color='r')
 
-	data = __read_data(path)
-	# data = bio_data_runs()
-	slices = __restructure_data(data, sim_step=sim_step)
-	# print(type(slices))
-	__plot(slices, sim_step, path)
+		# plot whiskers shadow (whiskers top or bottom)
+		plt.fill_between(shared_x, whiskers_y_low, whiskers_y_high, alpha=0.3, color='r')
 
+		# plot boxes shadow (like a boxes -- top or bottom, but it is still whisker)
+		plt.fill_between(shared_x, boxes_y_low, boxes_y_high, alpha=0.7, color='r')
 
-if __name__ == "__main__":
-	debugging()
+		# plot median
+		plt.plot(shared_x, median_y, color='k')
+
+		# add Y tick value
+		yticks.append(median_y[0])
+
+	# plot stuff
+	plt.xticks(range(26), range(26))
+	plt.xlim(0, 25)
+	plt.yticks(yticks, range(1, slices_number + 1))
+
+	if save_folder is None:
+		save_folder = os.getcwd()
+
+	logging.info("Save file: {}/{}.png".format(save_folder, filename))
+
+	plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95)
+	plt.savefig("{}/{}.png".format(save_folder, filename), dpi=512, format="png")
+
+	if debugging:
+		plt.show()
+
+	plt.close()
