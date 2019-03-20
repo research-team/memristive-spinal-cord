@@ -7,9 +7,9 @@ class motoneuron(object):
     soma: NEURON Section (creates by topol())
     dend: NEURON Section (creates by topol())
     axon: NEURON Section (creates by topol())
-    synlistinh: list
+    synlistinh: list (creates by synapses())
       list of inhibitory synapses
-    synlistex: list
+    synlistex: list (creates by synapses())
       list of excitatory synapses
     x, y, z: int
       3D coordinates 
@@ -73,13 +73,13 @@ class motoneuron(object):
 
   def geom(self):
     '''
-    Adds lenth and diameter to sections
+    Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = 10
-    self.dend.L = 200
-    self.dend.diam = 1
-    self.axon.L = 150
-    self.axon.diam = 1
+    self.soma.L = self.soma.diam = 10 # microns
+    self.dend.L = 200 # microns
+    self.dend.diam = 1 # microns
+    self.axon.L = 150 # microns
+    self.axon.diam = 1 # microns
 
   def geom_nseg(self):
     '''
@@ -93,10 +93,10 @@ class motoneuron(object):
     Adds channels and their parameters 
     '''
     for sec in self.all:
-      sec.Ra = 100
-      sec.cm = 1
+      sec.Ra = 100 # Ra ohm cm - membrane resistance
+      sec.cm = 1 # cm uf/cm2 - membrane capacitance
     self.soma.insert('motoneuron_5ht')
-    self.soma.insert('extracellular')
+    self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
