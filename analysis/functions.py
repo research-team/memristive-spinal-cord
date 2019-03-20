@@ -716,6 +716,7 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 				fliers_amplitudes_tmp.append(i)
 		fliers_amplitudes.append(fliers_amplitudes_tmp)
 		amplitudes_all_runs_3sigma.append(amplitudes_all_runs_dot_3sigma_amp)
+
 	for dot in range(len(latencies_all_runs)):
 		latencies_all_runs_dot_3sigma = []
 		fliers_latencies_tmp = []
@@ -760,4 +761,5 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 			if fl:
 				del latencies_all_runs[sl][fl]
 				del amplitudes_all_runs[sl][fl]
+
 	return latencies_all_runs, amplitudes_all_runs, fliers, fliers_latencies_values, fliers_amplitudes_values
