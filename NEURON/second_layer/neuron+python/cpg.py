@@ -807,7 +807,7 @@ if __name__ == '__main__':
   cpg = cpg(speed, EES_i, 100)
   spike_record(cpg)
   print("- "*10, "\nstart")
-  prun(speed, cpg)
+  prun(speed)
   print("- "*10, "\nend")
   spikeout(cpg)
   if (nhost > 1):
