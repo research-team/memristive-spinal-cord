@@ -10,7 +10,7 @@ nhost = int(pc.nhost())
 
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-EES_i = 25 # interval between EES stimulus 
+EES_i = 33 # interval between EES stimulus 
 version = 1 
 
 moto_EX_v_vec = [] 
@@ -42,42 +42,42 @@ class cpg:
     nAff = 120
     nInt = 196
     
-    D1_1E = self.addpool(self.ncell, True)
-    D1_2E = self.addpool(self.ncell, True)
-    D1_3E = self.addpool(self.ncell, True)
-    D1_4E = self.addpool(self.ncell, True)
-    D1_1F = self.addpool(self.ncell, True)
-    D1_2F = self.addpool(self.ncell, True)
-    D1_3F = self.addpool(self.ncell, True)
-    D1_4F = self.addpool(self.ncell, True)
+    D1_1E = self.addpool(self.ncell, False)
+    D1_2E = self.addpool(self.ncell, False)
+    D1_3E = self.addpool(self.ncell, False)
+    D1_4E = self.addpool(self.ncell, False)
+    D1_1F = self.addpool(self.ncell, False)
+    D1_2F = self.addpool(self.ncell, False)
+    D1_3F = self.addpool(self.ncell, False)
+    D1_4F = self.addpool(self.ncell, False)
   
-    D2_1E = self.addpool(self.ncell, True)
-    D2_2E = self.addpool(self.ncell, True)
-    D2_3E = self.addpool(self.ncell, True)
-    D2_4E = self.addpool(self.ncell, True)
-    D2_1F = self.addpool(self.ncell, True)
-    D2_2F = self.addpool(self.ncell, True)
-    D2_3F = self.addpool(self.ncell, True)
-    D2_4F = self.addpool(self.ncell, True)
+    D2_1E = self.addpool(self.ncell, False)
+    D2_2E = self.addpool(self.ncell, False)
+    D2_3E = self.addpool(self.ncell, False)
+    D2_4E = self.addpool(self.ncell, False)
+    D2_1F = self.addpool(self.ncell, False)
+    D2_2F = self.addpool(self.ncell, False)
+    D2_3F = self.addpool(self.ncell, False)
+    D2_4F = self.addpool(self.ncell, False)
 
-    D3_1 = self.addpool(self.ncell, True)
-    D3_2 = self.addpool(self.ncell, True)
-    D3_3 = self.addpool(self.ncell, True)
-    D3_4 = self.addpool(self.ncell, True)
+    D3_1 = self.addpool(self.ncell, False)
+    D3_2 = self.addpool(self.ncell, False)
+    D3_3 = self.addpool(self.ncell, False)
+    D3_4 = self.addpool(self.ncell, False)
 
-    D4_1E = self.addpool(self.ncell, True)
-    D4_2E = self.addpool(self.ncell, True)
-    D4_3E = self.addpool(self.ncell, True)
-    D4_4E = self.addpool(self.ncell, True)
-    D4_1F = self.addpool(self.ncell, True)
-    D4_2F = self.addpool(self.ncell, True)
-    D4_3F = self.addpool(self.ncell, True)
-    D4_4F = self.addpool(self.ncell, True)
+    D4_1E = self.addpool(self.ncell, False)
+    D4_2E = self.addpool(self.ncell, False)
+    D4_3E = self.addpool(self.ncell, False)
+    D4_4E = self.addpool(self.ncell, False)
+    D4_1F = self.addpool(self.ncell, False)
+    D4_2F = self.addpool(self.ncell, False)
+    D4_3F = self.addpool(self.ncell, False)
+    D4_4F = self.addpool(self.ncell, False)
 
-    D5_1 = self.addpool(self.ncell, True)
-    D5_2 = self.addpool(self.ncell, True)
-    D5_3 = self.addpool(self.ncell, True)
-    D5_4 = self.addpool(self.ncell, True)
+    D5_1 = self.addpool(self.ncell, False)
+    D5_2 = self.addpool(self.ncell, False)
+    D5_3 = self.addpool(self.ncell, False)
+    D5_4 = self.addpool(self.ncell, False)
 
     G1_1 = self.addpool(self.ncell, False)
     G1_2 = self.addpool(self.ncell, False)
@@ -102,10 +102,10 @@ class cpg:
     G5_2 = self.addpool(self.ncell, False)
     G5_3 = self.addpool(self.ncell, False)
    
-    E1 = self.addpool(self.ncell, True)
-    E2 = self.addpool(self.ncell, True)
-    E3 = self.addpool(self.ncell, True)
-    E4 = self.addpool(self.ncell, True)
+    E1 = self.addpool(self.ncell, False)
+    E2 = self.addpool(self.ncell, False)
+    E3 = self.addpool(self.ncell, False)
+    E4 = self.addpool(self.ncell, False)
 
     I3_E = self.addpool(self.ncell, False)
     I4_E = self.addpool(self.ncell, False)
@@ -237,21 +237,21 @@ class cpg:
     inhconnectcells(I3_E, G1_2, 0.8, 1, 27)
     inhconnectcells(I3_E, G1_1, 0.8, 1, 27)
 
-    inhconnectcells(I4_E, G2_1, 0.8, 1, 27)
-    inhconnectcells(I4_E, G2_2, 0.8, 1, 27)
-    inhconnectcells(I4_E, G1_2, 0.8, 1, 27)
-    inhconnectcells(I4_E, G1_1, 0.8, 1, 27)
-    inhconnectcells(I4_E, G3_1E, 0.8, 1, 27)
-    inhconnectcells(I4_E, G3_2E, 0.8, 1, 27)
+    inhconnectcells(I4_E, G2_1, 0.4, 1, 27)
+    inhconnectcells(I4_E, G2_2, 0.4, 1, 27)
+    inhconnectcells(I4_E, G1_2, 0.4, 1, 27)
+    inhconnectcells(I4_E, G1_1, 0.4, 1, 27)
+    inhconnectcells(I4_E, G3_1E, 0.4, 1, 27)
+    inhconnectcells(I4_E, G3_2E, 0.4, 1, 27)
 
-    inhconnectcells(I5_E, G1_1, 0.8, 1, 27)
-    inhconnectcells(I5_E, G1_2, 0.8, 1, 27)
-    inhconnectcells(I5_E, G2_1, 0.8, 1, 27)
-    inhconnectcells(I5_E, G2_2, 0.8, 1, 27)
-    inhconnectcells(I5_E, G3_1E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G3_2E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G4_1, 0.8, 1, 27)
-    inhconnectcells(I5_E, G4_2, 0.8, 1, 27)
+    inhconnectcells(I5_E, G1_1, 0.4, 1, 27)
+    inhconnectcells(I5_E, G1_2, 0.4, 1, 27)
+    inhconnectcells(I5_E, G2_1, 0.4, 1, 27)
+    inhconnectcells(I5_E, G2_2, 0.4, 1, 27)
+    inhconnectcells(I5_E, G3_1E, 0.4, 1, 27)
+    inhconnectcells(I5_E, G3_2E, 0.4, 1, 27)
+    inhconnectcells(I5_E, G4_1, 0.4, 1, 27)
+    inhconnectcells(I5_E, G4_2, 0.4, 1, 27)
     
     #EES
     genconnect(sens_aff, self.ees, 1, 0, 50)
@@ -698,8 +698,8 @@ def connectgenerator(g1, g2, g3):
   '''
   exconnectcells(g1, g2, 0.05, 3, 27)
   exconnectcells(g2, g1, 0.05, 3, 27)
-  exconnectcells(g2, g3, 0.005, 1, 27)
-  exconnectcells(g1, g3, 0.005, 1, 27)
+  exconnectcells(g2, g3, 0.002, 1, 27)
+  exconnectcells(g1, g3, 0.002, 1, 27)
   inhconnectcells(g3, g1, 0.008, 1, 27)
   inhconnectcells(g3, g2, 0.008, 1, 27)
 
@@ -738,11 +738,13 @@ def spike_record(cpg):
     moto_vec.record(moto.soma(0.5)._ref_vext[0])
     moto_EX_v_vec.append(moto_vec)
 
+  '''  
   for i in cpg.mns_F:
     moto = pc.gid2cell(i)
     moto_vec = h.Vector()
     moto_vec.record(moto.soma(0.5)._ref_vext[0])
     moto_FL_v_vec.append(moto_vec)
+  '''
 
 
 def prun(speed):
@@ -752,7 +754,7 @@ def prun(speed):
     speed: int
         duration of each layer 
   '''
-  tstop = 6*speed + 125
+  tstop = 6*speed # + 125
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
@@ -775,6 +777,7 @@ def spikeout(cpg):
           f.write(str(v)+"\n")
     pc.barrier()
 
+  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
@@ -785,7 +788,6 @@ def spikeout(cpg):
           f.write(str(v)+"\n")
     pc.barrier()
 
-  '''
   pc.barrier()
   for i in range(nhost):
     if i == rank:
@@ -807,7 +809,7 @@ if __name__ == '__main__':
   cpg = cpg(speed, EES_i, 100)
   spike_record(cpg)
   print("- "*10, "\nstart")
-  prun(speed)
+  prun(EES_i)
   print("- "*10, "\nend")
   spikeout(cpg)
   if (nhost > 1):
