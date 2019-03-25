@@ -103,6 +103,7 @@ class motoneuron(object):
     self.dend.e_pas = -65
 
     self.axon.insert('hh')
+    self.axon.celsius_hh = 37   
 
   def position(self, x, y, z):
     '''

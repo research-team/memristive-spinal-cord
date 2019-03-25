@@ -134,9 +134,10 @@ class bioaff(object):
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
-    self.soma.el_hh = -60
+    self.soma.el_hh = -70
     self.soma.Ra = 100
     self.soma.cm = 1
+    self.soma.celsius_hh = 37   
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
