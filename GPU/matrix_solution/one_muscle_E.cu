@@ -28,7 +28,7 @@ const unsigned int neurons_in_moto = 169;
 const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
-const int speed = 25;
+const int SPEED = 25;
 const int EES_FREQ = 40;
 const float INH_COEF = 1.0f;
 
@@ -38,9 +38,9 @@ const float INH_COEF = 1.0f;
 
 // stuff variable
 unsigned int global_id = 0;
-const float T_sim = 125;
-const float sim_step = 0.25;
-const unsigned int sim_time_in_step = (unsigned int)(T_sim / sim_step);
+const float T_SIMULATION = 125;
+const float SIM_STEP = 0.25;
+const unsigned int sim_time_in_steps = (unsigned int)(T_SIMULATION / sim_step);
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / sim_step); }
@@ -77,12 +77,12 @@ Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
 }
 
 // Form neuron groups
-Group C1 = form_group("C1");
-Group C2 = form_group("C2");
+Group CV1 = form_group("CV1");
+Group CV2 = form_group("CV2");
 
-Group C3 = form_group("C3");
-Group C4 = form_group("C4");
-Group C5 = form_group("C5");
+Group CV3 = form_group("CV3");
+Group CV4 = form_group("CV4");
+Group CV5 = form_group("CV5");
 
 Group D1_1 = form_group("D1_1");
 Group D1_2 = form_group("D1_2");
@@ -212,7 +212,7 @@ void sim_kernel(float* old_v,
 	int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// the main simulation loop
-	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
+	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
 		// wait all threads
 		__syncthreads();
 
@@ -261,7 +261,7 @@ void sim_kernel(float* old_v,
 			}
 
 			// ToDo remove after debugging
-			int index = sim_iter + tid * sim_time_in_step;
+			int index = sim_iter + tid * sim_time_in_steps;
 			voltage_recording[index] = V_m;
 			current_recording[index] = I_current;
 
@@ -276,7 +276,7 @@ void sim_kernel(float* old_v,
 				nrn_ref_time_timer[tid] = nrn_ref_time[tid];
 
 				// ToDo remove after debugging
-				spike_recording[local_spike_array_iter + tid * sim_time_in_step] = sim_iter;
+				spike_recording[local_spike_array_iter + tid * sim_time_in_steps] = sim_iter;
 				local_spike_array_iter++;
 			} else {
 				// redefine V_old and U_old
@@ -378,16 +378,16 @@ void group_add_spike_generator(Group &nrn_group, float start, float end, int hz)
 }
 
 void init_extensor() {
-	group_add_spike_generator(C1, 0, speed, 200);
-	group_add_spike_generator(C2, speed, 2*speed, 200);
-	group_add_spike_generator(C3, 2*speed, 3*speed, 200);
-	group_add_spike_generator(C4, 3*speed, 5*speed, 200);
-	group_add_spike_generator(C5, 5*speed, 6*speed, 200);
-	group_add_spike_generator(EES, 0, T_sim, EES_FREQ);
+	group_add_spike_generator(CV1, 0, speed, 200);
+	group_add_spike_generator(CV2, speed, 2*speed, 200);
+	group_add_spike_generator(CV3, 2*speed, 3*speed, 200);
+	group_add_spike_generator(CV4, 3*speed, 5*speed, 200);
+	group_add_spike_generator(CV5, 5*speed, 6*speed, 200);
+	group_add_spike_generator(EES, 0, T_SIMULATION, EES_FREQ);
 
-	connect_fixed_outdegree(C3, inh_group3, 0.5, 15.0);
-	connect_fixed_outdegree(C4, inh_group4, 0.5, 15.0);
-	connect_fixed_outdegree(C5, inh_group5, 0.5, 15.0);
+	connect_fixed_outdegree(CV3, inh_group3, 0.5, 15.0);
+	connect_fixed_outdegree(CV4, inh_group4, 0.5, 15.0);
+	connect_fixed_outdegree(CV5, inh_group5, 0.5, 15.0);
 
 	connect_fixed_outdegree(inh_group3, G1_3, 2.8, 20.0);
 
@@ -401,10 +401,10 @@ void init_extensor() {
 
 	/// D1
 	// input from sensory
-	connect_fixed_outdegree(C1, D1_1, 1, 0.4);
-	connect_fixed_outdegree(C1, D1_4, 1, 0.4);
-	connect_fixed_outdegree(C2, D1_1, 1, 0.4);
-	connect_fixed_outdegree(C2, D1_4, 1, 0.4);
+	connect_fixed_outdegree(CV1, D1_1, 1, 0.4);
+	connect_fixed_outdegree(CV1, D1_4, 1, 0.4);
+	connect_fixed_outdegree(CV2, D1_1, 1, 0.4);
+	connect_fixed_outdegree(CV2, D1_4, 1, 0.4);
 	// input from EES
 	connect_fixed_outdegree(EES, D1_1, 2, 10); // ST value (?)
 	connect_fixed_outdegree(EES, D1_4, 2, 10); // ST value (?)
@@ -425,10 +425,10 @@ void init_extensor() {
 
 	/// D2
 	// input from Sensory
-	connect_fixed_outdegree(C2, D2_1, 1, 0.8);
-	connect_fixed_outdegree(C2, D2_4, 1, 0.8);
-	connect_fixed_outdegree(C3, D2_1, 1, 0.8);
-	connect_fixed_outdegree(C3, D2_4, 1, 0.8);
+	connect_fixed_outdegree(CV2, D2_1, 1, 0.8);
+	connect_fixed_outdegree(CV2, D2_4, 1, 0.8);
+	connect_fixed_outdegree(CV3, D2_1, 1, 0.8);
+	connect_fixed_outdegree(CV3, D2_4, 1, 0.8);
 	// input from Group (1)
 	connect_fixed_outdegree(ees_group1, D2_1, 1.7, 0.8);
 	connect_fixed_outdegree(ees_group1, D2_4, 1.7, 1.0);
@@ -448,10 +448,10 @@ void init_extensor() {
 
 	/// D3
 	// input from Sensory
-	connect_fixed_outdegree(C3, D3_1, 1, 0.5);
-	connect_fixed_outdegree(C3, D3_4, 1, 0.5);
-	connect_fixed_outdegree(C4, D3_1, 1, 0.5);
-	connect_fixed_outdegree(C4, D3_4, 1, 0.5);
+	connect_fixed_outdegree(CV3, D3_1, 1, 0.5);
+	connect_fixed_outdegree(CV3, D3_4, 1, 0.5);
+	connect_fixed_outdegree(CV4, D3_1, 1, 0.5);
+	connect_fixed_outdegree(CV4, D3_4, 1, 0.5);
 	// input from Group (2)
 	connect_fixed_outdegree(ees_group2, D3_1, 1, 1.2);
 	connect_fixed_outdegree(ees_group2, D3_4, 1, 1.2);
@@ -473,10 +473,10 @@ void init_extensor() {
 
 	/// D4
 	// input from Sensory
-	connect_fixed_outdegree(C4, D4_1, 1, 0.5);
-	connect_fixed_outdegree(C4, D4_4, 1, 0.5);
-	connect_fixed_outdegree(C5, D4_1, 1, 0.5);
-	connect_fixed_outdegree(C5, D4_4, 1, 0.5);
+	connect_fixed_outdegree(CV4, D4_1, 1, 0.5);
+	connect_fixed_outdegree(CV4, D4_4, 1, 0.5);
+	connect_fixed_outdegree(CV5, D4_1, 1, 0.5);
+	connect_fixed_outdegree(CV5, D4_4, 1, 0.5);
 	// input from Group (3)
 	connect_fixed_outdegree(ees_group3, D4_1, 1, 1.2);
 	connect_fixed_outdegree(ees_group3, D4_4, 1, 1.2);
@@ -495,8 +495,8 @@ void init_extensor() {
 
 	/// D5
 	// input from Sensory
-	connect_fixed_outdegree(C5, D5_1, 1, 0.5);
-	connect_fixed_outdegree(C5, D5_4, 1, 0.5);
+	connect_fixed_outdegree(CV5, D5_1, 1, 0.5);
+	connect_fixed_outdegree(CV5, D5_4, 1, 0.5);
 	// input from Group (4)
 	connect_fixed_outdegree(ees_group4, D5_1, 1.0, 1.1);
 	connect_fixed_outdegree(ees_group4, D5_4, 1.0, 1.0);
@@ -598,8 +598,8 @@ void save_result(int test_index,
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
 		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << voltage_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+			myfile << voltage_recording[sim_iter + nrn_id * sim_time_in_steps] << " ";
 		myfile << "\n";
 	}
 
@@ -610,8 +610,8 @@ void save_result(int test_index,
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
 		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++)
-			myfile << current_recording[sim_iter + nrn_id * sim_time_in_step] << " ";
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+			myfile << current_recording[sim_iter + nrn_id * sim_time_in_steps] << " ";
 		myfile << "\n";
 	}
 
@@ -622,8 +622,8 @@ void save_result(int test_index,
 
 	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
 		myfile << nrn_id << " ";
-		for(int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
-			float spike_time = spike_recording[sim_iter + nrn_id * sim_time_in_step] * sim_step;
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
+			float spike_time = spike_recording[sim_iter + nrn_id * sim_time_in_steps] * sim_step;
 			if (spike_time != 0)
 				myfile << spike_time << " ";
 		}
@@ -697,16 +697,16 @@ void simulate(int test_index) {
 	float nrn_current[neurons_number];
 	init_array<float>(nrn_current, neurons_number, 0);
 
-	float multimeter_result[sim_time_in_step];
-	init_array<float>(multimeter_result, sim_time_in_step, 0);
+	float multimeter_result[sim_time_in_steps];
+	init_array<float>(multimeter_result, sim_time_in_steps, 0);
 
 	// ToDo remove after debugging
-	float* voltage_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
-	init_array<float>(voltage_recording, neurons_number * sim_time_in_step, 0);
-	float* current_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
-	init_array<float>(current_recording, neurons_number * sim_time_in_step, 0);
-	int* spike_recording = (int *)malloc(datasize<int *>(neurons_number * sim_time_in_step));
-	init_array<int>(spike_recording, neurons_number * sim_time_in_step, 0);
+	float* voltage_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
+	init_array<float>(voltage_recording, neurons_number * sim_time_in_steps, 0);
+	float* current_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
+	init_array<float>(current_recording, neurons_number * sim_time_in_steps, 0);
+	int* spike_recording = (int *)malloc(datasize<int *>(neurons_number * sim_time_in_steps));
+	init_array<int>(spike_recording, neurons_number * sim_time_in_steps, 0);
 
 	has_multimeter = (bool *)malloc(datasize<bool *>(neurons_number));
 	has_generator = (bool *)malloc(datasize<bool *>(neurons_number));
@@ -801,16 +801,16 @@ void simulate(int test_index) {
 	cudaMalloc(&gpu_spiking_per_step, datasize<int>(neurons_number));
 	memcpyHtD<int>(gpu_spiking_per_step, spiking_per_step, neurons_number);
 
-	cudaMalloc(&gpu_multimeter_result, datasize<float>(sim_time_in_step));
-	memcpyHtD<float>(gpu_multimeter_result, multimeter_result, sim_time_in_step);
+	cudaMalloc(&gpu_multimeter_result, datasize<float>(sim_time_in_steps));
+	memcpyHtD<float>(gpu_multimeter_result, multimeter_result, sim_time_in_steps);
 
 	// FixMe debugging functionality
-	cudaMalloc(&gpu_voltage_recording, datasize<float>(neurons_number * sim_time_in_step));
-	memcpyHtD<float>(gpu_voltage_recording, voltage_recording, neurons_number * sim_time_in_step);
-	cudaMalloc(&gpu_current_recording, datasize<float>(neurons_number * sim_time_in_step));
-	memcpyHtD<float>(gpu_current_recording, current_recording, neurons_number * sim_time_in_step);
-	cudaMalloc(&gpu_spike_recording, datasize<int>(neurons_number * sim_time_in_step));
-	memcpyHtD<int>(gpu_spike_recording, spike_recording, neurons_number * sim_time_in_step);
+	cudaMalloc(&gpu_voltage_recording, datasize<float>(neurons_number * sim_time_in_steps));
+	memcpyHtD<float>(gpu_voltage_recording, voltage_recording, neurons_number * sim_time_in_steps);
+	cudaMalloc(&gpu_current_recording, datasize<float>(neurons_number * sim_time_in_steps));
+	memcpyHtD<float>(gpu_current_recording, current_recording, neurons_number * sim_time_in_steps);
+	cudaMalloc(&gpu_spike_recording, datasize<int>(neurons_number * sim_time_in_steps));
+	memcpyHtD<int>(gpu_spike_recording, spike_recording, neurons_number * sim_time_in_steps);
 
 	int threads_per_block = 1024;
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
@@ -857,16 +857,16 @@ void simulate(int test_index) {
 	float milliseconds = 0;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	double t = milliseconds / 1e3;
-	double realtime_factor = T_sim / t / 1e3;
+	double realtime_factor = T_SIMULATION / t / 1e3;
 	printf("Ellapsed time: %fs. Realtime factor: x%f (%s than realtime)\n",
 		   t, realtime_factor, realtime_factor > 1? "faster":"slower");
 
 	// copy neurons/synapses array to the HOST
-	memcpyDtH<float>(multimeter_result, gpu_multimeter_result, sim_time_in_step);
+	memcpyDtH<float>(multimeter_result, gpu_multimeter_result, sim_time_in_steps);
 	// ToDo remove after debugging
-	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
-	memcpyDtH<float>(current_recording, gpu_current_recording, neurons_number * sim_time_in_step);
-	memcpyDtH<int>(spike_recording, gpu_spike_recording, neurons_number * sim_time_in_step);
+	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_steps);
+	memcpyDtH<float>(current_recording, gpu_current_recording, neurons_number * sim_time_in_steps);
+	memcpyDtH<int>(spike_recording, gpu_spike_recording, neurons_number * sim_time_in_steps);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
