@@ -60,10 +60,10 @@ const int neurons_in_afferent = 60;  // number of neurons in afferent
 // neuron parameters
 const float g_Na = 20000.0;          // [nS] Maximal conductance of the Sodium current
 const float g_K = 6000.0;            // [nS] Maximal conductance of the Potassium current
-const float g_L = 10.0;              // [nS] Conductance of the leak current
+const float g_L = 30.0;              // [nS] Conductance of the leak current
 const float C_m = 200.0;             // [pF] Capacity of the membrane
-const float E_Na = 40.0;             // [mV] Reversal potential for the Sodium current
-const float E_K = -90.0;             // [mV] Reversal potential for the Potassium current
+const float E_Na = 50.0;             // [mV] Reversal potential for the Sodium current
+const float E_K = -100.0;             // [mV] Reversal potential for the Potassium current
 const float E_L = -72.0;             // [mV] Reversal potential for the leak current
 const float E_ex = 0.0;              // [mV] Reversal potential for excitatory input
 const float E_in = -80.0;            // [mV] Reversal potential for inhibitory input
@@ -365,9 +365,6 @@ void GPU_neurons_kernel(float *V_m,
 		if (g_inh[tid] > g_bar)
 			g_inh[tid] = g_bar;
 
-		// previous membrane potential
-		const float prev_V = V_m[tid];
-
 		// use temporary V variable as V_m with adjust
 		const float V = V_m[tid] - V_adj;
 
@@ -406,8 +403,8 @@ void GPU_neurons_kernel(float *V_m,
 		g_exc[tid] += -g_exc[tid] / tau_syn_exc * SIM_STEP;
 		g_inh[tid] += -g_inh[tid] / tau_syn_inh * SIM_STEP;
 
-		// (threshold && maximal peak)
-		if (V_m[tid] >= V_adj + 30 && prev_V < V_m[tid]) {
+		// (threshold && not in refractory period)
+		if (V_m[tid] >= -50 && nrn_ref_time_timer[tid] == 0) {
 			has_spike[tid] = true;  // set spike state. It will be used in the "GPU_synapses_kernel"
 			nrn_ref_time_timer[tid] = nrn_ref_time[tid];  // set the refractory period
 		}
@@ -883,7 +880,6 @@ void init_array(type *array, int size, type value){
 __host__
 void simulate(int test_index, int full_save) {
 	const int neurons_number = static_cast<int>(metadatas.size());
-
 	/// CPU variables
 	// neuron variables
 	float v_m[neurons_number];               // [mV] neuron membrane potential
@@ -909,7 +905,7 @@ void simulate(int test_index, int full_save) {
 	// fill arrays by initial data
 	init_array<float>(v_m, neurons_number, E_L);  // by default all neurons have E_L membrane state at start
 	init_array<int>(nrn_ref_time, neurons_number, ms_to_step(3.0)); // by default all neurons have 3ms refractory period
-	init_array<int>(nrn_ref_time_timer, neurons_number, -1); // by default all neurons have ref_t timers as -1
+	init_array<int>(nrn_ref_time_timer, neurons_number, 0); // by default all neurons have ref_t timers as 0
 	init_array<bool>(has_spike, neurons_number, false);  // by default all neurons haven't spikes at start
 	init_array<float>(n, neurons_number, 0);  // by default all neurons have closed potassium channel
 	init_array<float>(h, neurons_number, 1);  // by default all neurons have opened sodium channel activation
