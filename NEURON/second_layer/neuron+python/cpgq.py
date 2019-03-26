@@ -144,8 +144,8 @@ class cpg:
     C3 = self.addgener(speed*2, c_int, speed/c_int)
     C4 = self.addgener(speed*3, c_int, 2*speed/c_int)
     C5 = self.addgener(speed*5, c_int, speed/c_int)
-    CD4 = self.addgener(speed*6, c_int, 2*speed/c_int)
-    CD5 = self.addgener(speed*8, c_int, speed/c_int)
+    CD4 = self.addgener((speed*6+125), c_int, 2*speed/c_int)
+    CD5 = self.addgener((speed*6+150), c_int, speed/c_int)
 
     C_1 = self.addgener(speed*0, c_int, 9*speed/c_int)
     C_0 = self.addgener(speed*9, c_int, 125/c_int)
@@ -356,16 +356,14 @@ class cpg:
     #CD4
     genconnect(D3_1, CD4, 0.05, 1, 60)
     genconnect(D3_4, CD4, 0.05, 1, 60)
-    genconnect(D4_1E, CD4, 0.05, 1, 60)
-    genconnect(D4_4E, CD4, 0.05, 1, 60)
-    genconnect(I4_E, CD4, 1, 1, 50)
+    genconnect(D4_1F, CD4, 0.05, 1, 60)
+    genconnect(D4_4F, CD4, 0.05, 1, 60)
 
     #CD5
     genconnect(D5_1, CD5, 0.05, 1, 30)
     genconnect(D5_4, CD5, 0.05, 1, 30)
-    genconnect(D4_1E, CD5, 0.05, 1, 30)
-    genconnect(D4_4E, CD5, 0.05, 1, 30)
-    genconnect(I5_E, CD5, 1, 1, 50)
+    genconnect(D4_1F, CD5, 0.05, 1, 30)
+    genconnect(D4_4F, CD5, 0.05, 1, 30)
 
     #C=1 Extensor
     inhgenconnect(C_1, D1_1F, 0.8, 1, 50)

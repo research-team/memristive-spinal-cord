@@ -150,15 +150,15 @@ class cpg:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
+        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 3)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
+        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
+        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, 2*speed/c_int))
+        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, 2*speed/c_int + random.randint(1, 3)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
+        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
     for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
     for i in range(step_number):
