@@ -150,15 +150,15 @@ class cpg:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 3)))
+        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
+        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
+        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, 2*speed/c_int + random.randint(1, 3)))
+        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/3), c_int, speed/c_int + random.randint(1, 3)))
+        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
     for i in range(step_number):
@@ -319,11 +319,11 @@ class cpg:
     exconnectcells(IP4_E, self.mns_E[int(2*len(self.mns_E)/5):], 0.8, 2, 80)
     exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.8, 1, 80)
 
-    exconnectcells(IP1_E, self.Ia_aff_E[:int(len(self.Ia_aff_E)/5 - random.randint(0, 5))], 0.02, 2, 60)
-    exconnectcells(IP2_E, self.Ia_aff_E[int(len(self.Ia_aff_E)/5):int(2*len(self.mns_E)/5 + random.randint(5, 10))], 0.02, 2, 60)
-    exconnectcells(IP3_E, self.Ia_aff_E, 0.04, 2, 80)
-    exconnectcells(IP4_E, self.Ia_aff_E[int(2*len(self.Ia_aff_E)/5):], 0.04, 2, 80)
-    exconnectcells(IP5_E, self.Ia_aff_E[int(3*len(self.Ia_aff_E)/5):], 0.04, 1, 80)
+    exconnectcells(IP1_E, Ia_aff_E[:int(len(Ia_aff_E)/5 - random.randint(0, 5))], 0.02, 2, 60)
+    exconnectcells(IP2_E, Ia_aff_E[int(len(Ia_aff_E)/5):int(2*len(self.mns_E)/5 + random.randint(5, 10))], 0.02, 2, 60)
+    exconnectcells(IP3_E, Ia_aff_E, 0.04, 2, 80)
+    exconnectcells(IP4_E, Ia_aff_E[int(2*len(Ia_aff_E)/5):], 0.04, 2, 80)
+    exconnectcells(IP5_E, Ia_aff_E[int(3*len(Ia_aff_E)/5):], 0.04, 1, 80)
 
     #Flexor
     

@@ -137,7 +137,7 @@ class cpg:
     self.tees = self.addgener(2*speed, EES_int, (speed/25)*2)
     
     #skin inputs
-    c_int = 5
+    c_int = 10
 
     C1 = self.addgener(speed*0, c_int, speed/c_int)
     C2 = self.addgener(speed*1, c_int, speed/c_int)
