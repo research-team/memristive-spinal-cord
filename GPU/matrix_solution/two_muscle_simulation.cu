@@ -107,6 +107,22 @@ struct SynapseMetadata {
 	}
 };
 
+// struct for human-readable initialization of connectomes
+struct Metadata {
+	Group group;
+	float* voltage_array = new float[sim_time_in_steps];
+	float* g_exc = new float[sim_time_in_steps];
+	float* g_inh = new float[sim_time_in_steps];
+	vector<float> spike_vector;
+
+	Metadata() = default;
+	Metadata(Group group){
+		this->group = group;
+	}
+};
+
+vector<Metadata> all_groups;
+
 // form structs of neurons global ID and groups name
 Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
 	Group group = Group();
@@ -119,6 +135,7 @@ Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
 
 	printf("Formed %s IDs [%d ... %d] = %d\n", group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
 
+	all_groups.push_back(Metadata(group));
 	return group;
 }
 
@@ -224,7 +241,6 @@ int ms_to_step(float ms) { return (int)(ms / SIM_STEP); }
 
 __host__
 float step_to_ms(int step) { return step * SIM_STEP; }
-
 
 __global__
 void GPU_neurons_kernel(float *V_m,
@@ -523,9 +539,9 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(D4_3, D5_4, 1, 10);
 	// G3 -> G4
 	connect_fixed_outdegree(G3_1, G4_1, 1.0, 65);
-	connect_fixed_outdegree(G3_1, inh_group5, sim_time_in_steps, 0);	 // FixME FAKE connectome
+	connect_fixed_outdegree(G3_1, inh_group5, sim_time_in_steps, 0);  // FixME FAKE connectome
 	connect_fixed_outdegree(G3_2, G4_1, 1.0, 65);
-	connect_fixed_outdegree(G3_2, inh_group5, sim_time_in_steps, 0);	 // FixME FAKE connectome
+	connect_fixed_outdegree(G3_2, inh_group5, sim_time_in_steps, 0);  // FixME FAKE connectome
 	/// end
 
 	connect_fixed_outdegree(CV3, inh_group3, 0.5, 15); // 0.5
@@ -549,18 +565,18 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(CV2, D1_1, 1, 0.4);
 	connect_fixed_outdegree(CV2, D1_4, 1, 0.4);
 	// input from EES
-	connect_fixed_outdegree(EES, D1_1, 2, 50); // ST value (?) // was 10
-	connect_fixed_outdegree(EES, D1_4, 2, 20); // ST value (?) // was 10
+	connect_fixed_outdegree(EES, D1_1, 2, 50);  // ST value (?) // was 10
+	connect_fixed_outdegree(EES, D1_4, 2, 20);  // ST value (?) // was 10
 	// inner connectomes
 	connect_fixed_outdegree(D1_1, D1_2, 1, 1);
 	connect_fixed_outdegree(D1_1, D1_3, 1, 10);
 	connect_fixed_outdegree(D1_2, D1_1, 1, 7);
 	connect_fixed_outdegree(D1_2, D1_3, 1, 13);
-	connect_fixed_outdegree(D1_3, D1_1, 1, -30 * INH_COEF); // -10
-	connect_fixed_outdegree(D1_3, D1_2, 1, -30 * INH_COEF); // -10
-	connect_fixed_outdegree(D1_4, D1_3, 3, -30 * INH_COEF); // -20
+	connect_fixed_outdegree(D1_3, D1_1, 1, -30 * INH_COEF);  // -10
+	connect_fixed_outdegree(D1_3, D1_2, 1, -30 * INH_COEF);  // -10
+	connect_fixed_outdegree(D1_4, D1_3, 3, -30 * INH_COEF);  // -20
 	// output to
-	connect_fixed_outdegree(D1_3, G1_1, 3, 6); // 8
+	connect_fixed_outdegree(D1_3, G1_1, 3, 6);  // 8
 	connect_fixed_outdegree(D1_3, ees_group1, 1.0, 60);
 
 	// EES group connectomes
@@ -668,11 +684,11 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(G1_3, G1_1, 0.25, -20 * INH_COEF); // -70 - 40 // syn was 0.7
 	connect_fixed_outdegree(G1_3, G1_2, 0.25, -20 * INH_COEF); // -70 - 40 // syn was 0.7
 	// G1 -> IP_E
-	connect_fixed_outdegree(G1_1, IP_E, 3, 20);
-	connect_fixed_outdegree(G1_2, IP_E, 3, 20);
+	connect_fixed_outdegree(G1_1, IP_E, 3, 20, neurons_in_ip);
+	connect_fixed_outdegree(G1_2, IP_E, 3, 20, neurons_in_ip);
 	// G1 -> IP_F
-	connect_fixed_outdegree(G1_1, IP_F, 2.5, 15);
-	connect_fixed_outdegree(G1_2, IP_F, 2.5, 15);
+	connect_fixed_outdegree(G1_1, IP_F, 2.5, 15, neurons_in_ip);
+	connect_fixed_outdegree(G1_2, IP_F, 2.5, 15, neurons_in_ip);
 	/// G2
 	// inner connectomes
 	connect_fixed_outdegree(G2_1, G2_2, 1, 10);
@@ -682,11 +698,11 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(G2_3, G2_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G2_3, G2_2, 0.5, -30 * INH_COEF);
 	// G2 -> IP_E
-	connect_fixed_outdegree(G2_1, IP_E, 1, 20);
-	connect_fixed_outdegree(G2_2, IP_E, 1, 20);
+	connect_fixed_outdegree(G2_1, IP_E, 1, 20, neurons_in_ip);
+	connect_fixed_outdegree(G2_2, IP_E, 1, 20, neurons_in_ip);
 	// G2 -> IP_F
-	connect_fixed_outdegree(G2_1, IP_F, 3, 20);
-	connect_fixed_outdegree(G2_2, IP_F, 3, 20);
+	connect_fixed_outdegree(G2_1, IP_F, 3, 20, neurons_in_ip);
+	connect_fixed_outdegree(G2_2, IP_F, 3, 20, neurons_in_ip);
 
 	/// G3
 	// inner connectomes
@@ -697,11 +713,11 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(G3_3, G3_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G3_3, G3_2, 0.5, -30 * INH_COEF);
 	// G3 -> IP_E
-	connect_fixed_outdegree(G3_1, IP_E, 2, 25);
-	connect_fixed_outdegree(G3_2, IP_E, 2, 25);
+	connect_fixed_outdegree(G3_1, IP_E, 2, 25, neurons_in_ip);
+	connect_fixed_outdegree(G3_2, IP_E, 2, 25, neurons_in_ip);
 	// G3 -> IP_F
-	connect_fixed_outdegree(G3_1, IP_F, 2.5, 20);
-	connect_fixed_outdegree(G3_2, IP_F, 2.5, 20);
+	connect_fixed_outdegree(G3_1, IP_F, 2.5, 20, neurons_in_ip);
+	connect_fixed_outdegree(G3_2, IP_F, 2.5, 20, neurons_in_ip);
 
 	/// G4
 	// inner connectomes
@@ -715,8 +731,8 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(G4_1, IP_E, 1, 17);
 	connect_fixed_outdegree(G4_2, IP_E, 1, 17);
 	// G4 -> IP_F
-	connect_fixed_outdegree(G4_1, IP_F, 3, 17);
-	connect_fixed_outdegree(G4_2, IP_F, 3, 17);
+	connect_fixed_outdegree(G4_1, IP_F, 3, 17, neurons_in_ip);
+	connect_fixed_outdegree(G4_2, IP_F, 3, 17, neurons_in_ip);
 
 	/// G5
 	// inner connectomes
@@ -727,24 +743,24 @@ void init_extensor_flexor() {
 	connect_fixed_outdegree(G5_3, G5_1, 0.5, -30 * INH_COEF);
 	connect_fixed_outdegree(G5_3, G5_2, 0.5, -30 * INH_COEF);
 	// G5 -> IP_E
-	connect_fixed_outdegree(G5_1, IP_E, 2, 20);
-	connect_fixed_outdegree(G5_2, IP_E, 2, 20);
+	connect_fixed_outdegree(G5_1, IP_E, 2, 20, neurons_in_ip);
+	connect_fixed_outdegree(G5_2, IP_E, 2, 20, neurons_in_ip);
 	// G5 -> IP_F
-	connect_fixed_outdegree(G5_1, IP_F, 3, 20);
-	connect_fixed_outdegree(G5_2, IP_F, 3, 20);
+	connect_fixed_outdegree(G5_1, IP_F, 3, 20, neurons_in_ip);
+	connect_fixed_outdegree(G5_2, IP_F, 3, 20, neurons_in_ip);
 }
 
 void init_ref_arc() {
 	connect_fixed_outdegree(EES, Ia_Extensor, 1, 20); // was 20
 	connect_fixed_outdegree(EES, Ia_Flexor, 1, 20); // was 20
 
-	connect_fixed_outdegree(IP_E, MP_E, 1, 7); // 11 7
+	connect_fixed_outdegree(IP_E, MP_E, 1, 7, neurons_in_moto); // 11 7
 //	connect_fixed_outdegree(IP_E, Ia_E, 2.0, 20.0);
 //
 ////	connect_fixed_outdegree(MP_E, Extensor, 2.0, 20.0);
 //	connect_fixed_outdegree(MP_E, R_E, 2.0, 20.0);
 //
-	connect_fixed_outdegree(IP_F, MP_F, 1, 7); // 11 7
+	connect_fixed_outdegree(IP_F, MP_F, 1, 7, neurons_in_moto); // 11 7
 //	connect_fixed_outdegree(IP_F, Ia_F, 2.0, 20.0);
 //
 ////	connect_fixed_outdegree(MP_F, Flexor, 2.0, 20.0);
@@ -768,88 +784,48 @@ void init_ref_arc() {
 //	connect_fixed_outdegree(R_E, Ia_E, 2.0, -20 * INH_COEF);
 //	connect_fixed_outdegree(R_E, MP_E, 2.0, -5 * INH_COEF);
 
-	connect_fixed_outdegree(Ia_Flexor, MP_F, 1, 10);
+	connect_fixed_outdegree(Ia_Flexor, MP_F, 1, 10, neurons_in_moto);
 //	connect_fixed_outdegree(Ia, Ia_F, 1.0, 10.0);
 //	connect_fixed_outdegree(Ia, Ib_F, 1.0, 10.0);
 
-	connect_fixed_outdegree(Ia_Extensor, MP_E, 1, 10); // was 1 and 10
+	connect_fixed_outdegree(Ia_Extensor, MP_E, 1, 10, neurons_in_moto); // was 1 and 10
 //	connect_fixed_outdegree(Ia, Ia_E, 1.0, 10.0);
 //	connect_fixed_outdegree(Ia, Ib_E, 1.0, 10.0);
 }
 
-void save_result(int test_index,
-                 float* volt_rec,
-                 float* h_rec,
-                 float* m_rec,
-                 float* n_rec,
-                 float* g_exc_rec,
-                 float* g_inh_rec,
-                 float* spikes_rec,
-                 int neurons_number,
-                 int full_save) {
-
+void save_result(int test_index) {
 	char cwd[256];
 
 	getcwd(cwd, sizeof(cwd));
 	printf("[Test #%d] Save results to: %s ...\n", test_index, cwd);
 
-	// creare streams for files
-	ofstream volt_rec_file;
-	ofstream h_rec_file;
-	ofstream m_rec_file;
-	ofstream n_rec_file;
-	ofstream g_exc_rec_file;
-	ofstream g_inh_rec_file;
-	ofstream spikes_rec_file;
+	for(Metadata metadata : all_groups) {
+		ofstream file;
+		string file_name = "/dat/" + std::to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+		file.open(cwd + file_name);
 
-	// init filenames
-	string volt_rec_file_name = "/volt_" + std::to_string(test_index) + ".dat";
-	string h_rec_file_name = "/h_" + std::to_string(test_index) + ".dat";
-	string m_rec_file_name = "/m_" + std::to_string(test_index) + ".dat";
-	string n_rec_file_name = "/n_" + std::to_string(test_index) + ".dat";
-	string g_exc_rec_file_name = "/g_exc_" + std::to_string(test_index) + ".dat";
-	string g_inh_rec_file_name = "/g_inh_" + std::to_string(test_index) + ".dat";
-	string spikes_rec_file_name = "/spikes_" + std::to_string(test_index) + ".dat";
+		// save voltage
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+			file << metadata.voltage_array[sim_iter] << " ";
+		file << std::endl;
 
-	// open files for writing
-	volt_rec_file.open(cwd + volt_rec_file_name);
-	h_rec_file.open(cwd + h_rec_file_name);
-	m_rec_file.open(cwd + m_rec_file_name);
-	n_rec_file.open(cwd + n_rec_file_name);
-	g_exc_rec_file.open(cwd + g_exc_rec_file_name);
-	g_inh_rec_file.open(cwd + g_inh_rec_file_name);
-	spikes_rec_file.open(cwd + spikes_rec_file_name);
+		// save g_exc
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+			file << metadata.g_exc[sim_iter] << " ";
+		file << std::endl;
 
-	// fill files
-	for(int nrn_id = 0; nrn_id < neurons_number; nrn_id++){
-		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
-			int iter = sim_iter + nrn_id * sim_time_in_steps;
-			volt_rec_file << volt_rec[iter] << " ";
-			h_rec_file << h_rec[iter] << " ";
-			m_rec_file << m_rec[iter] << " ";
-			n_rec_file << n_rec[iter] << " ";
-			g_exc_rec_file << g_exc_rec[iter] << " ";
-			g_inh_rec_file << g_inh_rec[iter] << " ";
-			spikes_rec_file << spikes_rec[iter] << " ";
+		// save g_inh
+		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+			file << metadata.g_inh[sim_iter] << " ";
+		file << std::endl;
+
+		// save spikes
+		for(float &value: metadata.spike_vector) {
+			file << value << " ";
 		}
 
-		volt_rec_file << std::endl;
-		h_rec_file << std::endl;
-		m_rec_file << std::endl;
-		n_rec_file << std::endl;
-		g_exc_rec_file << std::endl;
-		g_inh_rec_file << std::endl;
-		spikes_rec_file << std::endl;
+		file.close();
 	}
-
-	// close file streams
-	volt_rec_file.close();
-	h_rec_file.close();
-	m_rec_file.close();
-	n_rec_file.close();
-	g_exc_rec_file.close();
-	g_inh_rec_file.close();
-	spikes_rec_file.close();
 }
 
 // copy data from host to device
@@ -892,15 +868,6 @@ void simulate(int test_index, int full_save) {
 	float m[neurons_number];                 // dimensionless quantity [0 .. 1] of sodium channel inactivation
 	float g_exc[neurons_number];             // [nS] excitatory synapse exponential conductance
 	float g_inh[neurons_number];             // [nS] inhibitory synapse exponential conductance
-
-	// special arrays to keep mean data of each neuron's states
-	float* spikes_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* volt_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* h_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* m_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* n_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* g_exc_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
-	float* g_inh_rec = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_steps));
 
 	// fill arrays by initial data
 	init_array<float>(v_m, neurons_number, E_L);  // by default all neurons have E_L membrane state at start
@@ -1021,6 +988,8 @@ void simulate(int test_index, int full_save) {
 	int shift_time_by_step = 0;
 	int local_iter = 0;
 
+	vector<vector<float>> spikes_rec(neurons_number, vector<float>());
+
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
 		// if flexor C0 activated, find the end of it and change to C1
@@ -1071,31 +1040,28 @@ void simulate(int test_index, int full_save) {
 		        neurons_number);
 
 		// copy data from GPU
-		memcpyDtH<bool >(has_spike, gpu_has_spike, neurons_number);
 		memcpyDtH<float>(v_m, gpu_v_m, neurons_number);
-		memcpyDtH<bool>(has_spike, gpu_has_spike, neurons_number);
-		memcpyDtH<int>(nrn_ref_time, gpu_nrn_ref_time, neurons_number);
 		memcpyDtH<float>(g_exc, gpu_g_exc, neurons_number);
 		memcpyDtH<float>(g_inh, gpu_g_inh, neurons_number);
-		memcpyDtH<float>(h, gpu_h, neurons_number);
-		memcpyDtH<float>(m, gpu_m, neurons_number);
-		memcpyDtH<float>(n, gpu_n, neurons_number);
+		memcpyDtH<bool>(has_spike, gpu_has_spike, neurons_number);
 
 		// fill records arrays
-		for(int tid = 0; tid < neurons_number; tid++) {
-			int iter = sim_iter + tid * sim_time_in_steps;
-			volt_rec[iter] = v_m[tid];
-			h_rec[iter] = h[tid];
-			m_rec[iter] = m[tid];
-			n_rec[iter] = n[tid];
-			g_exc_rec[iter] = g_exc[tid];
-			g_inh_rec[iter] = g_inh[tid];
+		for(Metadata &metadata : all_groups) {
+			float mean_volt = 0;
+			float mean_g_exc = 0;
+			float mean_g_inh = 0;
 
-			if (has_spike[tid]) {
-				spikes_rec[iter] = step_to_ms(sim_iter);
-			} else {
-				spikes_rec[iter] = -1;
+			for(int tid = metadata.group.id_start; tid <= metadata.group.id_end; tid++) {
+				mean_volt += v_m[tid];
+				mean_g_exc += g_exc[tid];
+				mean_g_inh += g_inh[tid];
+				if (has_spike[tid]) {
+					metadata.spike_vector.push_back(step_to_ms(sim_iter) + 0.25); //
+				}
 			}
+			metadata.voltage_array[sim_iter] = mean_volt / metadata.group.group_size;
+			metadata.g_exc[sim_iter] = mean_g_exc / metadata.group.group_size;
+			metadata.g_inh[sim_iter] = mean_g_inh / metadata.group.group_size;
 		}
 	} // end of the simulation iteration loop
 
@@ -1103,16 +1069,7 @@ void simulate(int test_index, int full_save) {
 	cudaDeviceReset();  // remove all all device allocations (destroy a CUDA context)
 
 	// save recorded data
-	save_result(test_index,
-	            volt_rec,
-	            h_rec,
-	            m_rec,
-	            n_rec,
-	            g_exc_rec,
-	            g_inh_rec,
-	            spikes_rec,
-	            neurons_number,
-	            full_save);
+	save_result(test_index);
 }
 
 // runner
