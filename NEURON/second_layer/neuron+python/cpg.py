@@ -14,11 +14,6 @@ EES_i = 25 # interval between EES stimulus
 versions = 1 
 step_number = 1 # number of steps
 
-
-moto_EX_v_vec = [] 
-moto_FL_v_vec = []
-soma_v_vec = []
-
 from interneuron import interneuron
 from motoneuron import motoneuron
 from bioaff import bioaff
@@ -135,8 +130,6 @@ class cpg:
 
     # EES
     self.ees = self.addgener(1, EES_int, 10000)
-    self.dees = self.addgener(EES_int, EES_int, (EES_int/EES_int)*4)
-    self.tees = self.addgener(2*EES_int, EES_int, (EES_int/EES_int)*2)
     
     #skin inputs
     c_int = 5
@@ -170,7 +163,6 @@ class cpg:
     Ia_F = self.addpool(nInt, False)
     R_F = self.addpool(nInt, False)
     
-  
     #delays
     connectdelay_extensor(D1_1E, D1_2E, D1_3E, D1_4E)
     connectdelay_flexor(D1_1F, D1_2F, D1_3F, D1_4F)
@@ -203,7 +195,6 @@ class cpg:
     exconnectcells(D2_3F, D3_4, 0.00025, 1, 27)
     exconnectcells(D4_3F, D5_1, 0.0002, 1, 27)
     exconnectcells(D4_3F, D5_4, 0.00025, 1, 27)
-    
 
     #between delays via excitatory pools
     #extensor
@@ -226,8 +217,7 @@ class cpg:
     connectexpools(D2_1F, D2_4F, E1)
     connectexpools(D3_1, D3_4, E2)
     connectexpools(D4_1F, D4_4F, E3)
-    connectexpools(D5_1, D5_4, E4)
-    
+    connectexpools(D5_1, D5_4, E4) 
 
     #delay -> generator
     #extensor
@@ -236,7 +226,6 @@ class cpg:
     exconnectcells(D3_3, G3_1E, 0.05, 2, 27)
     exconnectcells(D4_3E, G4_1, 0.05, 2, 27)
     exconnectcells(D5_3, G5_1, 0.05, 1, 27)
-
     
     #flexor
     exconnectcells(D1_3F, G1_1, 0.05, 2, 27)
@@ -249,7 +238,6 @@ class cpg:
     #between generators (FLEXOR)
     exconnectcells(G3_1F, G4_1, 0.05, 2, 27)
     exconnectcells(G3_2F, G4_1, 0.05, 2, 27)
-    
 
     #inhibitory projections
     #extensor
@@ -282,7 +270,6 @@ class cpg:
     exconnectcells(sens_aff, D1_4F, 0.5, 2, 50)
 
     exconnectcells(Ia_aff_E, self.mns_E, 0.8, 1, 50)
-
     exconnectcells(Ia_aff_F, self.mns_F, 0.5, 1, 50)
 
     #IP
@@ -301,7 +288,6 @@ class cpg:
 
     exconnectcells(G5_1, IP5_E, 0.5, 2, 50)
     exconnectcells(G5_2, IP5_E, 0.5, 2, 50)
-    
 
     exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_E)/5)], 0.2, 2, 60)
     exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(4*len(self.mns_E)/5)], 0.2, 2, 60)
@@ -316,7 +302,6 @@ class cpg:
     inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 40)
 
     #Flexor
-    
     exconnectcells(G1_1, IP1_F, 0.5, 2, 50)
     exconnectcells(G1_2, IP1_F, 0.5, 2, 50)
 
@@ -337,7 +322,6 @@ class cpg:
     exconnectcells(IP3_F, self.mns_F, 0.8, 2, 80)
     exconnectcells(IP4_F, self.mns_F[int(2*len(self.mns_F)/5):], 0.8, 2, 80)
     exconnectcells(IP5_F, self.mns_F[int(3*len(self.mns_F)/5):], 0.8, 1, 80)
-    
 
     #skin inputs
     #C1
@@ -370,7 +354,6 @@ class cpg:
     exconnectcells(C5, D4_1E, 0.00028, 1, 30)
     exconnectcells(C5, D4_4E, 0.00028, 1, 30)
     exconnectcells(C5, I5_E, 1, 1, 50)
-
     
     #C=1 Extensor
     inhconnectcells(C_1, D1_1F, 0.8, 1, 50)
@@ -399,7 +382,6 @@ class cpg:
     inhconnectcells(C_1, IP5_F, 0.8, 1, 60)
 
     inhconnectcells(C_1, Ia_aff_F, 0.9, 1, 80)
-    
 
     #C=0 Flexor
     inhconnectcells(C_0, IP1_E, 0.8, 1, 60)
@@ -787,7 +769,7 @@ def prun(speed, step_number):
   speed: int
     duration of each layer 
   '''
-  tstop = 6*speed#(6*speed + 125)*step_number
+  tstop = (6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
