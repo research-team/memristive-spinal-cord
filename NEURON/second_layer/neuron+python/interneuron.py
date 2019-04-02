@@ -99,7 +99,6 @@ class interneuron(object):
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -70 
-    self.soma.celsius_hh = 37   
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     if self.delay:
@@ -118,7 +117,6 @@ class interneuron(object):
       self.dend.e_pas = -65
 
     self.axon.insert('hh')
-    self.axon.celsius_hh = 37   
 
   def position(self, x, y, z):
     '''
@@ -154,7 +152,7 @@ class interneuron(object):
     '''
     if self.delay:
       for sec in self.dend:
-        for i in range(10): 
+        for i in range(50): 
           s = h.ExpSyn(sec(0.5)) # Excitatory
           s.tau = 0.1
           s.e = 50
@@ -169,7 +167,7 @@ class interneuron(object):
           s.e = 50
           self.synlistees.append(s)  
     else:
-      for i in range(100): 
+      for i in range(200): 
         s = h.ExpSyn(self.dend(0.5)) # Excitatory
         s.tau = 0.1
         s.e = 50

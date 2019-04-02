@@ -10,9 +10,9 @@ nhost = int(pc.nhost())
 
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-EES_i = 20 # interval between EES stimulus 
-version = 0 
-step_number = 3 # number of steps
+EES_i = 25 # interval between EES stimulus 
+versions = 1 
+step_number = 1 # number of steps
 
 
 moto_EX_v_vec = [] 
@@ -42,7 +42,7 @@ class cpg:
     nMN = 200
     nAff = 120
     nInt = 196
-    
+
     D1_1E = self.addpool(self.ncell, False)
     D1_2E = self.addpool(self.ncell, False)
     D1_3E = self.addpool(self.ncell, False)
@@ -303,17 +303,17 @@ class cpg:
     exconnectcells(G5_2, IP5_E, 0.5, 2, 50)
     
 
-    exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_E)/5)], 0.4, 2, 60)
-    exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(4*len(self.mns_E)/5)], 0.4, 2, 60)
+    exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_E)/5)], 0.2, 2, 60)
+    exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(4*len(self.mns_E)/5)], 0.2, 2, 60)
     exconnectcells(IP3_E, self.mns_E[int(len(self.mns_E)/5):], 0.8, 2, 80)
     exconnectcells(IP4_E, self.mns_E[int(2*len(self.mns_E)/5):], 0.8, 2, 80)
     exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.8, 2, 80)
 
-    #inhconnectcells(IP1_E, Ia_aff_E, 0.01, 2, 60)
+    #inhconnectcells(IP1_E, Ia_aff_E, 0.01, 2, 30)
     #inhconnectcells(IP2_E, Ia_aff_E, 0.0001, 2, 40)
-    inhconnectcells(IP3_E, Ia_aff_E, 0.004, 2, 60)
-    inhconnectcells(IP4_E, Ia_aff_E, 0.01, 2, 60)
-    inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 60)
+    inhconnectcells(IP3_E, Ia_aff_E, 0.001, 2, 40)
+    inhconnectcells(IP4_E, Ia_aff_E, 0.01, 2, 40)
+    inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 40)
 
     #Flexor
     
@@ -351,8 +351,8 @@ class cpg:
     exconnectcells(C2, D2_4E, 0.00035, 1, 27)
 
     #C3
-    exconnectcells(C3, D2_1E, 0.0006, 1, 27)
-    exconnectcells(C3, D2_4E, 0.0006, 1, 27)
+    exconnectcells(C3, D2_1E, 0.0004, 1, 27)
+    exconnectcells(C3, D2_4E, 0.0004, 1, 27)
     exconnectcells(C3, D3_1, 0.0004, 1, 27)
     exconnectcells(C3, D3_2, 0.0004, 1, 27)
     exconnectcells(C3, I3_E, 1, 1, 50)
@@ -568,7 +568,7 @@ def exconnectcells(pre, post, weight, delay, nsyn):
         syn = target.synlistex[j]
         nc = pc.gid_connect(srcgid, syn)
         exnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/10)
+        nc.delay = random.gauss(delay, delay/8)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(pre, post, weight, delay, nsyn):
@@ -625,7 +625,7 @@ def genconnect(gen_gid, afferents_gids, weight, delay, nsyn):
         syn = target.synlistees[j]
         nc = pc.gid_connect(gen_gid, syn)
         stimnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/10)
+        nc.delay = random.gauss(delay, delay/8)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
@@ -734,83 +734,63 @@ def connectexpools(d1, d4, ep):
   exconnectcells(ep, d1, 0.00037, 1, 27)
   exconnectcells(ep, d4, 0.00037, 1, 27)
 
-def spike_record(cpg):
+def spike_record(pool, version):
   ''' record spikes from gids 
     Parameters
     ----------
-    cpg: cpg
-       topology of central pattern generation + reflex arc 
+    pool: list
+      list of neurons gids
+    version: int
+        test number
+    Returns
+    -------
+    v_vec: list of h.Vector()
+        recorded voltage
   '''
-  global moto_EX_v_vec, moto_FL_v_vec, soma_v_vec 
-  '''
-  for i in range(len(cpg.interneurons)):
-    v_vec = h.Vector()
-    v_vec.record(cpg.interneurons[i].soma(0.5)._ref_v)
-    soma_v_vec.append(v_vec)
-  '''
-  for i in cpg.mns_E:
-    moto = pc.gid2cell(i)
-    moto_vec = h.Vector()
-    moto_vec.record(moto.soma(0.5)._ref_vext[0])
-    moto_EX_v_vec.append(moto_vec)
+  v_vec = []
 
-  for i in cpg.mns_F:
-    moto = pc.gid2cell(i)
-    moto_vec = h.Vector()
-    moto_vec.record(moto.soma(0.5)._ref_vext[0])
-    moto_FL_v_vec.append(moto_vec)
-
-
-def prun(speed, step_number):
-  ''' simulation control 
-    Parameters
-    ----------
-    speed: int
-        duration of each layer 
-  '''
-  tstop = (6*speed + 125)*step_number
-  pc.set_maxstep(10)
-  h.stdinit()
-  pc.psolve(tstop)
+  for i in pool:
+    cell = pc.gid2cell(i)
+    vec = h.Vector()
+    vec.record(cell.soma(0.5)._ref_vext[0])
+    v_vec.append(vec)
+  return v_vec
  
-def spikeout(cpg):
+def spikeout(pool, name, version, v_vec):
   ''' report simulation results 
     Parameters
     ----------
-    cpg: cpg
-        topology of central pattern generation + reflex arc 
+    pool: list
+      list of neurons gids
+    name: string
+      pool name
+    version: int
+        test number
+    v_vec: list of h.Vector()
+        recorded voltage
   '''
-  global rank, moto_EX_v_vec, moto_FL_v_vec, soma_v_vec
+  global rank 
   pc.barrier()
   for i in range(nhost):
     if i == rank:
-      for j in range(len(cpg.mns_E)):
-        path=str('./res/vMN_EX%dr%dv%d'%(j, rank, version))
+      for j in range(len(pool)):
+        path=str('./res/'+ name + '%dr%dv%d'%(j, rank, version))
         f = open(path, 'w')
-        for v in list(moto_EX_v_vec[j]):
+        for v in list(v_vec[j]):
           f.write(str(v)+"\n")
     pc.barrier()
 
-  pc.barrier()
-  for i in range(nhost):
-    if i == rank:
-      for j in range(len(cpg.mns_F)):
-        path=str('./res/vMN_FL%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(moto_FL_v_vec[j]):
-          f.write(str(v)+"\n")
-    pc.barrier()
+def prun(speed, step_number):
+  ''' simulation control 
+  Parameters
+  ----------
+  speed: int
+    duration of each layer 
   '''
-  pc.barrier()
-  for i in range(nhost):
-    if i == rank:
-      for j in range(len(cpg.interneurons)):
-        path=str('./res/vIn%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(soma_v_vec[j]):
-          f.write(str(v)+"\n")
-    pc.barrier()
-  '''
+  tstop = 6*speed#(6*speed + 125)*step_number
+  pc.set_maxstep(10)
+  h.stdinit()
+  pc.psolve(tstop)
 
 def finish():
   ''' proper exit '''
@@ -819,11 +799,18 @@ def finish():
   h.quit()
 
 if __name__ == '__main__':
-  cpg = cpg(speed, EES_i, 100, step_number)
-  spike_record(cpg)
-  print("- "*10, "\nstart")
-  prun(EES_i, step_number)
-  print("- "*10, "\nend")
-  spikeout(cpg)
-  if (nhost > 1):
+    '''
+    cpg_ex: cpg
+        topology of central pattern generation + reflex arc 
+    '''
+    for i in range(versions):
+      cpg_ex = cpg(speed, EES_i, 100, step_number)
+      vExtensor = spike_record(cpg_ex.mns_E, i)
+      vFlexor= spike_record(cpg_ex.mns_F, i)
+      print("- "*10, "\nstart")
+      prun(speed, step_number)
+      print("- "*10, "\nend")
+      spikeout(cpg_ex.mns_E, "vMN_EX", i, vExtensor)
+      spikeout(cpg_ex.mns_F, "vMN_FL", i, vFlexor)
+    #if (nhost > 1):
     finish()

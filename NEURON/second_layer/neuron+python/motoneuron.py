@@ -103,7 +103,6 @@ class motoneuron(object):
     self.dend.e_pas = -65
 
     self.axon.insert('hh')
-    self.axon.celsius_hh = 37   
 
   def position(self, x, y, z):
     '''
@@ -137,7 +136,7 @@ class motoneuron(object):
     '''
     Adds synapses 
     '''
-    for i in range(100): 
+    for i in range(200): 
       s = h.ExpSyn(self.soma(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50

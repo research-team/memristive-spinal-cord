@@ -70,6 +70,7 @@ class afferent(object):
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -60
+    
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
@@ -90,7 +91,7 @@ class afferent(object):
     return nc
 
   def synapses(self):
-    for i in range(100): 
+    for i in range(200): 
       s = h.ExpSyn(self.dend(0.5)) # E0
       s.tau = 0.1
       s.e = 50
