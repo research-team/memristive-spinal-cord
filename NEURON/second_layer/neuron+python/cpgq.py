@@ -11,8 +11,8 @@ nhost = int(pc.nhost())
 #param
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 175 = 6 cm/s
 EES_i = 25 # interval between EES stimulus 
-versions = 1 
-step_number = 1 # number of steps
+versions = 5 
+step_number = 3 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
