@@ -34,16 +34,11 @@ References:
 
 **/
 
-//float mV = 1e-3;
-//float ms = 1e-3;
-//float mSiemens = 1e-3;
-//float uFarad = 1e-6;
-
 // parameters for variability of the simulation
 const float INH_COEF = 1.0f;         // strength coefficient of inhibitory synapses
-const int EES_FREQ = 100;            // [hz] spike frequency of EES
+const int EES_FREQ = 40;             // [hz] spike frequency of EES
 const int SENSORY_FREQ = 200;        // [hz] spike frequency of C1-C5
-const float T_SIMULATION = 20;       // [ms] simulation time
+const float T_SIMULATION = 275;      // [ms] simulation time
 const float SIM_STEP = 0.025;        // [s] simulation step
 const int SPEED = 21;                // [cm/s] speed of rat moving
 const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
@@ -63,7 +58,7 @@ const float g_K = 6000.0;            // [nS] Maximal conductance of the Potassiu
 const float g_L = 30.0;              // [nS] Conductance of the leak current
 const float C_m = 200.0;             // [pF] Capacity of the membrane
 const float E_Na = 50.0;             // [mV] Reversal potential for the Sodium current
-const float E_K = -100.0;             // [mV] Reversal potential for the Potassium current
+const float E_K = -100.0;            // [mV] Reversal potential for the Potassium current
 const float E_L = -72.0;             // [mV] Reversal potential for the leak current
 const float E_ex = 0.0;              // [mV] Reversal potential for excitatory input
 const float E_in = -80.0;            // [mV] Reversal potential for inhibitory input
@@ -72,21 +67,23 @@ const float tau_syn_inh = 2.0;       // [ms] Decay time of inhibitory synaptic c
 const float V_adj = -63.0;           // adjusts threshold to around -50 mV
 const float g_bar = 1500;            // [nS] the maximal possible conductivity
 
+// set random for CV shifting
+const unsigned int rand_shifting = rand() * skin_stim_time / 5;
 // calculate spike frequency in steps [steps]
 const unsigned int sensory_spike_each_step = (unsigned int)(1000 / SENSORY_FREQ / SIM_STEP);
 const unsigned int ees_spike_each_step = (unsigned int)(1000 / EES_FREQ / SIM_STEP);
 // calculate start time of CV spiking [steps]
 const unsigned int CV1_begin_spiking_time = (unsigned int)(0.1 / SIM_STEP);
-const unsigned int CV2_begin_spiking_time = (unsigned int)(skin_stim_time / SIM_STEP);
-const unsigned int CV3_begin_spiking_time = (unsigned int)(2 * skin_stim_time / SIM_STEP);
-const unsigned int CV4_begin_spiking_time = (unsigned int)(3 * skin_stim_time / SIM_STEP);
-const unsigned int CV5_begin_spiking_time = (unsigned int)(5 * skin_stim_time / SIM_STEP);
+const unsigned int CV2_begin_spiking_time = (unsigned int)(skin_stim_time / SIM_STEP - rand_shifting);
+const unsigned int CV3_begin_spiking_time = (unsigned int)(2 * skin_stim_time / SIM_STEP - rand_shifting);
+const unsigned int CV4_begin_spiking_time = (unsigned int)(3 * skin_stim_time / SIM_STEP - rand_shifting);
+const unsigned int CV5_begin_spiking_time = (unsigned int)(5 * skin_stim_time / SIM_STEP - rand_shifting);
 // calculate end time of CV spiking [steps]
-const unsigned int CV1_end_spiking_time = (unsigned int)(skin_stim_time / SIM_STEP);
-const unsigned int CV2_end_spiking_time = (unsigned int)(2 * skin_stim_time / SIM_STEP);
-const unsigned int CV3_end_spiking_time = (unsigned int)(3 * skin_stim_time / SIM_STEP);
-const unsigned int CV4_end_spiking_time = (unsigned int)(5 * skin_stim_time / SIM_STEP);
-const unsigned int CV5_end_spiking_time = (unsigned int)(6 * skin_stim_time / SIM_STEP);
+const unsigned int CV1_end_spiking_time = (unsigned int)(skin_stim_time / SIM_STEP + rand_shifting);
+const unsigned int CV2_end_spiking_time = (unsigned int)(2 * skin_stim_time / SIM_STEP + rand_shifting);
+const unsigned int CV3_end_spiking_time = (unsigned int)(3 * skin_stim_time / SIM_STEP + rand_shifting);
+const unsigned int CV4_end_spiking_time = (unsigned int)(5 * skin_stim_time / SIM_STEP + rand_shifting);
+const unsigned int CV5_end_spiking_time = (unsigned int)(6 * skin_stim_time / SIM_STEP + rand_shifting);
 // calculate steps activation of C0 and C1
 const unsigned int steps_activation_C0 = (unsigned int)(skin_stim_time * 5 / SIM_STEP);
 const unsigned int steps_activation_C1 = (unsigned int)(skin_stim_time * slices_number / SIM_STEP);
@@ -110,10 +107,10 @@ struct SynapseMetadata {
 // struct for human-readable initialization of connectomes
 struct Metadata {
 	Group group;
-	float* voltage_array = new float[sim_time_in_steps];
-	float* g_exc = new float[sim_time_in_steps];
-	float* g_inh = new float[sim_time_in_steps];
-	vector<float> spike_vector;
+	float* voltage_array = new float[sim_time_in_steps];  // array of membrane potential
+	float* g_exc = new float[sim_time_in_steps];          // array of excitatory conductivity
+	float* g_inh = new float[sim_time_in_steps];          // array of inhibition conductivity
+	vector<float> spike_vector;  // [ms] spike times
 
 	Metadata() = default;
 	Metadata(Group group){
@@ -121,6 +118,7 @@ struct Metadata {
 	}
 };
 
+// keep all pointers to the groups to compute their mean voltage, g_exc and etc.
 vector<Metadata> all_groups;
 
 // form structs of neurons global ID and groups name
@@ -332,7 +330,7 @@ void GPU_neurons_kernel(float *V_m,
 	__syncthreads();
 
 	// generating spikes for EES
-	if (200 <= tid && tid <= 219 && ((sim_iter + 1) % ees_spike_each_step == 0)) {
+	if (200 <= tid && tid <= 219 && (sim_iter % ees_spike_each_step == 0)) {
 		g_exc[tid] = g_bar;  // set spike state
 	}
 
@@ -432,16 +430,16 @@ void GPU_neurons_kernel(float *V_m,
 }
 
 __global__
-void GPU_synapses_kernel(bool* has_spike,
-                         int *synapses_number,
-                         int **synapses_post_nrn_id,
-                         int **synapses_delay,
-                         int **synapses_delay_timer,
-                         float **synapses_weight,
-                         float *g_exc,
-                         float *g_inh,
-                         int activated_C_,
-                         int neurons_number){
+void GPU_synapses_kernel(bool* has_spike,             // 1-D array of bool -- has soike or not
+                         int *synapses_number,        // 1-D array of synapse number per neuron
+                         int **synapses_post_nrn_id,  // 2-D array of post neurons ID per synapse of each neuron
+                         int **synapses_delay,        // 2-D array of synaptic delay per synapse of each neuron
+                         int **synapses_delay_timer,  // as above bu changable
+                         float **synapses_weight,     // 2-D array of synaptic weight per synapse of each neuron
+                         float *g_exc,                // 1-D array of excitatory conductivity per neuron (changable)
+                         float *g_inh,                // 1-D array of inhibitory conductivity per neuron (changable)
+                         int activated_C_,            // 0 if C0 activated else C1
+                         int neurons_number){         // number of neurons
 
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -471,6 +469,7 @@ void GPU_synapses_kernel(bool* has_spike,
 				if (synapses_weight[tid][syn_id] >= 0) {
 					atomicAdd(&g_exc[synapses_post_nrn_id[tid][syn_id]], synapses_weight[tid][syn_id]);
 				} else {
+					// remove negative sign
 					atomicAdd(&g_inh[synapses_post_nrn_id[tid][syn_id]], -synapses_weight[tid][syn_id]);
 				}
 				// make synapse timer a "free" for next spikes
@@ -487,7 +486,7 @@ void GPU_synapses_kernel(bool* has_spike,
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
                              float syn_delay, float weight, int outdegree = syn_outdegree) {
 	// connect neurons with uniform distribution and normal distributon for syn delay and weight
-	// weight *= (100 * 0.7);
+	weight *= 3;
 
 	random_device rd;
 	mt19937 gen(rd());  // initialize pseudo-random number generator
@@ -509,8 +508,8 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
 			int rand_post_id = id_distr(gen);
-			float syn_delay_dist = syn_delay; //delay_distr(gen);
-			float syn_weight_dist = weight; //weight_distr(gen);
+			float syn_delay_dist = syn_delay;  //delay_distr(gen);
+			float syn_weight_dist = weight;    //weight_distr(gen);
 			#ifdef DEBUG
 			printf("weight %f (%f), delay %f (%f) \n", syn_weight_dist, weight, syn_delay_dist, syn_delay);
 			#endif
