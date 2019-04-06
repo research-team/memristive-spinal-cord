@@ -2,6 +2,7 @@ import os
 import sys
 import pylab as plt
 import logging as log
+from matplotlib.ticker import MaxNLocator
 
 log.basicConfig(format='%(name)s::%(funcName)s %(message)s', level=log.INFO)
 logger = log.getLogger('Plotting')
@@ -36,13 +37,15 @@ def draw_slice_borders(sim_time):
 		plt.axvline(x=i, linewidth=1, color='k')
 
 
-def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
+def plot(names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 	for name, voltage, g_e, g_i, s in zip(names, voltages, g_exc, g_inh, spikes):
+		if plot_only and name != plot_only:
+			continue
 		sim_time = int(len(voltage) * step)
 		slices_number = int(len(voltage) * step / 25)
 		shared_x = list(map(lambda x: x * step, range(len(voltage))))
 
-		if name == "MP_E" or name == "MP_F":
+		if "MP_E" in name or "MP_F" in name:
 			plt.figure(figsize=(16, 9))
 			plt.suptitle(f"Sliced {name}")
 			V_rest = 72
@@ -51,12 +54,13 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
 				chunk_start = int(slice_index * 25 / step)
 				chunk_end = int((slice_index + 1) * 25 / step)
 				Y = [-v - V_rest for v in voltage[chunk_start:chunk_end]]
-				shifted_y = [y + 30 * slice_index for y in Y]
 				X = [x * step for x in range(len(Y))]
+				shifted_y = [y + 30 * slice_index for y in Y]
 				plt.plot(X, shifted_y, linewidth=0.7)
 			plt.xlim(0, 25)
 			plt.yticks([])
-			plt.show()
+
+			plt.savefig(f"{save_to}/sliced_{name}.png", format="png", dpi=200)
 			plt.close()
 
 		plt.figure(figsize=(16, 9))
@@ -70,6 +74,7 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
 		plt.plot(s, [0] * len(s), '.', color='r', alpha=0.7)
 
 		plt.xlim(0, sim_time)
+		plt.ylim(-100, 60)
 		# a small hotfix to hide x lables but save x ticks -- set them as white color
 		plt.xticks(range(0, sim_time + 1, 5 if sim_time <= 275 else 25), [""] * sim_time, color='w')
 		plt.ylabel("Voltage, mV")
@@ -77,15 +82,15 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
 		plt.grid()
 
 		# 2
-		plt.subplot(312, sharex=ax1)
+		ax2 = plt.subplot(312, sharex=ax1)
 		draw_slice_borders(sim_time)
 
 		plt.plot(shared_x, g_e, color='r')
 		plt.plot(shared_x, g_i, color='b')
-		plt.plot(shared_x, [0] * len(voltage), color='grey')
-
+		ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
 		plt.ylabel("Currents, pA")
 
+		plt.ylim(0, 1500)
 		plt.xlim(0, sim_time)
 		plt.xticks(range(0, sim_time + 1, 5 if sim_time <= 275 else 25), [""] * sim_time, color='w')
 		plt.grid()
@@ -96,6 +101,7 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
 
 		plt.hist(s, bins=range(sim_time))   # bin is equal to 1ms
 		plt.xlim(0, sim_time)
+		plt.ylim(0, 200)
 		plt.grid()
 
 		plt.ylabel("Spikes, n")
@@ -105,7 +111,7 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to):
 		            for global_time in range(0, sim_time + 1, 5 if sim_time <= 275 else 25)],
 		           fontsize=8)
 
-		plt.subplots_adjust(hspace=0.08)
+		plt.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.05, hspace=0.08)
 
 		plt.savefig(f"{save_to}/{name}.png", format="png", dpi=200)
 		plt.close()
@@ -120,12 +126,17 @@ def scientific_plot(neurons_volt):
 
 def run():
 	step = 0.025
-	if len(sys.argv) > 1:
+	nuclei = None
+
+	if len(sys.argv) == 2:
 		path = sys.argv[1]
+	elif len(sys.argv) == 3:
+		path = sys.argv[1]
+		nuclei = sys.argv[2]
 	else:
 		path = "/home/alex/GitHub/memristive-spinal-cord/GPU/matrix_solution/dat/"
 
-	plot(*read_data(path), step=step, save_to=path + "/results/")
+	plot(*read_data(path), step=step, save_to=f"{path}/results/", plot_only=nuclei)
 
 	# scientific_plot(neurons_volt)
 
