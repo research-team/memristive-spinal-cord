@@ -138,14 +138,14 @@ Group MP_F = form_group("MP_F", neurons_in_moto);
 Group EES = form_group("EES");
 Group Ia = form_group("Ia", neurons_in_afferent);
 
-Group inh_group3 = form_group("inh_group3");
-Group inh_group4 = form_group("inh_group4");
-Group inh_group5 = form_group("inh_group5");
+Group I3 = form_group("inh_group3");
+Group I4 = form_group("inh_group4");
+Group I5 = form_group("inh_group5");
 
-Group ees_group1 = form_group("ees_group1");
-Group ees_group2 = form_group("ees_group2");
-Group ees_group3 = form_group("ees_group3");
-Group ees_group4 = form_group("ees_group4");
+Group E1 = form_group("ees_group1");
+Group E2 = form_group("ees_group2");
+Group E3 = form_group("ees_group3");
+Group E4 = form_group("ees_group4");
 
 Group R_E = form_group("R_E");
 Group R_F = form_group("R_F");
