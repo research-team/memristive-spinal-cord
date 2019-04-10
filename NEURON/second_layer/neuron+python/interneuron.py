@@ -20,9 +20,15 @@ class interneuron(object):
       list of excitatory synapses for connection with generators 
     x, y, z: int
       3D coordinates (isn't used)
+    diffs: list
+      list of diffusion mechanisms (NEURON staff)
+    recs: list
+      list of receptors mechanisms (NEURON staff)
   '''  
   def __init__(self, delay):
     self.delay = delay
+    self.diffs = []
+    self.recs = []
     self.topol()
     self.subsets()
     self.geom()
@@ -111,6 +117,8 @@ class interneuron(object):
         diff.h = random.gauss(distance, distance/5)
         diff.tx1 = 1+(diff.h/1250)*1000
         h.setpointer(diff._ref_subs, 'serotonin', rec)
+        self.diffs.append(diff)
+        self.recs.append(rec)  
     else:
       self.dend.insert('pas')
       self.dend.g_pas = 0.001
