@@ -1,5 +1,6 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
+import numpy as np
 from neuron import h
 h.load_file('nrngui.hoc')
 
@@ -11,8 +12,8 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 EES_i = 25 # interval between EES stimulus 
-versions = 1 
-step_number = 1 # number of steps
+versions = 3
+step_number = 3 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
@@ -142,19 +143,19 @@ class cpg:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
+        C1.append(self.addgener(speed*0 + 10 + i*(speed*6 + 125 + 10), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
+        C2.append(self.addgener(speed*1 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
+        C3.append(self.addgener(speed*2 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, 2*speed/c_int))
+        C4.append(self.addgener(speed*3 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
+        C5.append(self.addgener(speed*5 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
+        C_1.append(self.addgener(speed*0 + 10 + i*(speed*6 + 125 + 10), c_int, 6*speed/c_int))
     for i in range(step_number):
-        C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int))
+        C_0.append(self.addgener(speed*6 + 10 + i*(speed*6 + 125 + 10), c_int, 125/c_int))
 
     #reflex arc
     Ia_E = self.addpool(nInt, False)
@@ -277,11 +278,11 @@ class cpg:
     exconnectcells(G1_1, IP1_E, 0.5, 2, 50)
     exconnectcells(G1_2, IP1_E, 0.5, 2, 50)
 
-    exconnectcells(G2_1, IP2_E, 0.5, 2, 50)
-    exconnectcells(G2_2, IP2_E, 0.5, 2, 50)
+    exconnectcells(G2_1, IP2_E, 0.5, 1, 50)
+    exconnectcells(G2_2, IP2_E, 0.5, 1, 50)
 
-    exconnectcells(G3_1E, IP3_E, 0.5, 1, 50)
-    exconnectcells(G3_2E, IP3_E, 0.5, 1, 50)
+    exconnectcells(G3_1E, IP3_E, 0.5, 2, 50)
+    exconnectcells(G3_2E, IP3_E, 0.5, 2, 50)
 
     exconnectcells(G4_1, IP4_E, 0.5, 2, 50)
     exconnectcells(G4_2, IP4_E, 0.5, 2, 50)
@@ -289,16 +290,16 @@ class cpg:
     exconnectcells(G5_1, IP5_E, 0.5, 2, 50)
     exconnectcells(G5_2, IP5_E, 0.5, 2, 50)
 
+    exconnectcells(IP3_E, self.mns_E, 0.8, 2, 80)
+    exconnectcells(IP2_E, self.mns_E[:int(3*len(self.mns_F)/5)], 0.8, 1, 80)
+    exconnectcells(IP5_E, self.mns_E[:int(3*len(self.mns_F)/5)], 0.8, 2, 80)
+    exconnectcells(IP4_E, self.mns_E[int(len(self.mns_F)/5):], 0.8, 2, 60)
     exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_F)/5)], 0.8, 2, 60)
-    exconnectcells(IP2_E, self.mns_E[:int(2*len(self.mns_F)/5)], 0.8, 2, 80)
-    exconnectcells(IP3_E, self.mns_E, 0.8, 1, 80)
-    exconnectcells(IP4_E, self.mns_E[int(2*len(self.mns_F)/5):], 0.8, 2, 80)
-    exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_F)/5):], 0.8, 2, 80)
 
-    #inhconnectcells(IP1_E, Ia_aff_E, 0.01, 2, 30)
+    inhconnectcells(IP1_E, Ia_aff_E, 0.002, 2, 40)
     #inhconnectcells(IP2_E, Ia_aff_E, 0.0001, 2, 40)
-    inhconnectcells(IP3_E, Ia_aff_E, 0.001, 2, 40)
-    inhconnectcells(IP4_E, Ia_aff_E, 0.01, 2, 40)
+    inhconnectcells(IP3_E, Ia_aff_E, 0.0015, 2, 30)
+    inhconnectcells(IP4_E, Ia_aff_E, 0.02, 2, 40)
     inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 40)
 
     #Flexor
@@ -331,26 +332,26 @@ class cpg:
     #C2
     exconnectcells(C2, D1_1E, 0.00035, 1, 27)
     exconnectcells(C2, D1_4E, 0.00035, 1, 27)
-    exconnectcells(C2, self.D2_1E, 0.00025, 1, 27)
-    exconnectcells(C2, D2_4E, 0.00025, 1, 27)
+    exconnectcells(C2, self.D2_1E, 0.00045, 1, 27)
+    exconnectcells(C2, D2_4E, 0.00045, 1, 27)
 
     #C3
-    exconnectcells(C3, self.D2_1E, 0.00025, 1, 27)
-    exconnectcells(C3, D2_4E, 0.00025, 1, 27)
+    exconnectcells(C3, self.D2_1E, 0.00045, 1, 27)
+    exconnectcells(C3, D2_4E, 0.00045, 1, 27)
     exconnectcells(C3, self.D3_1, 0.00035, 1, 27)
     exconnectcells(C3, D3_2, 0.00035, 1, 27)
     exconnectcells(C3, I3_E, 1, 1, 50)
 
     #C4
-    exconnectcells(C4, self.D3_1, 0.00035, 1, 27)
-    exconnectcells(C4, D3_4, 0.00035, 1, 27)
-    exconnectcells(C4, self.D4_1E, 0.00035, 1, 27)
-    exconnectcells(C4, D4_4E, 0.00035, 1, 27)
+    exconnectcells(C4, self.D3_1, 0.00038, 1, 27)
+    exconnectcells(C4, D3_4, 0.00038, 1, 27)
+    exconnectcells(C4, self.D4_1E, 0.0004, 1, 27)
+    exconnectcells(C4, D4_4E, 0.0004, 1, 27)
     exconnectcells(C4, I4_E, 1, 1, 50)
 
     #C5
-    exconnectcells(C5, self.D5_1, 0.00025, 1, 30)
-    exconnectcells(C5, D5_4, 0.00025, 1, 30)
+    exconnectcells(C5, self.D5_1, 0.0003, 1, 30)
+    exconnectcells(C5, D5_4, 0.0003, 1, 30)
     exconnectcells(C5, self.D4_1E, 0.00025, 1, 30)
     exconnectcells(C5, D4_4E, 0.00025, 1, 30)
     exconnectcells(C5, I5_E, 1, 1, 50)
@@ -717,7 +718,7 @@ def connectexpools(d1, d4, ep):
   exconnectcells(ep, d4, 0.00037, 1, 27)
 
 def spike_record(pool, version):
-  ''' record spikes from gids 
+  ''' Records spikes from gids 
     Parameters
     ----------
     pool: list
@@ -737,9 +738,25 @@ def spike_record(pool, version):
     vec.record(cell.soma(0.5)._ref_vext[0])
     v_vec.append(vec)
   return v_vec
+
+def avgarr(z):
+  ''' Summarizes extracellular voltage in pool
+    Parameters
+    ----------
+    z: list
+      list of neurons voltage
+    Returns
+    -------
+    summa: list 
+        list of summarized voltage
+  '''
+  summa = 0
+  for item in z:
+    summa += np.array(item)
+  return summa
  
 def spikeout(pool, name, version, v_vec):
-  ''' report simulation results 
+  ''' Reports simulation results 
     Parameters
     ----------
     pool: list
@@ -755,10 +772,13 @@ def spikeout(pool, name, version, v_vec):
   pc.barrier()
   for i in range(nhost):
     if i == rank:
+      outavg = []
       for j in range(len(pool)):
-        path=str('./res/'+ name + '%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(v_vec[j]):
+        outavg.append(list(v_vec[j]))
+      outavg = avgarr(outavg)
+      path=str('./res/'+ name + 'r%dv%d'%(rank, version))
+      f = open(path, 'w')
+      for v in outavg:
           f.write(str(v)+"\n")
     pc.barrier()
 
@@ -769,7 +789,7 @@ def prun(speed, step_number):
   speed: int
     duration of each layer 
   '''
-  tstop = 6*speed# + 125)*step_number
+  tstop = (6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
@@ -789,18 +809,10 @@ if __name__ == '__main__':
       cpg_ex = cpg(speed, EES_i, 100, step_number)
       vExtensor = spike_record(cpg_ex.mns_E, i)
       vFlexor = spike_record(cpg_ex.mns_F, i)
-      D2 = spike_record(cpg_ex.D2_1E, i)
-      D3 = spike_record(cpg_ex.D3_1, i)
-      D4 = spike_record(cpg_ex.D4_1E, i)
-      D5 = spike_record(cpg_ex.D5_1, i)
       print("- "*10, "\nstart")
       prun(speed, step_number)
       print("- "*10, "\nend")
       spikeout(cpg_ex.mns_E, "vMN_EX", i, vExtensor)
       spikeout(cpg_ex.mns_F, "vMN_FL", i, vFlexor)
-      spikeout(cpg_ex.D2_1E, "D2", i, D2)
-      spikeout(cpg_ex.D3_1, "D3", i, D3)
-      spikeout(cpg_ex.D4_1E, "D4", i, D4)
-      spikeout(cpg_ex.D5_1, "D5", i, D5)
     #if (nhost > 1):
     finish()
