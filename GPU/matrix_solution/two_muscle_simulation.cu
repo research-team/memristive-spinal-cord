@@ -45,6 +45,7 @@ const int SENSORY_FREQ = 200;        // [hz] spike frequency of C1-C5
 const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
 const float T_SIMULATION = 275;      // [ms] simulation time
 const bool QUADRUPEDAL = false;
+const bool SEROTONIN = false;
 
 // stuff variables
 unsigned int global_id = 0;          // iter to count neurons one by one
@@ -484,11 +485,13 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 
 
 void init_connectomes() {
-	int quadru_coef = QUADRUPEDAL? 1 : 0.5;
+	float quadru_coef = QUADRUPEDAL? 0.5 : 1;
+	float sero_coef = SEROTONIN? 1.5 : 1;
+
 	// CV3-5 -> I3-I5
-	connect_fixed_outdegree(CV3, I3, 0.5, 150 * quadru_coef);
-	connect_fixed_outdegree(CV4, I4, 0.5, 150 * quadru_coef);
-	connect_fixed_outdegree(CV5, I5, 0.5, 150 * quadru_coef);
+	connect_fixed_outdegree(CV3, I3, 0.5, 150 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV4, I4, 0.5, 150 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV5, I5, 0.5, 150 * quadru_coef * sero_coef);
 	// I3 -> G1
 	connect_fixed_outdegree(I3, G1_3, 0.5, 200);
 	// I4 -> G1, G2
@@ -508,10 +511,10 @@ void init_connectomes() {
 	connect_fixed_outdegree(E1, D1_1_E, 2, 4.5); // was 1
 	connect_fixed_outdegree(E1, D1_4_E, 2, 4.5); // was 1
 	// input from sensory
-	connect_fixed_outdegree(CV1, D1_1_E, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV1, D1_4_E, 1, 4 * quadru_coef);
-	connect_fixed_outdegree(CV2, D1_1_E, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV2, D1_4_E, 1, 4 * quadru_coef);
+	connect_fixed_outdegree(CV1, D1_1_E, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV1, D1_4_E, 1, 4 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV2, D1_1_E, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV2, D1_4_E, 1, 4 * quadru_coef * sero_coef);
 	// inner connectomes
 	connect_fixed_outdegree(D1_1_E, D1_2_E, 1, 30);
 	connect_fixed_outdegree(D1_1_E, D1_3_E, 1, 100);
@@ -528,10 +531,10 @@ void init_connectomes() {
 //	connect_fixed_outdegree(E1, D1_1_F, 1.5, 7);
 //	connect_fixed_outdegree(E1, D1_4_F, 1.5, 5);
 //	// input from sensory CV1, CV2
-//	connect_fixed_outdegree(CV1, D1_1_F, 2.5, 5 * quadru_coef);
-//	connect_fixed_outdegree(CV1, D1_4_F, 2.5, 3.5 * quadru_coef);
-//	connect_fixed_outdegree(CV2, D1_1_F, 2.5, 5 * quadru_coef);
-//	connect_fixed_outdegree(CV2, D1_4_F, 2.5, 3.5 * quadru_coef);
+//	connect_fixed_outdegree(CV1, D1_1_F, 2.5, 5 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV1, D1_4_F, 2.5, 3.5 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV2, D1_1_F, 2.5, 5 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV2, D1_4_F, 2.5, 3.5 * quadru_coef * sero_coef);
 //	// inner connectomes
 //	connect_fixed_outdegree(D1_1_F, D1_2_F, 1, 30);
 //	connect_fixed_outdegree(D1_1_F, D1_3_F, 1, 100);
@@ -551,10 +554,10 @@ void init_connectomes() {
 //	connect_fixed_outdegree(E2, D2_1_E, 2, 4.5); // was 1
 //	connect_fixed_outdegree(E2, D2_4_E, 2, 4.5); // was 1
 	// input from sensory
-	connect_fixed_outdegree(CV2, D2_1_E, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV2, D2_4_E, 1, 4 * quadru_coef);
-	connect_fixed_outdegree(CV3, D2_1_E, 2, 5 * quadru_coef);
-	connect_fixed_outdegree(CV3, D2_4_E, 2, 4 * quadru_coef);
+	connect_fixed_outdegree(CV2, D2_1_E, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV2, D2_4_E, 1, 4 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV3, D2_1_E, 2, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV3, D2_4_E, 2, 4 * quadru_coef * sero_coef);
 	// inner connectomes
 	connect_fixed_outdegree(D2_1_E, D2_2_E, 1, 30);
 	connect_fixed_outdegree(D2_1_E, D2_3_E, 1, 100);
@@ -568,10 +571,10 @@ void init_connectomes() {
 
 //	/// D2 Flexor
 //	// input from sensory CV2, CV3
-//	connect_fixed_outdegree(CV2, D2_1_F, 1, 6 * quadru_coef);
-//	connect_fixed_outdegree(CV2, D2_4_F, 1, 8 * quadru_coef);
-//	connect_fixed_outdegree(CV3, D2_1_F, 1, 6 * quadru_coef);
-//	connect_fixed_outdegree(CV3, D2_4_F, 1, 8 * quadru_coef);
+//	connect_fixed_outdegree(CV2, D2_1_F, 1, 6 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV2, D2_4_F, 1, 8 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV3, D2_1_F, 1, 6 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV3, D2_4_F, 1, 8 * quadru_coef * sero_coef);
 //	// input from EES group 2
 //	connect_fixed_outdegree(E2, D2_1_F, 1.7, 4.5);
 //	connect_fixed_outdegree(E2, D2_4_F, 1.7, 4.5);
@@ -592,10 +595,10 @@ void init_connectomes() {
 
 	/// D3
 	// input from sensory
-	connect_fixed_outdegree(CV3, D3_1, 1, 3.5 * quadru_coef);
-	connect_fixed_outdegree(CV3, D3_4, 1, 3.5 * quadru_coef);
-	connect_fixed_outdegree(CV4, D3_1, 1, 3.5 * quadru_coef);
-	connect_fixed_outdegree(CV4, D3_4, 1, 3.5 * quadru_coef);
+	connect_fixed_outdegree(CV3, D3_1, 1, 3.5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV3, D3_4, 1, 3.5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV4, D3_1, 1, 3.5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV4, D3_4, 1, 3.5 * quadru_coef * sero_coef);
 	// input from EES group 3
 	connect_fixed_outdegree(E3, D3_1, 1.7, 4.5); // was 1
 	connect_fixed_outdegree(E3, D3_4, 1.7, 4.5); // was 1
@@ -619,10 +622,10 @@ void init_connectomes() {
 	connect_fixed_outdegree(E4, D4_1_E, 2, 4.5); // was 1
 	connect_fixed_outdegree(E4, D4_4_E, 2, 4.5); // was 1
 	// input from sensory
-	connect_fixed_outdegree(CV4, D4_1_E, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV4, D4_4_E, 1, 4 * quadru_coef);
-	connect_fixed_outdegree(CV5, D4_1_E, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV5, D4_4_E, 1, 4 * quadru_coef);
+	connect_fixed_outdegree(CV4, D4_1_E, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV4, D4_4_E, 1, 4 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV5, D4_1_E, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV5, D4_4_E, 1, 4 * quadru_coef * sero_coef);
 	// inner connectomes
 	connect_fixed_outdegree(D4_1_E, D4_2_E, 1, 30);
 	connect_fixed_outdegree(D4_1_E, D4_3_E, 1, 100);
@@ -636,10 +639,10 @@ void init_connectomes() {
 
 //	/// D4 Flexor
 //	// input from sensory
-//	connect_fixed_outdegree(CV4, D4_1_F, 1, 4 * quadru_coef);
-//	connect_fixed_outdegree(CV4, D4_4_F, 1, 4 * quadru_coef);
-//	connect_fixed_outdegree(CV5, D4_1_F, 1, 4 * quadru_coef);
-//	connect_fixed_outdegree(CV5, D4_4_F, 1, 4 * quadru_coef);
+//	connect_fixed_outdegree(CV4, D4_1_F, 1, 4 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV4, D4_4_F, 1, 4 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV5, D4_1_F, 1, 4 * quadru_coef * sero_coef);
+//	connect_fixed_outdegree(CV5, D4_4_F, 1, 4 * quadru_coef * sero_coef);
 //	// input from EES group 3
 //	connect_fixed_outdegree(E4, D4_1_F, 1, 4.5);
 //	connect_fixed_outdegree(E4, D4_4_F, 1, 4.5);
@@ -664,8 +667,8 @@ void init_connectomes() {
 	connect_fixed_outdegree(E5, D5_1, 2, 4.5); // was 1
 	connect_fixed_outdegree(E5, D5_4, 2, 4.5); // was 1
 	// input from sensory
-	connect_fixed_outdegree(CV5, D5_1, 1, 5 * quadru_coef);
-	connect_fixed_outdegree(CV5, D5_4, 1, 4 * quadru_coef);
+	connect_fixed_outdegree(CV5, D5_1, 1, 5 * quadru_coef * sero_coef);
+	connect_fixed_outdegree(CV5, D5_4, 1, 4 * quadru_coef * sero_coef);
 	// inner connectomes
 	connect_fixed_outdegree(D5_1, D5_2, 1, 30);
 	connect_fixed_outdegree(D5_1, D5_3, 1, 100);
