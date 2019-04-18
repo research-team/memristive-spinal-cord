@@ -12,8 +12,8 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 EES_i = 25 # interval between EES stimulus 
-versions = 2
-step_number = 1 # number of steps
+versions = 3
+step_number = 3 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
@@ -131,7 +131,7 @@ class cpg:
 
     # EES
     self.ees = self.addgener(1, EES_int, 10000)
-    '''
+    
     #skin inputs
     c_int = 5
     C1 = []
@@ -143,20 +143,20 @@ class cpg:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + 10 + i*(speed*6 + 125 + 10), c_int, speed/c_int + random.randint(1, 2)))
+        C1.append(self.addgener(speed*0 + 15 + i*(speed*6 + 125 + 10), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+        C2.append(self.addgener(speed*1 + 15 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+        C3.append(self.addgener(speed*2 + 15 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
+        C4.append(self.addgener(speed*3 + 15 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + 10 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+        C5.append(self.addgener(speed*5 + 15 + i*(speed*6 + 125 + 10) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C_1.append(self.addgener(speed*0 + 10 + i*(speed*6 + 125 + 10), c_int, 6*speed/c_int))
+        C_1.append(self.addgener(speed*0 + 15 + i*(speed*6 + 125 + 10), c_int, 6*speed/c_int))
     for i in range(step_number):
-        C_0.append(self.addgener(speed*6 + 10 + i*(speed*6 + 125 + 10), c_int, 125/c_int))
-    '''
+        C_0.append(self.addgener(speed*6 + 15 + i*(speed*6 + 125 + 10), c_int, 125/c_int))
+    
     #reflex arc
     Ia_E = self.addpool(nInt, False)
     R_E = self.addpool(nInt, False)
@@ -316,7 +316,6 @@ class cpg:
     exconnectcells(IP4_F, self.mns_F[int(2*len(self.mns_F)/5):], 0.8, 2, 80)
     exconnectcells(IP5_F, self.mns_F[int(3*len(self.mns_F)/5):], 0.8, 2, 80)
 
-    '''
     #skin inputs
     #C1
     exconnectcells(C1, D1_1E, 0.0005, 1, 50)
@@ -385,7 +384,6 @@ class cpg:
     inhconnectcells(C_0, IP5_E, 0.8, 1, 60)
 
     inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
-    '''
 
     #reflex arc
     exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)

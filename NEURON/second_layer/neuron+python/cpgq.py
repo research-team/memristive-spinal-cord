@@ -11,7 +11,7 @@ nhost = int(pc.nhost())
 #param
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 175 = 6 cm/s
 EES_i = 25 # interval between EES stimulus 
-versions = 5 
+versions = 3 
 step_number = 3 # number of steps
 
 from interneuron import interneuron
@@ -327,34 +327,34 @@ class cpg:
 
     #skin inputs
     #C1
-    exconnectcells(C1, D1_1E, 0.0005, 1, 50)
-    exconnectcells(C1, D1_4E, 0.0005, 1, 50)
+    exconnectcells(C1, D1_1E, 0.00015, 1, 50)
+    exconnectcells(C1, D1_4E, 0.00015, 1, 50)
 
     #C2
-    exconnectcells(C2, D1_1E, 0.00035, 1, 27)
-    exconnectcells(C2, D1_4E, 0.00035, 1, 27)
-    exconnectcells(C2, D2_1E, 0.00035, 1, 27)
-    exconnectcells(C2, D2_4E, 0.00035, 1, 27)
+    exconnectcells(C2, D1_1E, 0.00015, 1, 27)
+    exconnectcells(C2, D1_4E, 0.00015, 1, 27)
+    exconnectcells(C2, D2_1E, 0.00015, 1, 27)
+    exconnectcells(C2, D2_4E, 0.00015, 1, 27)
 
     #C3
-    exconnectcells(C3, D2_1E, 0.0004, 1, 27)
-    exconnectcells(C3, D2_4E, 0.0004, 1, 27)
-    exconnectcells(C3, D3_1, 0.0004, 1, 27)
-    exconnectcells(C3, D3_2, 0.0004, 1, 27)
+    exconnectcells(C3, D2_1E, 0.00015, 1, 27)
+    exconnectcells(C3, D2_4E, 0.00015, 1, 27)
+    exconnectcells(C3, D3_1, 0.00015, 1, 27)
+    exconnectcells(C3, D3_2, 0.00015, 1, 27)
     exconnectcells(C3, I3_E, 1, 1, 50)
 
     #C4
-    exconnectcells(C4, D3_1, 0.00021, 1, 60)
-    exconnectcells(C4, D3_4, 0.00021, 1, 60)
-    exconnectcells(C4, D4_1E, 0.00021, 1, 60)
-    exconnectcells(C4, D4_4E, 0.00021, 1, 60)
+    exconnectcells(C4, D3_1, 0.0001, 1, 60)
+    exconnectcells(C4, D3_4, 0.0001, 1, 60)
+    exconnectcells(C4, D4_1E, 0.0001, 1, 60)
+    exconnectcells(C4, D4_4E, 0.0001, 1, 60)
     exconnectcells(C4, I4_E, 1, 1, 50)
 
     #C5
-    exconnectcells(C5, D5_1, 0.00028, 1, 30)
-    exconnectcells(C5, D5_4, 0.00028, 1, 30)
-    exconnectcells(C5, D4_1E, 0.00028, 1, 30)
-    exconnectcells(C5, D4_4E, 0.00028, 1, 30)
+    exconnectcells(C5, D5_1, 0.0001, 1, 30)
+    exconnectcells(C5, D5_4, 0.0001, 1, 30)
+    exconnectcells(C5, D4_1E, 0.0001, 1, 30)
+    exconnectcells(C5, D4_4E, 0.0001, 1, 30)
     exconnectcells(C5, I5_E, 1, 1, 50)
 
     #CD4
@@ -731,9 +731,8 @@ def connectexpools(d1, d4, ep):
   exconnectcells(ep, d1, 0.00037, 1, 27)
   exconnectcells(ep, d4, 0.00037, 1, 27)
 
-
 def spike_record(pool, version):
-  ''' record spikes from gids 
+  ''' Records spikes from gids 
     Parameters
     ----------
     pool: list
@@ -753,9 +752,25 @@ def spike_record(pool, version):
     vec.record(cell.soma(0.5)._ref_vext[0])
     v_vec.append(vec)
   return v_vec
+
+def avgarr(z):
+  ''' Summarizes extracellular voltage in pool
+    Parameters
+    ----------
+    z: list
+      list of neurons voltage
+    Returns
+    -------
+    summa: list 
+        list of summarized voltage
+  '''
+  summa = 0
+  for item in z:
+    summa += np.array(item)
+  return summa
  
 def spikeout(pool, name, version, v_vec):
-  ''' report simulation results 
+  ''' Reports simulation results 
     Parameters
     ----------
     pool: list
@@ -771,10 +786,13 @@ def spikeout(pool, name, version, v_vec):
   pc.barrier()
   for i in range(nhost):
     if i == rank:
+      outavg = []
       for j in range(len(pool)):
-        path=str('./res/'+ name + '%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(v_vec[j]):
+        outavg.append(list(v_vec[j]))
+      outavg = avgarr(outavg)
+      path=str('./res/'+ name + 'r%dv%d'%(rank, version))
+      f = open(path, 'w')
+      for v in outavg:
           f.write(str(v)+"\n")
     pc.barrier()
 
@@ -785,7 +803,7 @@ def prun(speed, step_number):
   speed: int
     duration of each layer 
   '''
-  tstop = (6*speed + 175)*step_number
+  tstop = (6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
@@ -804,7 +822,7 @@ if __name__ == '__main__':
     for i in range(versions):
       cpg_ex = cpg(speed, EES_i, 100, step_number)
       vExtensor = spike_record(cpg_ex.mns_E, i)
-      vFlexor= spike_record(cpg_ex.mns_F, i)
+      vFlexor = spike_record(cpg_ex.mns_F, i)
       print("- "*10, "\nstart")
       prun(speed, step_number)
       print("- "*10, "\nend")
