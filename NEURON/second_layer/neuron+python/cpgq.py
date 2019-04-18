@@ -102,6 +102,7 @@ class cpg:
     E2 = self.addpool(self.ncell, False)
     E3 = self.addpool(self.ncell, False)
     E4 = self.addpool(self.ncell, False)
+    E5 = self.addpool(self.ncell, False)
 
     I3_E = self.addpool(self.ncell, False)
     I4_E = self.addpool(self.ncell, False)
@@ -204,26 +205,21 @@ class cpg:
 
     #between delays via excitatory pools
     #extensor
-    exconnectcells(D1_3E, E1, 0.5, 1, 27)
     exconnectcells(E1, E2, 0.5, 1, 27)
     exconnectcells(E2, E3, 0.5, 1, 27)
     exconnectcells(E3, E4, 0.5, 1, 27)
+    exconnectcells(E4, E5, 0.5, 1, 27)
 
-    connectexpools(D2_1E, D2_4E, E1)
-    connectexpools(D3_1, D3_4, E2)
-    connectexpools(D4_1E, D4_4E, E3)
-    connectexpools(D5_1, D5_4, E4)
+    connectexpools(D1_1E, D1_4E, E1)
+    connectexpools(D2_1E, D2_4E, E2)
+    connectexpools(D3_1, D3_4, E3)
+    connectexpools(D4_1E, D4_4E, E4)
+    connectexpools(D5_1, D5_4, E5)
     
     #flexor
-    exconnectcells(D1_3F, E1, 0.5, 1, 27)
-    exconnectcells(E1, E2, 0.5, 1, 27)
-    exconnectcells(E2, E3, 0.5, 1, 27)
-    exconnectcells(E3, E4, 0.5, 1, 27)
-
-    connectexpools(D2_1F, D2_4F, E1)
-    connectexpools(D3_1, D3_4, E2)
-    connectexpools(D4_1F, D4_4F, E3)
-    connectexpools(D5_1, D5_4, E4) 
+    connectexpools(D1_1F, D1_4F, E1)
+    connectexpools(D2_1F, D2_4F, E2)
+    connectexpools(D4_1F, D4_4F, E4)
 
     #delay -> generator
     #extensor
@@ -331,8 +327,8 @@ class cpg:
 
     #skin inputs
     #C1
-    exconnectcells(C1, D1_1E, 0.0001, 1, 50)
-    exconnectcells(C1, D1_4E, 0.0001, 1, 50)
+    exconnectcells(C1, D1_1E, 0.0005, 1, 50)
+    exconnectcells(C1, D1_4E, 0.0005, 1, 50)
 
     #C2
     exconnectcells(C2, D1_1E, 0.00035, 1, 27)
