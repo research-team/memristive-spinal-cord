@@ -44,8 +44,9 @@ const float SIM_STEP = 0.025;        // [s] simulation step
 const int SENSORY_FREQ = 200;        // [hz] spike frequency of C1-C5
 const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
 const float T_SIMULATION = 275;      // [ms] simulation time
-const bool QUADRUPEDAL = false;
-const bool SEROTONIN = false;
+const bool QUADRUPEDAL = false;      // True if it is a quadrupedal simulation
+const bool SEROTONIN = false;        // True if nuclei has 5-HT receptors
+const float CV_mean = skin_stim_time / 2;
 
 // stuff variables
 unsigned int global_id = 0;          // iter to count neurons one by one
@@ -242,6 +243,9 @@ vector<vector<SynapseMetadata>> metadatas(global_id, vector<SynapseMetadata>());
 __host__
 int ms_to_step(float ms) { return (int)(ms / SIM_STEP); }
 
+__device__
+int gpu_ms_to_step(float ms) { return (int)(ms / SIM_STEP); }
+
 __host__
 float step_to_ms(int step) { return step * SIM_STEP; }
 
@@ -268,10 +272,40 @@ void GPU_neurons_kernel(float *V_m,
 
 	// Each thread gets same seed, a different sequence number, no offset
 	curandState localState;
-	curand_init(1234ULL, tid, 0, &localState);
+	curand_init(sim_iter, tid, 0, &localState);
 
-	curand_normal_double(&localState);
-
+	// Skin stimulations
+	if (activated_C_ == 1 && tid == 2412) {
+		int step_rand = gpu_ms_to_step(curand_normal_double(&localState) * 8 + CV_mean);
+		bool c = shifted_sim_iter / step_rand < 0.1;
+		printf("iter [%d] shifted_iter [%d] step_rand [%d] flag [%d] \n",
+				sim_iter, shifted_sim_iter, step_rand, c);
+		// CV1
+		if ((begin_C_spiking[0] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[0])) {
+			if(c)
+				has_spike[tid] = true;
+		}
+		// CV2
+		if ((begin_C_spiking[1] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[1])) {
+			if(c)
+				has_spike[tid] = true;
+		}
+		// CV3
+		if ((begin_C_spiking[2] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[2])) {
+			if(c)
+				has_spike[tid] = true;
+		}
+		// CV4
+		if ((begin_C_spiking[3] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[3])) {
+			if(shifted_sim_iter / gpu_ms_to_step(curand_normal_double(&localState) * 8 * 1.5 + CV_mean * 2) < 0.1)
+				has_spike[tid] = true;
+		}
+		// CV5
+		if ((begin_C_spiking[4] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[4])) {
+			if(c)
+				has_spike[tid] = true;
+		}
+	}
 
 	// Ia flexor/extensor IDs [1850 ... 2089], control spike number of Ia afferent by resetting neuron current
 	if (1850 <= tid && tid <= 2089) {
@@ -423,7 +457,7 @@ void GPU_synapses_kernel(bool* has_spike,             // 1-D array of bool -- ha
 	}
 }
 
-void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay, float weight, float t_begin=0, float t_end=T_SIMULATION) {
+void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int post_id = post_neurons.id_start; post_id <= post_neurons.id_end; post_id++) {
 			metadatas.at(pre_id).push_back(SynapseMetadata(post_id, syn_delay, weight));
@@ -489,9 +523,10 @@ void init_connectomes() {
 	float sero_coef = SEROTONIN? 1.5 : 1;
 
 	// CV3-5 -> I3-I5
-	connect_fixed_outdegree(CV3, I3, 0.5, 150 * quadru_coef * sero_coef);
-	connect_fixed_outdegree(CV4, I4, 0.5, 150 * quadru_coef * sero_coef);
-	connect_fixed_outdegree(CV5, I5, 0.5, 150 * quadru_coef * sero_coef);
+	connect_one_to_all(CV_generator, I3, 0.1, 150 * quadru_coef);
+	connect_one_to_all(CV_generator, I4, 0.1, 150 * quadru_coef);
+	connect_one_to_all(CV_generator, I5, 0.1, 150 * quadru_coef);
+
 	// I3 -> G1
 	connect_fixed_outdegree(I3, G1_3, 0.5, 200);
 	// I4 -> G1, G2

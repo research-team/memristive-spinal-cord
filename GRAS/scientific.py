@@ -82,7 +82,7 @@ vb.autoRange()
 
 t = QtCore.QTimer()
 t.timeout.connect(updateData)
-t.start(500)
+t.start(50)
 
 ## Start Qt event loop unless running in interactive mode.
 if __name__ == '__main__':
