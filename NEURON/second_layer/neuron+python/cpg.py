@@ -12,8 +12,8 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 EES_i = 25 # interval between EES stimulus 
-versions = 3
-step_number = 3 # number of steps
+versions = 2
+step_number = 1 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
@@ -92,7 +92,6 @@ class cpg:
     G3_2F = self.addpool(self.ncell, False)
     G3_3F = self.addpool(self.ncell, False)
     
-
     G4_1 = self.addpool(self.ncell, False)
     G4_2 = self.addpool(self.ncell, False)
     G4_3 = self.addpool(self.ncell, False)
@@ -105,6 +104,7 @@ class cpg:
     E2 = self.addpool(self.ncell, False)
     E3 = self.addpool(self.ncell, False)
     E4 = self.addpool(self.ncell, False)
+    E5 = self.addpool(self.ncell, False)
 
     I3_E = self.addpool(self.ncell, False)
     I4_E = self.addpool(self.ncell, False)
@@ -131,7 +131,7 @@ class cpg:
 
     # EES
     self.ees = self.addgener(1, EES_int, 10000)
-    
+    '''
     #skin inputs
     c_int = 5
     C1 = []
@@ -156,7 +156,7 @@ class cpg:
         C_1.append(self.addgener(speed*0 + 10 + i*(speed*6 + 125 + 10), c_int, 6*speed/c_int))
     for i in range(step_number):
         C_0.append(self.addgener(speed*6 + 10 + i*(speed*6 + 125 + 10), c_int, 125/c_int))
-
+    '''
     #reflex arc
     Ia_E = self.addpool(nInt, False)
     R_E = self.addpool(nInt, False)
@@ -199,26 +199,21 @@ class cpg:
 
     #between delays via excitatory pools
     #extensor
-    exconnectcells(D1_3E, E1, 0.5, 1, 27)
     exconnectcells(E1, E2, 0.5, 1, 27)
     exconnectcells(E2, E3, 0.5, 1, 27)
     exconnectcells(E3, E4, 0.5, 1, 27)
+    exconnectcells(E4, E5, 0.5, 1, 27)
 
-    connectexpools(self.D2_1E, D2_4E, E1)
-    connectexpools(self.D3_1, D3_4, E2)
-    connectexpools(self.D4_1E, D4_4E, E3)
-    connectexpools(self.D5_1, D5_4, E4)
+    connectexpools(D1_1E, D1_4E, E1)
+    connectexpools(self.D2_1E, D2_4E, E2)
+    connectexpools(self.D3_1, D3_4, E3)
+    connectexpools(self.D4_1E, D4_4E, E4)
+    connectexpools(self.D5_1, D5_4, E5)
     
     #flexor
-    exconnectcells(D1_3F, E1, 0.5, 1, 27)
-    exconnectcells(E1, E2, 0.5, 1, 27)
-    exconnectcells(E2, E3, 0.5, 1, 27)
-    exconnectcells(E3, E4, 0.5, 1, 27)
-
-    connectexpools(D2_1F, D2_4F, E1)
-    #connectexpools(self.D3_1, D3_4, E2)
-    connectexpools(D4_1F, D4_4F, E3)
-    #connectexpools(self.D5_1, D5_4, E4) 
+    connectexpools(D1_1F, D1_4F, E1)
+    connectexpools(D2_1F, D2_4F, E2)
+    connectexpools(D4_1F, D4_4F, E4)
 
     #delay -> generator
     #extensor
@@ -264,11 +259,8 @@ class cpg:
     genconnect(self.ees, Ia_aff_F, 1, 0, 50)
     genconnect(self.ees, Ia_aff_E, 1, 0, 50)
 
-    exconnectcells(sens_aff, D1_1E, 0.5, 0, 50)
-    exconnectcells(sens_aff, D1_4E, 0.5, 0, 50)
-
-    exconnectcells(sens_aff, D1_1F, 0.5, 2, 50)
-    exconnectcells(sens_aff, D1_4F, 0.5, 2, 50)
+    exconnectcells(sens_aff, E1, 0.5, 0, 50)
+    exconnectcells(sens_aff, E1, 0.5, 0, 50)
 
     exconnectcells(Ia_aff_E, self.mns_E, 0.8, 1, 50)
     exconnectcells(Ia_aff_F, self.mns_F, 0.5, 1, 50)
@@ -324,10 +316,11 @@ class cpg:
     exconnectcells(IP4_F, self.mns_F[int(2*len(self.mns_F)/5):], 0.8, 2, 80)
     exconnectcells(IP5_F, self.mns_F[int(3*len(self.mns_F)/5):], 0.8, 2, 80)
 
+    '''
     #skin inputs
     #C1
-    exconnectcells(C1, D1_1E, 0.0001, 1, 50)
-    exconnectcells(C1, D1_4E, 0.0001, 1, 50)
+    exconnectcells(C1, D1_1E, 0.0005, 1, 50)
+    exconnectcells(C1, D1_4E, 0.0005, 1, 50)
 
     #C2
     exconnectcells(C2, D1_1E, 0.00035, 1, 27)
@@ -392,6 +385,7 @@ class cpg:
     inhconnectcells(C_0, IP5_E, 0.8, 1, 60)
 
     inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
+    '''
 
     #reflex arc
     exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
