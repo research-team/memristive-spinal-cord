@@ -1,5 +1,6 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
+import numpy as np
 from neuron import h
 h.load_file('nrngui.hoc')
 
