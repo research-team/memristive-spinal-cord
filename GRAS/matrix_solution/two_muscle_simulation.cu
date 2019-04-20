@@ -41,12 +41,10 @@ const int EES_FREQ = 40;             // [hz] spike frequency of EES
 const int slices_number = 6;         // number of slices (based on speed)
 const float INH_COEF = 1.0;          // strength coefficient of inhibitory synapses
 const float SIM_STEP = 0.025;        // [s] simulation step
-const int SENSORY_FREQ = 200;        // [hz] spike frequency of C1-C5
 const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
 const float T_SIMULATION = 275;      // [ms] simulation time
 const bool QUADRUPEDAL = false;      // True if it is a quadrupedal simulation
 const bool SEROTONIN = false;        // True if nuclei has 5-HT receptors
-const float CV_mean = skin_stim_time / 2;
 
 // stuff variables
 unsigned int global_id = 0;          // iter to count neurons one by one
@@ -74,7 +72,6 @@ const float g_bar = 1500;            // [nS] the maximal possible conductivity
 int global_synapse_number = 0;
 
 // calculate spike frequency in steps [steps]
-const unsigned int sensory_spike_each_step = (unsigned int)(1000 / SENSORY_FREQ / SIM_STEP);
 const unsigned int ees_spike_each_step = (unsigned int)(1000 / EES_FREQ / SIM_STEP);
 // calculate steps activation of C0 and C1
 const unsigned int steps_activation_C0 = (unsigned int)(skin_stim_time * 5 / SIM_STEP);
@@ -265,47 +262,14 @@ void GPU_neurons_kernel(float *V_m,
                         int sim_iter,
                         int* begin_C_spiking,
                         int* end_C_spiking,
-                        bool sensory_spike_flag,
-                        int decrease_lvl_Ia_spikes){
+                        int decrease_lvl_Ia_spikes,
+                        int* spike_train){
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Each thread gets same seed, a different sequence number, no offset
 	curandState localState;
 	curand_init(sim_iter, tid, 0, &localState);
-
-	// Skin stimulations
-	if (activated_C_ == 1 && tid == 2412) {
-		int step_rand = gpu_ms_to_step(curand_normal_double(&localState) * 8 + CV_mean);
-		bool c = shifted_sim_iter / step_rand < 0.1;
-		printf("iter [%d] shifted_iter [%d] step_rand [%d] flag [%d] \n",
-				sim_iter, shifted_sim_iter, step_rand, c);
-		// CV1
-		if ((begin_C_spiking[0] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[0])) {
-			if(c)
-				has_spike[tid] = true;
-		}
-		// CV2
-		if ((begin_C_spiking[1] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[1])) {
-			if(c)
-				has_spike[tid] = true;
-		}
-		// CV3
-		if ((begin_C_spiking[2] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[2])) {
-			if(c)
-				has_spike[tid] = true;
-		}
-		// CV4
-		if ((begin_C_spiking[3] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[3])) {
-			if(shifted_sim_iter / gpu_ms_to_step(curand_normal_double(&localState) * 8 * 1.5 + CV_mean * 2) < 0.1)
-				has_spike[tid] = true;
-		}
-		// CV5
-		if ((begin_C_spiking[4] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[4])) {
-			if(c)
-				has_spike[tid] = true;
-		}
-	}
 
 	// Ia flexor/extensor IDs [1850 ... 2089], control spike number of Ia afferent by resetting neuron current
 	if (1850 <= tid && tid <= 2089) {
@@ -333,6 +297,11 @@ void GPU_neurons_kernel(float *V_m,
 	if (tid < neurons_number) {
 		// reset spike flag of the current neuron before calculations
 		has_spike[tid] = false;
+
+		// Skin stimulations
+		if (activated_C_ == 1 && tid == 2412 && spike_train[sim_iter] == 1) {
+			has_spike[tid] = true;
+		}
 
 		// generate spikes for C=0
 		if (activated_C_ == 0 && tid == 2410 && shifted_sim_iter < begin_C_spiking[4] - 500) { // 125ms - 13ms
@@ -476,12 +445,10 @@ void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay,
 void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
                              float syn_delay, float weight, int outdegree = syn_outdegree) {
 	// connect neurons with uniform distribution and normal distributon for syn delay and weight
-	random_device rd;
-	mt19937 gen(rd());  // initialize pseudo-random number generator
-
-	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
-	normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
-	normal_distribution<float> weight_distr(weight, weight / 10);
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
+	std::normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
+	std::normal_distribution<float> weight_distr(weight, weight / 10);
 
 	#ifdef DEBUG
 	printf("pre group %s (%d, %d) to post %s (%d, %d)\n",
@@ -497,12 +464,12 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
-			int rand_post_id = id_distr(gen);
-			float syn_delay_dist = syn_delay; // delay_distr(gen);
+			int rand_post_id = id_distr(generator);
+			float syn_delay_dist = syn_delay; // delay_distr(generator);
 			if (syn_delay_dist <= 0.2) {
 				syn_delay_dist = 0.2;
 			}
-			float syn_weight_dist = weight; //weight_distr(gen);
+			float syn_weight_dist = weight; //weight_distr(generator);
 			#ifdef DEBUG
 			printf("weight %f (%f), delay %f (%f) \n", syn_weight_dist, weight, syn_delay_dist, syn_delay);
 			#endif
@@ -867,51 +834,6 @@ void init_connectomes() {
 	connect_one_to_all(C_1, D4_2_F, 0.1, -g_bar);
 	connect_one_to_all(C_1, D4_3_F, 0.1, -g_bar);
 	connect_one_to_all(C_1, D4_4_F, 0.1, -g_bar);
-
-
-//	connect_one_to_all(CV_generator, CV1, 0.1, g_bar, begin_C_spiking[0], end_C_spiking[0]);
-//	connect_one_to_all(CV_generator, CV2, 0.1, g_bar, begin_C_spiking[1], end_C_spiking[1]);
-//	connect_one_to_all(CV_generator, CV3, 0.1, g_bar, begin_C_spiking[2], end_C_spiking[2]);
-//	connect_one_to_all(CV_generator, CV4, 0.1, g_bar, begin_C_spiking[3], end_C_spiking[3]);
-//	connect_one_to_all(CV_generator, CV5, 0.1, g_bar, begin_C_spiking[4], end_C_spiking[4]);
-
-//	// activate only sensory C1-CV5 and control Ia afferent spikes
-//	if (0 <= tid && tid <= 99) {
-//		// CV1
-//		if (0 <= tid && tid <= 19 && ( <= shifted_sim_iter) && (shifted_sim_iter < )) {
-//			if (activated_C_ == 1 && sensory_spike_flag) {
-//				g_exc[tid] = g_bar; // set spike state
-//			}
-//		} else {
-//			// CV2
-//			if (20 <= tid && tid <= 39 && (begin_C_spiking[1] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[1])) {
-//				if (activated_C_ == 1 && sensory_spike_flag) {
-//					g_exc[tid] = g_bar; // set spike state
-//				}
-//			} else {
-//				// CV3
-//				if (40 <= tid && tid <= 59 && (begin_C_spiking[2] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[2])) {
-//					if (activated_C_ == 1 && sensory_spike_flag) {
-//						g_exc[tid] = g_bar; // set spike state
-//					}
-//				} else {
-//					// CV4
-//					if (60 <= tid && tid <= 79 && (begin_C_spiking[3] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[3])) {
-//						if (activated_C_ == 1 && sensory_spike_flag) {
-//							g_exc[tid] = g_bar; // set spike state
-//						}
-//					} else {
-//						// CV5
-//						if (80 <= tid && tid <= 99 && (begin_C_spiking[4] <= shifted_sim_iter) && (shifted_sim_iter < end_C_spiking[4])) {
-//							if (activated_C_ == 1 && sensory_spike_flag) {
-//								g_exc[tid] = g_bar; // set spike state
-//							}
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
 }
 
 void init_ref_arc() {
@@ -963,7 +885,6 @@ void save_result(int test_index) {
 		ofstream file;
 		string file_name = "/dat/" + std::to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 		file.open(cwd + file_name);
-
 		// save voltage
 		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
 			file << metadata.voltage_array[sim_iter] << " ";
@@ -985,6 +906,8 @@ void save_result(int test_index) {
 		}
 
 		file.close();
+
+		printf("SAVED %s \n", metadata.group.group_name.c_str());
 	}
 }
 
@@ -1031,6 +954,7 @@ void simulate(int test_index, int full_save) {
 	float m[neurons_number];                 // dimensionless quantity [0 .. 1] of sodium channel inactivation
 	float g_exc[neurons_number];             // [nS] excitatory synapse exponential conductance
 	float g_inh[neurons_number];             // [nS] inhibitory synapse exponential conductance
+	int spike_train[sim_time_in_steps];      // [step] 0 or 1 -- spike time generated by normal distribution
 
 	uniform_int_distribution<int> shift_distr(0, SPEED / 5);  // [ms]
 
@@ -1060,6 +984,7 @@ void simulate(int test_index, int full_save) {
 	init_array<float>(m, neurons_number, 0);  // by default all neurons have closed sodium channel inactivation
 	init_array<float>(g_exc, neurons_number, 0);  // by default all neurons have zero excitatory synaptic conductivity
 	init_array<float>(g_inh, neurons_number, 0);  // by default all neurons have zero inhibitory synaptic conductivity
+	init_array<int>(spike_train, sim_time_in_steps, 0);
 
 	// init connectomes
 	init_connectomes();
@@ -1124,6 +1049,7 @@ void simulate(int test_index, int full_save) {
 
 	int *gpu_begin_C_spiking_distr;
 	int *gpu_end_C_spiking_distr;
+	int *gpu_spike_train;
 
 	// allocate memory in the GPU
 	cudaMalloc(&gpu_v_m, datasize<float>(neurons_number));
@@ -1144,6 +1070,7 @@ void simulate(int test_index, int full_save) {
 
 	cudaMalloc(&gpu_begin_C_spiking_distr, datasize<int>(5));
 	cudaMalloc(&gpu_end_C_spiking_distr, datasize<int>(5));
+	cudaMalloc(&gpu_spike_train, datasize<int>(sim_time_in_steps));
 
 	// copy data from CPU to GPU
 	memcpyHtD<float>(gpu_v_m, v_m, neurons_number);
@@ -1177,10 +1104,38 @@ void simulate(int test_index, int full_save) {
 	int activated_C_ = 0;
 	int shift_time_by_step = 0;
 	int local_iter = 0;
-	bool sensory_spike_flag;
 	int decrease_lvl_Ia_spikes;
 
 	vector<vector<float>> spikes_rec(neurons_number, vector<float>());
+
+	int skin_stim_time_in_step = ms_to_step(skin_stim_time);
+
+	std::default_random_engine generator;
+	std::normal_distribution<float> normal_distribution_CV(skin_stim_time / 2, 6.0);
+	std::normal_distribution<float> normal_distribution_CV4(2 * skin_stim_time / 2, 1.5 * 7.0);
+
+	// per extensor (first is Flexor so do an offset)
+	for (int extensor_start_at_step = 5 * skin_stim_time_in_step; extensor_start_at_step < sim_time_in_steps; extensor_start_at_step += (6 * skin_stim_time_in_step)) {
+		int layer_start_at_step = extensor_start_at_step;
+		// per layer in extensor (CV)
+		for (int layer = 0; layer < 5; layer++) {
+			if (layer != 3) {
+				// init per step number of spikes
+				for (int i = layer_start_at_step; i < layer_start_at_step + skin_stim_time_in_step; i++){
+					spike_train[layer_start_at_step + ms_to_step(normal_distribution_CV(generator))] = 1;
+				}
+				layer_start_at_step += skin_stim_time_in_step;
+			} else {
+				// init per step number of spikes
+				for (int i = layer_start_at_step; i < layer_start_at_step + 2 * skin_stim_time_in_step; i++){
+					spike_train[layer_start_at_step + ms_to_step(normal_distribution_CV4(generator))] = 1;
+				}
+				layer_start_at_step += 2 * skin_stim_time_in_step;
+			}
+		}
+	}
+
+	memcpyHtD<int>(gpu_spike_train, spike_train, sim_time_in_steps);
 
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
@@ -1232,8 +1187,6 @@ void simulate(int test_index, int full_save) {
 		// update local iter (warning: can be resetted at C0/C1 activation)
 		local_iter++;
 
-		sensory_spike_flag = sim_iter % sensory_spike_each_step == 0;
-
 		// invoke GPU kernel for neurons
 		GPU_neurons_kernel<<<num_blocks, threads_per_block>>>(
 		        gpu_v_m,
@@ -1251,8 +1204,8 @@ void simulate(int test_index, int full_save) {
 		        sim_iter,
 		        gpu_begin_C_spiking_distr,
 		        gpu_end_C_spiking_distr,
-		        sensory_spike_flag,
-		        decrease_lvl_Ia_spikes);
+		        decrease_lvl_Ia_spikes,
+				gpu_spike_train);
 
 		// copy data from GPU
 		memcpyDtH<float>(v_m, gpu_v_m, neurons_number);
