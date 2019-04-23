@@ -468,9 +468,9 @@ void init_connectomes() {
 	// input from EES
 	connect_fixed_outdegree(EES, E1, 2, 500);
 	connect_fixed_outdegree(E1, E2, 2, 200);
-	connect_fixed_outdegree(E2, E3, 1, 200);
-	connect_fixed_outdegree(E3, E4, 2, 200);
-	connect_fixed_outdegree(E4, E5, 2, 200);
+	connect_fixed_outdegree(E2, E3, 2, 200);
+	connect_fixed_outdegree(E3, E4, 3, 200);
+	connect_fixed_outdegree(E4, E5, 3, 200);
 
 	/// OM 1
 	// input from EES group 1
@@ -495,8 +495,8 @@ void init_connectomes() {
 	// output to OM2, ToDo: FLEXOR
 	connect_fixed_outdegree(OM1_0_F, OM2_2, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM1_2, IP_F, 1, 53);
-	connect_fixed_outdegree(OM1_2, IP_E, 1, 50);
+	connect_fixed_outdegree(OM1_2, IP_E, 1, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2, IP_F, 1, 50, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
@@ -520,8 +520,8 @@ void init_connectomes() {
 	// output to OM3, ToDo: FLEXOR
 	connect_fixed_outdegree(OM2_0_F, OM3_0, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2, IP_E, 1, 20); // 50
-	connect_fixed_outdegree(OM2_2, IP_F, 1, 50);
+	connect_fixed_outdegree(OM2_2, IP_E, 2, 10, neurons_in_ip); // 50
+	connect_fixed_outdegree(OM2_2, IP_F, 2, 50, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
@@ -547,8 +547,8 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * INH_COEF);  // ToDo: FLEXOR
 	// output to OM3, ToDo: FLEXOR
 	connect_fixed_outdegree(OM3_2_F, OM4_2, 1, 50);
-	connect_fixed_outdegree(OM3_2_E, IP_E, 1, 35);    // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM3_2_F, IP_F, 1, 50);    // ToDo: FLEXOR
+	connect_fixed_outdegree(OM3_2_E, IP_E, 3, 8, neurons_in_ip);    // ToDo: EXTENSOR
+	connect_fixed_outdegree(OM3_2_F, IP_F, 3, 50, neurons_in_ip);    // ToDo: FLEXOR
 
 	/// OM 4
 	// input from EES group 4
@@ -573,8 +573,8 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM4_3, OM4_2, 1, -70 * INH_COEF);
 	// output to OM4
 	connect_fixed_outdegree(OM4_0_F, OM5_0, 1, 50);
-	connect_fixed_outdegree(OM4_2, IP_E, 1, 30);
-	connect_fixed_outdegree(OM4_2, IP_F, 1, 50);
+	connect_fixed_outdegree(OM4_2, IP_E, 2, 8, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2, IP_F, 2, 50, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
@@ -592,11 +592,12 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * INH_COEF);
 	connect_fixed_outdegree(OM5_3, OM5_2, 1, -70 * INH_COEF);
 	// output to IP
-	connect_fixed_outdegree(OM5_2, IP_E, 1, 55);
-	connect_fixed_outdegree(OM5_2, IP_F, 1, 50);
+	connect_fixed_outdegree(OM5_2, IP_E, 2, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2, IP_F, 2, 50, neurons_in_ip);
+
 
 	// inhibition by C=0: IP_E, Ia_Extensor
-	connect_one_to_all(C_0, IP_E, 0.1, -g_bar);
+	connect_one_to_all(C_0, IP_E, 0.1, -1);
 	connect_one_to_all(C_0, Ia_Extensor, 0.1, -g_bar);
 	// inhibition by C=0: extensor clones D1, D2, G3, D4
 	connect_one_to_all(C_0, OM1_0_E, 0.1, -0.1);
@@ -617,7 +618,7 @@ void init_connectomes() {
 	connect_fixed_outdegree(EES, Ia_Extensor, 1, 500);
 	connect_fixed_outdegree(EES, Ia_Flexor, 1, 500);
 
-	connect_fixed_outdegree(IP_E, MP_E, 1, 17, neurons_in_moto); // was 30
+	connect_fixed_outdegree(IP_E, MP_E, 1, 12, neurons_in_moto); // was 30
 //	connect_fixed_outdegree(IP_E, Ia_E, 2.0, 20.0);
 //	connect_fixed_outdegree(MP_E, R_E, 2.0, 20.0);
 
