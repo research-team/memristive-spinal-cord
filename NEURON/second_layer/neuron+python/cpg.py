@@ -11,9 +11,9 @@ nhost = int(pc.nhost())
 
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-EES_i = 25 # interval between EES stimulus 
-versions = 1
-step_number = 1 # number of steps
+EES_i = 20 # interval between EES stimulus 
+versions = 10
+step_number = 3 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
@@ -85,8 +85,8 @@ class CPG:
     Ia_aff_E = self.addafferents(nAff)
     Ia_aff_F = self.addafferents(nAff)
 
-    mns_E = self.addmotoneurons(nMN, "mns_E")
-    mns_F = self.addmotoneurons(nMN, "mns_F")
+    mns_E = self.addmotoneurons(nMN, "mns_E50")
+    mns_F = self.addmotoneurons(nMN, "mns_F50")
 
     #interneuronal pool
     IP1_E = self.addpool(self.ncell, False, "IP1_E")
@@ -114,15 +114,15 @@ class CPG:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
+        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
+        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
+        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, 2*speed/c_int))
+        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
+        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
     for i in range(step_number):

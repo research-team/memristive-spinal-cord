@@ -106,7 +106,5 @@ class afferent(object):
       s.e = -80
       self.synlistinh.append(s)  
 
-     
-
   def is_art(self):
     return 0

@@ -27,7 +27,7 @@ class interneuron(object):
   '''  
   def __init__(self, delay):
     self.delay = delay
-    self.diffs = []
+    self.diffs = [ś
     self.recs = []
     self.topol()
     self.subsets()
@@ -111,12 +111,12 @@ class interneuron(object):
       distance = random.uniform(10, 100)
       for sec in self.dend:
         sec.insert('hh')
-        diff = h.diff_slow(sec(0.5))
+        diff = h.slow_5HT(sec(0.5))
         rec = h.r5ht3a(sec(0.5))
         rec.gmax = 2
         diff.h = random.gauss(distance, distance/5)
         diff.tx1 = 1+(diff.h/1250)*1000
-        h.setpointer(diff._ref_subs, 'serotonin', rec)
+        h.setpointer(diff._ref_serotonin, 'serotonin', rec)
         self.diffs.append(diff)
         self.recs.append(rec)  
     else:
