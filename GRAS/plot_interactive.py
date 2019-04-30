@@ -8,9 +8,9 @@ sim_time = 1000
 # init random data for example
 
 with open("/home/alex/MP_E.dat") as file:
-	voltages1 = [-float(v) for v in file.readline().split()]
+	voltages1 = [float(v) for v in file.readline().split()]
 with open("/home/alex/MP_F.dat") as file:
-	voltages2 = [-float(v) - 100 for v in file.readline().split()]
+	voltages2 = [float(v) - 70 for v in file.readline().split()]
 
 data1 = voltages1 # y
 data2 = voltages2  # y

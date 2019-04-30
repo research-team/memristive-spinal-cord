@@ -1,22 +1,19 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
+import numpy as np
 from neuron import h
 h.load_file('nrngui.hoc')
 
-#paralleling
+#paralleling NEURON staff
 pc = h.ParallelContext()
-rank = int(pc.id())
+rank = int(pc.id()) 
 nhost = int(pc.nhost())
 
 #param
-speed = 25
-EES_i = 25
-version = 1 
-
-moto_EX_v_vec = []
-moto_FL_v_vec = []
-soma_v_vec = []
-
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+EES_i = 20 # interval between EES stimulus 
+versions = 10
+step_number = 3 # number of steps
 
 from interneuron import interneuron
 from motoneuron import motoneuron
@@ -24,457 +21,304 @@ from bioaff import bioaff
 
 import random
 
-
-# network creation
-
-class cpg:
-  def __init__(self, speed, EES_int, inh_p, N = 20):
+'''
+network creation
+see topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+and all will be clear
+'''
+class CPG:
+  def __init__(self, speed, EES_int, inh_p, step_number, N = 20):
 
     self.interneurons = []
     self.motoneurons = []
     self.afferents = []
     self.stims = []
     self.ncell = N
-
-    nMN = 168
+    self.groups = []
+    self.motogroups = []
+    
+    nMN = 200
     nAff = 120
     nInt = 196
+
+    D1_1E = self.addpool(self.ncell, False, "D1_1E")
+    D1_1F = self.addpool(self.ncell, False, "D1_1F")
+      
+    D2_1E = self.addpool(self.ncell, False, "D2_1E")
+    D2_1F = self.addpool(self.ncell, False, "D2_1F")
     
-    D1_1E = self.addpool(self.ncell)
-    D1_2E = self.addpool(self.ncell)
-    D1_3E = self.addpool(self.ncell)
-    D1_4E = self.addpool(self.ncell)
-    D1_1F = self.addpool(self.ncell)
-    D1_2F = self.addpool(self.ncell)
-    D1_3F = self.addpool(self.ncell)
-    D1_4F = self.addpool(self.ncell)
-  
-    D2_1E = self.addpool(self.ncell)
-    D2_2E = self.addpool(self.ncell)
-    D2_3E = self.addpool(self.ncell)
-    D2_4E = self.addpool(self.ncell)
-    D2_1F = self.addpool(self.ncell)
-    D2_2F = self.addpool(self.ncell)
-    D2_3F = self.addpool(self.ncell)
-    D2_4F = self.addpool(self.ncell)
+    D3_1 = self.addpool(self.ncell, False, "D3_1")
 
-    D3_1 = self.addpool(self.ncell)
-    D3_2 = self.addpool(self.ncell)
-    D3_3 = self.addpool(self.ncell)
-    D3_4 = self.addpool(self.ncell)
+    D4_1E = self.addpool(self.ncell, False, "D4_1E")
+    D4_1F = self.addpool(self.ncell, False, "D4_1F")
+    
+    D5_1  = self.addpool(self.ncell, False, "D5_1")
 
-    D4_1E = self.addpool(self.ncell)
-    D4_2E = self.addpool(self.ncell)
-    D4_3E = self.addpool(self.ncell)
-    D4_4E = self.addpool(self.ncell)
-    D4_1F = self.addpool(self.ncell)
-    D4_2F = self.addpool(self.ncell)
-    D4_3F = self.addpool(self.ncell)
-    D4_4F = self.addpool(self.ncell)
+    G1_1 = self.addpool(self.ncell, False, "G1_1")
+    G1_2 = self.addpool(self.ncell, False, "G1_2")
+    G1_3 = self.addpool(self.ncell, False, "G1_3")
 
-    D5_1 = self.addpool(self.ncell)
-    D5_2 = self.addpool(self.ncell)
-    D5_3 = self.addpool(self.ncell)
-    D5_4 = self.addpool(self.ncell)
+    G2_1 = self.addpool(self.ncell, False, "G2_1")
+    G2_2 = self.addpool(self.ncell, False, "G2_2")
+    G2_3 = self.addpool(self.ncell, False, "G2_3")
+   
+    G3_1 = self.addpool(self.ncell, False, "G3_1")
+    G3_2E = self.addpool(self.ncell, False, "G3_2E")
+    G3_2F = self.addpool(self.ncell, False, "G3_2F")
+    G3_3 = self.addpool(self.ncell, False, "G3_3")
+    
+    G4_1 = self.addpool(self.ncell, False, "G4_1")
+    G4_2 = self.addpool(self.ncell, False, "G4_2")
+    G4_3 = self.addpool(self.ncell, False, "G4_3")
 
-    G1_1 = self.addpool(self.ncell)
-    G1_2 = self.addpool(self.ncell)
-    G1_3 = self.addpool(self.ncell)
+    G5_1 = self.addpool(self.ncell, False, "G5_1")
+    G5_2 = self.addpool(self.ncell, False, "G5_2")
+    G5_3 = self.addpool(self.ncell, False, "G5_3")
+   
+    E1 = self.addpool(self.ncell, False, "E1")
+    E2 = self.addpool(self.ncell, False, "E2")
+    E3 = self.addpool(self.ncell, False, "E3")
+    E4 = self.addpool(self.ncell, False, "E4")
+    E5 = self.addpool(self.ncell, False, "E5")
 
-    G2_1E = self.addpool(self.ncell)
-    G2_2E = self.addpool(self.ncell)
-    G2_3E = self.addpool(self.ncell)
-    G2_1F = self.addpool(self.ncell)
-    G2_2F = self.addpool(self.ncell)
-    G2_3F = self.addpool(self.ncell)
-
-    G3_1E = self.addpool(self.ncell)
-    G3_2E = self.addpool(self.ncell)
-    G3_3E = self.addpool(self.ncell)
-    G3_1F = self.addpool(self.ncell)
-    G3_2F = self.addpool(self.ncell)
-    G3_3F = self.addpool(self.ncell)
-
-    G4_1 = self.addpool(self.ncell)
-    G4_2 = self.addpool(self.ncell)
-    G4_3 = self.addpool(self.ncell)
-
-    G5_1E = self.addpool(self.ncell)
-    G5_2E = self.addpool(self.ncell)
-    G5_3E = self.addpool(self.ncell)
-    G5_1F = self.addpool(self.ncell)
-    G5_2F = self.addpool(self.ncell)
-    G5_3F = self.addpool(self.ncell)
-
-    E1_E = self.addpool(self.ncell)
-    E2_E = self.addpool(self.ncell)
-    E3_E = self.addpool(self.ncell)
-    E4_E = self.addpool(self.ncell)
-
-    E1_F = self.addpool(self.ncell)
-    E2_F = self.addpool(self.ncell)
-    E3_F = self.addpool(self.ncell)
-    E4_F = self.addpool(self.ncell)
-
-    I3_E = self.addpool(self.ncell)
-    I4_E = self.addpool(self.ncell)
-    I5_E = self.addpool(self.ncell)
-    I5_F = self.addpool(self.ncell)
-        
     sens_aff = self.addafferents(nAff)
-    self.Ia_aff_E = self.addafferents(nAff)
+    Ia_aff_E = self.addafferents(nAff)
     Ia_aff_F = self.addafferents(nAff)
 
-    self.mns_E = self.addmotoneurons(nMN)
-    self.mns_F = self.addmotoneurons(nMN)
+    mns_E = self.addmotoneurons(nMN, "mns_E50")
+    mns_F = self.addmotoneurons(nMN, "mns_F50")
 
     #interneuronal pool
-    IP1_E = self.addpool(self.ncell)
-    IP1_F = self.addpool(self.ncell)
-    IP2_E = self.addpool(self.ncell)
-    IP2_F = self.addpool(self.ncell)
-    IP3_E = self.addpool(self.ncell)
-    IP3_F = self.addpool(self.ncell)
-    IP4_E = self.addpool(self.ncell)
-    IP4_F = self.addpool(self.ncell)
-    IP5_E = self.addpool(self.ncell)
-    IP5_F = self.addpool(self.ncell)
+    IP1_E = self.addpool(self.ncell, False, "IP1_E")
+    IP1_F = self.addpool(self.ncell, False, "IP1_F")
+    IP2_E = self.addpool(self.ncell, False, "IP2_E")
+    IP2_F = self.addpool(self.ncell, False, "IP2_F")
+    IP3_E = self.addpool(self.ncell, False, "IP3_E")
+    IP3_F = self.addpool(self.ncell, False, "IP3_F")
+    IP4_E = self.addpool(self.ncell, False, "IP4_E")
+    IP4_F = self.addpool(self.ncell, False, "IP4_F")
+    IP5_E = self.addpool(self.ncell, False, "IP5_E")
+    IP5_F = self.addpool(self.ncell, False, "IP5_F")
 
     # EES
-    self.ees = self.addgener(1, EES_int, 10000)
-    self.dees = self.addgener(25, EES_int, 4)
-    self.tees = self.addgener(50, EES_int, 2)
-
+    ees = self.addgener(1, EES_int, 10000)
     
     #skin inputs
     c_int = 5
+    C1 = []
+    C2 = []
+    C3 = []
+    C4 = []
+    C5 = []
+    C_1 = []
+    C_0 = []
 
-    C1 = self.addgener(speed*0, c_int, speed/c_int)
-    C2 = self.addgener(speed*1, c_int, speed/c_int)
-    C3 = self.addgener(speed*2, c_int, speed/c_int)
-    C4 = self.addgener(speed*3, c_int, 2*speed/c_int)
-    C5 = self.addgener(speed*5, c_int, speed/c_int)
-
-    C_1 = self.addgener(speed*0, c_int, 6*speed/c_int)
-    C_0 = self.addgener(speed*6, c_int, 125/c_int)
-
+    for i in range(step_number):
+        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 2)))
+    for i in range(step_number):
+        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+    for i in range(step_number):
+        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+    for i in range(step_number):
+        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, 2*speed/c_int + random.randint(1, 2)))
+    for i in range(step_number):
+        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/6), c_int, speed/c_int + random.randint(1, 2)))
+    for i in range(step_number):
+        C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
+    for i in range(step_number):
+        C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int))
+    
     #reflex arc
-    Ib_E = self.addpool(nInt)
-    Ia_E = self.addpool(nInt)
-    R_E = self.addpool(nInt)
+    Ia_E = self.addpool(nInt, False, "Ia_E")
+    R_E = self.addpool(nInt, False, "R_E")
 
-    Ib_F = self.addpool(nInt)
-    Ia_F = self.addpool(nInt)
-    R_F = self.addpool(nInt)
-  
-    #delays
-    connectdelay_extensor(D1_1E, D1_2E, D1_3E, D1_4E)
-    connectdelay_flexor(D1_1F, D1_2F, D1_3F, D1_4F)
-
-    connectdelay_extensor(D2_1E, D2_2E, D2_3E, D2_4E)
-    connectdelay_flexor(D2_1F, D2_2F, D2_3F, D2_4F)
-
-    connectdelay_extensor(D3_1, D3_2, D3_3, D3_4)
-
-    connectdelay_extensor(D4_1E, D4_2E, D4_3E, D4_4E)
-    connectdelay_flexor(D4_1F, D4_2F, D4_3F, D4_4F)
-
-    connectdelay_extensor(D5_1, D5_2, D5_3, D5_4)
+    Ia_F = self.addpool(nInt, False, "Ia_F")
+    R_F = self.addpool(nInt, False, "R_F")
+    
 
     #generators
-    connectgenerator(G1_1, G1_2, G1_3)
-    
-    connectgenerator(G2_1E, G2_2E, G2_3E)
-    connectgenerator(G2_1F, G2_2F, G2_3F)
-
-    connectgenerator(G3_1E, G3_2E, G3_3E)
-    connectgenerator(G3_1F, G3_2F, G3_3F)
-
+    connectgenerator(G1_1, G1_2, G1_3) 
+    connectgenerator(G2_1, G2_2, G2_3)
+    connectgenerator(G3_1, G3_2E, G3_3)
+    exconnectcells(G3_1, G3_2F, 0.05, 3, 27)
+    exconnectcells(G3_2F, G3_1, 0.05, 4, 27)
     connectgenerator(G4_1, G4_2, G4_3)
-
-    connectgenerator(G5_1E, G5_2E, G5_3E)
-    connectgenerator(G5_1F, G5_2F, G5_3F)
+    connectgenerator(G5_1, G5_2, G5_3)
 
     #between delays (FLEXOR)
-    exconnectcells(D2_3F, D3_1, 0.00015, 1, 27)
-    exconnectcells(D2_3F, D3_4, 0.00025, 1, 27)
-    exconnectcells(D4_3F, D5_1, 0.0002, 1, 27)
-    exconnectcells(D4_3F, D5_4, 0.00025, 1, 27)
+    exconnectcells(D2_1F, D3_1, 0.005, 1, 27)
+    exconnectcells(G3_2F, G4_2, 0.005, 1, 27)
+    exconnectcells(D4_1F, D5_1, 0.0035, 1, 27)
 
     #between delays via excitatory pools
     #extensor
-    exconnectcells(D1_3E, E1_E, 0.5, 1, 27)
-    exconnectcells(E1_E, E2_E, 0.5, 1, 27)
-    exconnectcells(E2_E, E3_E, 0.5, 1, 27)
-    exconnectcells(E3_E, E4_E, 0.5, 1, 27)
+    exconnectcells(E1, E2, 0.5, 1, 27)
+    exconnectcells(E2, E3, 0.5, 1, 27)
+    exconnectcells(E3, E4, 0.5, 1, 27)
+    exconnectcells(E4, E5, 0.5, 1, 27)
 
-    connectexpools_extensor(D2_1E, D2_4E, E1_E)
-    connectexpools_extensor(D3_1, D3_4, E2_E)
-    connectexpools_extensor(D4_1E, D4_4E, E3_E)
-    connectexpools_extensor(D5_1, D5_4, E4_E)
-
+    exconnectcells(E1, D1_1E, 0.0037, 1, 27)
+    exconnectcells(E2, D2_1E, 0.00037, 1, 27)
+    exconnectcells(E3, D3_1, 0.00037, 1, 27)
+    exconnectcells(E4, D4_1E, 0.00037, 1, 27)
+    exconnectcells(E5, D5_1, 0.00037, 1, 27)
+    
     #flexor
-    exconnectcells(D1_3F, E1_F, 0.5, 1, 27)
-    exconnectcells(E1_F, E2_F, 0.5, 1, 27)
-    exconnectcells(E2_F, E3_F, 0.5, 1, 27)
-    exconnectcells(E3_F, E4_F, 0.5, 1, 27)
-
-    connectexpools_flexor(D2_1F, D2_4F, E1_F)
-    connectexpools_flexor(D3_1, D3_4, E2_F)
-    connectexpools_flexor(D4_1F, D4_4F, E3_F)
-    connectexpools_flexor(D5_1, D5_4, E4_F)
+    exconnectcells(E1, D1_1F, 0.05, 1, 27)
+    exconnectcells(E2, D2_1F, 0.005, 1, 27)
+    exconnectcells(E4, D4_1F, 0.005, 1, 27)
 
     #delay -> generator
     #extensor
-    exconnectcells(D1_3E, G1_1, 0.05, 2, 27)
-    exconnectcells(D2_3E, G2_1E, 0.05, 2, 27)
-    exconnectcells(D3_3, G3_1E, 0.05, 2, 27)
-    exconnectcells(D4_3E, G4_1, 0.05, 1, 27)
-    exconnectcells(D5_3, G5_1E, 0.05, 1, 27)
-
+    exconnectcells(D1_1E, G1_1, 0.05, 2, 27)
+    exconnectcells(D2_1E, G2_1, 0.05, 2, 27)
+    exconnectcells(D3_1, G3_1, 0.05, 2, 27)
+    exconnectcells(D4_1E, G4_1, 0.05, 2, 27)
+    exconnectcells(D5_1, G5_1, 0.05, 1, 27)
+    
     #flexor
-    exconnectcells(D1_3F, G1_1, 0.005, 2, 27)
-    exconnectcells(D1_3F, G2_1F, 0.005, 2, 27)
-    exconnectcells(D3_3, G3_1F, 0.005, 2, 27)
-    exconnectcells(D5_3, G5_1F, 0.005, 2, 27)
-
-    #generator -> delay(FLEXOR)
-    exconnectcells(G2_1F, D2_1F, 0.0002, 1, 27)
-    exconnectcells(G2_1F, D2_4F, 0.0001, 1, 27)
-    exconnectcells(G4_1, D4_1F, 0.0003, 1, 27)
-    exconnectcells(G4_1, D4_4F, 0.00025, 1, 27)
-
-    #between generators (FLEXOR)
-    exconnectcells(G3_1F, G4_1, 0.05, 2, 27)
-    exconnectcells(G3_2F, G4_1, 0.05, 2, 27)
+    exconnectcells(D1_1F, G1_1, 0.05, 2, 27)
+    exconnectcells(D1_1F, G2_2 , 0.05, 1, 27)
+    exconnectcells(D2_1F, G2_1, 0.05, 2, 27)
+    exconnectcells(D4_1F, G4_1, 0.05, 2, 27)
 
     #inhibitory projections
     #extensor
-    inhconnectcells(I3_E, G1_2, 0.8, 1, 27)
-    inhconnectcells(I3_E, G1_1, 0.8, 1, 27)
+    exconnectcells(C3, G1_3, 0.8, 1, 50)
 
-    inhconnectcells(I4_E, G2_1E, 0.8, 1, 27)
-    inhconnectcells(I4_E, G2_2E, 0.8, 1, 27)
-    inhconnectcells(I4_E, G1_2, 0.8, 1, 27)
-    inhconnectcells(I4_E, G1_1, 0.8, 1, 27)
+    exconnectcells(C4, G1_3, 0.8, 1, 50)
+    exconnectcells(C4, G2_3, 0.8, 1, 50)
 
-    inhconnectcells(I5_E, G1_1, 0.8, 1, 27)
-    inhconnectcells(I5_E, G1_2, 0.8, 1, 27)
-    inhconnectcells(I5_E, G2_1E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G2_2E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G3_1E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G3_2E, 0.8, 1, 27)
-    inhconnectcells(I5_E, G4_1, 0.8, 1, 27)
-    inhconnectcells(I5_E, G4_2, 0.8, 1, 27)
-
-    #flexor
-    inhconnectcells(I5_F, G1_1, 0.8, 1, 27)
-    inhconnectcells(I5_F, G1_2, 0.8, 1, 27)
-    inhconnectcells(I5_F, G2_1F, 0.8, 1, 27)
-    inhconnectcells(I5_F, G2_2F, 0.8, 1, 27)
-    inhconnectcells(I5_F, G3_1F, 0.8, 1, 27)
-    inhconnectcells(I5_F, G3_2F, 0.8, 1, 27)
-    inhconnectcells(I5_F, G4_1, 0.8, 1, 27)
-    inhconnectcells(I5_F, G4_2, 0.8, 1, 27)
+    exconnectcells(C5, G1_3, 0.8, 1, 50)
+    exconnectcells(C5, G2_3, 0.8, 1, 50)
+    exconnectcells(C5, G3_3, 0.8, 1, 50)
+    exconnectcells(C5, G4_3, 0.8, 1, 50)
     
     #EES
-    genconnect(sens_aff, self.ees, 1, 0, 50)
-    genconnect(Ia_aff_F, self.ees, 1, 0, 50)
+    genconnect(ees, sens_aff, 1, 0, 50)
+    genconnect(ees, Ia_aff_F, 1, 0, 50)
+    genconnect(ees, Ia_aff_E, 1, 0, 50)
 
-    exconnectcells(sens_aff, D1_1E, 0.5, 0, 50)
-    exconnectcells(sens_aff, D1_4E, 0.5, 0, 50)
+    exconnectcells(sens_aff, E1, 0.5, 0, 50)
+    exconnectcells(sens_aff, E1, 0.5, 0, 50)
 
-    exconnectcells(sens_aff, D1_1F, 0.5, 0, 50)
-    exconnectcells(sens_aff, D1_4F, 0.5, 0, 50)
-
-    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/3)], self.ees, 0.2, 1, 60)
-    genconnect(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.dees, 0.5, 2, 50)
-    genconnect(self.Ia_aff_E, self.tees, 1.5, 1, 50)
-
-    exconnectcells(self.Ia_aff_E[:int(len(self.Ia_aff_E)/2)], self.mns_E[:int(len(self.mns_E)/2 + random.randint(5, 10))], 0.5, 1, 50)
-    exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 50)
-
-    exconnectcells(Ia_aff_F, self.mns_F, 0.5, 1, 50)
+    exconnectcells(Ia_aff_E, mns_E, 0.8, 1, 50)
+    exconnectcells(Ia_aff_F, mns_F, 0.5, 1, 50)
 
     #IP
     #Extensor
-    exconnectcells(G1_1, IP1_E, 0.5, 2, 50)
-    exconnectcells(G1_2, IP1_E, 0.5, 2, 50)
-
-    exconnectcells(G2_1E, IP2_E, 0.5, 1, 50)
-    exconnectcells(G2_2E, IP2_E, 0.5, 1, 50)
-
-    exconnectcells(G3_1E, IP3_E, 0.5, 2, 50)
+    exconnectcells(G1_2, IP1_E, 0.5, 1, 50)
+    exconnectcells(G2_2, IP2_E, 0.5, 2, 50)
     exconnectcells(G3_2E, IP3_E, 0.5, 2, 50)
-
-    exconnectcells(G4_1, IP4_E, 0.5, 2, 50)
     exconnectcells(G4_2, IP4_E, 0.5, 2, 50)
+    exconnectcells(G5_2, IP5_E, 0.5, 2, 50)
 
-    exconnectcells(G5_1E, IP5_E, 0.5, 1, 50)
-    exconnectcells(G5_2E, IP5_E, 0.5, 1, 50)
-    
+    exconnectcells(IP3_E, mns_E, 0.8, 2, 80)
+    exconnectcells(IP2_E, mns_E[:int(3*len(mns_F)/5)], 0.8, 2, 80)
+    exconnectcells(IP5_E, mns_E[:int(3*len(mns_F)/5)], 0.8, 2, 80)
+    exconnectcells(IP4_E, mns_E[int(len(mns_F)/5):], 0.8, 2, 60)
+    exconnectcells(IP1_E, mns_E[:int(len(mns_F)/5)], 0.8, 2, 60)
 
-    exconnectcells(IP1_E, self.mns_E[:int(len(self.mns_E)/5 + random.randint(5, 10))], 0.5, 1, 60)
-    exconnectcells(IP2_E, self.mns_E[int(len(self.mns_E)/5):int(2*len(self.mns_E)/5 + random.randint(5, 10))], 0.7, 1, 60)
-    exconnectcells(IP3_E, self.mns_E, 0.8, 1, 80)
-    exconnectcells(IP4_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.7, 1, 60)
-    exconnectcells(IP5_E, self.mns_E[int(3*len(self.mns_E)/5 + 2):], 0.65, 1, 60)
+    inhconnectcells(IP1_E, Ia_aff_E, 0.002, 2, 40)
+    #inhconnectcells(IP2_E, Ia_aff_E, 0.0001, 2, 40)
+    inhconnectcells(IP3_E, Ia_aff_E, 0.0015, 2, 30)
+    inhconnectcells(IP4_E, Ia_aff_E, 0.02, 2, 40)
+    inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 40)
 
     #Flexor
-    exconnectcells(G1_1, IP1_F, 0.5, 1, 50)
-    exconnectcells(G1_2, IP1_F, 0.5, 1, 50)
-
-    exconnectcells(G2_1F, IP2_F, 0.5, 1, 50)
-    exconnectcells(G2_2F, IP2_F, 0.5, 1, 50)
-
-    exconnectcells(G3_1F, IP3_F, 0.5, 1, 50)
-    exconnectcells(G3_2F, IP3_F, 0.5, 1, 50)
-
-    exconnectcells(G4_1, IP4_F, 0.5, 1, 50)
-    exconnectcells(G4_2, IP4_F, 0.5, 1, 50)
-
-    exconnectcells(G5_1F, IP5_F, 0.5, 1, 50)
-    exconnectcells(G5_2F, IP5_F, 0.5, 1, 50)
-
-    exconnectcells(IP1_F, self.mns_F, 0.5, 1, 20)
-    exconnectcells(IP2_F, self.mns_F, 0.5, 1, 20)
-    exconnectcells(IP3_F, self.mns_F, 0.5, 1, 20)
-    exconnectcells(IP4_F, self.mns_F, 0.5, 1, 20)
-    exconnectcells(IP5_F, self.mns_F, 0.5, 1, 20)
+    exconnectcells(G1_2, IP1_F, 0.5, 2, 50)
+    exconnectcells(G2_2, IP2_F, 0.5, 1, 50)
+    exconnectcells(G3_2F, IP3_F, 0.5, 2, 50)
+    exconnectcells(G4_2, IP4_F, 0.5, 2, 50)
+    exconnectcells(G5_2, IP5_F, 0.5, 2, 50)
+    
+    exconnectcells(IP1_F, mns_F[:2*int(len(mns_F)/5)], 0.8, 2, 60)
+    exconnectcells(IP2_F, mns_F[int(len(mns_F)/5):int(3*len(mns_F)/5)], 0.8, 2, 80)
+    exconnectcells(IP3_F, mns_F, 0.8, 2, 80)
+    exconnectcells(IP4_F, mns_F[int(2*len(mns_F)/5):], 0.8, 2, 80)
+    exconnectcells(IP5_F, mns_F[int(3*len(mns_F)/5):], 0.8, 2, 80)
 
     #skin inputs
     #C1
-    genconnect(D1_1E, C1, 0.0001, 1, 50)
-    genconnect(D1_4E, C1, 0.0001, 1, 50)
+    exconnectcells(C1, D1_1E, 0.0005, 1, 50)
 
     #C2
-    genconnect(D1_1E, C2, 0.00035, 1, 27)
-    genconnect(D1_4E, C2, 0.00035, 1, 27)
-    genconnect(D2_1E, C2, 0.00045, 1, 27)
-    genconnect(D2_4E, C2, 0.00045, 1, 27)
+    exconnectcells(C2, D1_1E, 0.0005, 1, 27)
+    exconnectcells(C2, D2_1E, 0.00045, 1, 27)
 
     #C3
-    genconnect(D2_1E, C3, 0.00048, 1, 27)
-    genconnect(D2_4E, C3, 0.00048, 1, 27)
-    genconnect(D3_1, C3, 0.00048, 1, 27)
-    genconnect(D3_2, C3, 0.00048, 1, 27)
-    genconnect(I3_E, C3, 1, 1, 50)
+    exconnectcells(C3, D2_1E, 0.00045, 1, 27)
+    exconnectcells(C3, D3_1 , 0.00035, 1, 27)
 
     #C4
-    genconnect(D3_1, C4, 0.00021, 1, 60)
-    genconnect(D3_4, C4, 0.00021, 1, 60)
-    genconnect(D4_1E, C4, 0.00021, 1, 60)
-    genconnect(D4_4E, C4, 0.00021, 1, 60)
-    genconnect(I4_E, C4, 1, 1, 50)
+    exconnectcells(C4, D3_1 , 0.00038, 1, 27)
+    exconnectcells(C4, D4_1E, 0.0004, 1, 27)
 
     #C5
-    genconnect(D5_1, C5, 0.00028, 1, 30)
-    genconnect(D5_4, C5, 0.00028, 1, 30)
-    genconnect(D4_1E, C5, 0.00028, 1, 30)
-    genconnect(D4_4E, C5, 0.00028, 1, 30)
-    genconnect(I5_E, C5, 1, 1, 50)
-
+    exconnectcells(C5, D5_1 , 0.0003, 1, 30)
+    exconnectcells(C5, D4_1E, 0.00025, 1, 30)
+    
     #C=1 Extensor
-    inhgenconnect(C_1, D1_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, D1_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, D1_3F, 0.8, 1, 50)
-    inhgenconnect(C_1, D1_4F, 0.8, 1, 50)
+    inhconnectcells(C_1, D1_1F, 0.8, 1, 50)
+    inhconnectcells(C_1, D2_1F, 0.8, 1, 50)
+    inhconnectcells(C_1, D4_1F, 0.8, 1, 50)
+    inhconnectcells(C_1, G3_2F, 0.8, 1, 50)
 
-    inhgenconnect(C_1, D2_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, D2_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, D2_3F, 0.8, 1, 50)
-    inhgenconnect(C_1, D2_4F, 0.8, 1, 50)
+    inhconnectcells(C_1, IP1_F, 0.8, 1, 60)
+    inhconnectcells(C_1, IP2_F, 0.8, 1, 60)
+    inhconnectcells(C_1, IP3_F, 0.8, 1, 60)
+    inhconnectcells(C_1, IP4_F, 0.8, 1, 60)
+    inhconnectcells(C_1, IP5_F, 0.8, 1, 60)
 
-    inhgenconnect(C_1, D4_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, D4_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, D4_3F, 0.8, 1, 50)
-    inhgenconnect(C_1, D4_4F, 0.8, 1, 50)
-
-    inhgenconnect(C_1, G2_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, G2_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, G2_3F, 0.8, 1, 50)
-
-    inhgenconnect(C_1, G3_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, G3_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, G3_3F, 0.8, 1, 50)
-
-    inhgenconnect(C_1, G5_1F, 0.8, 1, 50)
-    inhgenconnect(C_1, G5_2F, 0.8, 1, 50)
-    inhgenconnect(C_1, G5_3F, 0.8, 1, 50)
-
-    inhgenconnect(C_1, IP1_F, 0.8, 1, 60)
-    inhgenconnect(C_1, IP2_F, 0.8, 1, 60)
-    inhgenconnect(C_1, IP3_F, 0.8, 1, 60)
-    inhgenconnect(C_1, IP4_F, 0.8, 1, 60)
-    inhgenconnect(C_1, IP5_F, 0.8, 1, 60)
-
-    inhgenconnect(C_1, Ia_aff_F, 0.9, 1, 80)
+    inhconnectcells(C_1, Ia_aff_F, 0.9, 1, 80)
 
     #C=0 Flexor
-    inhgenconnect(C_0, D1_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, D1_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, D1_3E, 0.8, 1, 50)
-    inhgenconnect(C_0, D1_4E, 0.8, 1, 50)
+    inhconnectcells(C_0, IP1_E, 0.8, 1, 60)
+    inhconnectcells(C_0, IP2_E, 0.8, 1, 60)
+    inhconnectcells(C_0, IP3_E, 0.8, 1, 60)
+    inhconnectcells(C_0, IP4_E, 0.8, 1, 60)
+    inhconnectcells(C_0, IP5_E, 0.8, 1, 60)
 
-    inhgenconnect(C_0, D2_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, D2_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, D2_3E, 0.8, 1, 50)
-    inhgenconnect(C_0, D2_4E, 0.8, 1, 50)
-
-    inhgenconnect(C_0, D4_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, D4_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, D4_3E, 0.8, 1, 50)
-    inhgenconnect(C_0, D4_4E, 0.8, 1, 50)
-
-    inhgenconnect(C_0, G2_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, G2_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, G2_3E, 0.8, 1, 50)
-
-    inhgenconnect(C_0, G3_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, G3_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, G3_3E, 0.8, 1, 50)
-
-    inhgenconnect(C_0, G5_1E, 0.8, 1, 50)
-    inhgenconnect(C_0, G5_2E, 0.8, 1, 50)
-    inhgenconnect(C_0, G5_3E, 0.8, 1, 50)
-
-    inhgenconnect(C_0, IP1_E, 0.8, 1, 60)
-    inhgenconnect(C_0, IP2_E, 0.8, 1, 60)
-    inhgenconnect(C_0, IP3_E, 0.8, 1, 60)
-    inhgenconnect(C_0, IP4_E, 0.8, 1, 60)
-    inhgenconnect(C_0, IP5_E, 0.8, 1, 60)
-
-    inhgenconnect(C_0, self.Ia_aff_E, 0.8, 1, 80)
+    inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
 
     #reflex arc
-    exconnectcells(self.Ia_aff_E, Ib_E, 0.00015, 1, 30)
-    exconnectcells(self.Ia_aff_E, Ia_E, 0.01, 1, 30)
-    exconnectcells(self.mns_E, R_E, 0.00025, 1, 30)
-    inhconnectcells(Ib_E, self.mns_E, 0.01, 1, 45)
-    inhconnectcells(Ia_E, self.mns_F, 0.04, 1, 45)
-    inhconnectcells(R_E, self.mns_E, 0.05, 1, 45)
+    exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
+    exconnectcells(mns_E, R_E, 0.00025, 1, 30)
+    inhconnectcells(Ia_E, mns_F, 0.04, 1, 45)
+    inhconnectcells(R_E, mns_E, 0.05, 1, 45)
     inhconnectcells(R_E, Ia_E, 0.01, 1, 40)
 
-    exconnectcells(Ia_aff_F, Ib_F, 0.00015, 1, 30)
     exconnectcells(Ia_aff_F, Ia_F, 0.01, 1, 30)
-    exconnectcells(self.mns_F, R_F, 0.0002, 1, 30)
-    inhconnectcells(Ib_F, self.mns_F, 0.05, 1, 45)
-    inhconnectcells(Ia_F, self.mns_E, 0.04, 1, 45)
-    inhconnectcells(R_F, self.mns_F, 0.01, 1, 45)
+    exconnectcells(mns_F, R_F, 0.0002, 1, 30)
+    inhconnectcells(Ia_F, mns_E, 0.04, 1, 45)
+    inhconnectcells(R_F, mns_F, 0.01, 1, 45)
     inhconnectcells(R_F, Ia_F, 0.001, 1, 20)
 
-    inhconnectcells(Ib_E, Ib_F, 0.04, 1, 30)
     inhconnectcells(R_E, R_F, 0.04, 1, 30)
     inhconnectcells(Ia_E, Ia_F, 0.04, 1, 30)
-    inhconnectcells(Ib_F, Ib_E, 0.04, 1, 30)
     inhconnectcells(R_F, R_E, 0.04, 1, 30)
-    inhconnectcells(Ia_F, Ia_E, 0.04, 1, 30)
+    inhconnectcells(Ia_F, Ia_E, 0.04, 1, 30) 
     
-  def addpool(self, num):
+  def addpool(self, num, delaytype, name="test"):
+    '''
+    Creates interneuronal pool and returns gids of pool
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    delaytype: bool
+        Does it have 5ht receptors?
+        -Yes: True 
+        -No: False
+    Returns
+    -------
+    gids: list
+        the list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
-      cell = interneuron()
+      cell = interneuron(delaytype)
       self.interneurons.append(cell)
       while(pc.gid_exists(gid)!=0):
         gid+=1
@@ -482,9 +326,24 @@ class cpg:
       pc.set_gid2node(gid, rank)
       nc = cell.connect2target(None)
       pc.cell(gid, nc)
+    
+    # ToDo remove me (Alex code) - NO
+    self.groups.append((gids, name))
+
     return gids
 
-  def addmotoneurons(self, num):
+  def addmotoneurons(self, num, name):
+    '''
+    Creates pool of motoneurons and returns gids of pool
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    Returns
+    -------
+    gids: list
+        list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
@@ -496,9 +355,23 @@ class cpg:
       pc.set_gid2node(gid, rank)
       nc = cell.connect2target(None)
       pc.cell(gid, nc)
+
+    self.motogroups.append((gids, name))
+
     return gids
 
   def addafferents(self, num):
+    '''
+    Creates pool of afferents and returns gids of pool
+    Parameters
+    ----------
+    num: int
+        neurons number in pool
+    Returns
+    -------
+    gids: list
+        list of neurons gids
+    '''
     gids = []
     gid = 0
     for i in range(rank, num, nhost):
@@ -513,6 +386,21 @@ class cpg:
     return gids
 
   def addgener(self, start, interval, nums):
+    '''
+    Creates generator and returns generator gid
+    Parameters
+    ----------
+    start: int
+        generator start up
+    interval: int
+        interval between signals in generator 
+    nums: int
+        signals number
+    Returns
+    -------
+    gid: int
+        generator gid 
+    '''
     gid = 0
     stim = h.NetStim()
     stim.number = nums
@@ -527,16 +415,29 @@ class cpg:
     pc.cell(gid, ncstim)
     return gid
 
-
 exnclist = []
 inhnclist = []
 eesnclist = []
 stimnclist = []
 
 def exconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with excitatory synapse '''
+  ''' Connects with excitatory synapses 
+    Parameters
+    ----------
+    pre: list
+        list of presynase neurons gids
+    post: list
+        list of postsynapse neurons gids
+    weight: float
+        weight of synapse
+        used with Gaussian distribution
+    delay: int
+        synaptic delay
+        used with Gaussian distribution
+    nsyn: int
+        numder of synapses
+  '''
   global exnclist
-  # not efficient but demonstrates use of pc.gid_exists
   for i in post:
     if pc.gid_exists(i):
       for j in range(nsyn):
@@ -545,13 +446,27 @@ def exconnectcells(pre, post, weight, delay, nsyn):
         syn = target.synlistex[j]
         nc = pc.gid_connect(srcgid, syn)
         exnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/4)
+        nc.delay = random.gauss(delay, delay/8)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhconnectcells(pre, post, weight, delay, nsyn):
-  ''' connection with inhibitory synapse '''
+  ''' Connects with inhibitory synapses 
+    Parameters
+    ----------
+    pre: list
+        list of presynase neurons gids
+    post: list
+        list of postsynapse neurons gids
+    weight: float
+        weight of synapse
+        used with Gaussian distribution
+    delay: int
+        synaptic delay
+        used with Gaussian distribution
+    nsyn: int
+        numder of synapses
+  '''
   global inhnclist
-  # not efficient but demonstrates use of pc.gid_exists
   for i in post:
     if pc.gid_exists(i):
       for j in range(nsyn):
@@ -563,25 +478,55 @@ def inhconnectcells(pre, post, weight, delay, nsyn):
         nc.delay = random.gauss(delay, 0.01)
         nc.weight[0] = random.gauss(weight, weight/10)
 
-def genconnect(afferents_gids, gen_gid, weight, delay, nsyn):
-  ''' stimulate afferents with NetStim '''
+def genconnect(gen_gid, afferents_gids, weight, delay, nsyn):
+  ''' Connects with generator 
+    Parameters
+    ----------
+    afferents_gids: list
+        list of presynase neurons gids
+    gen_gid: int
+        generator gid
+    weight: float
+        weight of synapse
+        used with Gaussian distribution
+    delay: int
+        synaptic delay
+        used with Gaussian distribution
+    nsyn: int
+        numder of synapses
+  '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
-      for j in range(nsyn):        
+      for j in range(nsyn): 
         target = pc.gid2cell(i)
         syn = target.synlistees[j]
         nc = pc.gid_connect(gen_gid, syn)
         stimnclist.append(nc)
-        nc.delay = random.gauss(delay, delay/4)
+        nc.delay = random.gauss(delay, delay/8)
         nc.weight[0] = random.gauss(weight, weight/10)
 
 def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
-  ''' stimulate afferents with NetStim '''
+  ''' Connects with generator via inhibitory synapses 
+    Parameters
+    ----------
+    gen_gid: int
+        generator gid
+    afferents_gids: list
+        list of presynase neurons gids
+    weight: float
+        weight of synapse
+        used with Gaussian distribution
+    delay: int
+        synaptic delay
+        used with Gaussian distribution
+    nsyn: int
+        numder of synapses
+  '''
   global stimnclist
   for i in afferents_gids:
     if pc.gid_exists(i):
-      for j in range(nsyn):        
+      for j in range(nsyn): 
         target = pc.gid2cell(i)
         syn = target.synlistinh[j]
         nc = pc.gid_connect(gen_gid, syn)
@@ -589,123 +534,101 @@ def inhgenconnect(gen_gid, afferents_gids, weight, delay, nsyn):
         nc.delay = random.gauss(delay, delay/10)
         nc.weight[0] = random.gauss(weight, weight/10)
 
-def connectdelay_extensor(d1, d2, d3, d4):
-  exconnectcells(d2, d1, 0.05, 2, 27)
-  exconnectcells(d1, d2, 0.05, 2, 27)
-  exconnectcells(d1, d3, 0.01, 1, 27)
-  exconnectcells(d2, d3, 0.01, 1, 27)
-  inhconnectcells(d4, d3, 0.0001, 1, 27)
-  inhconnectcells(d3, d2, 0.08, 1, 27)
-  inhconnectcells(d3, d1, 0.08, 1, 27)
-
-def connectdelay_flexor(d1, d2, d3, d4):
-  exconnectcells(d2, d1, 0.05, 3, 27)
-  exconnectcells(d1, d2, 0.05, 3, 27)
-  exconnectcells(d2, d3, 0.01, 1, 27)
-  exconnectcells(d1, d3, 0.01, 1, 27)
-  inhconnectcells(d4, d3, 0.008, 1, 27)
-  inhconnectcells(d3, d2, 0.08, 1, 27)
-  inhconnectcells(d3, d1, 0.08, 1, 27)
-
 def connectgenerator(g1, g2, g3):
+  ''' Connects generator module
+    see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+    Parameters
+    ----------
+    g1: list
+        list of G1 pool gids
+    g2: list
+        list of G2 pool gids
+    g3: list
+        list of G3 pool gids
+  '''
   exconnectcells(g1, g2, 0.05, 3, 27)
   exconnectcells(g2, g1, 0.05, 3, 27)
-  exconnectcells(g2, g3, 0.005, 1, 27)
-  exconnectcells(g1, g3, 0.005, 1, 27)
-  inhconnectcells(g3, g1, 0.08, 1, 27)
-  inhconnectcells(g3, g2, 0.08, 1, 27)
+  exconnectcells(g2, g3, 0.001, 1, 27)
+  #exconnectcells(g1, g3, 0.001, 1, 27)
+  #inhconnectcells(g3, g1, 0.08, 1, 27)
+  inhconnectcells(g3, g2, 0.8, 1, 27)
 
-def connectexpools_extensor(d1, d4, ep):
-  exconnectcells(ep, d1, 0.00037, 1, 27)
-  exconnectcells(ep, d4, 0.00037, 1, 27)
-
-def connectexpools_flexor(d1, d4, ep):
-  exconnectcells(ep, d1, 0.0004, 1, 27)
-  exconnectcells(ep, d4, 0.0004, 1, 27)
-
-
-def spike_record(cpg):
-  ''' record spikes from all gids '''
-  global moto_EX_v_vec, moto_FL_v_vec, soma_v_vec 
+def spike_record(pool, version):
+  ''' Records spikes from gids 
+    Parameters
+    ----------
+    pool: list
+      list of neurons gids
+    version: int
+        test number
+    Returns
+    -------
+    v_vec: list of h.Vector()
+        recorded voltage
   '''
-  for i in range(len(interneurons)):
-    v_vec = h.Vector()
-    v_vec.record(interneurons[i].soma(0.5)._ref_v)
-    soma_v_vec.append(v_vec)
+  v_vec = []
+
+  for i in pool:
+    cell = pc.gid2cell(i)
+    vec = h.Vector()
+    vec.record(cell.soma(0.5)._ref_vext[0])
+    v_vec.append(vec)
+  return v_vec
+
+def avgarr(z):
+  ''' Summarizes extracellular voltage in pool
+    Parameters
+    ----------
+    z: list
+      list of neurons voltage
+    Returns
+    -------
+    summa: list 
+        list of summarized voltage
   '''
-  for i in cpg.mns_E:
-    moto = pc.gid2cell(i)
-    moto_vec = h.Vector()
-    moto_vec.record(moto.soma(0.5)._ref_vext[0])
-    moto_EX_v_vec.append(moto_vec)
+  summa = 0
+  for item in z:
+    summa += np.array(item)
+  return summa
+ 
+def spikeout(pool, name, version, v_vec):
+  ''' Reports simulation results 
+    Parameters
+    ----------
+    pool: list
+      list of neurons gids
+    name: string
+      pool name
+    version: int
+        test number
+    v_vec: list of h.Vector()
+        recorded voltage
+  '''
+  global rank 
+  pc.barrier()
+  for i in range(nhost):
+    if i == rank:
+      outavg = []
+      for j in range(len(pool)):
+        outavg.append(list(v_vec[j]))
+      outavg = avgarr(outavg)
+      path=str('./res/'+ name + 'r%dv%d'%(rank, version))
+      f = open(path, 'w')
+      for v in outavg:
+          f.write(str(v)+"\n")
+    pc.barrier()
 
-  for i in cpg.mns_F:
-    moto = pc.gid2cell(i)
-    moto_vec = h.Vector()
-    moto_vec.record(moto.soma(0.5)._ref_vext[0])
-    moto_FL_v_vec.append(moto_vec)
-
-  for i in range(len(cpg.interneurons)):
-    v_vec = h.Vector()
-    v_vec.record(cpg.interneurons[i].soma(0.5)._ref_v)
-    soma_v_vec.append(v_vec)
-
-def prun(speed, cpg):
-  ''' simulation control '''
-  tstop = 6*speed #+ 125
+def prun(speed, step_number):
+  ''' simulation control 
+  Parameters
+  ----------
+  speed: int
+    duration of each layer 
+  '''
+  tstop = (6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
-  '''
-  genconnect(cpg.Ia_aff_E[:30], cpg.ees, 1, 0, 30)
-  exconnectcells(cpg.Ia_aff_E[:30], cpg.mns_E, 0.3, 1, 50)
-  h.continuerun(h.t+speed)
-  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 1, 0, 30)
-  exconnectcells(cpg.Ia_aff_E[:50], cpg.mns_E, 0.5, 1, 50)
-  h.continuerun(h.t+speed)
-  genconnect(cpg.Ia_aff_E, cpg.ees, 1, 0, 50)
-  exconnectcells(cpg.Ia_aff_E, cpg.mns_E, 0.7, 1, 50)
-  h.continuerun(h.t+speed+10)
-  genconnect(cpg.Ia_aff_E[:50], cpg.ees, 0, 0, 30)
-  h.continuerun(h.t+2*speed)
-  genconnect(cpg.Ia_aff_E[50:80], cpg.ees, 0, 0, 30)
-  h.continuerun(h.t+speed) #+125)
-  '''
-
-def spikeout(cpg):
-  ''' report simulation results to stdout '''
-  global rank, moto_EX_v_vec, moto_FL_v_vec, soma_v_vec
-  pc.barrier()
-  for i in range(nhost):
-    if i == rank:
-      for j in range(len(cpg.mns_E)):
-        path=str('./res/vMN_EX%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(moto_EX_v_vec[j]):
-          f.write(str(v)+"\n")
-    pc.barrier()
-
-  pc.barrier()
-  for i in range(nhost):
-    if i == rank:
-      for j in range(len(cpg.mns_F)):
-        path=str('./res/vMN_FL%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(moto_FL_v_vec[j]):
-          f.write(str(v)+"\n")
-    pc.barrier()
-
-  '''
-  pc.barrier()
-  for i in range(nhost):
-    if i == rank:
-      for j in range(len(cpg.interneurons)):
-        path=str('./res/vIn%dr%dv%d'%(j, rank, version))
-        f = open(path, 'w')
-        for v in list(soma_v_vec[j]):
-          f.write(str(v)+"\n")
-    pc.barrier()
-  '''
 
 def finish():
   ''' proper exit '''
@@ -714,12 +637,33 @@ def finish():
   h.quit()
 
 if __name__ == '__main__':
-  cpg = cpg(speed, EES_i, 100)
-  spike_record(cpg)
-  print("- "*10, "\nstart")
-  prun(speed, cpg)
-  print("- "*10, "\nend")
-  spikeout(cpg)
-  if (nhost > 1):
+    '''
+    cpg_ex: cpg
+        topology of central pattern generation + reflex arc 
+    '''
+    k_nrns = 0
+    k_name = 1
+
+    for i in range(versions):
+      cpg_ex = CPG(speed, EES_i, 100, step_number)
+      '''
+      recorders = []
+      for group in cpg_ex.groups:
+        recorders.append(spike_record(group[k_nrns], i))
+      '''
+      motorecorders = []
+      for group in cpg_ex.motogroups:
+        motorecorders.append(spike_record(group[k_nrns], i))
+       
+      print("- "*10, "\nstart")
+      prun(speed, step_number)
+      print("- "*10, "\nend")
+      '''
+      for group, recorder in zip(cpg_ex.groups, recorders):
+        spikeout(group[k_nrns], group[k_name], i, recorder)
+      '''
+      for group, recorder in zip(cpg_ex.motogroups, motorecorders):
+        spikeout(group[k_nrns], group[k_name], i, recorder)
+
+    #if (nhost > 1):
     finish()
-  

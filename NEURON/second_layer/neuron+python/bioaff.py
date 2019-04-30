@@ -2,8 +2,19 @@ from neuron import h
 h.load_file('stdlib.hoc') #for h.lambda_f
 
 class bioaff(object):
+  '''
+  Afferent with bio-axon class with parameters:
+    soma: NEURON Section (creates by topol())
+    dend: NEURON Section (creates by topol())
+    axon parameters from: https://senselab.med.yale.edu/ModelDB/ShowModel.cshtml?model=3810&file=/MRGaxon/MRGaxon.hoc#tabs-2
+    synlistinh: list (creates by synapses())
+      list of inhibitory synapses
+    synlistex: list (creates by synapses())
+      list of excitatory synapses
+    synlistees: list (creates by synapses())
+      list of excitatory synapses for connection with generators 
+  '''
   def __init__(self, number):
-    #print 'construct ', self
     PI = 3.14
     #topological parameters
     self.number = number  
@@ -49,6 +60,9 @@ class bioaff(object):
     pass
 
   def topol(self):
+    '''
+    Creates sections soma, dend, axon and connects them 
+    '''
     self.soma = h.Section(name='soma', cell=self)
     self.dend = h.Section(name='dend', cell= self)
     self.node = [h.Section(name='node[%d]' % i, cell=self) for i in range(self.axonnodes)]
@@ -74,14 +88,21 @@ class bioaff(object):
     #self.basic_shape()  
 
   def subsets(self):
+    '''
+    NEURON staff
+    adds sections in NEURON SectionList
+    '''
     self.all = h.SectionList()
     for sec in h.allsec():
       self.all.append(sec=sec)
 
   def geom(self):
-    self.soma.L = self.soma.diam = 10
-    self.dend.L = 200
-    self.dend.diam = 1
+    '''
+    Adds length and diameter to sections
+    '''
+    self.soma.L = self.soma.diam = 10 # microns
+    self.dend.L = 200 # microns
+    self.dend.diam = 1 # microns
 
     for sec in self.node:
       sec.L = self.nodelength   # microns
@@ -106,11 +127,14 @@ class bioaff(object):
     h.define_shape()
 
   def biophys(self):
+    '''
+    Adds channels and their parameters 
+    '''
     self.soma.insert('hh')
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
-    self.soma.el_hh = -60
+    self.soma.el_hh = -70
     self.soma.Ra = 100
     self.soma.cm = 1
 
@@ -163,21 +187,33 @@ class bioaff(object):
       sec.xc[1] = self.mycm/(self.nl*2)
 
   def connect2target(self, target):
+    '''
+    NEURON staff 
+    Adds presynapses 
+    Parameters
+    ----------
+    target: NEURON cell
+        target neuron 
+    Returns
+    -------
+    nc: NEURON NetCon
+        connection between neurons
+    '''
     nc = h.NetCon(self.node[self.axonnodes-1](1)._ref_v, target, sec = self.node[self.axonnodes-1])
     nc.threshold = 10
     return nc
 
   def synapses(self):
     for i in range(100): 
-      s = h.ExpSyn(self.dend(0.5)) # E0
+      s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
-      s = h.ExpSyn(self.dend(0.5)) # E1
+      s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50
       self.synlistees.append(s)
-      s = h.Exp2Syn(self.dend(0.5)) # I1
+      s = h.Exp2Syn(self.dend(0.5)) # Inhibitory
       s.tau1 = 1.5
       s.tau2 = 2
       s.e = -80
