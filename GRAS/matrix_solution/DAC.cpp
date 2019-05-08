@@ -271,20 +271,24 @@ int main(int argc, char **argv) {
 	pI->InitStartLDevice();
 	errorchk(false, "init start device");
 
-	pthread_create(&thread1, NULL, thread_func, pI);
-	errorchk(false, "start a thread");
-
 	pI->StartLDevice();
 	errorchk(false, "START device");
 
-	while (!complete) {
-		if (kbhit())
-			break;
-		printf(" shared word %x %x \n", sync1[0], complete);
-		usleep(40000);
-	}
+	// write to DAC
+	ASYNC_PAR pp;
+	pp.s_Type = L_ASYNC_DAC_OUT;
+	pp.Mode = 0; // 0 channel DAC; if 1 then 1st channel
+	pp.Data[0] = 0x001F;
+	// the code for DAC
+	pI->IoAsync(&pp);
 
-	pthread_join(thread1, NULL);
+	// read from ADC
+	pp.s_Type = L_ASYNC_ADC_INP;
+	pp.Chn[0] = 0x00; // channel number
+	pI->IoAsync(&pp);
+	cout << (short)pp.Data[0] << endl; // code ADC placed into the Data[0]
+
+	errorchk(false, "my TEST");
 
 	cout << endl << "Press any key" << dec << endl;
 	readch();
