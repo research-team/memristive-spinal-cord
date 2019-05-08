@@ -12,6 +12,67 @@
 
 using namespace std;
 
+#include <termios.h>
+
+static struct termios stored_settings, new_settings;
+static int peek_character = -1;
+
+static int ctrlc = 0;
+
+void reset_keypress(void) {
+	ctrlc = 1;
+	tcsetattr(0, TCSANOW, &stored_settings);
+	return;
+}
+
+
+void set_keypress(void) {
+	tcgetattr(0, &stored_settings);
+
+	new_settings = stored_settings;
+
+	/* Disable canonical mode, and set buffer size to 1 byte */
+	new_settings.c_lflag &= (~ICANON);
+	new_settings.c_lflag &= ~ECHO;
+	new_settings.c_lflag &= ~ISIG;
+	new_settings.c_cc[VTIME] = 0;
+	new_settings.c_cc[VMIN] = 1;
+
+	atexit(reset_keypress);
+	tcsetattr(0, TCSANOW, &new_settings);
+	return;
+}
+
+
+int kbhit() {
+	unsigned char ch;
+	int nread;
+	if (peek_character != -1)
+		return 1;
+	new_settings.c_cc[VMIN] = 0;
+	tcsetattr(0, TCSANOW, &new_settings);
+	nread = read(0, &ch, 1);
+	new_settings.c_cc[VMIN] = 1;
+	tcsetattr(0, TCSANOW, &new_settings);
+	if (nread == 1) {
+		peek_character = ch;
+		return 1;
+	}
+	return 0;
+}
+
+int readch() {
+	char ch;
+	if (peek_character != -1) {
+		ch = peek_character;
+		peek_character = -1;
+		return ch;
+	}
+	read(0, &ch, 1);
+	return ch;
+}
+
+
 #define INITGUID
 
 #include "include/stubs.h"
@@ -23,202 +84,223 @@ typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
 
 CREATEFUNCPTR CreateInstance;
 
-USHORT *data1;
-ULONG *sync1;
+unsigned short *data1;
+unsigned int *sync1;
+
+int IrqStep = 1024;
+int pages = 256;
+int multi = 64;
+unsigned short complete;
 
 
 void *thread_func(void *arg) {
-	printf("HI!\n");
+	int halfbuffer;
+	int fl2, fl1;
+	unsigned short *tmp, *tmp1;
+	int i;
+
+	FILE *fd;
+
+	fd = fopen("test.dat", "wb");
+
+	halfbuffer = IrqStep * pages / 2;
+	fl1 = fl2 = (*sync1 <= halfbuffer) ? 0 : 1;
+
+	for (i = 0; i < multi; i++) {
+		while (fl2 == fl1) {
+			fl2 = (*sync1 <= halfbuffer) ? 0 : 1;
+			if (ctrlc) break;
+			usleep(10);
+		}
+		if (ctrlc) break;
+		tmp1 = data1 + (halfbuffer * fl1);
+		fwrite(tmp1, 1, halfbuffer * sizeof(short), fd);
+		fl1 = (*sync1 <= halfbuffer) ? 0 : 1;
+	}
+
+	fclose(fd);
+	complete = 1;
 }
 
-
-void errorchk(bool condition, string text, char* err_text) {
-	cout << text << "... ";
+void errorchk(bool condition, string text, char* err_text="failed") {
+	cout << text << " ... ";
 	if (condition) {
 		cout << "ERROR (" << err_text << ")" << endl;
 		cout << "FAILED !" << endl;
+		reset_keypress();
 		exit(0);
 	}
 	else
 		cout << "OK" << endl;
 }
 
+void errorchk(bool condition, HRESULT result, string text) {
+	cout << hex << text << " ... ";
+	if (condition) {
+		cout << "ERROR" << endl;
+		cout << "FAILED !" << endl;
+		reset_keypress();
+		exit(0);
+	}
+	else
+		cout << hex << result << " OK" << endl;
+}
 
-int main() {
-	PLATA_DESCR_U2 pd;
+int main(int argc, char **argv) {
+	ULONG size = 131072;
 	SLOT_PAR sl;
 	ADC_PAR adcPar;
 	DAC_PAR dacPar;
-	ULONG size = 512000;
-	IOCTL_BUFFER ibuf;
-	HANDLE hVxd;
-	void *handle;
-	HRESULT hr;
 	IDaqLDevice *pI;
-
+	PLATA_DESCR_U2 pd;
+	IOCTL_BUFFER ibuf;
+	HANDLE handle;
 	char *error;
+	void *dll_handle;
+	ULONG iresult;
 	pthread_t thread1;
+	HRESULT hresult;
+	LUnknown *pIUnknown;
 
-	handle = dlopen("/home/alex/Programs/drivers/lcomp/liblcomp.so", RTLD_LAZY);
-	errorchk(!handle, "open dll", dlerror());
+	set_keypress();
 
-	CreateInstance = (CREATEFUNCPTR) dlsym(handle, "CreateInstance");
-	error = dlerror();
-	errorchk(error != NULL, "create instance", error);
+	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/liblcomp.so", RTLD_LAZY);
+	errorchk(!dll_handle, "open DLL", dlerror());
 
+	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
+	errorchk(dlerror() != NULL, "create instance");
 
-	LUnknown *pIUnknown = CreateInstance(0);
-	errorchk(pIUnknown == NULL, "pIUnknown create instance", error);
+	pIUnknown = CreateInstance(0);
+	errorchk(pIUnknown == NULL, "call create instance");
 
-	cout << "Get IDaqLDevice interface" << endl;
-
-	hr = pIUnknown->QueryInterface(IID_ILDEV, (void **) &pI);
-	errorchk(hr != S_OK, "get IDaqLDevice", error);
+	hresult = pIUnknown->QueryInterface(IID_ILDEV, (void **) &pI);
+	errorchk(hresult != S_OK, hresult, "query interface");
 
 	pIUnknown->Release();
-	cout << "free IUnknown" << endl;
+	errorchk(false, "free IUnknown");
 
-	// открываем устройство
-	hVxd = pI->OpenLDevice();
-	cout << "OpenLDevice Handle " << hVxd << endl;
+	handle = pI->OpenLDevice();
+	errorchk(false, handle, "open device");
 
-
-	cout << endl << "Slot parameters" << endl;
-	// считали параметры слота - интересует тип платы
 	pI->GetSlotParam(&sl);
-	pI->LoadBios("e154"); // загружаем биос
-	pI->PlataTest();
+	errorchk(false, "get slot parameters");
 
-	pI->ReadPlataDescr(&pd);  // обязательно прочитали флеш, он нужен для расчетов внутри библиотеки
+	iresult = pI->LoadBios("e154");
+	errorchk(iresult == 0, "load BIOS");
 
-	cout << "Base        : " << hex << sl.Base << endl;
-	cout << "BaseL       : " << sl.BaseL << endl;
-	cout << "Mem         : " << sl.Mem << endl;
-	cout << "MemL        : " << sl.MemL << endl;
-	cout << "Type        : " << sl.BoardType << endl;
-	cout << "DSPType     : " << sl.DSPType << endl;
-	cout << "Irq         : " << sl.Irq << endl;
-	cout << "SerNum      : " << pd.t7.SerNum << endl;
-	cout << "BrdName     : " << pd.t7.BrdName << endl;
-	cout << "Rev         : " << pd.t7.Rev << endl;
-	cout << "DspType     : " << pd.t7.DspType << endl;
-	cout << "IsDacPresent: " << pd.t7.IsDacPresent << endl;
-	cout << "Quartz      : " << dec << pd.t7.Quartz << endl;
-	cout << "Alloc size  : " << size << endl;
+	iresult = pI->PlataTest();
+	errorchk(iresult != 0, "plata test");
 
-//	adcPar.t1.s_Type = L_ADC_PARAM;
-//	adcPar.t1.AutoInit = 1;
-//	adcPar.t1.dRate = 100.0;
-//	adcPar.t1.dKadr = 0;
-//	adcPar.t1.dScale = 0;
-//	adcPar.t1.SynchroType = 0;
-//	adcPar.t1.SynchroSensitivity = 0;
-//	adcPar.t1.SynchroMode = 0;
-//	adcPar.t1.AdChannel = 0;
-//	adcPar.t1.AdPorog = 0;
-//	adcPar.t1.NCh = 4;
-//	adcPar.t1.Chn[0] = 0x0;
-//	adcPar.t1.Chn[1] = 0x1;
-//	adcPar.t1.Chn[2] = 0x2;
-//	adcPar.t1.Chn[3] = 0x3;
-//	adcPar.t1.FIFO = 4096;
-//	adcPar.t1.IrqStep = 4096;
-//	adcPar.t1.Pages = 32;
-//	adcPar.t1.IrqEna = 1;
-//	adcPar.t1.AdcEna = 1;
+	pI->ReadPlataDescr(&pd); // fill up properties
+	errorchk(false, "read plata description");
 
+	cout << endl << "Press any key" << dec << endl;
 
-	dacPar.t1.s_Type = L_DAC_PARAM;
-	dacPar.t1.AutoInit=1;
-	dacPar.t1.dRate=100.0;       // for e140m dac - very limited set of freq value
-	dacPar.t1.FIFO=2048; // 512
-	dacPar.t1.IrqStep=2048; // 512
-	dacPar.t1.Pages=4;
-	dacPar.t1.IrqEna=1;
-	dacPar.t1.DacEna=1;
-	dacPar.t1.DacNumber=0;
+	readch();
 
-	cout << "FillDAQparameters" << endl;
-	pI->FillDAQparameters(&dacPar.t1);
+	pI->RequestBufferStream(&size);
+	errorchk(false, "request buffer stream");
 
-	cout << "RequestBufferStream" << endl;
-	pI->RequestBufferStream(&size, L_STREAM_DAC);
+	cout << "alloc size " << size << endl;
 
-	cout << "SetParametersStream" << endl;
-	pI->SetParametersStream(&dacPar.t1, &size, (void **)&data1, (void **)&sync1, L_STREAM_DAC);
+	// fill parameters
+	adcPar.t1.s_Type = L_ADC_PARAM;
+	adcPar.t1.AutoInit = 1;
+	adcPar.t1.dRate = 100.0;
+	adcPar.t1.dKadr = 0;
+	adcPar.t1.dScale = 0;
+	adcPar.t1.SynchroType = 0;
+	adcPar.t1.SynchroSensitivity = 0;
+	adcPar.t1.SynchroMode = 0;
+	adcPar.t1.AdChannel = 0;
+	adcPar.t1.AdPorog = 0;
+	adcPar.t1.NCh = 4;
+	adcPar.t1.Chn[0] = 0x0;
+	adcPar.t1.Chn[1] = 0x1;
+	adcPar.t1.Chn[2] = 0x2;
+	adcPar.t1.Chn[3] = 0x3;
+	adcPar.t1.FIFO = 4096;
+	adcPar.t1.IrqStep = 4096;
+	adcPar.t1.Pages = 32;
+	adcPar.t1.IrqEna = 1;
+	adcPar.t1.AdcEna = 1;
+
+	pI->FillDAQparameters(&adcPar.t1);
+	errorchk(false, "fill DAQ parameters");
+
+	pI->SetParametersStream(&adcPar.t1, &size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
+	errorchk(false, "set ADC parameters stream");
+
+	// show slot parameters
+	cout << "Base              : " << hex << sl.Base << endl;
+	cout << "BaseL             : " << sl.BaseL << endl;
+	cout << "Mem               : " << sl.Mem << endl;
+	cout << "MemL              : " << sl.MemL << endl;
+	cout << "Type              : " << sl.BoardType << endl;
+	cout << "DSPType           : " << sl.DSPType << endl;
+	cout << "Irq               : " << sl.Irq << endl;
+	// show properties
+	cout << "SerNum            : " << pd.t7.SerNum << endl;
+	cout << "BrdName           : " << pd.t7.BrdName << endl;
+	cout << "Rev               : " << pd.t7.Rev << endl;
+	cout << "DspType           : " << pd.t7.DspType << endl;
+	cout << "IsDacPresent      : " << pd.t7.IsDacPresent << endl;
+	cout << "Quartz            : " << dec << pd.t7.Quartz << endl;
+	// show ADC parameters
+	cout << "Buffer size (word): " << size << endl;
+	cout << "Pages             : " << adcPar.t1.Pages << endl;
+	cout << "IrqStep           : " << adcPar.t1.IrqStep << endl;
+	cout << "FIFO              : " << adcPar.t1.FIFO << endl;
+	cout << "Rate              : " << adcPar.t1.dRate << endl;
+
+	IrqStep = adcPar.t1.IrqStep;
+	pages = adcPar.t1.Pages;
 
 	ULONG Ver = sync1[0xFF4 >> 2];
 	cout << endl << "Current Firmware Version 0x" << hex << Ver << dec << endl;
 
-	cout << "FOR LOOP" << endl;
+	cout << endl << "Press any key" << dec << endl;
 
-	for(int i=0;i<5;i++) {
-		cout << i << endl;
+	readch();
 
-		data1[i] = (USHORT) (512 * sin((2.0 * (3.1415 * i) / 1024.0))); // for all
-	}
-
-	// тест цифровых линий
-	cout << "START TEST" << endl;
-
-	ASYNC_PAR pp1;
-	pp1.s_Type = L_ASYNC_TTL_CFG;
-	pp1.Mode = 1;
-	pI->IoAsync(&pp1);
-
-	pp1.s_Type = L_ASYNC_TTL_OUT;
-	pp1.Data[0] = 0xA525;
-	pI->IoAsync(&pp1);
-
-	pp1.s_Type = L_ASYNC_TTL_INP;
-	pp1.Data[0] = 1;
-	pI->IoAsync(&pp1);
-
-	cout << "TEST FINISHED" << endl;
-
-
-	printf("\n ttl input %X ",pp1.Data[0]);
-
-//	pI->FillDAQparameters(&adcPar.t1);
-//	pI->SetParametersStream(&adcPar.t1, &size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
-//	cout << "Word size   : " << size << endl;
-//	cout << "Pages:      : " << adcPar.t1.Pages << endl;
-//	cout << "IrqStep:    : " << adcPar.t1.IrqStep << endl;
-//	cout << "FIFO:       : " << adcPar.t1.FIFO << endl;
-//	cout << "Rate:       : " << adcPar.t1.dRate << endl;
-
-
+	complete = 0;
 
 	pI->EnableCorrection();
-
-	cout << "init startL device" << endl;
+	errorchk(false, "enable correction");
 
 	pI->InitStartLDevice();
-
-	cout << "Create a thread" << endl;
+	errorchk(false, "init start device");
 
 	pthread_create(&thread1, NULL, thread_func, pI);
-
-	cout << "Start device" << endl;
+	errorchk(false, "start a thread");
 
 	pI->StartLDevice();
+	errorchk(false, "START device");
 
-	printf("shared word %x\n", sync1[0]);
+	while (!complete) {
+		if (kbhit())
+			break;
+		printf(" shared word %x %x \n", sync1[0], complete);
+		usleep(40000);
+	}
 
 	pthread_join(thread1, NULL);
 
-	cout << "Thread is finished" << endl;
+	cout << endl << "Press any key" << dec << endl;
+	readch();
 
 	pI->StopLDevice();
-	// Завершение работы
+	errorchk(false, "STOP device");
+
 	pI->CloseLDevice();
+	errorchk(false, "close device");
 
-	if (handle)
-		dlclose(handle);
+	reset_keypress();
 
+	if (dll_handle)
+		dlclose(dll_handle);
 
-	cout << "Closed handle" << endl;
-	cout << "SUCCESS" << endl;
+	cout << endl << "SUCCESS" << endl;
 
 	return 0;
 }

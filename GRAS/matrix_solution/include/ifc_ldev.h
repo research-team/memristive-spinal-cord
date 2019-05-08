@@ -7,14 +7,16 @@
 
 #ifndef __LUNKNOWN__
 #define __LUNKNOWN__
-struct LUnknown {
+struct LUnknown
+{
    IFC(HRESULT)   QueryInterface(const IID& iid, void** ppv) = 0;
    IFC(ULONG)     AddRef() = 0;
    IFC(ULONG)     Release() = 0;
 };
 #endif
 
-struct IDaqLDevice:LUnknown {
+struct IDaqLDevice:LUnknown
+{
    IFC(ULONG)  inbyte ( ULONG offset, PUCHAR data, ULONG len=1, ULONG key=0) = 0;
    IFC(ULONG)  inword ( ULONG offset, PUSHORT data, ULONG len=2, ULONG key=0) = 0;
    IFC(ULONG)  indword( ULONG offset, PULONG data, ULONG len=4, ULONG key=0) = 0;
@@ -51,24 +53,27 @@ struct IDaqLDevice:LUnknown {
    IFC(HANDLE) OpenLDevice() = 0;
    IFC(ULONG)  CloseLDevice() = 0;
 
+///
    IFC(ULONG)  SetParametersStream(PDAQ_PAR sp, ULONG *UsedSize, void** Data, void** Sync, ULONG StreamId = L_STREAM_ADC) = 0;
    IFC(ULONG)  RequestBufferStream(ULONG *Size, ULONG StreamId = L_STREAM_ADC) = 0; //in words
-   IFC(ULONG)  FillDAQparameters(PDAQ_PAR sp) = 0;
+   IFC(ULONG)  FillDAQparameters(PDAQ_PAR sp) = 0;  
+///
 
    IFC(ULONG)  InitStartLDevice() = 0;
    IFC(ULONG)  StartLDevice() = 0;
    IFC(ULONG)  StopLDevice() = 0;
 
    IFC(ULONG)  LoadBios(char *FileName) = 0;
+/*
+   IFC(ULONG)  InputADC(USHORT Chan, PUSHORT Data) = 0;
+   IFC(ULONG)  InputTTL(PULONG Data, ULONG Mode) = 0;
+   IFC(ULONG)  OutputTTL(ULONG Data, ULONG Mode) = 0;
+   IFC(ULONG)  ConfigTTL(ULONG Data) = 0;
+   IFC(ULONG)  OutputDAC(short Data, ULONG Mode) = 0;
+   IFC(ULONG)  ConfigDAC(ULONG Mode, ULONG Number) = 0;
+*/
 
-//   IFC(ULONG)  InputADC(USHORT Chan, PUSHORT Data) = 0;
-//   IFC(ULONG)  InputTTL(PULONG Data, ULONG Mode) = 0;
-//   IFC(ULONG)  OutputTTL(ULONG Data, ULONG Mode) = 0;
-//   IFC(ULONG)  ConfigTTL(ULONG Data) = 0;
-   IFC(ULONG)  OutputDAC(PDAQ_PAR sp) = 0;
-//   IFC(ULONG)  ConfigDAC(ULONG Mode, ULONG Number) = 0;
-
-   IFC(ULONG)  IoAsync(PDAQ_PAR sp) = 0;  // collect all async io operations
+   IFC(ULONG)  IoAsync(PDAQ_PAR sp) =0;  // collect all async io operations
 
    IFC(ULONG)  ReadPlataDescr(LPVOID pd) = 0;
    IFC(ULONG)  WritePlataDescr(LPVOID pd, USHORT Ena) = 0;
