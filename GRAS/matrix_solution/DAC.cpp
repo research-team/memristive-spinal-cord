@@ -71,9 +71,9 @@ void errorchk(bool condition, string text, char* err_text="failed") {
 		cout << "FAILED !" << endl;
 		reset_keypress();
 		exit(0);
-	}
-	else
+	} else {
 		cout << "OK" << endl;
+	}
 }
 
 void errorchk(bool condition, HRESULT result, string text) {
@@ -83,9 +83,9 @@ void errorchk(bool condition, HRESULT result, string text) {
 		cout << "FAILED !" << endl;
 		reset_keypress();
 		exit(0);
-	}
-	else
+	} else {
 		cout << hex << result << " OK" << endl;
+	}
 }
 
 int main() {
@@ -93,7 +93,7 @@ int main() {
 	SLOT_PAR slot_param;
 	ASYNC_PAR async_par;
 	ADC_PAR adc_par;
-	DAC_PAR dacPar;
+	DAC_PAR dac_par;
 	IDaqLDevice *device;
 	PLATA_DESCR_U2 plata_descr;
 	HANDLE handle;
@@ -150,25 +150,24 @@ int main() {
 
 	cout << "allocated size " << mem_buffer_size << endl;
 
-	// fill ADC parameters
-	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
-	adc_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
-	adc_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
-	adc_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
-	adc_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
-	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
-	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
-	adc_par.t1.NCh = 4;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
-	adc_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них,
-	adc_par.t1.Chn[1] = 0x1;          // описывает порядок опроса каналов
-	adc_par.t1.Chn[2] = 0x2;
-	adc_par.t1.Chn[3] = 0x3;
-
-	adc_par.t1.FIFO = 4096;           // размер половины аппаратного буфера FIFO на плате
-	adc_par.t1.IrqStep = 4096;        // шаг генерации прерываний
-	adc_par.t1.Pages = 32;            // размер кольцевого буфера в шагах прерываний
-	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
-	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
+	// fill DAC parameters
+	dac_par.t1.s_Type = L_DAC_PARAM;  // тип структуры
+	dac_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
+	dac_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
+//	dac_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
+//	dac_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
+//	dac_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
+//	dac_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
+//	dac_par.t1.NCh = 4;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
+//	dac_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них,
+//	dac_par.t1.Chn[1] = 0x1;          // описывает порядок опроса каналов
+//	dac_par.t1.Chn[2] = 0x2;
+//	dac_par.t1.Chn[3] = 0x3;
+	dac_par.t1.FIFO = 4096;           // размер половины аппаратного буфера FIFO на плате
+	dac_par.t1.IrqStep = 4096;        // шаг генерации прерываний
+	dac_par.t1.Pages = 32;            // размер кольцевого буфера в шагах прерываний
+	dac_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
+//	dac_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
 
 	// 0 - нет синхронизации
 	// 1 - цифровая синхронизация старта, остальные параметры синхронизации не используются
@@ -185,11 +184,11 @@ int main() {
 	adc_par.t1.SynchroMode = 0;
 
 	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
-	device->FillDAQparameters(&adc_par.t1);
+	device->FillDAQparameters(&dac_par.t1);
 	errorchk(false, "fill DAQ parameters");
 
 	// setup the ADC/DAC board setting based on specific i/o parameters
-	device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
+	device->SetParametersStream(&dac_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
 	errorchk(false, "set ADC parameters stream");
 
 	// show slot parameters
@@ -237,17 +236,29 @@ int main() {
 
 	// write data to the DAC
 	async_par.s_Type = L_ASYNC_DAC_OUT;
-	async_par.Mode = 0; // номер ЦАП (0/1). задает различные режимы при конфигурации.
-	async_par.Data[0] = 0x001F; // данные для ЦАП (массив для данных)
-	device->IoAsync(&async_par);  // asyncronous i/o operations
+	async_par.Chn[0] = 1;  //
+	async_par.Mode = 0;    // number of DAC (0/1). Setup different modes at configuration
 
+	// The sent value holds until a new one is send
+	for (double volt = 0; volt < 5; volt += 0.1) {
+		USHORT u_volt = volt / 5.0 * 0x7F;
+		cout << volt << " " << u_volt;
+		async_par.Data[0] = u_volt;   // data for DAC
+		device->IoAsync(&async_par);  // asyncronous i/o operation
+		usleep(500000);               // pause
+	}
+
+	// reset voltage
+	async_par.Data[0] = 0;
+	device->IoAsync(&async_par);
+	errorchk(false, "TEST");
+
+	/*
 	// read data from the ADC
 	async_par.s_Type = L_ASYNC_ADC_INP;
 	async_par.Chn[0] = 0x00;  // logic number of the channel
 	device->IoAsync(&async_par);
-	cout << (short)async_par.Data[0] << endl;  // ADC data
-
-	errorchk(false, "TEST");
+	cout << (short)async_par.Data[0] << endl;  // ADC data */
 
 	// stop collecting data from the board
 	device->StopLDevice();
