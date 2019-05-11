@@ -27,7 +27,7 @@ class interneuron(object):
   '''  
   def __init__(self, delay):
     self.delay = delay
-    self.diffs = [ś
+    self.diffs = []
     self.recs = []
     self.topol()
     self.subsets()
@@ -38,11 +38,11 @@ class interneuron(object):
     self.synlistex = []
     self.synlistees = []
     self.synapses()
-    self.x = self.y = self.z = 0.  
+    self.x = self.y = self.z = 0.
 
-  def __del__(self):
+    def __del__(self):
     #print 'delete ', self
-    pass
+      pass
 
   def topol(self):
     '''
@@ -108,13 +108,14 @@ class interneuron(object):
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     if self.delay:
-      distance = random.uniform(10, 100)
+      distance = random.uniform(10, 450)
       for sec in self.dend:
         sec.insert('hh')
         diff = h.slow_5HT(sec(0.5))
         rec = h.r5ht3a(sec(0.5))
-        rec.gmax = 2
+        rec.gmax = 3
         diff.h = random.gauss(distance, distance/5)
+        diff.c0cleft = 2
         diff.tx1 = 1+(diff.h/1250)*1000
         h.setpointer(diff._ref_serotonin, 'serotonin', rec)
         self.diffs.append(diff)
