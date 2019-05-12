@@ -17,9 +17,109 @@
 #include "Group.cpp"
 
 #ifdef __JETBRAINS_IDE__
-	#define __host__
-	#define __global__
+#define __host__
+#define __shared__
+#define __global__
 #endif
+
+// ============================================
+//               D  A  C
+// ============================================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <dlfcn.h>
+#include <pthread.h>
+#include <iostream>
+#include <math.h>
+
+using namespace std;
+
+#include <termios.h>
+
+static struct termios stored_settings, new_settings;
+static int peek_character = -1;
+
+void reset_keypress(void) {
+	tcsetattr(0, TCSANOW, &stored_settings);
+	return;
+}
+
+void set_keypress(void) {
+	tcgetattr(0, &stored_settings);
+
+	new_settings = stored_settings;
+
+	// disable canonical mode, and set buffer size to 1 byte
+	new_settings.c_lflag &= (~ICANON);
+	new_settings.c_lflag &= ~ECHO;
+	new_settings.c_lflag &= ~ISIG;
+	new_settings.c_cc[VTIME] = 0;
+	new_settings.c_cc[VMIN] = 1;
+
+	atexit(reset_keypress);
+	tcsetattr(0, TCSANOW, &new_settings);
+	return;
+}
+
+int readch() {
+	char ch;
+	if (peek_character != -1) {
+		ch = peek_character;
+		peek_character = -1;
+		return ch;
+	}
+	read(0, &ch, 1);
+	return ch;
+}
+
+#define INITGUID
+
+#include "include/stubs.h"
+#include "include/ioctl.h"
+#include "include/ifc_ldev.h"
+#include <errno.h>
+
+typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
+
+CREATEFUNCPTR CreateInstance;
+
+unsigned short *data1;
+unsigned int *sync1;
+
+void errorchk(bool condition, string text, char* err_text="failed") {
+	cout << text << " ... ";
+	if (condition) {
+		cout << "ERROR (" << err_text << ")" << endl;
+		cout << "FAILED !" << endl;
+		reset_keypress();
+		exit(0);
+	} else {
+		cout << "OK" << endl;
+	}
+}
+
+void errorchk(bool condition, HRESULT result, string text) {
+	cout << hex << text << " ... ";
+	if (condition) {
+		cout << "ERROR" << endl;
+		cout << "FAILED !" << endl;
+		reset_keypress();
+		exit(0);
+	} else {
+		cout << hex << result << " OK" << endl;
+	}
+}
+
+
+// ============================================
+//               D  A  C
+// ============================================
+
 
 using namespace std;
 
@@ -38,9 +138,208 @@ const float INH_COEF = 1.0f;
 
 // stuff variable
 unsigned int global_id = 0;
-const float T_sim = 1000;
+const float T_sim = 10000;
 const float SIM_STEP = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / SIM_STEP);
+
+pthread_t thread1;
+
+float motoneuron_voltage = 0;
+bool gpu_is_run = true;
+
+void *parallel_dac_func(void *arg) {
+	ULONG mem_buffer_size = 131072;
+	SLOT_PAR slot_param;
+	ASYNC_PAR async_par;
+	ASYNC_PAR async_par_adc;
+	ADC_PAR adc_par;
+	DAC_PAR dac_par;
+	IDaqLDevice *device;
+	PLATA_DESCR_U2 plata_descr;
+	HANDLE handle;
+	PVOID dll_handle;
+	ULONG iresult;
+	HRESULT hresult;
+	LUnknown *pIUnknown;
+
+	set_keypress();
+
+	// load the dynamic shared object (shared library). RTLD_LAZY - perform lazy binding
+	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/liblcomp.so", RTLD_LAZY);
+	errorchk(!dll_handle, "open DLL", dlerror());
+
+	// return the address where that symbol is loaded into memory
+	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
+	errorchk(dlerror() != NULL, "create instance");
+
+	// create an object which related with a specific virtual slot (default 0)
+	pIUnknown = CreateInstance(0);
+	errorchk(pIUnknown == NULL, "call create instance");
+
+	// get a pointer to the interface
+	hresult = pIUnknown->QueryInterface(IID_ILDEV, (void **) &device);
+	errorchk(hresult != S_OK, hresult, "query interface");
+
+	// close an interface
+	pIUnknown->Release();
+	errorchk(false, "free IUnknown");
+
+	// open an appropriate link of the board driver
+	handle = device->OpenLDevice();
+	errorchk(false, handle, "open device");
+
+	// get an information of the specific virtual slot
+	device->GetSlotParam(&slot_param);
+	errorchk(false, "get slot parameters");
+
+	// load a BIOS to the board
+	iresult = device->LoadBios("e154");
+	errorchk(iresult == 0, "load BIOS");
+
+	// Test for board availability (always success)
+	iresult = device->PlataTest();
+	errorchk(iresult != 0, "plata test");
+
+	// read an user Flash
+	device->ReadPlataDescr(&plata_descr);
+	errorchk(false, "read the board description");
+
+	// allocate memory for a big ring buffer
+	device->RequestBufferStream(&mem_buffer_size);
+	errorchk(false, "request buffer stream");
+
+	cout << "allocated size " << mem_buffer_size << endl;
+
+	// fill DAC parameters
+	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
+	adc_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
+	adc_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
+	adc_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
+	adc_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
+	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
+	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
+	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
+	adc_par.t1.Chn[0] = 1;          // массив с номерами каналов и усилением на них,
+	adc_par.t1.FIFO = 4096;           // размер половины аппаратного буфера FIFO на плате
+	adc_par.t1.IrqStep = 4096;        // шаг генерации прерываний
+	adc_par.t1.Pages = 32;            // размер кольцевого буфера в шагах прерываний
+	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
+	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
+
+	// 0 - нет синхронизации
+	// 1 - цифровая синхронизация старта, остальные параметры синхронизации не используются
+	// 2 - покадровая синхронизация, остальные параметры синхронизации не используются
+	// 3 - аналоговая синхронизация старта по выбранному каналу АЦП
+	adc_par.t1.SynchroType = 0;
+
+	// 0 - аналоговая синхронизация по уровню
+	// 1 - аналоговая синхронизация по переходу
+	adc_par.t1.SynchroSensitivity = 0;
+
+	// 0 - по уровню «выше» или переходу «снизу-вверх»
+	// 1 - по уровню «ниже» или переходу «сверху-вниз»
+	adc_par.t1.SynchroMode = 0;
+
+	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
+	device->FillDAQparameters(&adc_par.t1);
+	errorchk(false, "fill DAQ parameters");
+
+	// setup the ADC/DAC board setting based on specific i/o parameters
+	device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
+	errorchk(false, "set ADC parameters stream");
+
+	// show slot parameters
+	cout << "Base              : " << hex << slot_param.Base << endl;
+	cout << "BaseL             : " << slot_param.BaseL << endl;
+	cout << "Mem               : " << slot_param.Mem << endl;
+	cout << "MemL              : " << slot_param.MemL << endl;
+	cout << "Type              : " << slot_param.BoardType << endl;
+	cout << "DSPType           : " << slot_param.DSPType << endl;
+	cout << "Irq               : " << slot_param.Irq << endl;
+
+	// show properties
+	cout << "SerNum            : " << plata_descr.t7.SerNum << endl;
+	cout << "BrdName           : " << plata_descr.t7.BrdName << endl;
+	cout << "Rev               : " << plata_descr.t7.Rev << endl;
+	cout << "DspType           : " << plata_descr.t7.DspType << endl;
+	cout << "IsDacPresent      : " << plata_descr.t7.IsDacPresent << endl;
+	cout << "Quartz            : " << dec << plata_descr.t7.Quartz << endl;
+
+	// show ADC parameters
+	cout << "Buffer size (word): " << mem_buffer_size << endl;
+	cout << "Pages             : " << adc_par.t1.Pages << endl;
+	cout << "IrqStep           : " << adc_par.t1.IrqStep << endl;
+	cout << "FIFO              : " << adc_par.t1.FIFO << endl;
+	cout << "Rate              : " << adc_par.t1.dRate << endl;
+
+	// get an firmware version
+	ULONG version = sync1[0xFF4 >> 2];
+	cout << endl << "current firmware version 0x" << hex << version << dec << endl;
+
+	// turn on an correction mode. Itself loads coefficients to the board
+	device->EnableCorrection();
+	errorchk(false, "enable correction mode");
+
+	// init inner variables of the driver before starting collect a data
+	device->InitStartLDevice();
+	errorchk(false, "init start device");
+
+	// start collect data from the board into the big ring buffer
+	device->StartLDevice();
+	errorchk(false, "START device");
+
+	// write data to the DAC
+	async_par.s_Type = L_ASYNC_DAC_OUT;
+	async_par.Chn[0] = 1;  //
+	async_par.Mode = 0;    // number of DAC (0/1). Setup different modes at configuration
+	async_par.Data[0] = 0;
+	device->IoAsync(&async_par);
+
+	async_par_adc.s_Type = L_ASYNC_ADC_INP;
+	async_par_adc.NCh = 1;
+	async_par_adc.Chn[0] = 0x01;
+	async_par_adc.Mode = 0;
+	async_par_adc.Rate = 100;
+
+
+	while (gpu_is_run) {
+		async_par.Data[0] = motoneuron_voltage > 0? motoneuron_voltage / 5.0 * 0x7F : 0;
+		device->IoAsync(&async_par);
+
+		usleep(250); // std::this_thread::sleep_for(chrono::microseconds(250));
+
+//		if(device->IoAsync(&async_par_adc) != L_SUCCESS){
+//			cout << "Failed read data" << endl;
+//		}
+//		cout << async_par.Data[0] << " -> "<< (short)async_par_adc.Data[0] << endl;  // ADC data */
+	}
+
+	async_par.Data[0] = 0;   // data for DAC
+	device->IoAsync(&async_par);
+
+	errorchk(false, "TEST");
+
+	// stop collecting data from the board
+	device->StopLDevice();
+	errorchk(false, "STOP device");
+
+	// finishing work with the board
+	device->CloseLDevice();
+	errorchk(false, "close device");
+
+	reset_keypress();
+
+	// close an dll handle (decrements the reference count on the dynamic library handle)
+	if (dll_handle)
+		dlclose(dll_handle);
+
+	// you are awesome
+	cout << endl << "SUCCESS" << endl;
+
+	return 0;
+
+
+}
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / SIM_STEP); }
@@ -172,20 +471,30 @@ void sim_kernel(float* old_v,
 				int** synapses_delay_timer,
 				float** synapses_weight,
 				unsigned int nrn_size,
-				float* voltage_recording,
 				int activated_C_,
 				int shift_time_by_step,
+				float* gpu_motoneuron_voltage,
+//				float* voltage,
 				int sim_iter) {
 
 	// get id of the thread
 	int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (activated_C_ == 0){
-		return;
+	if (thread_id == 0) {
+		*gpu_motoneuron_voltage = 0;
 	}
+
+	__syncthreads();
+
 
 	// neuron (tid = neuron id) stride loop (0, 1024, 1, 1025 ...)
 	for (int tid = thread_id; tid < nrn_size; tid += blockDim.x * gridDim.x) {
+		if (activated_C_ == 0){
+			if (996 <= tid && tid <= 1164) {
+				atomicAdd(gpu_motoneuron_voltage, V_rest);
+			}
+			continue;
+		}
 		// C1
 		if (0 <= tid && tid <= 19
 			&& shift_time_by_step <= sim_iter
@@ -222,13 +531,11 @@ void sim_kernel(float* old_v,
 			nrn_current[tid] = 5000;
 		}
 
+		// EES
 		if (1165 <= tid && tid <= 1184 && (sim_iter % 100 == 0)) {
 			nrn_current[tid] = 5000;
 		}
 
-		// todo check with the real neurobiology mechanism
-		// absolute refractory period : calculate V_m and U_m WITHOUT synaptic weight (nrn_current)
-		// action potential : calculate V_m and U_m WITH synaptic weight (nrn_current)
 		if (nrn_ref_time_timer[tid] > 0)
 			nrn_current[tid] = 0;
 
@@ -236,8 +543,6 @@ void sim_kernel(float* old_v,
 		float U_old = old_u[tid];
 		float I_current = nrn_current[tid];
 
-		// ToDo check this with biological data (aprx)
-		// the maximal value of input current (10 000 pA = 10 nA)
 		if (I_current > 10000)
 			I_current = 10000;
 		if (I_current < -10000)
@@ -254,9 +559,12 @@ void sim_kernel(float* old_v,
 		if (V_m >= V_thld)
 			V_m = V_peak;
 
-		// ToDo remove after debugging
-		int index = sim_iter + tid * sim_time_in_step;
-		voltage_recording[index] = V_m;
+//		int index = sim_iter + tid * sim_time_in_step;
+//		voltage[index] = V_m;
+
+		if (996 <= tid && tid <= 1164) {
+			atomicAdd(gpu_motoneuron_voltage, V_m);
+		}
 
 		// threshold crossing (spike)
 		if (V_m >= V_thld) {
@@ -320,7 +628,7 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_de
 	// connect neurons with uniform distribution and normal distributon for syn delay and weight
 	weight *= (100 * 0.7);
 	random_device rd;
-	mt19937 gen(rd());	// Initialize pseudo-random number generator
+	mt19937 gen(rd());  // Initialize pseudo-random number generator
 
 	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
 	normal_distribution<float> weight_distr(weight, 2);
@@ -584,6 +892,8 @@ void init_array(type *array, int size, type value){
 		array[i] = value;
 }
 
+
+
 __host__
 void simulate(int test_index) {
 	int neurons_number = static_cast<int>(metadatas.size());
@@ -596,7 +906,7 @@ void simulate(int test_index) {
 	float* gpu_nrn_current;
 	int* gpu_synapses_number;
 
-	float* gpu_voltage_recording;
+//	float* gpu_voltage_recording;
 
 	int synapses_number[neurons_number];
 
@@ -618,8 +928,8 @@ void simulate(int test_index) {
 	float nrn_current[neurons_number];
 	init_array<float>(nrn_current, neurons_number, 0);
 
-	float* voltage_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
-	init_array<float>(voltage_recording, neurons_number * sim_time_in_step, -72);
+//	float* voltage_recording = (float *)malloc(datasize<float *>(neurons_number * sim_time_in_step));
+//	init_array<float>(voltage_recording, neurons_number * sim_time_in_step, -72);
 
 	// init connectomes
 	init_extensor();
@@ -693,8 +1003,8 @@ void simulate(int test_index) {
 	cudaMalloc(&gpu_synapses_number, datasize<int>(neurons_number));
 	memcpyHtD<int>(gpu_synapses_number, synapses_number, neurons_number);
 
-	cudaMalloc(&gpu_voltage_recording, datasize<float>(neurons_number * sim_time_in_step));
-	memcpyHtD<float>(gpu_voltage_recording, voltage_recording, neurons_number * sim_time_in_step);
+//	cudaMalloc(&gpu_voltage_recording, datasize<float>(neurons_number * sim_time_in_step));
+//	memcpyHtD<float>(gpu_voltage_recording, voltage_recording, neurons_number * sim_time_in_step);
 
 	int threads_per_block = 1024;
 	int num_blocks = 1; //neurons_number / threads_per_block + 1;
@@ -703,23 +1013,25 @@ void simulate(int test_index) {
 	printf("Start GPU with %d threads x %d blocks (Total: %d threads) \n",
 		   threads_per_block, num_blocks, threads_per_block * num_blocks);
 
-	int shift_time_by_step = 0;
-	int activated_C_ = 0;
 	int local_iter = 0;
+	int activated_C_ = 0;
+	int shift_time_by_step = 0;
 
-	// measure GPU ellapsed time
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);
+	float * gpu_motoneuron_voltage;
+	cudaMalloc((void**)&gpu_motoneuron_voltage, sizeof(float));
+	cudaMemcpy(gpu_motoneuron_voltage, &motoneuron_voltage, sizeof(float), cudaMemcpyHostToDevice);
 
 	chrono::time_point<chrono::system_clock> iter_t_start, iter_t_end, simulation_t_start, simulation_t_end;
 	chrono::duration<double> elapsed_time_per_iter[sim_time_in_step];
 	chrono::duration<double> waited_time_per_iter[sim_time_in_step];
 
-	std::thread timer_thread;
+
+
+	pthread_create(&thread1, NULL, parallel_dac_func, 0);
 
 	simulation_t_start = chrono::system_clock::now();
+
+	auto frame_time = std::chrono::microseconds(150);
 
 	// GPU max T per step (4000 steps) <= 250 µm (0.25 ms)
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
@@ -733,7 +1045,7 @@ void simulate(int test_index) {
 				local_iter = 0;   // reset local time iterator
 				shift_time_by_step += steps_activation_C0;  // add constant 125 ms
 			}
-		// if extensor C1 activated, find the end of it and change to C0
+			// if extensor C1 activated, find the end of it and change to C0
 		} else {
 			if (local_iter != 0 && local_iter % steps_activation_C1 == 0) {
 				activated_C_ = 0; // change to C0
@@ -743,58 +1055,67 @@ void simulate(int test_index) {
 		}
 
 		sim_kernel<<<num_blocks, threads_per_block>>>(gpu_old_v,
-				gpu_old_u,
-				gpu_nrn_current,
-				gpu_nrn_ref_time,
-				gpu_nrn_ref_timer,
-				gpu_synapses_number,
-				gpu_has_spike,
-				gpu_synapses_post_nrn_id,
-				gpu_synapses_delay,
-				gpu_synapses_delay_timer,
-				gpu_synapses_weight,
-				neurons_number,
-				gpu_voltage_recording,
-				activated_C_,
-				shift_time_by_step,
-				sim_iter);
-		local_iter++;
+		                                              gpu_old_u,
+		                                              gpu_nrn_current,
+		                                              gpu_nrn_ref_time,
+		                                              gpu_nrn_ref_timer,
+		                                              gpu_synapses_number,
+		                                              gpu_has_spike,
+		                                              gpu_synapses_post_nrn_id,
+		                                              gpu_synapses_delay,
+		                                              gpu_synapses_delay_timer,
+		                                              gpu_synapses_weight,
+		                                              neurons_number,
+		                                              activated_C_,
+		                                              shift_time_by_step,
+		                                              gpu_motoneuron_voltage,
+//		                                              gpu_voltage_recording,
+		                                              sim_iter);
 
-		// ToDo here will be the DAC functionality
-		std::this_thread::sleep_for( std::chrono::microseconds(100) );
+		cudaMemcpy(&motoneuron_voltage, gpu_motoneuron_voltage, sizeof(float), cudaMemcpyDeviceToHost);
+
+		local_iter++;
 
 		// stop measure time
 		iter_t_end = std::chrono::system_clock::now();
+
+		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto + 72) / 100 * 5 ;
+
 		// save time difference
-		elapsed_time_per_iter[sim_iter] = chrono::duration_cast<chrono::microseconds>(iter_t_end - iter_t_start);
+		auto elapsed = chrono::duration_cast<chrono::microseconds>(iter_t_end - iter_t_start);
+//		elapsed_time_per_iter[sim_iter] = elapsed;
 
-		if (elapsed_time_per_iter[sim_iter].count() * 1000000 < 250) {
-			auto waited = std::chrono::microseconds( (int)(250 - elapsed_time_per_iter[sim_iter].count() * 1000000) );
-			waited_time_per_iter[sim_iter] = std::chrono::microseconds(waited);
-			std::this_thread::sleep_for(waited);
-		}
-
+		if (elapsed < frame_time) {
+//			waited_time_per_iter[sim_iter] = frame_time - elapsed;
+			std::this_thread::sleep_for(frame_time - elapsed);
+		}// else {
+////			waited_time_per_iter[sim_iter] = chrono::microseconds(0);
+//		}
 	} // end of simulation iteration loop
 
 	simulation_t_end = chrono::system_clock::now();
 
+	gpu_is_run = false;
+
+	pthread_join(thread1, NULL);
+
 	double sum = 0;
 	double wai = 0;
 
-	for (int i = 0; i < sim_time_in_step; i++) {
-		sum += elapsed_time_per_iter[i].count();
-		wai += waited_time_per_iter[i].count();
-		cout << i << " " <<  elapsed_time_per_iter[i].count() << " µs, w=" << waited_time_per_iter[i].count() << endl;
-	}
+//	for (int i = 0; i < sim_time_in_step; i++) {
+//		sum += elapsed_time_per_iter[i].count();
+//		wai += waited_time_per_iter[i].count();
+//		cout << fixed << i << " | " <<  (int)(elapsed_time_per_iter[i].count() * 10e5) << " µs, w=" << (int)(waited_time_per_iter[i].count() * 10e5) << endl;
+//	}
 
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
-	printf("Elapsed %li ms (measured), used %.2f ms, waited %.2f, T_sim = %.2f ms\n", sim_time_diff, sum * 1000, wai * 1000, T_sim);
-	printf("%s x%f\n", (double)(T_sim / sim_time_diff) > 1? "faster" : "slower", T_sim / sim_time_diff);
-//	printf("Ellapsed time: %fs. Realtime factor: x%f (%s than realtime)\n",
-//		   t, realtime_factor, realtime_factor > 1? "faster":"slower");
+	printf("Elapsed %li ms (measured), used %.2f ms, waited %.2f ms, other %.2f | T_sim = %.2f ms\n",
+		   sim_time_diff, sum * 1000, wai * 1000, sim_time_diff - (wai * 1000 + sum * 1000), T_sim);
+	printf("%s x%f\n",
+		   (double)(T_sim / sim_time_diff) > 1? "faster" : "slower", T_sim / sim_time_diff);
 
 	// copy neurons/synapses array to the HOST
-	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
+//	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
