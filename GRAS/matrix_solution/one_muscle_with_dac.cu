@@ -1,3 +1,9 @@
+#ifdef __JETBRAINS_IDE__
+	#define __host__
+	#define __shared__
+	#define __global__
+#endif
+
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
@@ -5,27 +11,12 @@
 #include <ctime>
 #include <stdexcept>
 #include <random>
-
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-
 #include <thread>
 #include <chrono>
-
-#include "Group.cpp"
-
-#ifdef __JETBRAINS_IDE__
-#define __host__
-#define __shared__
-#define __global__
-#endif
-
-// ============================================
-//               D  A  C
-// ============================================
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
@@ -35,14 +26,64 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #include <iostream>
-#include <math.h>
+
+#define INITGUID
+#include "include/stubs.h"
+#include "include/ioctl.h"
+#include "include/ifc_ldev.h"
+#include <errno.h>
+#include "Group.cpp"
 
 using namespace std;
 
 #include <termios.h>
 
+CREATEFUNCPTR CreateInstance;
+
 static struct termios stored_settings, new_settings;
 static int peek_character = -1;
+typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
+
+unsigned short *data1;
+unsigned int *sync1;
+
+unsigned int global_id = 0;
+const unsigned int syn_outdegree = 27;
+const unsigned int neurons_in_ip = 196;
+const unsigned int neurons_in_moto = 169;
+const unsigned int neurons_in_group = 20;
+const unsigned int neurons_in_afferent = 196;
+
+// 6 CMS = 125 [ms]
+// 15 CMS = 50 [ms]
+// 21 CMS = 25 [ms]
+const int skin_stim_time = 25;
+const float INH_COEF = 1.0f;
+
+// stuff variable
+const float T_sim = 1000;
+const float SIM_STEP = 0.25;
+const unsigned int sim_time_in_step = (unsigned int)(T_sim / SIM_STEP);
+
+// Parameters (const)
+const float C = 100;        // [pF] membrane capacitance
+const float V_rest = -72;   // [mV] resting membrane potential
+const float V_thld = -55;   // [mV] spike threshold
+const float k = 0.7;        // [pA * mV-1] constant ("1/R")
+const float a = 0.02;       // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
+const float b = 0.2;        // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
+const float c = -80;        // [mV] after-spike reset value of V_m
+const float d = 6;          // [pA] after-spike reset value of U_m
+const float V_peak = 35;    // [mV] spike cutoff value
+
+const unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
+const unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
+
+pthread_t thread_DAC;
+
+float motoneuron_voltage = 0;
+bool gpu_is_run = true;
+
 
 void reset_keypress(void) {
 	tcsetattr(0, TCSANOW, &stored_settings);
@@ -77,29 +118,15 @@ int readch() {
 	return ch;
 }
 
-#define INITGUID
-
-#include "include/stubs.h"
-#include "include/ioctl.h"
-#include "include/ifc_ldev.h"
-#include <errno.h>
-
-typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
-
-CREATEFUNCPTR CreateInstance;
-
-unsigned short *data1;
-unsigned int *sync1;
-
 void errorchk(bool condition, string text, char* err_text="failed") {
 	cout << text << " ... ";
 	if (condition) {
-		cout << "ERROR (" << err_text << ")" << endl;
-		cout << "FAILED !" << endl;
+		cout << "\x1b[31m" "ERROR (" << err_text << ")" "\x1b[0m" << endl;
+		cout << "\x1b[31m" "FAILED!" "\x1b[0m" << endl;
 		reset_keypress();
 		exit(0);
 	} else {
-		cout << "OK" << endl;
+		cout << "\x1b[32m" "OK" "\x1b[0m" << endl;
 	}
 }
 
@@ -115,37 +142,6 @@ void errorchk(bool condition, HRESULT result, string text) {
 	}
 }
 
-
-// ============================================
-//               D  A  C
-// ============================================
-
-
-using namespace std;
-
-const unsigned int syn_outdegree = 27;
-const unsigned int neurons_in_ip = 196;
-const unsigned int neurons_in_moto = 169;
-const unsigned int neurons_in_group = 20;
-const unsigned int neurons_in_afferent = 196;
-
-const int skin_stim_time = 25;
-const float INH_COEF = 1.0f;
-
-// 6 CMS = 125 [ms]
-// 15 CMS = 50 [ms]
-// 21 CMS = 25 [ms]
-
-// stuff variable
-unsigned int global_id = 0;
-const float T_sim = 10000;
-const float SIM_STEP = 0.25;
-const unsigned int sim_time_in_step = (unsigned int)(T_sim / SIM_STEP);
-
-pthread_t thread1;
-
-float motoneuron_voltage = 0;
-bool gpu_is_run = true;
 
 void *parallel_dac_func(void *arg) {
 	ULONG mem_buffer_size = 131072;
@@ -219,7 +215,7 @@ void *parallel_dac_func(void *arg) {
 	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
 	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
 	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
-	adc_par.t1.Chn[0] = 1;          // массив с номерами каналов и усилением на них,
+	adc_par.t1.Chn[0] = 1;            // массив с номерами каналов и усилением на них,
 	adc_par.t1.FIFO = 4096;           // размер половины аппаратного буфера FIFO на плате
 	adc_par.t1.IrqStep = 4096;        // шаг генерации прерываний
 	adc_par.t1.Pages = 32;            // размер кольцевого буфера в шагах прерываний
@@ -290,28 +286,19 @@ void *parallel_dac_func(void *arg) {
 
 	// write data to the DAC
 	async_par.s_Type = L_ASYNC_DAC_OUT;
-	async_par.Chn[0] = 1;  //
-	async_par.Mode = 0;    // number of DAC (0/1). Setup different modes at configuration
+	async_par.Chn[0] = 1;
+	async_par.Mode = 0;
 	async_par.Data[0] = 0;
 	device->IoAsync(&async_par);
 
-	async_par_adc.s_Type = L_ASYNC_ADC_INP;
-	async_par_adc.NCh = 1;
-	async_par_adc.Chn[0] = 0x01;
-	async_par_adc.Mode = 0;
-	async_par_adc.Rate = 100;
-
-
 	while (gpu_is_run) {
+		if (motoneuron_voltage > 5) {
+			motoneuron_voltage = 5;
+		}
 		async_par.Data[0] = motoneuron_voltage > 0? motoneuron_voltage / 5.0 * 0x7F : 0;
 		device->IoAsync(&async_par);
 
 		usleep(250); // std::this_thread::sleep_for(chrono::microseconds(250));
-
-//		if(device->IoAsync(&async_par_adc) != L_SUCCESS){
-//			cout << "Failed read data" << endl;
-//		}
-//		cout << async_par.Data[0] << " -> "<< (short)async_par_adc.Data[0] << endl;  // ADC data */
 	}
 
 	async_par.Data[0] = 0;   // data for DAC
@@ -334,11 +321,9 @@ void *parallel_dac_func(void *arg) {
 		dlclose(dll_handle);
 
 	// you are awesome
-	cout << endl << "SUCCESS" << endl;
+	cout << endl << "\x1b[31m" "SUCCESS" "\x1b[0m" << endl;
 
 	return 0;
-
-
 }
 
 __host__
@@ -443,20 +428,6 @@ Group ees_group4 = form_group("ees_group4");
 
 // Global vectors of SynapseMetadata of synapses for each neuron
 vector<vector<SynapseMetadata>> metadatas(global_id, vector<SynapseMetadata>());
-
-// Parameters (const)
-const float C = 100;        // [pF] membrane capacitance
-const float V_rest = -72;   // [mV] resting membrane potential
-const float V_thld = -55;   // [mV] spike threshold
-const float k = 0.7;          // [pA * mV-1] constant ("1/R")
-const float a = 0.02;         // [ms-1] time scale of the recovery variable U_m. Higher a, the quicker recovery
-const float b = 0.2;          // [pA * mV-1] sensitivity of U_m to the sub-threshold fluctuations of the V_m
-const float c = -80;        // [mV] after-spike reset value of V_m
-const float d = 6;          // [pA] after-spike reset value of U_m
-const float V_peak = 35;    // [mV] spike cutoff value
-
-const unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
-const unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
 
 __global__
 void sim_kernel(float* old_v,
@@ -1025,13 +996,12 @@ void simulate(int test_index) {
 	chrono::duration<double> elapsed_time_per_iter[sim_time_in_step];
 	chrono::duration<double> waited_time_per_iter[sim_time_in_step];
 
-
-
-	pthread_create(&thread1, NULL, parallel_dac_func, 0);
-
-	simulation_t_start = chrono::system_clock::now();
+	// create DAC thread
+	pthread_create(&thread_DAC, NULL, parallel_dac_func, 0);
 
 	auto frame_time = std::chrono::microseconds(150);
+
+	simulation_t_start = chrono::system_clock::now();
 
 	// GPU max T per step (4000 steps) <= 250 µm (0.25 ms)
 	for (int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
@@ -1079,7 +1049,7 @@ void simulate(int test_index) {
 		// stop measure time
 		iter_t_end = std::chrono::system_clock::now();
 
-		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto + 72) / 100 * 5 ;
+		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto - V_rest) / 100 * 5 ;
 
 		// save time difference
 		auto elapsed = chrono::duration_cast<chrono::microseconds>(iter_t_end - iter_t_start);
@@ -1097,7 +1067,7 @@ void simulate(int test_index) {
 
 	gpu_is_run = false;
 
-	pthread_join(thread1, NULL);
+	pthread_join(thread_DAC, NULL);
 
 	double sum = 0;
 	double wai = 0;
@@ -1115,12 +1085,12 @@ void simulate(int test_index) {
 		   (double)(T_sim / sim_time_diff) > 1? "faster" : "slower", T_sim / sim_time_diff);
 
 	// copy neurons/synapses array to the HOST
-//	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
+	// memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
 
 	// tell the CPU to halt further processing until the CUDA kernel has finished doing its business
 	cudaDeviceSynchronize();
 
-//	save_result(test_index, voltage_recording, neurons_number);
+	// save_result(test_index, voltage_recording, neurons_number);
 
 	cudaDeviceReset();
 }

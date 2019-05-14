@@ -18,3 +18,10 @@
 * ```cd ../test```
 * ```make```
 * ```sudo ./test 0 e154``` (the second argument depends on the model)
+
+### Timeframe diagram
+
+![sync](doc/sync.png)
+
+
+### In progress ...
