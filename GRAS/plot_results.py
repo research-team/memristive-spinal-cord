@@ -21,23 +21,23 @@ def read_data(path):
 			g_exc.append(list(map(float, file.readline().split())))
 			g_inh.append(list(map(float, file.readline().split())))
 			spikes.append(list(map(float, file.readline().split())))
-	logger.info(f"done : {path}")
+	logger.info(f"done: {path}")
 
 	return names, voltage, g_exc, g_inh, spikes
 
 
-def draw_slice_borders(sim_time):
-	a = [125]
+def draw_slice_borders(sim_time, skin_stim_time):
+	a = [5 * skin_stim_time] # flexor timing
 	for i in range(1, 20):
-		a.append(a[i - 1] + (125 if i % 2 == 0 else 150) )
+		a.append(a[i - 1] + (5 * skin_stim_time if i % 2 == 0 else 6 * skin_stim_time) )
 	# for i in range(0, sim_time, 25):
 	for i in a:
 		plt.axvline(x=i, linewidth=3, color='k')
-	for i in range(0, sim_time, 25):
+	for i in range(0, sim_time, skin_stim_time):
 		plt.axvline(x=i, linewidth=1, color='k')
 
 
-def plot(names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
+def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 	for name, voltage, g_e, g_i, s in zip(names, voltages, g_exc, g_inh, spikes):
 		if plot_only and name != plot_only:
 			continue
@@ -45,12 +45,23 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 		slices_number = int(len(voltage) * step / 25)
 		shared_x = list(map(lambda x: x * step, range(len(voltage))))
 
+
+		if skin_stim_time == 25:
+			coef = 1
+		elif skin_stim_time == 50:
+			coef = 2
+		elif skin_stim_time == 125:
+			coef = 4
+		else:
+			raise Exception
+
 		if "MP_E" in name or "MP_F" in name:
 			plt.figure(figsize=(16, 9))
 			plt.suptitle(f"Sliced {name}")
 			V_rest = 72
+			print(slices_number)
 
-			for slice_index in range(0 if name is "MP_F" else 5, 5 if name is "MP_F" else slices_number):
+			for slice_index in range(slices_number):
 				chunk_start = int(slice_index * 25 / step)
 				chunk_end = int((slice_index + 1) * 25 / step)
 				Y = [-v - V_rest for v in voltage[chunk_start:chunk_end]]
@@ -68,7 +79,7 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 
 		# 1
 		ax1 = plt.subplot(311)
-		draw_slice_borders(sim_time)
+		draw_slice_borders(sim_time, skin_stim_time)
 
 		plt.plot(shared_x, voltage, color='b')
 		plt.plot(s, [0] * len(s), '.', color='r', alpha=0.7)
@@ -83,25 +94,25 @@ def plot(names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 
 		# 2
 		ax2 = plt.subplot(312, sharex=ax1)
-		draw_slice_borders(sim_time)
+		draw_slice_borders(sim_time, skin_stim_time)
 
 		plt.plot(shared_x, g_e, color='r')
 		plt.plot(shared_x, g_i, color='b')
 		ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
 		plt.ylabel("Currents, pA")
 
-		plt.ylim(0, 1500)
+		plt.ylim(bottom=0)
 		plt.xlim(0, sim_time)
 		plt.xticks(range(0, sim_time + 1, 5 if sim_time <= 275 else 25), [""] * sim_time, color='w')
 		plt.grid()
 
 		# 3
 		plt.subplot(313, sharex=ax1)
-		draw_slice_borders(sim_time)
+		draw_slice_borders(sim_time, skin_stim_time)
 
 		plt.hist(s, bins=range(sim_time))   # bin is equal to 1ms
 		plt.xlim(0, sim_time)
-		plt.ylim(0, 200)
+		plt.ylim(bottom=0)
 		plt.grid()
 
 		plt.ylabel("Spikes, n")
@@ -126,6 +137,7 @@ def scientific_plot(neurons_volt):
 
 def run():
 	step = 0.025
+	skin_stim_time = 25
 	nuclei = None
 
 	if len(sys.argv) == 2:
@@ -136,7 +148,7 @@ def run():
 	else:
 		path = "/home/alex/GitHub/memristive-spinal-cord/GPU/matrix_solution/dat/"
 
-	plot(*read_data(path), step=step, save_to=f"{path}/results/", plot_only=nuclei)
+	plot(skin_stim_time, *read_data(path), step=step, save_to=f"{path}/results/", plot_only=nuclei)
 
 	# scientific_plot(neurons_volt)
 

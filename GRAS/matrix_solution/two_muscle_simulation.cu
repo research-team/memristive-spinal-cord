@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <vector>
-#include <ctime>
+#include <time.h>
 #include <cmath>
 #include <stdexcept>
 #include <random>
@@ -35,13 +35,12 @@ References:
 **/
 
 // parameters for variability of the simulation
-const int SPEED = 21;                // [cm/s] speed of rat moving
+const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
 const int EES_FREQ = 40;             // [hz] spike frequency of EES
-const int slices_number = 6;         // number of slices (based on speed)
+const int LEG_STEPS = 3;
+const float T_SIMULATION = 11 * skin_stim_time * LEG_STEPS;      // [ms] simulation time
 const float INH_COEF = 1.0;          // strength coefficient of inhibitory synapses
 const float SIM_STEP = 0.025;        // [s] simulation step
-const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
-const float T_SIMULATION = 275;      // [ms] simulation time
 const bool QUADRUPEDAL = false;      // True if it is a quadrupedal simulation
 const bool SEROTONIN = false;        // True if nuclei has 5-HT receptors
 
@@ -74,7 +73,7 @@ int global_synapse_number = 0;
 const unsigned int ees_spike_each_step = (unsigned int)(1000 / EES_FREQ / SIM_STEP);
 // calculate steps activation of C0 and C1
 const unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
-const unsigned int steps_activation_C1 = (unsigned int)(slices_number  * skin_stim_time / SIM_STEP);
+const unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
 // calculate how much steps in simulation time [steps]
 const unsigned int sim_time_in_steps = (unsigned int)(T_SIMULATION / SIM_STEP);
 
@@ -400,6 +399,7 @@ void GPU_synapses_kernel(bool* has_spike,             // 1-D array of bool -- ha
 
 void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
 	std::default_random_engine generator;
+	generator.seed(time(NULL));
 	std::normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
 	std::normal_distribution<float> weight_distr(weight, weight / 10);
 
@@ -422,6 +422,7 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
                              float syn_delay, float weight, int outdegree= syn_outdegree, bool higher_distr= false) {
 	// connect neurons with uniform distribution and normal distributon for syn delay and weight
 	std::default_random_engine generator;
+	generator.seed(time(NULL));
 	std::uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
 	std::normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
 	std::normal_distribution<float> weight_distr(weight, weight / 10);
@@ -475,7 +476,7 @@ void init_connectomes() {
 	/// OM 1
 	// input from EES group 1
 	connect_fixed_outdegree(E1, OM1_0_E, 3, 7);    // ToDo: EXTENSOR
-	connect_fixed_outdegree(E1, OM1_0_F, 3, 7);    // ToDo: FLEXOR
+	connect_fixed_outdegree(E1, OM1_0_F, 1, 15);    // ToDo: FLEXOR
 	// input from sensory
 	connect_one_to_all(CV1, OM1_0_E, 0.5, 18);
 	connect_one_to_all(CV2, OM1_0_E, 0.5, 18);
@@ -496,12 +497,12 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM1_0_F, OM2_2, 1, 50);
 	// output to IP
 	connect_fixed_outdegree(OM1_2, IP_E, 1, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM1_2, IP_F, 1, 50, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2, IP_F, 3, 2, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
 	connect_fixed_outdegree(E2, OM2_0_E, 3, 7);    // ToDo: EXTENSOR
-	connect_fixed_outdegree(E2, OM2_0_F, 3, 7);    // ToDo: FLEXOR
+	connect_fixed_outdegree(E2, OM2_0_F, 1, 15);    // ToDo: FLEXOR
 	// input from sensory [CV]
 	connect_one_to_all(CV2, OM2_0_E, 0.5, 18);
 	connect_one_to_all(CV3, OM2_0_E, 0.5, 18);
@@ -510,7 +511,7 @@ void init_connectomes() {
 	connect_one_to_all(CV5, OM2_3, 1, 80);
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0_E, OM2_1, 1, 50);  // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM2_0_F, OM2_1, 1, 50);  // ToDo: FLEXOR
+	connect_fixed_outdegree(OM2_0_F, OM2_1, 1, 10);  // ToDo: FLEXOR
 	connect_fixed_outdegree(OM2_1, OM2_2, 1, 23);
 	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2, OM2_1, 2.5, 22);
@@ -520,8 +521,8 @@ void init_connectomes() {
 	// output to OM3, ToDo: FLEXOR
 	connect_fixed_outdegree(OM2_0_F, OM3_0, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2, IP_E, 2, 10, neurons_in_ip); // 50
-	connect_fixed_outdegree(OM2_2, IP_F, 2, 50, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2, IP_E, 2, 15, neurons_in_ip); // 50
+	connect_fixed_outdegree(OM2_2, IP_F, 2, 3, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
@@ -535,25 +536,25 @@ void init_connectomes() {
 	connect_one_to_all(CD4, OM3_0, 1, 11);
 	// inner connectomes
 	connect_fixed_outdegree(OM3_0, OM3_1, 1, 50);
-	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 23);  // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 23);  // ToDo: FLEXOR
+	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 24);  // ToDo: EXTENSOR
+	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 30);  // ToDo: FLEXOR
 	connect_fixed_outdegree(OM3_1, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 22);   // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 22);   // ToDo: FLEXOR
+	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 40);   // ToDo: FLEXOR
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);   // ToDo: EXTENSOR
 	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);   // ToDo: FLEXOR
-	connect_fixed_outdegree(OM3_3, OM3_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -70 * INH_COEF);  // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * INH_COEF);  // ToDo: FLEXOR
+	connect_fixed_outdegree(OM3_3, OM3_1, 1, -5 * INH_COEF);
+	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -10 * INH_COEF);  // ToDo: EXTENSOR !!!
+	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -0.1 * INH_COEF);  // ToDo: FLEXOR
 	// output to OM3, ToDo: FLEXOR
 	connect_fixed_outdegree(OM3_2_F, OM4_2, 1, 50);
-	connect_fixed_outdegree(OM3_2_E, IP_E, 3, 8, neurons_in_ip);    // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM3_2_F, IP_F, 3, 50, neurons_in_ip);    // ToDo: FLEXOR
+	connect_fixed_outdegree(OM3_2_E, IP_E, 3, 15, neurons_in_ip);    // ToDo: EXTENSOR
+	connect_fixed_outdegree(OM3_2_F, IP_F, 3, 6, neurons_in_ip);    // ToDo: FLEXOR
 
 	/// OM 4
 	// input from EES group 4
 	connect_fixed_outdegree(E4, OM4_0_E, 3, 7);     // ToDo: EXTENSOR
-	connect_fixed_outdegree(E4, OM4_0_F, 3, 7);     // ToDo: FLEXOR
+	connect_fixed_outdegree(E4, OM4_0_F, 1, 15);     // ToDo: FLEXOR
 	// input from sensory [CV]
 	connect_one_to_all(CV4, OM4_0_E, 0.5, 18);
 	connect_one_to_all(CV5, OM4_0_E, 0.5, 18);
@@ -563,8 +564,8 @@ void init_connectomes() {
 	connect_one_to_all(CD4, OM4_0_E, 1, 11);
 	connect_one_to_all(CD5, OM4_0_E, 1, 11);
 	// inner connectomes
-	connect_fixed_outdegree(OM4_0_E, OM4_1, 1, 50);   // ToDo: EXTENSOR
-	connect_fixed_outdegree(OM4_0_F, OM4_1, 1, 50);   // ToDo: FLEXOR
+	connect_fixed_outdegree(OM4_0_E, OM4_1, 3, 50);   // ToDo: EXTENSOR
+	connect_fixed_outdegree(OM4_0_F, OM4_1, 3, 50);   // ToDo: FLEXOR
 	connect_fixed_outdegree(OM4_1, OM4_2, 1, 23);
 	connect_fixed_outdegree(OM4_1, OM4_3, 1, 3);
 	connect_fixed_outdegree(OM4_2, OM4_1, 2.5, 22);
@@ -573,8 +574,8 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM4_3, OM4_2, 1, -70 * INH_COEF);
 	// output to OM4
 	connect_fixed_outdegree(OM4_0_F, OM5_0, 1, 50);
-	connect_fixed_outdegree(OM4_2, IP_E, 2, 8, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2, IP_F, 2, 50, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2, IP_E, 3, 13, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2, IP_F, 1, 6, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
@@ -593,11 +594,11 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM5_3, OM5_2, 1, -70 * INH_COEF);
 	// output to IP
 	connect_fixed_outdegree(OM5_2, IP_E, 2, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM5_2, IP_F, 2, 50, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2, IP_F, 3, 3, neurons_in_ip);
 
 
 	// inhibition by C=0: IP_E, Ia_Extensor
-	connect_one_to_all(C_0, IP_E, 0.1, -1);
+	connect_one_to_all(C_0, IP_E, 0.1, -g_bar);
 	connect_one_to_all(C_0, Ia_Extensor, 0.1, -g_bar);
 	// inhibition by C=0: extensor clones D1, D2, G3, D4
 	connect_one_to_all(C_0, OM1_0_E, 0.1, -0.1);
@@ -618,11 +619,11 @@ void init_connectomes() {
 	connect_fixed_outdegree(EES, Ia_Extensor, 1, 500);
 	connect_fixed_outdegree(EES, Ia_Flexor, 1, 500);
 
-	connect_fixed_outdegree(IP_E, MP_E, 1, 12, neurons_in_moto); // was 30
+	connect_fixed_outdegree(IP_E, MP_E, 1, 2, neurons_in_moto); // was 30
 //	connect_fixed_outdegree(IP_E, Ia_E, 2.0, 20.0);
 //	connect_fixed_outdegree(MP_E, R_E, 2.0, 20.0);
 
-	connect_fixed_outdegree(IP_F, MP_F, 1, 30, neurons_in_moto);
+	connect_fixed_outdegree(IP_F, MP_F, 1, 5, neurons_in_moto);
 //	connect_fixed_outdegree(IP_F, Ia_F, 2.0, 20.0);
 //	connect_fixed_outdegree(MP_F, R_F, 2.0, 20.0);
 
@@ -661,31 +662,33 @@ void save_result(int test_index) {
 	printf("[Test #%d] Save results to: %s ...\n", test_index, cwd);
 
 	for(Metadata metadata : all_groups) {
-		ofstream file;
-		string file_name = "/dat/" + std::to_string(test_index) + "_" + metadata.group.group_name + ".dat";
-		file.open(cwd + file_name);
-		// save voltage
-		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
-			file << metadata.voltage_array[sim_iter] << " ";
-		file << std::endl;
+		if (metadata.group.group_name == "MP_E" || metadata.group.group_name == "MP_F") {
+			ofstream file;
+			string file_name = "/dat/" + std::to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+			file.open("/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/" + file_name);
+			// save voltage
+			for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+				file << metadata.voltage_array[sim_iter] << " ";
+			file << std::endl;
 
-		// save g_exc
-		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
-			file << metadata.g_exc[sim_iter] << " ";
-		file << std::endl;
+			// save g_exc
+			for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+				file << metadata.g_exc[sim_iter] << " ";
+			file << std::endl;
 
-		// save g_inh
-		for(int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
-			file << metadata.g_inh[sim_iter] << " ";
-		file << std::endl;
+			// save g_inh
+			for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+				file << metadata.g_inh[sim_iter] << " ";
+			file << std::endl;
 
-		// save spikes
-		for(float &value: metadata.spike_vector) {
-			file << value << " ";
+			// save spikes
+			for (float &value: metadata.spike_vector) {
+				file << value << " ";
+			}
+			file.close();
+
+			printf("SAVED %s \n", metadata.group.group_name.c_str());
 		}
-		file.close();
-
-		printf("SAVED %s \n", metadata.group.group_name.c_str());
 	}
 }
 
@@ -718,6 +721,7 @@ void init_array(type *array, int size, type value) {
 template <typename type>
 void rand_normal_init_array(type *array, int size, type mean, type stddev) {
 	std::default_random_engine generator;
+	generator.seed(time(NULL));
 	std::normal_distribution<float> normal_dist(mean, stddev);
 
 	for(int i = 0; i < size; i++)

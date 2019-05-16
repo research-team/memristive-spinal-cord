@@ -7,7 +7,7 @@ public:
 	Group() = default;
 
 	string group_name;
-	int id_start{};
-	int id_end{};
-	int group_size{};
+	unsigned int id_start{};
+	unsigned int id_end{};
+	unsigned int group_size{};
 };

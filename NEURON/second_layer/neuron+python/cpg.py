@@ -10,8 +10,8 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-EES_i = 20 # interval between EES stimulus 
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+EES_i = 25 # interval between EES stimulus 
 versions = 10
 step_number = 3 # number of steps
 
@@ -36,44 +36,45 @@ class CPG:
     self.ncell = N
     self.groups = []
     self.motogroups = []
+    self.affgroups = []
     
     nMN = 200
     nAff = 120
     nInt = 196
 
-    D1_1E = self.addpool(self.ncell, False, "D1_1E")
-    D1_1F = self.addpool(self.ncell, False, "D1_1F")
+    D1_1E = self.addpool(self.ncell, True, "D1_1E")
+    D1_1F = self.addpool(self.ncell, True, "D1_1F")
       
-    D2_1E = self.addpool(self.ncell, False, "D2_1E")
-    D2_1F = self.addpool(self.ncell, False, "D2_1F")
+    D2_1E = self.addpool(self.ncell, True, "D2_1E")
+    D2_1F = self.addpool(self.ncell, True, "D2_1F")
     
-    D3_1 = self.addpool(self.ncell, False, "D3_1")
+    D3_1 = self.addpool(self.ncell, True, "D3_1")
 
-    D4_1E = self.addpool(self.ncell, False, "D4_1E")
-    D4_1F = self.addpool(self.ncell, False, "D4_1F")
+    D4_1E = self.addpool(self.ncell, True, "D4_1E")
+    D4_1F = self.addpool(self.ncell, True, "D4_1F")
     
-    D5_1  = self.addpool(self.ncell, False, "D5_1")
+    D5_1  = self.addpool(self.ncell, True, "D5_1")
 
-    G1_1 = self.addpool(self.ncell, False, "G1_1")
-    G1_2 = self.addpool(self.ncell, False, "G1_2")
-    G1_3 = self.addpool(self.ncell, False, "G1_3")
+    G1_1 = self.addpool(self.ncell, True, "G1_1")
+    G1_2 = self.addpool(self.ncell, True, "G1_2")
+    G1_3 = self.addpool(self.ncell, True, "G1_3")
 
-    G2_1 = self.addpool(self.ncell, False, "G2_1")
-    G2_2 = self.addpool(self.ncell, False, "G2_2")
-    G2_3 = self.addpool(self.ncell, False, "G2_3")
+    G2_1 = self.addpool(self.ncell, True, "G2_1")
+    G2_2 = self.addpool(self.ncell, True, "G2_2")
+    G2_3 = self.addpool(self.ncell, True, "G2_3")
    
-    G3_1 = self.addpool(self.ncell, False, "G3_1")
-    G3_2E = self.addpool(self.ncell, False, "G3_2E")
-    G3_2F = self.addpool(self.ncell, False, "G3_2F")
-    G3_3 = self.addpool(self.ncell, False, "G3_3")
+    G3_1 = self.addpool(self.ncell, True, "G3_1")
+    G3_2E = self.addpool(self.ncell, True, "G3_2E")
+    G3_2F = self.addpool(self.ncell, True, "G3_2F")
+    G3_3 = self.addpool(self.ncell, True, "G3_3")
     
-    G4_1 = self.addpool(self.ncell, False, "G4_1")
-    G4_2 = self.addpool(self.ncell, False, "G4_2")
-    G4_3 = self.addpool(self.ncell, False, "G4_3")
+    G4_1 = self.addpool(self.ncell, True, "G4_1")
+    G4_2 = self.addpool(self.ncell, True, "G4_2")
+    G4_3 = self.addpool(self.ncell, True, "G4_3")
 
-    G5_1 = self.addpool(self.ncell, False, "G5_1")
-    G5_2 = self.addpool(self.ncell, False, "G5_2")
-    G5_3 = self.addpool(self.ncell, False, "G5_3")
+    G5_1 = self.addpool(self.ncell, True, "G5_1")
+    G5_2 = self.addpool(self.ncell, True, "G5_2")
+    G5_3 = self.addpool(self.ncell, True, "G5_3")
    
     E1 = self.addpool(self.ncell, False, "E1")
     E2 = self.addpool(self.ncell, False, "E2")
@@ -81,12 +82,12 @@ class CPG:
     E4 = self.addpool(self.ncell, False, "E4")
     E5 = self.addpool(self.ncell, False, "E5")
 
-    sens_aff = self.addafferents(nAff)
-    Ia_aff_E = self.addafferents(nAff)
-    Ia_aff_F = self.addafferents(nAff)
+    sens_aff = self.addafferents(nAff, "sens_aff")
+    Ia_aff_E = self.addafferents(nAff, "Iaaff_E")
+    Ia_aff_F = self.addafferents(nAff, "Iaaff_F")
 
-    mns_E = self.addmotoneurons(nMN, "mns_E50")
-    mns_F = self.addmotoneurons(nMN, "mns_F50")
+    mns_E = self.addmotoneurons(nMN, "mns_E5HT")
+    mns_F = self.addmotoneurons(nMN, "mns_F5HT")
 
     #interneuronal pool
     IP1_E = self.addpool(self.ncell, False, "IP1_E")
@@ -102,6 +103,7 @@ class CPG:
 
     # EES
     ees = self.addgener(1, EES_int, 10000)
+    Iagener = self.addIagener(1, 10)
     
     #skin inputs
     c_int = 5
@@ -282,6 +284,7 @@ class CPG:
     inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
 
     #reflex arc
+    exconnectcells(Iagener, Ia_aff_E[:2*int(len(Ia_aff_E)/5)], 0.8, 1, 20)
     exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
     exconnectcells(mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ia_E, mns_F, 0.04, 1, 45)
@@ -360,7 +363,7 @@ class CPG:
 
     return gids
 
-  def addafferents(self, num):
+  def addafferents(self, num, name):
     '''
     Creates pool of afferents and returns gids of pool
     Parameters
@@ -383,6 +386,8 @@ class CPG:
       pc.set_gid2node(gid, rank)
       nc = cell.connect2target(None)
       pc.cell(gid, nc)
+
+    self.affgroups.append((gids, name))
     return gids
 
   def addgener(self, start, interval, nums):
@@ -414,6 +419,37 @@ class CPG:
     ncstim = h.NetCon(stim, None)
     pc.cell(gid, ncstim)
     return gid
+  
+  def addIagener(self, start, num):
+    '''
+    Creates Ia generators and returns generator gids
+    Parameters
+    ----------
+    start: int
+        generator start up
+    num: int
+        number in pool
+    Returns
+    -------
+    gids: list
+        generators gids
+    '''
+    gids = []
+    gid = 0
+    for i in range(rank, num, nhost):
+      stim = h.SpikeGenerator(0.5)
+      stim.start = start
+      stim.number = 1000000
+      stim.k = 0.02
+      self.stims.append(stim)
+      while(pc.gid_exists(gid)!=0):
+        gid+=1
+      gids.append(gid)
+      pc.set_gid2node(gid, rank)
+      ncstim = h.NetCon(stim, None)
+      pc.cell(gid, ncstim)
+    
+    return gids
 
 exnclist = []
 inhnclist = []

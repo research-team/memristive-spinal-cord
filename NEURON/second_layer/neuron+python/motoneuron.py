@@ -95,7 +95,7 @@ class motoneuron(object):
     for sec in self.all:
       sec.Ra = 100 # Ra ohm cm - membrane resistance
       sec.cm = 1 # cm uf/cm2 - membrane capacitance
-    self.soma.insert('motoneuron_5ht')
+    self.soma.insert('hh')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     self.dend.insert('pas')

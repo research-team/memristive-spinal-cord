@@ -1,23 +1,20 @@
-: $Id: netstim.mod,v 1.1.1.1 2001/01/01 20:30:37 hines Exp $
-: modified in such a way that the first event will never be before start
-: M.Migliore Dec.2001
-: modified in such a way to have the first event at start
-: M.Migliore Sep. 2003
+: pregen.mod,v 1.4 1999/01/22 18:47:54 hines Exp
+: comments at end
 
 NEURON	{ 
-  POINT_PROCESS spikeGenerator
-  		POINTER vMN
+  POINT_PROCESS SpikeGenerator
   RANGE y
   RANGE interval, number, start
-  RANGE noise, speed
+  RANGE noise, freq, k
 }
-
 PARAMETER {
-	interval	= 10 (ms) <1e-9,1e9>: time between spikes (msec)
-	number	= 10 <0,1e9>	: number of spikes
-	start		= 50 (ms)	: start of first spike
-	noise		= 0 <0,1>	: amount of randomeaness (0.0 - 1.0)
-	speed = 21
+	interval = 10 (ms) <1e-9,1e9>: time between spikes (msec)
+	number = 10000 <0,1e9>	: number of spikes
+	start = 50 (ms)	: start of first spike
+	noise = 0 <0,1>	: amount of randomeaness (0.0 - 1.0)
+	ml = 0
+	maxlen = 200
+	k = 0.009
 }
 
 ASSIGNED {
@@ -25,7 +22,9 @@ ASSIGNED {
 	event (ms)
 	on
 	end (ms)
-	vMN (mV)
+	ml0
+	freq (ms)
+	time
 }
 
 PROCEDURE seed(x) {
@@ -42,35 +41,43 @@ INITIAL {
 		noise = 1
 	}
 	if (start >= 0 && number > 0) {
-	: first spike occurs at start
-		event = start
+		: randomize the first spike so on average it occurs at start+interval
+		interval = 1000/frequency(t)
+		event = start + invl(interval)
 		net_send(event, 3)
 	}
-}
+}	
 
-UNITSOFF
 PROCEDURE init_sequence(t(ms)) {
 	if (number > 0) {
 		on = 1
 		event = t
-		interval =  1000/((6.2*pow(speed, 0.6) + 0.17 + 0.06*(vMN+65))*8)
+		interval = 1000/frequency(t)
 		end = t + 1e-6 + invl(interval)*(number-1)
 	}
 }
 
-FUNCTION invl(mean (ms)) (ms) {
-	if (mean <= 0.) {
-		mean = .01 (ms) : I would worry if it were 0.
-	}
+FUNCTION frequency(t (ms)) (ms) {
+	ml0 = ml
+	if (t<=start){time = 0}
+	if (t>start){time = t - start}
+	ml = (maxlen/pow((k*(time+1)),1.5))*(1-exp(1/(k*(time+1))))
+	frequency = 4.3*pow(fabs(ml - ml0),0.6) + 82
+	if ((t-start)>150){frequency = 10}
+	freq = frequency
+}
+
+FUNCTION invl(interval (ms)) (ms) {
 	if (noise == 0) {
-		invl = mean
+		invl = interval
 	}else{
-		invl = (1. - noise)*mean + noise*mean*exprand(1)
+		invl = (1. - noise)*(interval) + noise*(interval)*exprand(1)
 	}
 }
 
 PROCEDURE event_time() {
 	if (number > 0) {
+		interval = 1000/frequency(t)
 		event = event + invl(interval)
 	}
 	if (event > end) {
@@ -106,7 +113,7 @@ NET_RECEIVE (w) {
 		y = 0
 	}
 }
-UNITSON
+
 COMMENT
 Presynaptic spike generator
 ---------------------------
@@ -140,3 +147,5 @@ events. A change to the on state immediately fires the first spike of
 its sequence.
 
 ENDCOMMENT
+
+
