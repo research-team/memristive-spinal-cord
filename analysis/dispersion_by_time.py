@@ -1,5 +1,5 @@
 import scipy.io as sio
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 import h5py as hdf5
 import numpy as np
 from matplotlib import pylab as plt
@@ -8,7 +8,7 @@ recording_step = 0.025
 # read real data
 path = "SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat"
 data = read_data('../bio-data/{}'.format(path))
-processed_data = slice_myogram(data)
+processed_data = trim_myogram(data)
 real_data = processed_data[0]
 slices_begin_time = processed_data[1]
 slices_begin_time = [int(slice_index) * 4 for slice_index in slices_begin_time]
@@ -187,10 +187,14 @@ for i in range(len(dif_slices_max)):
     two.append(dif_slices_max[i][1])
     three.append(dif_slices_max[i][2])
     four.append(dif_slices_max[i][3])
-pyp.bar([x for x in xs], one, width=0.2, color='red', alpha=0.7, label='difference between times of the first max peak', zorder=2)
-pyp.bar([x + 0.2 for x in xs], two, width=0.2, color='blue', alpha=0.7, label='difference between times of the second max peak', zorder=2)
-pyp.bar([x + 0.4 for x in xs], three, width=0.2, color='yellow', alpha=0.7, label='difference between times of the third max peak', zorder=2)
-pyp.bar([x + 0.6 for x in xs], four, width=0.2, color='green', alpha=0.7, label='difference between times of the fourth max peak', zorder=2)
+pyp.bar([x for x in xs], one, width=0.2, color='red', alpha=0.7,
+        label='difference between times of the first max peak', zorder=2)
+pyp.bar([x + 0.2 for x in xs], two, width=0.2, color='blue', alpha=0.7,
+        label='difference between times of the second max peak', zorder=2)
+pyp.bar([x + 0.4 for x in xs], three, width=0.2, color='yellow', alpha=0.7,
+        label='difference between times of the third max peak', zorder=2)
+pyp.bar([x + 0.6 for x in xs], four, width=0.2, color='green', alpha=0.7,
+        label='difference between times of the fourth max peak', zorder=2)
 pyp.xticks(xs, range(27))
 for i in range(27):
     pyp.axvline(x=i, linestyle='--', color='gray')

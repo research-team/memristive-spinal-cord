@@ -5,7 +5,7 @@ from analysis.real_data_slices import *
 def init():
 	raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
 
-	myogram_data = slice_myogram(raw_real_data)
+	myogram_data = trim_myogram(raw_real_data)
 	slices_begin_time = myogram_data[1]
 	slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]
 	volt_data = myogram_data[0]

@@ -124,7 +124,7 @@ volts_and_stims = [volts, stimulations]
 yticks = []
 color_number = 0
 for index, sl in enumerate(all_bio_slices):
-	offset = index * 5
+	offset = index * 4
 	# print("sl[{}][0]".format(run), sl[run][0])
 	times = [time * step for time in range(len(all_bio_slices[0][0]))]
 	for run in range(len(sl)):
@@ -138,8 +138,8 @@ for index, sl in enumerate(all_neuron_slices):
 	offset = index * 3
 	# yticks.append(sl[run][0] + offset)
 	times = [time * 0.025 for time in range(len(all_neuron_slices[0][0]))]
-	for run in range(len(sl)):
-		plt.plot(times, [s + offset for s in sl[run]], linewidth=1, color=colors[color_number])
+	# for run in range(len(sl)):
+		# plt.plot(times, [s + offset for s in sl[run]], linewidth=1, color=colors[color_number])
 	color_number -= 1
 # yticks = []
 times = []

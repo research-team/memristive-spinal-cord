@@ -2,7 +2,7 @@ import pylab as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 chunks_NEST = []
 chunks_NEURON = []
 chunks_real = []
@@ -68,7 +68,7 @@ for iter_begin in range(len(neuron_means))[::offset]:
 #collect real data
 
 raw_real_data = read_data('../bio-data//SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-processed_real_data = slice_myogram(raw_real_data)
+processed_real_data = trim_myogram(raw_real_data)
 # pl = plot_1d(processed_real_data[0], processed_real_data[1])
 real_tests = processed_real_data[0]
 # real_data = max(raw_real_data['data'])

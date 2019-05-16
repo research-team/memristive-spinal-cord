@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import logging
 import scipy.io as sio
 from analysis.max_min_values_neuron_nest import calc_max_min
-from analysis.real_data_slices import slice_myogram, read_data
+from analysis.real_data_slices import trim_myogram, read_data
 
 # https://stackoverflow.com/questions/25735153/plotting-a-fast-fourier-transform-in-python#25735274
 
@@ -32,7 +32,7 @@ myogram_data = read_data(path)
 
 logging.info('Loaded myograms')
 
-voltages, start_times = slice_myogram(myogram_data)
+voltages, start_times = trim_myogram(myogram_data)
 slices_max_time, slices_max_value, slices_min_time, slices_min_value = calc_max_min(start_times, voltages)
 
 #TODO calculate delay time to 3rd extremum

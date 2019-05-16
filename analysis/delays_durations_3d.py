@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # https://stackoverflow.com/questions/25735153/plotting-a-fast-fourier-transform-in-python#25735274
 # logging.basicConfig(level=logging.DEBUG)
 raw_real_data = read_data(os.getcwd() + '/../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-myogram_data = slice_myogram(raw_real_data)
+myogram_data = trim_myogram(raw_real_data)
 volt_data = myogram_data[0]
 slices_begin_time = myogram_data[1]
 slices_begin_time = [int(t / real_data_step) for t in slices_begin_time]

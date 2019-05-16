@@ -1,7 +1,7 @@
 import scipy.io as sio
 import numpy as np
 from matplotlib import pylab as plt
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 from sklearn import preprocessing
 import h5py as hdf5
 import pandas as pd
@@ -9,7 +9,7 @@ real_data_step = 0.25
 # read real data
 path = "SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat"
 data = read_data('../bio-data/{}'.format(path))
-processed_data = slice_myogram(data)
+processed_data = trim_myogram(data)
 real_data = processed_data[0]
 slices_begin_time = processed_data[1]
 mat_data = sio.loadmat('../bio-data/{}'.format(path))

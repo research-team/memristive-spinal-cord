@@ -3,6 +3,7 @@ import matplotlib.patches as mpatches
 from analysis.functions import read_nest_data, read_neuron_data
 from analysis.histogram_lat_amp import sim_process
 from analysis.namespaces import *
+from analysis.bio_data_6runs import bio_several_runs
 
 color_lat = '#BD821B'
 fill_color_lat = '#F3CB84'
@@ -80,10 +81,11 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 
 def run():
 	# get data
-	nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s6cms_T.hdf5')
-	neuron_tests = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
+	# nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s6cms_T.hdf5')
+	neuron_tests = read_neuron_data('../../neuron-data/15ST.hdf5')
 	# the main loop of simulations data
-	for sim_datas, step in [(nest_tests, gpu_step), (neuron_tests, sim_step)]:
+	bio_datas = bio_several_runs()[0]
+	for sim_datas, step in [(bio_datas, 0.25), (neuron_tests, sim_step)]:
 		latencies = []
 		amplitudes = []
 		# collect amplitudes and latencies per test data
