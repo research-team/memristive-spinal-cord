@@ -1,9 +1,9 @@
+#define INITGUID
 #ifdef __JETBRAINS_IDE__
 	#define __host__
 	#define __shared__
 	#define __global__
 #endif
-
 #define COLOR_RED "\x1b[1;31m"
 #define COLOR_GREEN "\x1b[1;32m"
 #define COLOR_RESET "\x1b[0m"
@@ -19,20 +19,19 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include <vector>
 #include <ctime>
+#include <vector>
 #include <random>
 #include <thread>
 #include <chrono>
 #include <fstream>
 #include <iostream>
-
-#define INITGUID
 #include <errno.h>
 #include "include/stubs.h"
 #include "include/ioctl.h"
 #include "include/ifc_ldev.h"
 #include "Group.cpp"
+#include "SynapseMetadata.cpp"
 
 using namespace std;
 
@@ -40,8 +39,13 @@ typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
 void prepare_device();
 void close_device();
 
-unsigned int *sync1;
-unsigned short *data1;
+unsigned int *sync1;            // timing
+unsigned short *data1;          // data in buffer
+char model[10] = "e154";        // device name (replace after changing device model)
+bool gpu_is_run = true;         // special flag for controlling ADC/DAC working
+unsigned short Pages = 4;       // size of ring buffer in interrupt steps
+unsigned short IrqStep = 32;    // step of generating interrupts
+float motoneuron_voltage = 0;   // common global variable of motoneuron membrane potential
 
 unsigned int global_id = 0;
 const unsigned int syn_outdegree = 27;
@@ -50,6 +54,7 @@ const unsigned int neurons_in_moto = 169;
 const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
+// simulation paramters
 const float T_sim = 1000;
 // 6 cm/s = 125 [ms]
 // 15 cm/s = 50 [ms]
@@ -59,7 +64,7 @@ const float INH_COEF = 1.0f;
 const float SIM_STEP = 0.25;
 const unsigned int sim_time_in_step = (unsigned int)(T_sim / SIM_STEP);
 
-// Parameters (const)
+// neuron parameters
 const float C = 100;        // [pF] membrane capacitance
 const float V_rest = -72;   // [mV] resting membrane potential
 const float V_thld = -55;   // [mV] spike threshold
@@ -69,20 +74,16 @@ const float b = 0.2;        // [pA * mV-1] sensitivity of U_m to the sub-thresho
 const float c = -80;        // [mV] after-spike reset value of V_m
 const float d = 6;          // [pA] after-spike reset value of U_m
 const float V_peak = 35;    // [mV] spike cutoff value
-
+// [step] time of C0/C1 activation (for generators and calculating swapping)
 const unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
 const unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
 
-// set frame time for sumulaton. FixMe: find the best time frame
-auto frame_time = chrono::microseconds(150);
-auto dac_sleep_time = chrono::microseconds(250);
+// set timing
+const auto frame_time = chrono::microseconds(150);
+const auto dac_sleep_time = chrono::microseconds(50);
+const auto adc_sleep_time = chrono::microseconds(50);
 
-float motoneuron_voltage = 0;
-bool gpu_is_run = true;
-
-ULONG iresult;
-HANDLE handle;
-HRESULT hresult;
+// device variables
 ADC_PAR adc_par;
 PVOID dll_handle;
 LUnknown *pIUnknown;
@@ -94,28 +95,13 @@ ASYNC_PAR async_par_dac;
 PLATA_DESCR_U2 plata_descr;
 CREATEFUNCPTR CreateInstance;
 ULONG mem_buffer_size = 131072;
-
-struct SynapseMetadata{
-	// struct for human-readable initialization of connectomes
-	int post_id;
-	int synapse_delay;
-	float synapse_weight;
-
-	SynapseMetadata() = default;
-	SynapseMetadata(int post_id, float synapse_delay, float synapse_weight){
-		this->post_id = post_id;
-		this->synapse_delay = static_cast<int>(synapse_delay * (1 / SIM_STEP) + 0.5); // round
-		this->synapse_weight = synapse_weight;
-	}
-};
-
-// Global vectors of SynapseMetadata of synapses for each neuron
+// global vectors of SynapseMetadata of synapses for each neuron
 vector<vector<SynapseMetadata>> metadatas;
 
-void errorchk(bool condition, string text, char* err_text="failed") {
+void errorchk(bool condition, string text) {
 	cout << text << " ... ";
 	if (condition) {
-		cout << COLOR_RED "ERROR (" << err_text << ")" COLOR_RESET << endl;
+		cout << COLOR_RED "ERROR" COLOR_RESET << endl;
 		cout << COLOR_RED "FAILED!" COLOR_RESET << endl;
 		close_device();
 		exit(0);
@@ -124,22 +110,10 @@ void errorchk(bool condition, string text, char* err_text="failed") {
 	}
 }
 
-void errorchk(bool condition, HRESULT result, string text) {
-	cout << hex << text << " ... ";
-	if (condition) {
-		cout << COLOR_RED "ERROR" COLOR_RESET<< endl;
-		cout << COLOR_RED "FAILED !" COLOR_RESET<< endl;
-		close_device();
-		exit(0);
-	} else {
-		cout << hex << result << COLOR_GREEN " OK" COLOR_RESET << endl;
-	}
-}
-
 void prepare_device() {
 	// load the dynamic shared object (shared library). RTLD_LAZY - perform lazy binding
 	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/liblcomp.so", RTLD_LAZY);
-	errorchk(!dll_handle, "open DLL", dlerror());
+	errorchk(!dll_handle, "open DLL");
 
 	// return the address where that symbol is loaded into memory
 	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
@@ -150,38 +124,28 @@ void prepare_device() {
 	errorchk(pIUnknown == NULL, "call create instance");
 
 	// get a pointer to the interface
-	hresult = pIUnknown->QueryInterface(IID_ILDEV, (void **) &device);
-	errorchk(hresult != S_OK, hresult, "query interface");
+	errorchk(pIUnknown->QueryInterface(IID_ILDEV, (void **) &device) != S_OK, "query interface");
 
 	// close an interface
-	pIUnknown->Release();
-	errorchk(false, "free IUnknown");
+	errorchk(pIUnknown->Release() != 1, "free IUnknown");
 
 	// open an appropriate link of the board driver
-	handle = device->OpenLDevice();
-	errorchk(false, handle, "open device");
+	errorchk(device->OpenLDevice() == INVALID_HANDLE_VALUE, "open device");
 
 	// get an information of the specific virtual slot
-	device->GetSlotParam(&slot_param);
-	errorchk(false, "get slot parameters");
+	errorchk(device->GetSlotParam(&slot_param) != L_SUCCESS, "get slot parameters");
 
 	// load a BIOS to the board
-	iresult = device->LoadBios("e154");
-	errorchk(iresult == 0, "load BIOS");
+	errorchk(device->LoadBios(model) != 1, "load BIOS");
 
 	// Test for board availability (always success)
-	iresult = device->PlataTest();
-	errorchk(iresult != 0, "plata test");
+	errorchk(device->PlataTest() != L_SUCCESS, "plata test");
 
 	// read an user Flash
-	device->ReadPlataDescr(&plata_descr);
-	errorchk(false, "read the board description");
+	errorchk(device->ReadPlataDescr(&plata_descr) != L_SUCCESS, "read the board description");
 
 	// allocate memory for a big ring buffer
-	device->RequestBufferStream(&mem_buffer_size);
-	errorchk(false, "request buffer stream");
-
-	cout << "allocated size " << mem_buffer_size << endl;
+	errorchk(device->RequestBufferStream(&mem_buffer_size) != L_SUCCESS, "request buffer stream");
 
 	// fill DAC parameters
 	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
@@ -194,8 +158,8 @@ void prepare_device() {
 	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
 	adc_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них
 	adc_par.t1.FIFO = 4096;           // размер половины аппаратного буфера FIFO на плате
-	adc_par.t1.IrqStep = 4096;        // шаг генерации прерываний
-	adc_par.t1.Pages = 32;            // размер кольцевого буфера в шагах прерываний
+	adc_par.t1.IrqStep = IrqStep;     // шаг генерации прерываний
+	adc_par.t1.Pages = Pages;         // размер кольцевого буфера в шагах прерываний
 	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
 	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
 
@@ -214,12 +178,10 @@ void prepare_device() {
 	adc_par.t1.SynchroMode = 0;
 
 	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
-	device->FillDAQparameters(&adc_par.t1);
-	errorchk(false, "fill DAQ parameters");
+	errorchk(device->FillDAQparameters(&adc_par.t1) != L_SUCCESS, "fill DAQ parameters");
 
 	// setup the ADC/DAC board setting based on specific i/o parameters
-	device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC);
-	errorchk(false, "set ADC parameters stream");
+	errorchk(device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC) != L_SUCCESS, "set ADC parameters stream");
 
 	// show properties
 	cout << "Board properties" << endl;
@@ -237,16 +199,13 @@ void prepare_device() {
 	cout << "Rate              : " << adc_par.t1.dRate << endl;
 
 	// turn on an correction mode. Itself loads coefficients to the board
-	device->EnableCorrection();
-	errorchk(false, "enable correction mode");
+	// errorchk(device->EnableCorrection(0) != L_SUCCESS, "enable correction mode");
 
 	// init inner variables of the driver before starting collect a data
-	device->InitStartLDevice();
-	errorchk(false, "init start device");
+	errorchk(device->InitStartLDevice() != L_SUCCESS, "init start device");
 
 	// start collect data from the board into the big ring buffer
-	device->StartLDevice();
-	errorchk(false, "START device");
+	errorchk(device->StartLDevice() != L_SUCCESS, "START device");
 }
 
 void close_device() {
@@ -264,7 +223,6 @@ void close_device() {
 }
 
 void *parallel_DAC_func(void *arg) {
-	// write data to the DAC
 	async_par_dac.s_Type = L_ASYNC_DAC_OUT;
 	async_par_dac.Chn[0] = 1;
 	async_par_dac.Mode = 0;
@@ -277,11 +235,16 @@ void *parallel_DAC_func(void *arg) {
 		}
 		async_par_dac.Data[0] = motoneuron_voltage > 0? motoneuron_voltage / 5.0 * 0x7F : 0;
 		device->IoAsync(&async_par_dac);
-
+		#ifdef DEBUG
+				cout << "Normalized by sim: " << round(motoneuron_voltage * 1000) / 1000 << "V, DAC -> " << async_par_dac.Data[0];
+		#endif
 		this_thread::sleep_for(dac_sleep_time);
+		#ifdef DEBUG
+				cout << ", ACD <- " << data1[0] << endl;
+		#endif
 	}
 
-	async_par_dac.Data[0] = 0;   // data for DAC
+	async_par_dac.Data[0] = 0;
 	device->IoAsync(&async_par_dac);
 
 	errorchk(false, "finishing DAC executing commands");
@@ -293,20 +256,24 @@ void *parallel_ADC_func(void *arg) {
 	int halfbuffer;
 	int fl2, fl1;
 
-	halfbuffer = 4096 * 32 / 2;
+	halfbuffer = IrqStep * Pages / 2;
 	fl1 = fl2 = (*sync1 <= halfbuffer)? 0 : 1;
 
-	for(int k = 0; k < 64; k++) {
+	while(gpu_is_run) {
 		while(fl2 == fl1) {
 			fl2 = (*sync1 <= halfbuffer)? 0 : 1;
 			if(!gpu_is_run)
 				break;
-			usleep(10);
+			this_thread::sleep_for(adc_sleep_time);
 		}
 		if(!gpu_is_run)
 			break;
+
+		// tmp1 = data1 + (halfbuffer * fl1);
 		fl1 = (*sync1 <= halfbuffer)? 0 : 1;
 	}
+	errorchk(false, "finishing ADC executing commands");
+
 	return 0;
 }
 
@@ -846,6 +813,8 @@ void init_array(type *array, int size, type value){
 
 __host__
 void simulate() {
+	chrono::time_point<chrono::system_clock> iter_t_start, iter_t_end, simulation_t_start, simulation_t_end;
+
 	// create neuron groups/synapses and get number of neurons
 	const unsigned int neurons_number = init_network();
 
@@ -857,8 +826,6 @@ void simulate() {
 	int local_iter = 0;
 	int activated_C_ = 0;
 	int shift_time_by_step = 0;
-
-	chrono::time_point<chrono::system_clock> iter_t_start, iter_t_end, simulation_t_start, simulation_t_end;
 
 	// init GPU pointers
 	float* gpu_old_v;
@@ -1024,9 +991,10 @@ void simulate() {
 		                                                      gpu_synapses_weight,
 		                                                      neurons_number,
 		                                                      gpu_nrn_ref_timer);
+
 		// get summarized membrane potential value of motoneurons and normalize it to 5V peak of DAC
 		cudaMemcpy(&motoneuron_voltage, gpu_motoneuron_voltage, sizeof(float), cudaMemcpyDeviceToHost);
-		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto - V_rest) / 100 * 5;
+		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto - c) / 100 * 5;
 
 		// stop measure time
 		iter_t_end = std::chrono::system_clock::now();
@@ -1037,7 +1005,6 @@ void simulate() {
 		if (elapsed < frame_time) {
 			this_thread::sleep_for(frame_time - elapsed);
 		}
-
 		local_iter++;
 	} // end of simulation iteration loop
 
@@ -1053,7 +1020,8 @@ void simulate() {
 	// show timing information
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
 	printf("Elapsed %li ms (measured) | T_sim = %.2f ms\n", sim_time_diff, T_sim);
-	printf("%s x%f\n", (double)(T_sim / sim_time_diff) > 1? "faster" : "slower", T_sim / sim_time_diff);
+	printf("%s x%f\n", (double)(T_sim / sim_time_diff) > 1?
+	                           COLOR_GREEN "faster" COLOR_RESET: COLOR_RED "slower" COLOR_RESET, T_sim / sim_time_diff);
 
 	// copy neurons/synapses array to the HOST
 	memcpyDtH<float>(voltage_recording, gpu_voltage_recording, neurons_number * sim_time_in_step);
@@ -1063,7 +1031,7 @@ void simulate() {
 	// remove all device allocations
 	cudaDeviceReset();
 
-	save_result(voltage_recording, neurons_number);
+//	save_result(voltage_recording, neurons_number);
 }
 
 int main() {
@@ -1072,7 +1040,7 @@ int main() {
 	close_device();
 
 	// you are awesome
-	cout << endl << COLOR_GREEN "SUCCESS" COLOR_RESET << endl;
+	cout << COLOR_GREEN "SUCCESS" COLOR_RESET << endl;
 
 	return 0;
 }
