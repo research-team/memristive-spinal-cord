@@ -21,14 +21,11 @@ for i in range(12):
 	afferents.append(cell)
 
 for i in range(10):
-	moto = motoneuron()
-	motos.append(moto)
-
-for i in range(3):
 	stim = h.SpikeGenerator(0.5)
 	stim.start = 10
 	stim.number = 1000000
-	stim.k = 0.02
+	stim.speed = 300
+	stim.k = 3/stim.speed
 	stims.append(stim)
 #stim.interval = 10
 #for j in range(1):
@@ -39,13 +36,6 @@ for cell in afferents:
 		ncstim.delay = random.gauss(1, 0.1)
 		ncstim.weight[0] = random.gauss(1, 0.1)
 		ncs.append(ncstim)
-ncs = []
-for cell in afferents:
-	for moto in motos:
-		nc = cell.connect2target(moto.synlistex[1])
-		nc.delay = random.gauss(1, 0.05)
-		nc.weight[0] = random.gauss(1, 0.05)
-		ncs.append(nc)
 
 def set_recording_vectors(pool):
 	v_vec = []
@@ -77,11 +67,7 @@ def show_output(v_vec, t_vec):
 	pyplot.ylabel('mV')
 
 if __name__ == '__main__':
-    branch_vec, t_vec = set_recording_vectors(motos)
+    branch_vec, t_vec = set_recording_vectors(afferents)
     simulate()
     show_output(branch_vec, t_vec)
     pyplot.show()
-
-
-
-
