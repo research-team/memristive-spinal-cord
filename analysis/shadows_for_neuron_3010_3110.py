@@ -17,7 +17,10 @@ for neuron_test_number in range(test_number):
             #     if speed == 125: # change to 25 / 50
             for frecuency in frequencies:
                 if frecuency == 20:
-                    with open('C:/Users/Home/Desktop/Нейролаб/res211/vMN{}r{}fr{}v{}'.format(neuron_id, thread, frecuency, neuron_test_number), 'r') as file:   # change to res3010 in case of s25 and s50
+                    with open('C:/Users/Home/Desktop/Нейролаб/res211/vMN{}r{}fr{}v{}'.format(neuron_id, thread,
+                                                                                             frecuency,
+                                                                                             neuron_test_number), 'r')\
+                            as file:   # change to res3010 in case of s25 and s50
                         value = [float(i) for i in file.read().split("\n")[1:-1]]
                         # print(value)
                         time_iter = 0.0

@@ -2,12 +2,18 @@ import numpy as np
 import pylab as plt
 from analysis.functions import *
 from analysis.namespaces import *
+from analysis.bio_data_6runs import bio_several_runs, calc_datas_means
+from analysis.patterns_in_bio_data import bio_data_runs
+from analysis.linear_regression import form_sim_pack, form_bio_pack
+from analysis.cut_several_steps_files import select_slices
 
 
 def calc_delta(bio_pack, sim_pack):
 	diff_lat = [abs(bio - sim) for bio, sim in zip(bio_pack[0], sim_pack[0])]
 	diff_amp = [abs(bio - sim) for bio, sim in zip(bio_pack[1], sim_pack[1])]
-
+	print("bio_pack = ", bio_pack)
+	print("sim_pack = ", sim_pack)
+	print("diff_lat = ", diff_lat)
 	return diff_lat, diff_amp
 
 
@@ -26,14 +32,16 @@ def draw_lat_amp(data_pack):
 	fig, lat_axes = plt.subplots(1, 1, figsize=(15, 12))
 	xticks = range(len(amplitudes))
 
+	print("xticks = ", len(xticks), xticks)
+	print("latencies = ", len(latencies), latencies)
 	lat_plot = lat_axes.bar(xticks, latencies, width=bar_width, color=color_lat, alpha=0.7, zorder=2)
 	lat_axes.set_xlabel('Slice')
-	lat_axes.set_ylabel("Latency, ms")
+	lat_axes.set_ylabel("Latency, ms", fontsize=12)
 
 	amp_axes = lat_axes.twinx()
 	xticks = [x + bar_width for x in xticks]
 	amp_plot = amp_axes.bar(xticks, amplitudes, width=bar_width, color=color_amp, alpha=0.7, zorder=2)
-	amp_axes.set_ylabel("Amplitude, mV")
+	amp_axes.set_ylabel("Amplitude, mV", fontsize=12)
 
 	# plot text annotation for data
 	for index in range(len(amplitudes)):
@@ -47,32 +55,79 @@ def draw_lat_amp(data_pack):
 
 
 def run():
-	plot_delta = False
+	plot_delta = True
 
 	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
-	nest_tests = read_nest_data('../../nest-data/21cms/extensor_21cms_40Hz_100inh.hdf5')
-	neuron_tests = read_neuron_data('../../neuron-data/sim_healthy_neuron_extensor_eesF40_i100_s21cms_T_100runs.hdf5')
-
+	nest_tests = read_nest_data('../../nest-data/sim_extensor_eesF40_i100_s15cms_T.hdf5')
+	neuron_tests = select_slices('../../neuron-data/3steps_speed15_EX.hdf5', 0, 12000)
+	gpu_data = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 	slice_numbers = int(len(neuron_tests[0]) / 25 * sim_step)
+	# bio_data = calc_datas_means()[0]
+	# bio_indexes = calc_datas_means()[1]
+	# bio_data2 = calc_datas_means()[2]
+	# bio_indexes2 = calc_datas_means()[3]
+
+	# bio_means = list(map(lambda voltages: np.mean(voltages), zip(*bio_data)))
+	# bio_indexes = bio_several_runs()[1]
+	# bio = []
+	# bio.append(bio_data)
+	# bio.append(bio_indexes)
+	# bio2 = []
+	# bio2.append(bio_data2)
+	# bio2.append(bio_indexes2)
+	# print(slice_numbers)
 	# collect amplitudes and latencies per test data
 	if plot_delta:
-		bio_pack = bio_process(bio, slice_numbers)
-		nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))))
-		neuron_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests))))
+		bio_volt = bio_data_runs()
+		bio_data = list(map(lambda voltages: np.mean(voltages), zip(*bio_volt)))
+		bio_volt = normalization(bio_data, -1, 1)
+		bio_pack = sim_process(bio_volt, step=bio_step, debugging=False, inhibition_zero=True)
+		print("bio_pack = ", bio_pack)
+		# bio_pack = bio_process(bio, slice_numbers)
+		# bio_pack2 = bio_process(bio2, 15, reversed_data=True)
+		# bio_pack = bio_process(bio, slice_numbers)
+		nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))), sim_step,
+		                        inhibition_zero=True)
+		neuron_data = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
+		print("neuron_data = ", len(neuron_data))
+		neuron_data = normalization(neuron_data, -1, 1)
+		print("neuron_data = ", neuron_data)
 
-		res_pack = calc_delta(bio_pack, nest_pack)
-		draw_lat_amp(res_pack)
+		neuron_pack = sim_process(neuron_data, sim_step, inhibition_zero=True)
+		print("neuron_pack = ", neuron_pack)
+		gpu_data = list(map(lambda voltages: np.mean(voltages), zip(*gpu_data)))
+		gpu_data = normalization(gpu_data, -1, 1)
+		gpu_pack = sim_process(gpu_data, sim_step,
+		                       inhibition_zero=True)
 
 		res_pack = calc_delta(bio_pack, neuron_pack)
+		print("bio - neuron")
+		draw_lat_amp(res_pack)
+
+		# res_pack = calc_delta(bio_pack, neuron_pack)
+		# draw_lat_amp(res_pack)
+
+		res_pack = calc_delta(bio_pack, gpu_pack)
+		print("bio - gpu")
 		draw_lat_amp(res_pack)
 	else:
-		bio_pack = bio_process(bio, slice_numbers)
-		nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))))
-		neuron_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests))))
+		# bio_pack = bio_process(bio, slice_numbers, reversed_data=True)
+		# bio_pack = bio_process(bio, slice_numbers)
+		# nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))), sim_step)
+		bio_volt = bio_data_runs()
+		bio_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*bio_volt))), step=bio_step,
+		                       inhibition_zero=True)
+
+		neuron_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests))), sim_step,
+		                          inhibition_zero=True)
+
+		gpu_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*gpu_data))), sim_step,
+		                       inhibition_zero=True)
 
 		draw_lat_amp(bio_pack)
-		draw_lat_amp(nest_pack)
+		# draw_lat_amp(nest_pack)
 		draw_lat_amp(neuron_pack)
+		draw_lat_amp(gpu_pack)
 
 
 if __name__ == "__main__":

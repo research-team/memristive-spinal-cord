@@ -1,5 +1,5 @@
 import numpy
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 import os
 import pylab as plt
 import logging 
@@ -28,7 +28,7 @@ def fast_fourier_transform(volt_data):
 
 
 raw_real_data = read_data(os.getcwd() + '/../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-myogram_data = slice_myogram(raw_real_data)
+myogram_data = trim_myogram(raw_real_data)
 volt_data = myogram_data[0]
 sliced_data = volt_data[0:100]
 # for i in range(slices_begin_time)

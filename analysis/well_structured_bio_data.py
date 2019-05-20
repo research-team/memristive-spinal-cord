@@ -1,8 +1,8 @@
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 from matplotlib import pylab as plt
 path = "control rat_threshold_bipedal_40Hz_LTA.mat"
 data = read_data('../bio-data/{}'.format(path))
-processed_data = slice_myogram(data)
+processed_data = trim_myogram(data)
 real_data = processed_data[0]
 slices_begin_time = processed_data[1]
 # for slice_begin_time in slices_begin_time:

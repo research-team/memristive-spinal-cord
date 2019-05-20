@@ -6,6 +6,7 @@ from analysis.namespaces import *
 from sklearn.linear_model import LinearRegression
 import statistics
 import copy
+#from analysis.patterns_in_bio_data import bio_data_runs
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -35,7 +36,6 @@ def normalization(data, a=0, b=1, zero_relative=False):
 
 		return [(volt - first) / minimal for volt in data]
 	else:
-		# prepare the constans
 		min_x = min(data)
 		max_x = max(data)
 		const = (b - a) / (max_x - min_x)
@@ -161,7 +161,7 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
-def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data=False, inhibition_zero=False):
+def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhibition_zero=False): # , thresholds
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
 	Args:
@@ -178,6 +178,7 @@ def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data
 		list: includes latencies for each slice
 	"""
 	latencies = []
+	times_latencies = []
 	slice_numbers = len(mins_maxes[0])
 	slice_indexes = range(slice_numbers)
 
@@ -196,35 +197,37 @@ def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data
 			slice_values.append(value)
 		# print("slice_values = ", slice_values)
 		slice_times, slice_values = (list(x) for x in zip(*sorted(zip(slice_times, slice_values))))
-		# print("slice_times = ", slice_times)
+		# print("slice_times = ", [s / 4 for s in slice_times])
 		# print("slice_values = ", slice_values)
 		# while minimal value isn't found -- find with extended borders [left, right]
 
 		while True:
 			if inhibition_zero:
-				left = 10 - additional_border
-				right = 24 + additional_border
+				left = 12 - additional_border   # 11
+				right = 25 + additional_border
+				# print('inhibition zero')
 			else:
+				# raise Exception
 				if slice_index in slices_index_interval(0, 1): # [0,1]
 					if reversed_data:
 						left = 15 - additional_border
 						right = 24 + additional_border
 					else:
-						left = 10 - additional_border
-						right = 16 + additional_border
+						left = 12 - additional_border
+						right = 18 + additional_border
 				elif slice_index in slices_index_interval(2, 2): # [2]
 					if reversed_data:
 						left = 13 - additional_border
 						right = 21 + additional_border
 					else:
-						left = 10 - additional_border
+						left = 15 - additional_border
 						right = 17 + additional_border
 				elif slice_index in slices_index_interval(3, 4): # [3, 4]
 					if reversed_data:
 						left = 10 - additional_border
 						right = 17 + additional_border
 					else:
-						left = 11 - additional_border
+						left = 15 - additional_border
 						right = 21 + additional_border
 				elif slice_index in slices_index_interval(5, 6): # [5, 6]
 					if reversed_data:
@@ -242,6 +245,9 @@ def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data
 				right = 25
 
 			found_points = [v for i, v in enumerate(slice_values) if left <= step_to_ms(slice_times[i]) <= right]
+			# print(slice_index, found_points)
+			# print("left = ", left)
+			# print("right = ", right)
 			# print("found_points = ", found_points)
 			# for f in found_points:
 				# print("count = ", count)
@@ -253,33 +259,40 @@ def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data
 			# print("---")
 			# save index of the minimal element in founded points
 			if len(found_points):
-				print("found_points = ", found_points)
-				for f in range(len(found_points)):
-					if slice_values[slice_values.index(found_points[f])] > thresholds[count]:
-						print("slice_values.index(found_points[{}]) = ".format(f), slice_values.index(found_points[f]))
-						print("thresholds[{}] = ".format(count), thresholds[count])
-						latencies.append(slice_times[slice_values.index(found_points[f])])
-						print("latencies = ", latencies)
-						count += 1
-						print("count = ", count)
-						break
-				else:
-						f += 1
-
-				# minimal_val = min(found_points) if inhibition_zero else found_points[0]
-				# index_of_minimal = slice_values.index(minimal_val)
-				# latencies.append(slice_times[index_of_minimal])
+				# print("found_points = ", found_points)
+				# for f in range(len(found_points)):
+			# 		if slice_values[slice_values.index(found_points[f])] > thresholds[count]:
+			# 			print("slice_values.index(found_points[{}]) = ".format(f), slice_values.index(found_points[f]))
+						# print("slice_times.index(found_points[{}]) = ".format(f), slice_times.index(found_points[f]))
+						# print("thresholds[{}] = ".format(count), thresholds[count])
+						# latencies.append(slice_times[slice_values.index(found_points[f])])
+						# print("latencies = ", latencies)
+						# count += 1
+						# print("count = ", count)
+						# break
+				# else:
+				# 		f += 1
+				# for i in range(len(found_points)):
+					# print("found_points = ", slice_times[slice_values.index(found_points[i])] * 0.25)
+					# if found_points[i] <= found_points[i + 1]:
+						# minimal_val = found_points[i]
+						# print("i = ", i)
+						# print("minimal_val = ", minimal_val)
+						# break
+				# print("found_points = ", found_points)
+				minimal_val = found_points[0] if inhibition_zero else max(found_points) # found_points[0]
+				index_of_minimal = slice_values.index(minimal_val)
+				# print("slice_values[{}] = ".format(index_of_minimal), slice_values[index_of_minimal])
+				latencies.append(slice_times[index_of_minimal])
 				break
 
 			else:
 				additional_border += 1
-
 			if additional_border > 25:
 				# FixMe
 				latencies.append(-999)
 				break
 				# FixMe raise Exception("Error, out of borders")
-	print("len(latencies) = ", len(latencies))
 	# checking on errors
 	if len(latencies) != slice_numbers:
 		raise Exception("Latency list length is not equal to number of slices!")
@@ -289,7 +302,7 @@ def find_latencies(mins_maxes, step, thresholds, norm_to_ms=False, reversed_data
 	return latencies
 
 
-def find_ees_indexes(stim_indexes, datas):
+def find_ees_indexes(stim_indexes, datas, reverse_ees=False):
 	"""
 	Function for finding the indexes of the EES mono-answer in borders formed by stimulations time
 	Args:
@@ -301,14 +314,25 @@ def find_ees_indexes(stim_indexes, datas):
 		list: global indexes of the EES mono-answers
 	"""
 	ees_indexes = []
-	for slice_index in range(len(stim_indexes)):
-		min_values = datas[k_min_val][slice_index]
-		min_times = datas[k_min_time][slice_index]
-		# EES peak is the minimal one
-		ees_value_index = min_values.index(min(min_values))
-		# calculate the EES answer as the sum of the local time of the found EES peak (of the layer)
-		# and global time of stimulation for this layer
-		ees_indexes.append(stim_indexes[slice_index] + min_times[ees_value_index])
+
+	if reverse_ees:
+		for slice_index in range(len(stim_indexes)):
+			max_values = datas[k_max_val][slice_index]
+			max_times = datas[k_max_time][slice_index]
+			# EES peak is the minimal one
+			ees_value_index = max_values.index(max(max_values))
+			# calculate the EES answer as the sum of the local time of the found EES peak (of the layer)
+			# and global time of stimulation for this layer
+			ees_indexes.append(stim_indexes[slice_index] + max_times[ees_value_index])
+	else:
+		for slice_index in range(len(stim_indexes)):
+			min_values = datas[k_min_val][slice_index]
+			min_times = datas[k_min_time][slice_index]
+			# EES peak is the minimal one
+			ees_value_index = min_values.index(min(min_values))
+			# calculate the EES answer as the sum of the local time of the found EES peak (of the layer)
+			# and global time of stimulation for this layer
+			ees_indexes.append(stim_indexes[slice_index] + min_times[ees_value_index])
 	return ees_indexes
 
 
@@ -444,7 +468,7 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.close()
 
 
-def __process(voltages, stim_indexes, step, thresholds, debugging, reversed_data=False, inhibition_zero=False):
+def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhibition_zero=True, reverse_ees=False):
 	"""
 	Unified functionality for finding latencies and amplitudes
 	Args:
@@ -461,11 +485,11 @@ def __process(voltages, stim_indexes, step, thresholds, debugging, reversed_data
 		list: amplitudes -- amplitude per slice
 	"""
 	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)   # check
-	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes)
-	# norm_voltages = normalization(voltages, zero_relative=True)
-	mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
-	latencies = find_latencies(mins_maxes, step, thresholds, norm_to_ms=True, reversed_data=reversed_data,
-	                           inhibition_zero=inhibition_zero)
+	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
+	norm_voltages = normalization(voltages, zero_relative=True)
+	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
+	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
+	                           inhibition_zero=inhibition_zero) # , thresholds
 	amplitudes = calc_amplitudes(mins_maxes, latencies)
 
 	if debugging:
@@ -474,7 +498,7 @@ def __process(voltages, stim_indexes, step, thresholds, debugging, reversed_data
 	return latencies, amplitudes
 
 
-def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data=False):
+def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data=False, reverse_ees=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
 	Args:
@@ -493,7 +517,6 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data
 	voltages = voltages_and_stim[k_bio_volt][:stim_indexes[-1]]
 	volts_by_stims = []
 	thresholds = []
-	# print("stim_indexes = ", stim_indexes)
 	offset = 0
 	for i in range(int(len(voltages) / 100)):
 		volts_by_stims_tmp = []
@@ -502,12 +525,11 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data
 		volts_by_stims.append(volts_by_stims_tmp)
 		offset += 100
 	for v in volts_by_stims:
-		thresholds.append(0.013 * max(v))
-	print("thresholds = ", thresholds)
-		# print("volts_by_stims = ", v)
+		thresholds.append(0.137 * max(v))
 	stim_indexes = stim_indexes[:-1]
 	# calculate the latencies and amplitudes
-	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, thresholds, debugging, reversed_data=reversed_data)
+	bio_lat, bio_amp = __process(voltages, stim_indexes, bio_step, debugging, reversed_data=reversed_data,
+	                             reverse_ees=reverse_ees)
 
 	return bio_lat, bio_amp
 
@@ -763,3 +785,19 @@ def find_fliers(amplitudes_all_runs, latencies_all_runs):
 				del amplitudes_all_runs[sl][fl]
 
 	return latencies_all_runs, amplitudes_all_runs, fliers, fliers_latencies_values, fliers_amplitudes_values
+
+
+def bio_slices():
+	bio_data = bio_data_runs()
+	bio_mean_data = list(map(lambda elements: np.mean(elements), zip(*bio_data)))
+	bio_mean_data = normalization(bio_mean_data, zero_relative=True)
+	offset = 0
+	bio_slices = []
+	for i in range(int(len(bio_mean_data) / 100)):
+		bio_slices_tmp = []
+		for j in range(offset, offset + 100):
+			bio_slices_tmp.append(bio_mean_data[j])
+		offset += 100
+		bio_slices.append(bio_slices_tmp)
+	return bio_slices
+

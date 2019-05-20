@@ -2,7 +2,7 @@ import numpy as np
 import math
 import pylab as plt
 from sklearn.preprocessing import StandardScaler
-from analysis.real_data_slices import read_data, slice_myogram
+from analysis.real_data_slices import read_data, trim_myogram
 threads = 8
 test_numbers = 25
 speeds = [25, 50, 125]
@@ -36,7 +36,7 @@ print("len(neuron_pairs_s125) = ", len(neuron_pairs_s125))
 
 path = "SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat"
 data = read_data('C:/Users/Home/LAB/memristive-spinal-cord/bio-data/{}'.format(path))
-processed_data = slice_myogram(data)
+processed_data = trim_myogram(data)
 real_data = processed_data[0]
 print("len(real_data) = ", len(real_data))  # 2700
 print("real_data = ", real_data)

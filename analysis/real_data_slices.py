@@ -1,7 +1,7 @@
 import numpy as np
 import pylab as plt
 import scipy.io as sio
-from analysis.functions import convert_bio_to_hdf5
+# from analysis.functions import convert_bio_to_hdf5
 
 datas_max = []
 datas_min = []
@@ -41,38 +41,50 @@ def trim_myogram(raw_data, path, slicing_index='Stim'):
 	# data processing
 	title_stim = 'Stim'
 	title_rmg = 'RMG'
+	title_rta = 'RTA'
+
 	for index, data_title in enumerate(raw_data['titles']):
 		data_start = int(raw_data['datastart'][index]) - 1
 		data_end = int(raw_data['dataend'][index])
 		float_data = [round(float(x), 3) for x in raw_data['data'][0][data_start:data_end]]
 		if title_rmg in data_title:
 			volt_data = float_data
+		# if title_rta in data_title:
+		# 	volt_data = float_data
 		if title_stim in data_title:
 			stim_data = float_data
-
-	# convert_bio_to_hdf5(volt_data, stim_data, path)
-
-	import h5py as hdf5
-	# with hdf5.File(path + ".hdf5") as file:
-		# for k,v in file.items():
-			# print(k, v[:])
-
-	# find peaks in stimulations data
+			# find peaks in stimulations data
 	ms_pause = 0
 	bio_step = 0.25
-	# print("stim_data = ", stim_data)
 	for index in range(1, len(stim_data) - 1):
-		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and ms_pause <= 0 and\
-				stim_data[index] > 0.5:
-			slices_begin_time.append(index) # * real_data_step  # division by 4 gives us the normal 1 ms step size
+		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and ms_pause <= 0 and stim_data[index] > 0.5:
+			slices_begin_time.append(index)  # * real_data_step  # division by 4 gives us the normal 1 ms step size
 			ms_pause = int(3 / bio_step)
 		ms_pause -= 1
-	# print("slices_begin_time = ", slices_begin_time)
-	# remove unnecessary data, use only from first stim, and last stim
+	# 		raw_stim = [i for i, d in enumerate(float_data) if d > 0.5]
+	# 		raw_stim = list(map(lambda x: x - raw_stim[0], raw_stim))
+	# 		o = 0
+	# 		i = 0
+
+			# for d in raw_stim:
+				# print("KKK", d)
+
+				# if len(slices_begin_time) != 0 and d - 10 < slices_begin_time[i - 1] < d + 10:
+				# 	continue
+				# if o - 10 < d < o + 10:
+				# 	slices_begin_time.append(d)
+				# 	o += 100
+				# 	i += 1
+					# print(f"{d} DAAAAAAAAAAAAAAAAa")
+	# print(volt_data)
+	# print(slices_begin_time[0])
+	# print(slices_begin_time[-1])
+	# print(len(volt_data))
 	volt_data = volt_data[slices_begin_time[0]:slices_begin_time[-1]]
 
 	# move times to the begin (start from 0 ms)
 	slices_begin_time = [t - slices_begin_time[0] for t in slices_begin_time]
+
 	# print("len(volt_data) = ", len(volt_data))
 	return volt_data, slices_begin_time
 
