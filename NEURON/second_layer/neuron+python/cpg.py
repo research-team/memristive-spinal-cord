@@ -119,6 +119,7 @@ class CPG:
     C5 = []
     C_1 = []
     C_0 = []
+    Iagener_E = []
 
     for i in range(step_number):
         C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
@@ -131,16 +132,35 @@ class CPG:
     for i in range(step_number):
         C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
+        Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
+    '''
+    for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
+    '''
     for i in range(step_number):
         C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int))
-    
+
     #reflex arc
     Ia_E = self.addpool(nInt, False, "Ia_E")
     R_E = self.addpool(nInt, False, "R_E")
 
     Ia_F = self.addpool(nInt, False, "Ia_F")
     R_F = self.addpool(nInt, False, "R_F")
+   
+    C_1.append(CV1_1)
+    C_1.append(CV2_1)
+    C_1.append(CV3_1)
+    C_1.append(CV4_1)
+    C_1.append(CV5_1)
+    C_1.append(IP1_E)
+    C_1.append(IP2_E)
+    C_1.append(IP3_E)
+    C_1.append(IP4_E)
+    C_1.append(IP5_E)
+    #C_1.append(Ia_E)
+
+    C_1 = np.ravel(C_1)
+    Iagener_E = np.ravel(Iagener_E)
 
     #generators
     createmotif(OM1_0E, OM1_1, OM1_2, OM1_3) 
@@ -180,15 +200,15 @@ class CPG:
 
     #inhibitory projections
     #extensor
-    exconnectcells(C3, OM1_3, 0.8, 1, 50)
+    exconnectcells(CV3_1, OM1_3, 0.8, 1, 50)
 
-    exconnectcells(C4, OM1_3, 0.8, 1, 50)
-    exconnectcells(C4, OM2_3, 0.8, 1, 50)
+    exconnectcells(CV4_1, OM1_3, 0.8, 1, 50)
+    exconnectcells(CV4_1, OM2_3, 0.8, 1, 50)
 
-    exconnectcells(C5, OM1_3, 0.8, 1, 50)
-    exconnectcells(C5, OM2_3, 0.8, 1, 50)
-    exconnectcells(C5, OM3_3, 0.8, 1, 50)
-    exconnectcells(C5, OM4_3, 0.8, 1, 50)
+    exconnectcells(CV5_1, OM1_3, 0.8, 1, 50)
+    exconnectcells(CV5_1, OM2_3, 0.8, 1, 50)
+    exconnectcells(CV5_1, OM3_3, 0.8, 1, 50)
+    #exconnectcells(C5, OM4_3, 0.8, 1, 50)
     
     #EES
     genconnect(ees, Ia_aff_F, 1, 0, 50)
@@ -207,10 +227,10 @@ class CPG:
     exconnectcells(OM5_2, IP5_E, 0.5, 2, 50)
 
     exconnectcells(IP3_E, mns_E, 0.8, 2, 80)
-    exconnectcells(IP2_E, mns_E[:int(3*len(mns_F)/5)], 0.8, 2, 80)
-    exconnectcells(IP5_E, mns_E[:int(3*len(mns_F)/5)], 0.8, 2, 80)
-    exconnectcells(IP4_E, mns_E[int(len(mns_F)/5):], 0.8, 2, 60)
-    exconnectcells(IP1_E, mns_E[:int(len(mns_F)/5)], 0.8, 2, 60)
+    exconnectcells(IP2_E, mns_E[:int(3*len(mns_E)/5)], 0.8, 2, 80)
+    exconnectcells(IP5_E, mns_E[:int(3*len(mns_E)/5)], 0.8, 2, 80)
+    exconnectcells(IP4_E, mns_E[int(len(mns_E)/5):], 0.8, 2, 60)
+    exconnectcells(IP1_E, mns_E[:int(len(mns_E)/5)], 0.8, 2, 60)
 
     inhconnectcells(IP1_E, Ia_aff_E, 0.002, 2, 40)
     #inhconnectcells(IP2_E, Ia_aff_E, 0.0001, 2, 40)
@@ -242,7 +262,7 @@ class CPG:
     exconnectcells(CV1_1, OM1_0E, 0.0005, 1, 50)
 
     #C2
-    exconnectcells(CV2_1, OM1_0E, 0.0005, 1, 27)
+    exconnectcells(CV2_1, OM1_0E, 0.0005, 1, 30)
     exconnectcells(CV2_1, OM2_0E, 0.00045, 1, 27)
 
     #C3
@@ -250,18 +270,18 @@ class CPG:
     exconnectcells(CV3_1, OM3_0 , 0.00035, 1, 27)
 
     #C4
-    exconnectcells(CV4_1, OM3_0 , 0.00038, 1, 27)
-    exconnectcells(CV4_1, OM4_0E, 0.0004, 1, 27)
+    exconnectcells(CV4_1, OM3_0 , 0.00037, 1, 27)
+    exconnectcells(CV4_1, OM4_0E, 0.00041, 1, 27)
 
     #C5
-    exconnectcells(CV5_1, OM5_0 , 0.0003, 1, 30)
-    exconnectcells(CV5_1, OM4_0E, 0.00025, 1, 30)
+    exconnectcells(CV5_1, OM5_0 , 0.00036, 1, 30)
+    exconnectcells(CV5_1, OM4_0E, 0.00036, 1, 30)
     
     #C=1 Extensor
-    inhconnectcells(C_1, OM1_0F, 0.8, 1, 50)
-    inhconnectcells(C_1, OM2_0F, 0.8, 1, 50)
-    inhconnectcells(C_1, OM4_0F, 0.8, 1, 50)
-    inhconnectcells(C_1, OM3_2F, 0.8, 1, 50)
+    inhconnectcells(C_1, OM1_0F, 0.8, 1, 80)
+    inhconnectcells(C_1, OM2_0F, 0.8, 1, 80)
+    inhconnectcells(C_1, OM4_0F, 0.8, 1, 80)
+    inhconnectcells(C_1, OM3_2F, 0.8, 1, 80)
 
     inhconnectcells(C_1, IP1_F, 0.8, 1, 60)
     inhconnectcells(C_1, IP2_F, 0.8, 1, 60)
@@ -281,7 +301,9 @@ class CPG:
     inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
 
     #reflex arc
-    exconnectcells(Ia_aff_E, Ia_E, 0.01, 1, 30)
+    exconnectcells(Iagener_E, Ia_aff_E[:int(len(Ia_aff_E)/6)], 0.8, 1, 20)
+    exconnectcells(Ia_aff_E, Ia_E, 0.5, 1, 30)
+    exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/6)], Ia_E, 0.8, 1, 30)
     exconnectcells(mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ia_E, mns_F, 0.04, 1, 45)
     inhconnectcells(R_E, mns_E, 0.05, 1, 45)
@@ -405,7 +427,7 @@ class CPG:
     gid = 0
     stim = h.NetStim()
     stim.number = nums
-    stim.start = random.uniform(start, start + 4)
+    stim.start = random.uniform(start, start + 3)
     stim.interval = interval
     #skinstim.noise = 0.1
     self.stims.append(stim)
