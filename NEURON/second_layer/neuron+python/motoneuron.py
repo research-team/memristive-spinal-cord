@@ -92,17 +92,20 @@ class motoneuron(object):
     '''
     Adds channels and their parameters 
     '''
-    for sec in self.all:
-      sec.Ra = 100 # Ra ohm cm - membrane resistance
-      sec.cm = 1 # cm uf/cm2 - membrane capacitance
-    self.soma.insert('hh')
+    self.soma.insert('motoneuron_5ht')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
-
+    self.soma.Ra = 200 # Ra ohm cm - membrane resistance
+    self.soma.cm = 2 # cm uf/cm2 - membrane capacitance
+    
     self.dend.insert('pas')
-    self.dend.g_pas = 0.001
-    self.dend.e_pas = -65
+    self.dend.g_pas = 7.7e-6
+    self.dend.e_pas = -70
+    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
+    self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
 
     self.axon.insert('hh')
+    self.axon.Ra = 70 # Ra ohm cm - membrane resistance
+    self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
 
   def position(self, x, y, z):
     '''
