@@ -107,6 +107,35 @@ class CPG:
     IP5_E = self.addpool(self.ncell, False, "IP5_E")
     IP5_F = self.addpool(self.ncell, False, "IP5_F")
 
+    IP_E = []
+    IP_F = []
+
+    IP_E.append(IP1_E)
+    IP_E.append(IP2_E)
+    IP_E.append(IP3_E)
+    IP_E.append(IP4_E)
+    IP_E.append(IP5_E)
+
+    IP_F.append(IP1_F)
+    IP_F.append(IP2_F)
+    IP_F.append(IP3_F)
+    IP_F.append(IP4_F)
+    IP_F.append(IP5_F)
+
+    IP_E = np.ravel(IP_E)
+    IP_F = np.ravel(IP_F)
+
+    #reflex arc
+    Ia_E = self.addpool(nInt, False, "Ia_E")
+    iIP_E = self.addpool(nInt, False, "iIP_E")
+    R_E = self.addpool(nInt, False, "R_E")
+
+    Ia_F = self.addpool(nInt, False, "Ia_F")
+    iIP_F = self.addpool(nInt, False, "iIP_F")
+    R_F = self.addpool(nInt, False, "R_F")
+    Iagener_E = []
+    Iagener_F = []
+
     # EES
     ees = self.addgener(1, EES_int, 10000)
     
@@ -119,7 +148,6 @@ class CPG:
     C5 = []
     C_1 = []
     C_0 = []
-    Iagener_E = []
 
     for i in range(step_number):
         C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
@@ -133,19 +161,14 @@ class CPG:
         C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
         Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
+    for i in range(step_number):
+        Iagener_F.append(self.addIagener((speed*6 + i*(speed*6 + 125)), self.ncell, 25))
     '''
     for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
-    '''
     for i in range(step_number):
         C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int))
-
-    #reflex arc
-    Ia_E = self.addpool(nInt, False, "Ia_E")
-    R_E = self.addpool(nInt, False, "R_E")
-
-    Ia_F = self.addpool(nInt, False, "Ia_F")
-    R_F = self.addpool(nInt, False, "R_F")
+    '''
    
     C_1.append(CV1_1)
     C_1.append(CV2_1)
@@ -157,10 +180,10 @@ class CPG:
     C_1.append(IP3_E)
     C_1.append(IP4_E)
     C_1.append(IP5_E)
-    #C_1.append(Ia_E)
 
     C_1 = np.ravel(C_1)
     Iagener_E = np.ravel(Iagener_E)
+    Iagener_F = np.ravel(Iagener_F)
 
     #generators
     createmotif(OM1_0E, OM1_1, OM1_2, OM1_3) 
@@ -192,11 +215,11 @@ class CPG:
     exconnectcells(CV3, CV4, 0.5, 1, 27)
     exconnectcells(CV4, CV5, 0.5, 1, 27)
 
-    exconnectcells(CV1, OM1_0E, 0.0037, 1, 27)
+    exconnectcells(CV1, OM1_0E, 0.00037, 1, 27)
     exconnectcells(CV2, OM2_0E, 0.00037, 1, 27)
     exconnectcells(CV3, OM3_0, 0.00037, 1, 27)
     exconnectcells(CV4, OM4_0E, 0.00037, 1, 27)
-    exconnectcells(CV5, OM5_0, 0.00037, 1, 27)
+    exconnectcells(CV5, OM5_0, 0.00038, 1, 27)
 
     #inhibitory projections
     #extensor
@@ -232,24 +255,20 @@ class CPG:
     exconnectcells(IP4_E, mns_E[int(len(mns_E)/5):], 0.8, 2, 60)
     exconnectcells(IP1_E, mns_E[:int(len(mns_E)/5)], 0.8, 2, 60)
 
-    inhconnectcells(IP1_E, Ia_aff_E, 0.002, 2, 40)
-    #inhconnectcells(IP2_E, Ia_aff_E, 0.0001, 2, 40)
-    inhconnectcells(IP3_E, Ia_aff_E, 0.0015, 2, 30)
-    inhconnectcells(IP4_E, Ia_aff_E, 0.02, 2, 40)
-    inhconnectcells(IP5_E, Ia_aff_E, 0.01, 2, 40)
+    inhconnectcells(IP_E, Ia_aff_E, 0.02, 2, 80)
 
     #Flexor
     exconnectcells(OM1_2, IP1_F, 0.5, 2, 50)
     exconnectcells(OM2_2, IP2_F, 0.5, 1, 50)
     exconnectcells(OM3_2F, IP3_F, 0.5, 2, 50)
-    exconnectcells(OM4_2, IP4_F, 0.5, 2, 50)
+    exconnectcells(OM4_2, IP4_F, 0.5, 1, 50)
     exconnectcells(OM5_2, IP5_F, 0.5, 2, 50)
     
     exconnectcells(IP1_F, mns_F[:2*int(len(mns_F)/5)], 0.8, 2, 60)
     exconnectcells(IP2_F, mns_F[int(len(mns_F)/5):int(3*len(mns_F)/5)], 0.8, 2, 80)
     exconnectcells(IP3_F, mns_F, 0.8, 2, 80)
     exconnectcells(IP4_F, mns_F[int(2*len(mns_F)/5):], 0.8, 2, 80)
-    exconnectcells(IP5_F, mns_F[int(3*len(mns_F)/5):], 0.8, 2, 80)
+    exconnectcells(IP5_F, mns_F[int(3*len(mns_F)/5):], 0.8, 3, 80)
 
     #skin inputs
     exconnectcells(C1, CV1_1, 0.8, 1, 50)
@@ -259,10 +278,10 @@ class CPG:
     exconnectcells(C5, CV5_1, 0.8, 1, 50)
 
     #C1
-    exconnectcells(CV1_1, OM1_0E, 0.0005, 1, 50)
+    exconnectcells(CV1_1, OM1_0E, 0.0015, 1, 50)
 
     #C2
-    exconnectcells(CV2_1, OM1_0E, 0.0005, 1, 30)
+    exconnectcells(CV2_1, OM1_0E, 0.0015, 1, 30)
     exconnectcells(CV2_1, OM2_0E, 0.00045, 1, 27)
 
     #C3
@@ -274,51 +293,56 @@ class CPG:
     exconnectcells(CV4_1, OM4_0E, 0.00041, 1, 27)
 
     #C5
-    exconnectcells(CV5_1, OM5_0 , 0.00036, 1, 30)
+    exconnectcells(CV5_1, OM5_0 , 0.00037, 1, 30)
     exconnectcells(CV5_1, OM4_0E, 0.00036, 1, 30)
     
     #C=1 Extensor
-    inhconnectcells(C_1, OM1_0F, 0.8, 1, 80)
-    inhconnectcells(C_1, OM2_0F, 0.8, 1, 80)
-    inhconnectcells(C_1, OM4_0F, 0.8, 1, 80)
-    inhconnectcells(C_1, OM3_2F, 0.8, 1, 80)
+    inhconnectcells(C_1, OM1_0F, 0.9, 1, 80)
+    inhconnectcells(C_1, OM2_0F, 0.9, 1, 80)
+    inhconnectcells(C_1, OM4_0F, 0.9, 1, 80)
+    inhconnectcells(C_1, OM3_2F, 0.9, 1, 80)
 
-    inhconnectcells(C_1, IP1_F, 0.8, 1, 60)
-    inhconnectcells(C_1, IP2_F, 0.8, 1, 60)
-    inhconnectcells(C_1, IP3_F, 0.8, 1, 60)
-    inhconnectcells(C_1, IP4_F, 0.8, 1, 60)
-    inhconnectcells(C_1, IP5_F, 0.8, 1, 60)
-
+    inhconnectcells(C_1, IP_F, 0.9, 1, 100)
     inhconnectcells(C_1, Ia_aff_F, 0.9, 1, 80)
 
-    #C=0 Flexor
-    inhconnectcells(C_0, IP1_E, 0.8, 1, 60)
-    inhconnectcells(C_0, IP2_E, 0.8, 1, 60)
-    inhconnectcells(C_0, IP3_E, 0.8, 1, 60)
-    inhconnectcells(C_0, IP4_E, 0.8, 1, 60)
-    inhconnectcells(C_0, IP5_E, 0.8, 1, 60)
+    inhconnectcells(iIP_E, OM1_0F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM2_0F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM4_0F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM3_2F, 0.8, 1, 80)
 
-    inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
+    inhconnectcells(iIP_E, IP_F, 0.9, 1, 100)
+    inhconnectcells(iIP_E, Ia_aff_F, 0.9, 1, 80)
+
+    inhconnectcells(IP_F, mns_E, 0.9, 1, 100)
+
+    #C=0 Flexor
+    #inhconnectcells(iIP_F, IP_E, 0.08, 1, 80)
+    #inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
+    #inhconnectcells(iIP_F, Ia_aff_E, 0.08, 1, 80)
 
     #reflex arc
     exconnectcells(Iagener_E, Ia_aff_E[:int(len(Ia_aff_E)/6)], 0.8, 1, 20)
-    exconnectcells(Ia_aff_E, Ia_E, 0.5, 1, 30)
+    #exconnectcells(Ia_aff_E, Ia_E, 0.5, 1, 30)
+    exconnectcells(Ia_E, iIP_E, 0.5, 1, 50)
     exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/6)], Ia_E, 0.8, 1, 30)
     exconnectcells(mns_E, R_E, 0.00025, 1, 30)
-    inhconnectcells(Ia_E, mns_F, 0.04, 1, 45)
+    inhconnectcells(Ia_E, mns_F, 0.8, 1, 45)
     inhconnectcells(R_E, mns_E, 0.05, 1, 45)
     inhconnectcells(R_E, Ia_E, 0.01, 1, 40)
 
-    exconnectcells(Ia_aff_F, Ia_F, 0.01, 1, 30)
+    exconnectcells(Iagener_F, Ia_aff_F[:int(len(Ia_aff_F)/2)], 0.08, 1, 20)
+    #exconnectcells(Ia_aff_F, Ia_F, 0.5, 1, 30)
+    exconnectcells(Ia_F, iIP_F, 0.5, 1, 50)
+    exconnectcells(Ia_aff_F[:int(len(Ia_aff_E)/2)], Ia_F, 0.8, 1, 30)
     exconnectcells(mns_F, R_F, 0.0002, 1, 30)
     inhconnectcells(Ia_F, mns_E, 0.04, 1, 45)
     inhconnectcells(R_F, mns_F, 0.01, 1, 45)
     inhconnectcells(R_F, Ia_F, 0.001, 1, 20)
 
     inhconnectcells(R_E, R_F, 0.04, 1, 30)
-    inhconnectcells(Ia_E, Ia_F, 0.04, 1, 30)
+    inhconnectcells(Ia_E, Ia_F, 0.8, 1, 30)
     inhconnectcells(R_F, R_E, 0.04, 1, 30)
-    inhconnectcells(Ia_F, Ia_E, 0.04, 1, 30)
+    inhconnectcells(Ia_F, Ia_E, 0.08, 1, 50)
 
   def addpool(self, num, delaytype, name="test"):
     '''
@@ -683,7 +707,7 @@ def prun(speed, step_number):
   speed: int
     duration of each layer 
   '''
-  tstop = 150 #(6*speed + 125)*step_number
+  tstop = 150#(6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
