@@ -150,15 +150,15 @@ class CPG:
     C_0 = []
 
     for i in range(step_number):
-        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
+        C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
+        C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
+        C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C4.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, 2*speed/c_int))
+        C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, 2*speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
-        C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
+        C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int + random.randint(1, 2)))
     for i in range(step_number):
         Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
     for i in range(step_number):
@@ -245,14 +245,14 @@ class CPG:
     #Extensor
     exconnectcells(OM1_2, IP1_E, 0.5, 1, 50)
     exconnectcells(OM2_2, IP2_E, 0.5, 2, 50)
-    exconnectcells(OM3_2E, IP3_E, 0.5, 2, 50)
-    exconnectcells(OM4_2, IP4_E, 0.5, 2, 50)
-    exconnectcells(OM5_2, IP5_E, 0.5, 2, 50)
+    exconnectcells(OM3_2E, IP3_E, 0.5, 1, 50)
+    exconnectcells(OM4_2, IP4_E, 0.5, 1, 50)
+    exconnectcells(OM5_2, IP5_E, 0.5, 3, 50)
 
-    exconnectcells(IP3_E, mns_E, 0.8, 2, 80)
+    exconnectcells(IP3_E, mns_E, 0.8, 1, 80)
     exconnectcells(IP2_E, mns_E[:int(3*len(mns_E)/5)], 0.8, 2, 80)
-    exconnectcells(IP5_E, mns_E[:int(3*len(mns_E)/5)], 0.8, 2, 80)
-    exconnectcells(IP4_E, mns_E[int(len(mns_E)/5):], 0.8, 2, 60)
+    exconnectcells(IP5_E, mns_E[:int(3*len(mns_E)/5)], 0.8, 3, 80)
+    exconnectcells(IP4_E, mns_E[int(len(mns_E)/5):], 0.8, 1, 60)
     exconnectcells(IP1_E, mns_E[:int(len(mns_E)/5)], 0.8, 2, 60)
 
     inhconnectcells(IP_E, Ia_aff_E, 0.02, 2, 80)
@@ -268,7 +268,7 @@ class CPG:
     exconnectcells(IP2_F, mns_F[int(len(mns_F)/5):int(3*len(mns_F)/5)], 0.8, 2, 80)
     exconnectcells(IP3_F, mns_F, 0.8, 2, 80)
     exconnectcells(IP4_F, mns_F[int(2*len(mns_F)/5):], 0.8, 2, 80)
-    exconnectcells(IP5_F, mns_F[int(3*len(mns_F)/5):], 0.8, 3, 80)
+    exconnectcells(IP5_F, mns_F[int(3*len(mns_F)/5):], 0.8, 2, 80)
 
     #skin inputs
     exconnectcells(C1, CV1_1, 0.8, 1, 50)
@@ -297,14 +297,16 @@ class CPG:
     exconnectcells(CV5_1, OM4_0E, 0.00036, 1, 30)
     
     #C=1 Extensor
-    inhconnectcells(C_1, OM1_0F, 0.9, 1, 80)
-    inhconnectcells(C_1, OM2_0F, 0.9, 1, 80)
-    inhconnectcells(C_1, OM4_0F, 0.9, 1, 80)
-    inhconnectcells(C_1, OM3_2F, 0.9, 1, 80)
+    inhconnectcells(C_1, OM1_0F, 0.99, 1, 100)
+    inhconnectcells(C_1, OM2_0F, 0.99, 1, 100)
+    inhconnectcells(C_1, OM4_0F, 0.99, 1, 100)
+    inhconnectcells(C_1, OM3_2F, 0.99, 1, 100)
 
-    inhconnectcells(C_1, IP_F, 0.9, 1, 100)
-    inhconnectcells(C_1, Ia_aff_F, 0.9, 1, 80)
+    inhconnectcells(C_1, IP_F, 0.99, 1, 100)
+    inhconnectcells(C_1, Ia_aff_F, 0.99, 1, 100)
+    inhconnectcells(C_1, mns_F, 0.99, 1, 100)
 
+    '''
     inhconnectcells(iIP_E, OM1_0F, 0.8, 1, 80)
     inhconnectcells(iIP_E, OM2_0F, 0.8, 1, 80)
     inhconnectcells(iIP_E, OM4_0F, 0.8, 1, 80)
@@ -313,17 +315,20 @@ class CPG:
     inhconnectcells(iIP_E, IP_F, 0.9, 1, 100)
     inhconnectcells(iIP_E, Ia_aff_F, 0.9, 1, 80)
 
-    inhconnectcells(IP_F, mns_E, 0.9, 1, 100)
+    inhconnectcells(IP_E, mns_F, 0.9, 1, 100)
+    inhconnectcells(iIP_E, mns_F, 0.9, 1, 100)
+    '''
 
     #C=0 Flexor
     #inhconnectcells(iIP_F, IP_E, 0.08, 1, 80)
     #inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
     #inhconnectcells(iIP_F, Ia_aff_E, 0.08, 1, 80)
+    inhconnectcells(IP_F, mns_E, 0.9, 1, 100)
 
     #reflex arc
     exconnectcells(Iagener_E, Ia_aff_E[:int(len(Ia_aff_E)/6)], 0.8, 1, 20)
     #exconnectcells(Ia_aff_E, Ia_E, 0.5, 1, 30)
-    exconnectcells(Ia_E, iIP_E, 0.5, 1, 50)
+    #exconnectcells(Ia_E, iIP_E, 0.5, 1, 50)
     exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/6)], Ia_E, 0.8, 1, 30)
     exconnectcells(mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ia_E, mns_F, 0.8, 1, 45)
@@ -332,7 +337,7 @@ class CPG:
 
     exconnectcells(Iagener_F, Ia_aff_F[:int(len(Ia_aff_F)/2)], 0.08, 1, 20)
     #exconnectcells(Ia_aff_F, Ia_F, 0.5, 1, 30)
-    exconnectcells(Ia_F, iIP_F, 0.5, 1, 50)
+    #exconnectcells(Ia_F, iIP_F, 0.5, 1, 50)
     exconnectcells(Ia_aff_F[:int(len(Ia_aff_E)/2)], Ia_F, 0.8, 1, 30)
     exconnectcells(mns_F, R_F, 0.0002, 1, 30)
     inhconnectcells(Ia_F, mns_E, 0.04, 1, 45)
@@ -451,7 +456,7 @@ class CPG:
     gid = 0
     stim = h.NetStim()
     stim.number = nums
-    stim.start = random.uniform(start, start + 3)
+    stim.start = random.uniform(start, start + 4)
     stim.interval = interval
     #skinstim.noise = 0.1
     self.stims.append(stim)
