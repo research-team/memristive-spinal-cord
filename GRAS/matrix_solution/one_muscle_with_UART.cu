@@ -48,6 +48,7 @@ unsigned int *sync1;            // timing
 unsigned short *data1;          // data in buffer
 char model[10] = "e154";        // device name (replace after changing device model)
 bool gpu_is_run = true;         // special flag for controlling ADC/DAC working
+bool EES_signal = false;        // special flag for signalling EES
 unsigned short Pages = 8;       // 4 - size of ring buffer in interrupt steps
 unsigned short IrqStep = 32;    // step of generating interrupts
 float motoneuron_voltage = 0;   // common global variable of motoneuron membrane potential
@@ -276,6 +277,11 @@ void *parallel_ADC_E154(void *arg) {
 			this_thread::sleep_for(adc_sleep_time);
 		}
 		fl1 = (*sync1 <= halfbuffer)? 0 : 1;
+
+		// ??? here
+		if(data1[0] > 500){
+			EES_signal = true;
+		}
 	}
 	errorchk(false, "finishing ADC executing commands");
 	return 0;
@@ -320,7 +326,8 @@ void gpu_neuron_kernel(float* old_v,
                        float* voltage,
                        #endif
                        int sim_iter,
-                       int t_cutting_offset) {
+                       int t_cutting_offset,
+                       bool gpu_EES_signal) {
 
 	// get id of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -381,16 +388,8 @@ void gpu_neuron_kernel(float* old_v,
 			nrn_current[tid] = 0;
 
 		// EES
-		if (1165 <= tid && tid <= 1184) {
-			if (sim_iter % 100 == 0 && tid % 3 == 0) {
-				nrn_current[tid] = 5000;
-			}
-			if ((sim_iter - 1) % 100 == 0 && (tid+1) % 3 == 0) {
-				nrn_current[tid] = 5000;
-			}
-			if ((sim_iter - 2) % 100 == 0 && (tid+2) % 3 == 0) {
-				nrn_current[tid] = 5000;
-			}
+		if (gpu_EES_signal && 1165 <= tid && tid <= 1184) {
+			nrn_current[tid] = 5000;
 		}
 
 		float V_old = old_v[tid];
@@ -1040,7 +1039,8 @@ void simulate() {
 		                                                     gpu_voltage_recording,
 		                                                     #endif
 		                                                     sim_iter,
-		                                                     t_cutting_offset);
+		                                                     t_cutting_offset,
+		                                                     EES_signal);
 		// run GPU kernel for synapses state updating
 		gpu_synapse_kernel<<<num_blocks, threads_per_block>>>(gpu_has_spike,
 		                                                      gpu_nrn_current,
@@ -1052,6 +1052,9 @@ void simulate() {
 		                                                      neurons_number,
 		                                                      gpu_nrn_ref_timer);
 
+		if (EES_signal) {
+			EES_signal = false;
+		}
 		// get summarized membrane potential value of motoneurons and normalize it to 5V peak of DAC
 		cudaMemcpy(&motoneuron_voltage, gpu_motoneuron_voltage, sizeof(float), cudaMemcpyDeviceToHost);
 
