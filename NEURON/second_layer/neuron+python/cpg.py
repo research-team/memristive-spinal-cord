@@ -44,15 +44,9 @@ class CPG:
 
     OM1_0E = self.addpool(self.ncell, False, "OM1_0E")
     OM1_0F = self.addpool(self.ncell, False, "OM1_0F")
-      
-    OM2_0E = self.addpool(self.ncell, False, "OM2_0E")
-    OM2_0F = self.addpool(self.ncell, False, "OM2_0F")
-    
+    OM2_0 = self.addpool(self.ncell, False, "OM2_0")
     OM3_0 = self.addpool(self.ncell, False, "OM3_0")
-
-    OM4_0E = self.addpool(self.ncell, False, "OM4_0E")
-    OM4_0F = self.addpool(self.ncell, False, "OM4_0F")
-    
+    OM4_0 = self.addpool(self.ncell, False, "OM4_0")    
     OM5_0  = self.addpool(self.ncell, False, "OM5_0")
 
     OM1_1 = self.addpool(self.ncell, False, "OM1_1")
@@ -60,7 +54,8 @@ class CPG:
     OM1_3 = self.addpool(self.ncell, False, "OM1_3")
 
     OM2_1 = self.addpool(self.ncell, False, "OM2_1")
-    OM2_2 = self.addpool(self.ncell, False, "OM2_2")
+    OM2_2E = self.addpool(self.ncell, False, "OM2_2E")
+    OM2_2F = self.addpool(self.ncell, False, "OM2_2F")
     OM2_3 = self.addpool(self.ncell, False, "OM2_3")
    
     OM3_1 = self.addpool(self.ncell, False, "OM3_1")
@@ -69,7 +64,8 @@ class CPG:
     OM3_3 = self.addpool(self.ncell, False, "OM3_3")
     
     OM4_1 = self.addpool(self.ncell, False, "OM4_1")
-    OM4_2 = self.addpool(self.ncell, False, "OM4_2")
+    OM4_2E = self.addpool(self.ncell, False, "OM4_2E")
+    OM4_2F = self.addpool(self.ncell, False, "OM4_2F")
     OM4_3 = self.addpool(self.ncell, False, "OM4_3")
 
     OM5_1 = self.addpool(self.ncell, False, "OM5_1")
@@ -163,11 +159,11 @@ class CPG:
         Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
     for i in range(step_number):
         Iagener_F.append(self.addIagener((speed*6 + i*(speed*6 + 125)), self.ncell, 25))
+    for i in range(step_number):
+        C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int + random.randint(1, 2)))
     '''
     for i in range(step_number):
         C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
-    for i in range(step_number):
-        C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, 125/c_int))
     '''
    
     C_1.append(CV1_1)
@@ -175,11 +171,6 @@ class CPG:
     C_1.append(CV3_1)
     C_1.append(CV4_1)
     C_1.append(CV5_1)
-    C_1.append(IP1_E)
-    C_1.append(IP2_E)
-    C_1.append(IP3_E)
-    C_1.append(IP4_E)
-    C_1.append(IP5_E)
 
     C_1 = np.ravel(C_1)
     Iagener_E = np.ravel(Iagener_E)
@@ -187,26 +178,26 @@ class CPG:
 
     #generators
     createmotif(OM1_0E, OM1_1, OM1_2, OM1_3) 
-    createmotif(OM2_0E, OM2_1, OM2_2, OM2_3)
+    createmotif(OM2_0, OM2_1, OM2_2E, OM2_3)
     createmotif(OM3_0, OM3_1, OM3_2E, OM3_3)
-    exconnectcells(OM3_1, OM3_2F, 0.05, 3, 27)
-    exconnectcells(OM3_2F, OM3_1, 0.05, 4, 27)
-    createmotif(OM4_0E, OM4_1, OM4_2, OM4_3)
+    createmotif(OM4_0, OM4_1, OM4_2E, OM4_3)
     createmotif(OM5_0, OM5_1, OM5_2, OM5_3)
 
     #extra flexor connections
-    exconnectcells(OM2_0F, OM3_0, 0.005, 1, 27)
-    exconnectcells(OM3_2F, OM4_2, 0.005, 1, 27)
-    exconnectcells(OM4_0F, OM5_0, 0.0035, 1, 27)
+    exconnectcells(OM2_2F, OM3_2F, 0.05, 2, 27)
+    exconnectcells(OM3_2F, OM4_2F, 0.05, 1, 27)
+    exconnectcells(OM4_2F, OM5_0, 0.035, 1, 27)
 
-    exconnectcells(CV1, OM1_0F, 0.05, 1, 27)
-    exconnectcells(CV2, OM2_0F, 0.005, 1, 27)
-    exconnectcells(CV4, OM4_0F, 0.005, 1, 27)
-
+    exconnectcells(OM2_1, OM2_2F, 0.05, 3, 50)
+    exconnectcells(OM2_2F, OM2_1, 0.05, 3, 50)
+    exconnectcells(OM3_1, OM3_2F, 0.05, 3, 50)
+    exconnectcells(OM3_2F, OM3_1, 0.05, 3, 50)
+    exconnectcells(OM4_1, OM4_2F, 0.05, 3, 50)
+    exconnectcells(OM4_2F, OM4_1, 0.05, 3, 50)
+    
+    exconnectcells(CV1, OM1_0F, 0.05, 2, 50)
     exconnectcells(OM1_0F, OM1_1, 0.05, 2, 27)
-    exconnectcells(OM1_0F, OM2_2 , 0.05, 1, 27)
-    exconnectcells(OM2_0F, OM2_1, 0.05, 2, 27)
-    exconnectcells(OM4_0F, OM4_1, 0.05, 2, 27)
+    exconnectcells(OM1_0F, OM2_2F , 0.5, 3, 50)
 
     #between delays via excitatory pools
     #extensor
@@ -216,22 +207,22 @@ class CPG:
     exconnectcells(CV4, CV5, 0.5, 1, 27)
 
     exconnectcells(CV1, OM1_0E, 0.00037, 1, 27)
-    exconnectcells(CV2, OM2_0E, 0.00037, 1, 27)
+    exconnectcells(CV2, OM2_0, 0.00037, 1, 27)
     exconnectcells(CV3, OM3_0, 0.00037, 1, 27)
-    exconnectcells(CV4, OM4_0E, 0.00037, 1, 27)
-    exconnectcells(CV5, OM5_0, 0.00038, 1, 27)
+    exconnectcells(CV4, OM4_0, 0.00037, 1, 27)
+    exconnectcells(CV5, OM5_0, 0.00039, 1, 27)
 
     #inhibitory projections
     #extensor
-    exconnectcells(CV3_1, OM1_3, 0.8, 1, 50)
+    exconnectcells(CV3_1, OM1_3, 0.9, 1, 80)
 
-    exconnectcells(CV4_1, OM1_3, 0.8, 1, 50)
-    exconnectcells(CV4_1, OM2_3, 0.8, 1, 50)
+    exconnectcells(CV4_1, OM1_3, 0.9, 1, 80)
+    exconnectcells(CV4_1, OM2_3, 0.9, 1, 80)
 
-    exconnectcells(CV5_1, OM1_3, 0.8, 1, 50)
-    exconnectcells(CV5_1, OM2_3, 0.8, 1, 50)
-    exconnectcells(CV5_1, OM3_3, 0.8, 1, 50)
-    #exconnectcells(C5, OM4_3, 0.8, 1, 50)
+    exconnectcells(CV5_1, OM1_3, 0.9, 1, 80)
+    exconnectcells(CV5_1, OM2_3, 0.9, 1, 80)
+    exconnectcells(CV5_1, OM3_3, 0.9, 1, 80)
+    #exconnectcells(CV5_1, OM4_3, 0.8, 1, 50)
     
     #EES
     genconnect(ees, Ia_aff_F, 1, 0, 50)
@@ -244,9 +235,9 @@ class CPG:
     #IP
     #Extensor
     exconnectcells(OM1_2, IP1_E, 0.5, 1, 50)
-    exconnectcells(OM2_2, IP2_E, 0.5, 2, 50)
+    exconnectcells(OM2_2E, IP2_E, 0.5, 2, 50)
     exconnectcells(OM3_2E, IP3_E, 0.5, 1, 50)
-    exconnectcells(OM4_2, IP4_E, 0.5, 1, 50)
+    exconnectcells(OM4_2E, IP4_E, 0.5, 1, 50)
     exconnectcells(OM5_2, IP5_E, 0.5, 3, 50)
 
     exconnectcells(IP3_E, mns_E, 0.8, 1, 80)
@@ -259,9 +250,9 @@ class CPG:
 
     #Flexor
     exconnectcells(OM1_2, IP1_F, 0.5, 2, 50)
-    exconnectcells(OM2_2, IP2_F, 0.5, 1, 50)
+    exconnectcells(OM2_2E, IP2_F, 0.5, 1, 50)
     exconnectcells(OM3_2F, IP3_F, 0.5, 2, 50)
-    exconnectcells(OM4_2, IP4_F, 0.5, 1, 50)
+    exconnectcells(OM4_2E, IP4_F, 0.5, 1, 50)
     exconnectcells(OM5_2, IP5_F, 0.5, 2, 50)
     
     exconnectcells(IP1_F, mns_F[:2*int(len(mns_F)/5)], 0.8, 2, 60)
@@ -282,34 +273,46 @@ class CPG:
 
     #C2
     exconnectcells(CV2_1, OM1_0E, 0.0015, 1, 30)
-    exconnectcells(CV2_1, OM2_0E, 0.00045, 1, 27)
+    exconnectcells(CV2_1, OM2_0, 0.00045, 1, 27)
 
     #C3
-    exconnectcells(CV3_1, OM2_0E, 0.00045, 1, 27)
-    exconnectcells(CV3_1, OM3_0 , 0.00035, 1, 27)
+    exconnectcells(CV3_1, OM2_0, 0.00045, 1, 27)
+    exconnectcells(CV3_1, OM3_0 , 0.00036, 1, 27)
 
     #C4
     exconnectcells(CV4_1, OM3_0 , 0.00037, 1, 27)
-    exconnectcells(CV4_1, OM4_0E, 0.00041, 1, 27)
+    exconnectcells(CV4_1, OM4_0, 0.00041, 1, 27)
 
     #C5
-    exconnectcells(CV5_1, OM5_0 , 0.00037, 1, 30)
-    exconnectcells(CV5_1, OM4_0E, 0.00036, 1, 30)
+    exconnectcells(CV5_1, OM5_0 , 0.00042, 1, 27)
+    exconnectcells(CV5_1, OM4_0, 0.00041, 1, 27)
     
     #C=1 Extensor
     inhconnectcells(C_1, OM1_0F, 0.99, 1, 100)
-    inhconnectcells(C_1, OM2_0F, 0.99, 1, 100)
-    inhconnectcells(C_1, OM4_0F, 0.99, 1, 100)
+    inhconnectcells(C_1, OM2_2F, 0.99, 1, 100)
+    inhconnectcells(C_1, OM4_2F, 0.99, 1, 100)
     inhconnectcells(C_1, OM3_2F, 0.99, 1, 100)
 
     inhconnectcells(C_1, IP_F, 0.99, 1, 100)
     inhconnectcells(C_1, Ia_aff_F, 0.99, 1, 100)
     inhconnectcells(C_1, mns_F, 0.99, 1, 100)
 
+    exconnectcells(IP_E, iIP_E, 0.5, 1, 50)
+    exconnectcells(C_1, iIP_E, 0.5, 1, 50)
+    inhconnectcells(iIP_E, IP_F, 0.99, 1, 100)
+
+    inhconnectcells(IP_E, Ia_aff_F, 0.99, 1, 100)
+    inhconnectcells(IP_E, mns_F, 0.99, 1, 100)
+
+    inhconnectcells(iIP_E, OM1_0F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM2_2F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM4_2F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM3_2F, 0.8, 1, 80)
+
     '''
     inhconnectcells(iIP_E, OM1_0F, 0.8, 1, 80)
-    inhconnectcells(iIP_E, OM2_0F, 0.8, 1, 80)
-    inhconnectcells(iIP_E, OM4_0F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM2_2F, 0.8, 1, 80)
+    inhconnectcells(iIP_E, OM4_2F, 0.8, 1, 80)
     inhconnectcells(iIP_E, OM3_2F, 0.8, 1, 80)
 
     inhconnectcells(iIP_E, IP_F, 0.9, 1, 100)
@@ -320,34 +323,36 @@ class CPG:
     '''
 
     #C=0 Flexor
-    #inhconnectcells(iIP_F, IP_E, 0.08, 1, 80)
-    #inhconnectcells(C_0, Ia_aff_E, 0.8, 1, 80)
-    #inhconnectcells(iIP_F, Ia_aff_E, 0.08, 1, 80)
-    inhconnectcells(IP_F, mns_E, 0.9, 1, 100)
+    exconnectcells(IP_F, iIP_F, 0.9, 1, 50)
+    inhconnectcells(iIP_F, IP_E, 0.99, 1, 80)
+    inhconnectcells(C_0, Ia_aff_E, 0.99, 1, 80)
+    inhconnectcells(C_0, IP_E, 0.99, 1, 80)
 
     #reflex arc
     exconnectcells(Iagener_E, Ia_aff_E[:int(len(Ia_aff_E)/6)], 0.8, 1, 20)
     #exconnectcells(Ia_aff_E, Ia_E, 0.5, 1, 30)
-    #exconnectcells(Ia_E, iIP_E, 0.5, 1, 50)
+    exconnectcells(iIP_E, Ia_E, 0.5, 1, 50)
     exconnectcells(Ia_aff_E[:int(len(Ia_aff_E)/6)], Ia_E, 0.8, 1, 30)
     exconnectcells(mns_E, R_E, 0.00025, 1, 30)
     inhconnectcells(Ia_E, mns_F, 0.8, 1, 45)
-    inhconnectcells(R_E, mns_E, 0.05, 1, 45)
-    inhconnectcells(R_E, Ia_E, 0.01, 1, 40)
+    inhconnectcells(R_E, mns_E, 0.005, 1, 45)
+    inhconnectcells(R_E, Ia_E, 0.001, 1, 40)
 
     exconnectcells(Iagener_F, Ia_aff_F[:int(len(Ia_aff_F)/2)], 0.08, 1, 20)
     #exconnectcells(Ia_aff_F, Ia_F, 0.5, 1, 30)
-    #exconnectcells(Ia_F, iIP_F, 0.5, 1, 50)
-    exconnectcells(Ia_aff_F[:int(len(Ia_aff_E)/2)], Ia_F, 0.8, 1, 30)
+    exconnectcells(iIP_F, Ia_F, 0.5, 1, 50)
+    exconnectcells(Ia_aff_F[:int(len(Ia_aff_F)/2)], Ia_F, 0.8, 1, 30)
     exconnectcells(mns_F, R_F, 0.0002, 1, 30)
-    inhconnectcells(Ia_F, mns_E, 0.04, 1, 45)
-    inhconnectcells(R_F, mns_F, 0.01, 1, 45)
+    inhconnectcells(Ia_F, mns_E, 0.4, 1, 45)
+    inhconnectcells(R_F, mns_F, 0.001, 1, 45)
     inhconnectcells(R_F, Ia_F, 0.001, 1, 20)
 
     inhconnectcells(R_E, R_F, 0.04, 1, 30)
-    inhconnectcells(Ia_E, Ia_F, 0.8, 1, 30)
+    inhconnectcells(Ia_E, Ia_F, 0.04, 1, 30)
     inhconnectcells(R_F, R_E, 0.04, 1, 30)
     inhconnectcells(Ia_F, Ia_E, 0.08, 1, 50)
+    inhconnectcells(iIP_E, iIP_F, 0.04, 1, 30)
+    inhconnectcells(iIP_F, iIP_E, 0.04, 1, 30)
 
   def addpool(self, num, delaytype, name="test"):
     '''
@@ -633,9 +638,9 @@ def createmotif(om0, om1, om2, om3):
         list of OM3 pool gids
   '''
   exconnectcells(om0, om1, 0.05, 1, 27)
-  exconnectcells(om1, om2, 0.05, 3, 27)
-  exconnectcells(om2, om1, 0.05, 3, 27)
-  exconnectcells(om2, om3, 0.001, 1, 27)
+  exconnectcells(om1, om2, 0.05, 2, 27)
+  exconnectcells(om2, om1, 0.05, 2, 27)
+  exconnectcells(om2, om3, 0.0001, 1, 27)
   #exconnectcells(g1, g3, 0.001, 1, 27)
   #inhconnectcells(g3, g1, 0.08, 1, 27)
   inhconnectcells(om3, om2, 0.8, 1, 27)
@@ -737,7 +742,6 @@ if __name__ == '__main__':
       motorecorders = []
       for group in cpg_ex.motogroups:
         motorecorders.append(spike_record(group[k_nrns], i))
-      
       affrecorders = []
       for group in cpg_ex.affgroups:
         affrecorders.append(spike_record(group[k_nrns], i))
@@ -755,7 +759,7 @@ if __name__ == '__main__':
 
       for group, recorder in zip(cpg_ex.groups, recorders):
         spikeout(group[k_nrns], group[k_name], i, recorder)
-      
+          
       for group, recorder in zip(cpg_ex.motogroups, motorecorders):
         spikeout(group[k_nrns], group[k_name], i, recorder)
       
