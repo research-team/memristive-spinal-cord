@@ -137,6 +137,7 @@ class bioaff(object):
     self.soma.el_hh = -70
     self.soma.Ra = 100
     self.soma.cm = 1
+    self.soma.insert('extracellular')
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001

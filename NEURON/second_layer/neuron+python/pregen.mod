@@ -5,7 +5,7 @@ NEURON	{
   POINT_PROCESS SpikeGenerator
   RANGE y
   RANGE interval, number, start
-  RANGE noise, freq, k
+  RANGE noise, freq, k, speed
 }
 PARAMETER {
 	interval = 10 (ms) <1e-9,1e9>: time between spikes (msec)
@@ -15,6 +15,7 @@ PARAMETER {
 	ml = 0
 	maxlen = 200
 	k = 0.009
+	speed = 150
 }
 
 ASSIGNED {
@@ -63,7 +64,7 @@ FUNCTION frequency(t (ms)) (ms) {
 	if (t>start){time = t - start}
 	ml = (maxlen/pow((k*(time+1)),1.5))*(1-exp(1/(k*(time+1))))
 	frequency = 4.3*pow(fabs(ml - ml0),0.6) + 82
-	if ((t-start)>150){frequency = 10}
+	if ((t-start) > speed){frequency = 10}
 	freq = frequency
 }
 
@@ -147,5 +148,3 @@ events. A change to the on state immediately fires the first spike of
 its sequence.
 
 ENDCOMMENT
-
-
