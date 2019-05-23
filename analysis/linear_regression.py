@@ -12,6 +12,8 @@ delta_y_step = 0.3
 k_mean = 0
 k_x_data = 1
 k_y_data = 2
+color_bio = '#a6261d'
+color_sim = '#472650'
 
 
 def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
@@ -35,6 +37,7 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 
 	slice_indexes = range(slices_number)
 
+	yticks = []
 	# plot mean data per slice
 	for slice_index in slice_indexes:
 		# bio data
@@ -46,7 +49,8 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 
 		plt.plot([t * bio_step for t in range(len(sliced_data))],
 		         [offset + d for d in sliced_data],
-		         color='#FF7254')
+		         color=color_bio, linewidth=2)
+		yticks.append(sliced_data[0] + offset)
 		# sim data
 		start = int(slice_index * 25 / sim_step)
 		end = int((slice_index + 1) * 25 / sim_step)
@@ -54,7 +58,7 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 		print("len(sim sliced_data) = ", len(sliced_data))
 		plt.plot([t * sim_step for t in range(len(sliced_data))],
 		         [offset + d for d in sliced_data],
-		         color='#54CBFF')
+		         color=color_sim, linewidth=2)
 
 	# BIO data processing
 	x = np.array(bio_x)
@@ -74,8 +78,8 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 	tmp_x = list(zip(*x_per_test))
 	tmp_y = list(zip(*y_per_test))
 	# for i in range(slices_number):
-	# 	plt.scatter(tmp_x[i], tmp_y[i], label=i, color='#CA2D0C', alpha=0.3)
-	# plt.plot(xfit, yfit, color='#CA2D0C', linestyle='--', linewidth=3, label='BIO')
+		# plt.scatter(tmp_x[i], tmp_y[i], label=i, color=color_bio, alpha=0.6)
+	# plt.plot(xfit, yfit, color=color_bio, linestyle='--', linewidth=6, label='BIO')
 	# plt.legend()
 	# SIM data processing
 	x = np.array(sim_x)
@@ -83,13 +87,13 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 
 	xfit, yfit = calc_linear(x, y)
 
-	# plt.scatter(x, y, color='#25C7FF', alpha=0.3)
-	# plt.plot(xfit, yfit, color='#0C88CA', linestyle='--', linewidth=3, label='NEST')
+	# plt.scatter(x, y, color=color_sim, alpha=0.6)
+	# plt.plot(xfit, yfit, color=color_sim, linestyle='--', linewidth=6, label='NEST')
 	# plot properties
-	plt.xlabel("Time, ms", fontsize=28)
-	plt.ylabel("Slices", fontsize=28)
-	plt.xticks(fontsize=28)
-	plt.yticks([], fontsize=28)
+	plt.xlabel("Time, ms", fontsize=56)
+	plt.ylabel("Slices", fontsize=56)
+	plt.xticks(fontsize=56)
+	plt.yticks([], fontsize=56)
 	plt.xlim(0, 25)
 	plt.ylim(-2, slices_number * delta_y_step + 1)
 	# plt.legend()
@@ -142,8 +146,10 @@ def run():
 	# bio_volt_and_stim = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
 	# print("bio_volt_and_stim = ", bio_volt_and_stim[0])
 	# print("bio_volt_and_stim = ", bio_volt_and_stim[1])
-	nest_tests = select_slices('../../GRAS/F_21cms_40Hz_100%_2pedal_no5ht.hdf5', 0, 6000)
-	neuron_tests = select_slices('../../neuron-data/3steps_newmodel_FL.hdf5', 5000, 11000)
+	nest_tests = select_slices('../../GRAS/E_15cms_40Hz_100%_4pedal_no5ht.hdf5', 1000, 5000)
+	# 21flexor [1000, 5000] 15flexor [1000, 10000]
+	neuron_tests = select_slices('../../neuron-data/3steps_newmodel_FL.hdf5', 7000, 11000)
+	# 21flexor [7000, 11000] 15flexor [13000, 18000]
 	# neuron_tests = read_neuron_data('../../neuron-data/3steps_speed15_EX.hdf5')
 	# slice_numbers = int(len(neuron_tests[0]) * sim_step // 25)
 
@@ -151,7 +157,7 @@ def run():
 	# result = bio_several_runs()
 	# bio_volt = result[0]
 	# bio_volt_and_stim.append(result[1])
-	bio_volt = bio_data_runs()
+	bio_volt = bio_data_runs('RMG')
 	# bio_volt_and_stim2 = result[2]
 	# bio_volt_and_stim2.append(result[3])
 	print("---")
@@ -164,7 +170,7 @@ def run():
 	for sim_tests in [nest_tests, neuron_tests]:
 		sim_pack = form_sim_pack(sim_tests, sim_step)
 		print("printed sim pack")
-		plot_linear(bio_pack, sim_pack, 6, bio_step, sim_step) # min(len(result[1]), len(result[3]))
+		plot_linear(bio_pack, sim_pack, 4, bio_step, sim_step) # min(len(result[1]), len(result[3]))
 
 	quipazine_patch = mpatches.Patch(color='#FF7254', label='quipazine')
 	no_quipazine_patch = mpatches.Patch(color='#54CBFF', label='no quipazine')

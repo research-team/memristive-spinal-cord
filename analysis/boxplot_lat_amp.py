@@ -3,12 +3,16 @@ import matplotlib.patches as mpatches
 from analysis.functions import read_nest_data, read_neuron_data
 from analysis.histogram_lat_amp import sim_process
 from analysis.namespaces import *
-from analysis.bio_data_6runs import bio_several_runs
+from analysis.patterns_in_bio_data import bio_data_runs
+import numpy as np
+from analysis.cut_several_steps_files import select_slices
+from analysis.functions import normalization
 
 color_lat = '#BD821B'
 fill_color_lat = '#F3CB84'
 color_amp = '#472650'
 fill_color_amp = '#855F8E'
+
 bar_width = 0.5
 
 
@@ -51,11 +55,14 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 
 	# create subplots
 	fig, lat_axes = plt.subplots()
+
 	# property of bar fliers
 	fliers = dict(markerfacecolor='k', marker='*', markersize=3)
 
 	# plot latencies
 	xticks = [x * box_distance for x in slice_indexes]
+	plt.xticks(fontsize=56)
+	plt.yticks(fontsize=56)
 	lat_plot = lat_axes.boxplot(latencies, positions=xticks, widths=bar_width, patch_artist=True, flierprops=fliers)
 	recolor(lat_plot, color_lat, fill_color_lat)
 	# add the second y-axis
@@ -69,12 +76,13 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 	# set the legend
 	lat_patch = mpatches.Patch(color=fill_color_lat, label='Latency')
 	amp_patch = mpatches.Patch(color=fill_color_amp, label='Amplitude')
-	plt.legend(handles=[lat_patch, amp_patch], loc='best')
+	# plt.legend(handles=[lat_patch, amp_patch], loc='best')
 	# plot setting
-	lat_axes.set_xlabel('Slices')
-	lat_axes.set_ylabel("Latencies, ms")
-	amp_axes.set_ylabel("Amplitudes, mV (normalized)")
+	lat_axes.set_xlabel('Slices', fontsize=56)
+	lat_axes.set_ylabel("Latencies, ms", fontsize=56)
+	amp_axes.set_ylabel("Amplitudes, mV (normalized)", fontsize=56)
 	plt.xticks([i * box_distance for i in slice_indexes], [i + 1 for i in slice_indexes])
+	plt.yticks(fontsize=56)
 	plt.xlim(-0.5, len(slice_indexes) * box_distance)
 	plt.show()
 
@@ -82,12 +90,30 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 def run():
 	# get data
 	# nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s6cms_T.hdf5')
-	neuron_tests = read_neuron_data('../../neuron-data/15ST.hdf5')
+	neuron_tests_ex = select_slices('../../neuron-data/3steps_newmodel_EX.hdf5', 0, 6000)
+	# 15cm/s [0, 11000] 21cm/s [0, 6000]
+	gras_tests_ex = select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000)
+	# 15cm/s [10000, 22000] 21cm/s [5000, 11000]
+
+	for test in range(len(neuron_tests_ex)):
+		neuron_tests_ex[test] = normalization(neuron_tests_ex[test], -1, 1)
+
+	for test in range(len(gras_tests_ex)):
+		gras_tests_ex[test] = normalization(gras_tests_ex[test], -1, 1)
+
 	# the main loop of simulations data
-	bio_datas = bio_several_runs()[0]
-	for sim_datas, step in [(bio_datas, 0.25), (neuron_tests, sim_step)]:
+	# bio_data_ex = bio_data_runs('RMG')
+	# bio_data_fl = bio_data_runs('RTA')
+	# for test in range(len(bio_data_ex)):
+	# 	bio_data_ex[test] = normalization(bio_data_ex[test], -1, 1)
+	# for test in range(len(bio_data_fl)):
+	# 	bio_data_fl[test] = normalization(bio_data_fl[test], -1, 1)
+	for sim_datas, step in [(neuron_tests_ex, sim_step),
+	                                (gras_tests_ex, sim_step)]:
 		latencies = []
 		amplitudes = []
+		amplitudes_fl = []
+		# print("sim_datas = ", len(sim_datas))
 		# collect amplitudes and latencies per test data
 		for i, test_data in enumerate(sim_datas):
 			sim_lat, sim_amp = sim_process(test_data, step)
