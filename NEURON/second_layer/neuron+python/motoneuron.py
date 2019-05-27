@@ -92,16 +92,19 @@ class motoneuron(object):
     '''
     Adds channels and their parameters 
     '''
-    self.soma.insert('motoneuron_5ht')
+    self.soma.insert('motoneuron')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
-    self.soma.cm = 2 # cm uf/cm2 - membrane capacitance
+    self.soma.cm = 1 # cm uf/cm2 - membrane capacitance   
+    self.soma.insert('pas')
+    self.soma.g_pas = 0.001
+    self.soma.e_pas = -65
     
     self.dend.insert('pas')
-    self.dend.g_pas = 7.7e-6
-    self.dend.e_pas = -70
-    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
-    self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
+    self.dend.g_pas = 0.001
+    self.dend.e_pas = -65
+    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
+    self.dend.cm = 1 # cm uf/cm2 - membrane capacitance
 
     self.axon.insert('hh')
     self.axon.Ra = 70 # Ra ohm cm - membrane resistance
@@ -131,7 +134,7 @@ class motoneuron(object):
     nc: NEURON NetCon
         connection between neurons
     '''
-    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
     nc.threshold = 10
     return nc
 
@@ -145,8 +148,8 @@ class motoneuron(object):
       s.e = 50
       self.synlistex.append(s)
       s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
-      s.tau1 = 1.5
-      s.tau2 = 2
+      s.tau1 = 1
+      s.tau2 = 1.5
       s.e = -80
       self.synlistinh.append(s)    
 
