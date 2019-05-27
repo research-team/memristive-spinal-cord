@@ -336,7 +336,7 @@ def find_ees_indexes(stim_indexes, datas, reverse_ees=False):
 	return ees_indexes
 
 
-def calc_amplitudes(datas, latencies):
+def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	"""
 	Function for calculating amplitudes
 	Args:
@@ -347,24 +347,144 @@ def calc_amplitudes(datas, latencies):
 	Returns:
 		list: amplitudes per slice
 	"""
+	for data in datas:
+		print("datas = ", len(data), data)
 	amplitudes = []
 	slice_numbers = len(datas[0])
 
-	for slice_index in range(slice_numbers):
-		mins_v = datas[k_min_val][slice_index]
-		mins_t = datas[k_min_time][slice_index]
+	print("latencies = ", latencies)
 
-		if mins_v:
-			max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
-			amplitudes.append(max_amp_in_mins)
-		else:
+	for l in range(len(latencies)):
+		latencies[l] /= step
+		latencies[l] = int(latencies[l])
+
+	print("---")
+	print("latencies = ", latencies)
+	print("---")
+
+	max_times = datas[0]
+	max_values = datas[1]
+	min_times = datas[2]
+	min_values = datas[3]
+
+	print("max_times = ", len(max_times[0]), max_times)
+	print("max_values = ", len(max_values[0]), max_values)
+	print("min_times = ", len(min_times[0]), min_times)
+	print("min_values = ", len(min_values[0]), min_values)
+
+	if after_latencies:
+		for l in latencies:
+			to_delete = []
+			for s in range(len(max_times)):
+				# print("len(max_times[{}]) = ".format(s), len(max_times[s]))
+				# print("max_times[{}] = ".format(s), max_times[s])
+				to_delete_slice = []
+				for d in range(len(max_times[s])):
+					if max_times[s][d] < l:
+						to_delete_slice.append(max_times[s][d])
+
+		to_delete_value_max = []
+		for slice in range(len(to_delete)):
+			to_delete_value_max_tmp = []
+
+			# print("slice = ", slice)
+			# print("to_delete[{}] = ".format(slice), len(to_delete[slice]), to_delete[slice])
+			for slice_of_all_data in range(len(max_times[slice]) - 1, -1, -1):
+				# print("slice_of_all_data = ", slice_of_all_data)
+				for dot in to_delete[slice]:
+					# print("max_times[{}][{}] = ".format(slice, slice_of_all_data), max_times[slice][slice_of_all_data])
+					# print("dot = ", dot)
+					if max_times[slice][slice_of_all_data] == dot:
+						# print(dot)
+						del max_times[slice][slice_of_all_data]
+						to_delete_value_max_tmp.append(slice_of_all_data)
+				to_delete_value_max.append(to_delete_value_max_tmp)
+
+		for br in range(len(to_delete_value_max) - 1, 0, -1):
+			# print("to_delete_value_max[{}] = ".format(br), to_delete_value_max[br])
+			# print("to_delete_value_max[{}] = ".format(br - 1), to_delete_value_max[br - 1])
+			if to_delete_value_max[br] == to_delete_value_max[br - 1]:
+				del to_delete_value_max[br]
+		# del max_values[slice][dot]
+		# del min_times[slice][dot]
+		# del min_values[slice][dot]
+		print("to_delete_value_max = ", to_delete_value_max)
+
+		for s in range(len(to_delete_value_max)):
+			for d in to_delete_value_max[s]:
+				del max_values[s][d]
+		for l in latencies:
+			# print("l = ", l)
+			to_delete_mins = []
+			for s in range(len(min_times)):
+				to_delete_mins_slice = []
+				for d in range(len(min_times[s])):
+					if min_times[s][d] < l:
+						to_delete_mins_slice.append(min_times[s][d])
+				to_delete_mins.append(to_delete_mins_slice)
+		print("to_delete_mins = ", to_delete_mins)
+		to_delete_value_min = []
+		for slice in range(len(to_delete_mins)):
+			to_delete_value_min_tmp = []
+			for slice_of_all_data in range(len(min_times[slice]) - 1, -1, -1):
+				for dot in to_delete_mins[slice]:
+					try:
+						if min_times[slice][slice_of_all_data] == dot:
+							del min_times[slice][slice_of_all_data]
+							to_delete_value_min_tmp.append(slice_of_all_data)
+					except IndexError:
+						continue
+				to_delete_value_min.append(to_delete_value_min_tmp)
+		for br in range(len(to_delete_value_min) - 1, 0, -1):
+			# print("to_delete_value_max[{}] = ".format(br), to_delete_value_max[br])
+			# print("to_delete_value_max[{}] = ".format(br - 1), to_delete_value_max[br - 1])
+			if to_delete_value_min[br] == to_delete_value_min[br - 1]:
+				del to_delete_value_min[br]
+		# del max_values[slice][dot]
+		# del min_times[slice][dot]
+		# del min_values[slice][dot]
+		print("to_delete_value_min = ", to_delete_value_min)
+
+		for s in range(len(to_delete_value_min)):
+			for d in to_delete_value_min[s]:
+				del min_values[s][d]
+
+	print("---")
+	print("max_times = ", len(max_times[0]), max_times)
+	print("max_values = ", len(max_values[0]), max_values)
+	print("min_times = ", len(min_times[0]), min_times)
+	print("min_values = ", len(min_values[0]), min_values)
+	print("---")
+
+	amplitudes = []
+	for sl in range(len(max_values)):
+		amplitudes_slice = 0
+		for i in range(len(min_values[sl]) - 1, -1, -1):
+			amplitudes_slice += max_values[sl][i] - min_values[sl][i]
+		amplitudes.append(amplitudes_slice)
+	print("amplitudes = ", amplitudes)
+
+	# for slice_index in range(slice_numbers):
+	# 	mins_v = datas[k_min_val][slice_index]
+	# 	mins_t = datas[k_min_time][slice_index]
+
+		# if mins_v:
+		# 	max_amp_in_mins = max([abs(m) for index, m in enumerate(mins_v) if mins_t[index] >= latencies[slice_index]])
+		# 	amplitudes.append(max_amp_in_mins)
+		# else:
 			# FixMe
 			# ToDo write a test for checking linear dot concentration impact
 			# (what is better -- remove dot or set data of previous neighbor)
-			amplitudes.append(-999)
+			# amplitudes.append(-999)
 
-	if len(amplitudes) != slice_numbers:
-		raise Exception("Length of amplitudes must be equal to slice numbers!")
+	# if len(amplitudes) != slice_numbers:
+	# 	raise Exception("Length of amplitudes must be equal to slice numbers!")
+
+	# for l in range(len(latencies)):
+	# 	latencies[l] *= step
+
+	for l in range(len(latencies)):
+		latencies[l] *= step
 
 	return amplitudes
 
@@ -468,7 +588,8 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.close()
 
 
-def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhibition_zero=True, reverse_ees=False):
+def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhibition_zero=True, reverse_ees=False,
+              after_latencies=False):
 	"""
 	Unified functionality for finding latencies and amplitudes
 	Args:
@@ -485,12 +606,16 @@ def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhi
 		list: amplitudes -- amplitude per slice
 	"""
 	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)   # check
+	# print("len(mins_maxes[0][0]) = ", len(mins_maxes[0][0]))
+	# print("len(mins_maxes[1][0]) = ", len(mins_maxes[1][0]))
+	# print("len(mins_maxes[2][0]) = ", len(mins_maxes[2][0]))
+	# print("len(mins_maxes[3][0]) = ", len(mins_maxes[3][0]))
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
 	norm_voltages = normalization(voltages, zero_relative=True)
 	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
 	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
 	                           inhibition_zero=inhibition_zero) # , thresholds
-	amplitudes = calc_amplitudes(mins_maxes, latencies)
+	amplitudes = calc_amplitudes(mins_maxes, latencies, step, after_latencies)
 
 	if debugging:
 		debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
@@ -534,7 +659,7 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data
 	return bio_lat, bio_amp
 
 
-def sim_process(voltages, step, debugging=False, inhibition_zero=False):
+def sim_process(voltages, step, debugging=False, inhibition_zero=False, after_latencies=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
 	Args:
@@ -548,7 +673,8 @@ def sim_process(voltages, step, debugging=False, inhibition_zero=False):
 	# form EES stimulations indexes (in simulators begin from 0)
 	stim_indexes = list(range(0, len(voltages), int(25 / step)))
 	# calculate the latencies and amplitudes
-	sim_lat, sim_amp = __process(voltages, stim_indexes, step, debugging, inhibition_zero=inhibition_zero)
+	sim_lat, sim_amp = __process(voltages, stim_indexes, step, debugging, inhibition_zero=inhibition_zero,
+	                             after_latencies=after_latencies)
 	# change the step
 
 	return sim_lat, sim_amp
@@ -801,3 +927,49 @@ def bio_slices():
 		bio_slices.append(bio_slices_tmp)
 	return bio_slices
 
+
+def rotate(A, B, C):
+	"""
+	Function that determines what side of the vector AB is point C
+	(positive returning value corresponds to the left side, negative -- to the right)
+	Args:
+		A: A coordinate of point
+		B: B coordinate of point
+		C: C coordinate of point
+
+	Returns:
+
+	"""
+	return (B[0] - A[0]) * (C[1] - B[1]) - (B[1] - A[1]) * (C[0] - B[0])
+
+
+def grahamscan(A):
+	"""
+
+	Args:
+		A: list
+			coordinates of dots in cloud
+
+	Returns:
+		list
+			coordinates of dots of convex clouds
+
+	"""
+	n = len(A)
+	P = []
+	for i in range(n):
+		P.append(i)
+	for i in range(1, n):
+		if A[P[i]][0] < A[P[0]][0]:
+			P[i], P[0] = P[0], P[i]
+	for i in range(2, n):
+		j = i
+		while j > 1 and (rotate(A[P[0]], A[P[j - 1]], A[P[j]]) < 0):
+			P[j], P[j - 1] = P[j - 1], P[j]
+			j -= 1
+	S = [P[0], P[1]]
+	for i in range(2, n):
+		while rotate(A[S[-2]], A[S[-1]], A[P[i]]) < 0:
+			del S[-1]
+		S.append(P[i])
+	return S
