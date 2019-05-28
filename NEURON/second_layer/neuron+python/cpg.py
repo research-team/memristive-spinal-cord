@@ -51,7 +51,8 @@ class CPG:
     self.OM5_0  = self.addpool(self.ncell, False, "OM5_0")
 
     self.OM1_1 = self.addpool(self.ncell, False, "OM1_1")
-    self.OM1_2 = self.addpool(self.ncell, False, "OM1_2")
+    self.OM1_2E = self.addpool(self.ncell, False, "OM1_2E")
+    self.OM1_2F = self.addpool(self.ncell, False, "OM1_2F")
     self.OM1_3 = self.addpool(self.ncell, False, "OM1_3")
 
     self.OM2_1 = self.addpool(self.ncell, False, "OM2_1")
@@ -165,28 +166,31 @@ class CPG:
     self.inhnclist = []
     self.eesnclist = []
     self.stimnclist = []
+
     #generators
-    self.createmotif(self.OM1_0E, self.OM1_1, self.OM1_2, self.OM1_3) 
+    self.createmotif(self.OM1_0E, self.OM1_1, self.OM1_2E, self.OM1_3) 
     self.createmotif(self.OM2_0, self.OM2_1, self.OM2_2E, self.OM2_3)
     self.createmotif(self.OM3_0, self.OM3_1, self.OM3_2E, self.OM3_3)
     self.createmotif(self.OM4_0, self.OM4_1, self.OM4_2E, self.OM4_3)
     self.createmotif(self.OM5_0, self.OM5_1, self.OM5_2, self.OM5_3)
 
     #extra flexor connections
-    self.exconnectcells(self.OM2_2F, self.OM3_2F, 0.05, 2, 27)
-    self.exconnectcells(self.OM3_2F, self.OM4_2F, 0.05, 1, 27)
-    self.exconnectcells(self.OM4_2F, self.OM5_0, 0.035, 1, 27)
+    self.exconnectcells(self.OM2_2F, self.OM3_2F, 0.07, 2, 40)
+    self.exconnectcells(self.OM3_2F, self.OM4_2F, 0.07, 2, 40)
+    self.exconnectcells(self.OM4_2F, self.OM5_0, 0.07, 2, 50)
 
-    self.exconnectcells(self.OM2_1, self.OM2_2F, 0.05, 3, 50)
-    self.exconnectcells(self.OM2_2F, self.OM2_1, 0.05, 3, 50)
-    self.exconnectcells(self.OM3_1, self.OM3_2F, 0.05, 3, 50)
-    self.exconnectcells(self.OM3_2F, self.OM3_1, 0.05, 3, 50)
-    self.exconnectcells(self.OM4_1, self.OM4_2F, 0.05, 3, 50)
-    self.exconnectcells(self.OM4_2F, self.OM4_1, 0.05, 3, 50)
+    self.exconnectcells(self.OM1_1, self.OM1_2F, 0.05, 2, 27)
+    self.exconnectcells(self.OM1_2F, self.OM1_1, 0.05, 3, 27)
+    self.exconnectcells(self.OM2_1, self.OM2_2F, 0.05, 2, 27)
+    self.exconnectcells(self.OM2_2F, self.OM2_1, 0.05, 3, 27)
+    self.exconnectcells(self.OM3_1, self.OM3_2F, 0.05, 2, 27)
+    self.exconnectcells(self.OM3_2F, self.OM3_1, 0.05, 3, 27)
+    self.exconnectcells(self.OM4_1, self.OM4_2F, 0.05, 2, 27)
+    self.exconnectcells(self.OM4_2F, self.OM4_1, 0.05, 3, 27)
     
     self.exconnectcells(self.CV1, self.OM1_0F, 0.05, 2, 50)
     self.exconnectcells(self.OM1_0F, self.OM1_1, 0.05, 2, 27)
-    self.exconnectcells(self.OM1_0F, self.OM2_2F , 0.5, 3, 50)
+    self.exconnectcells(self.OM1_2F, self.OM2_2F , 0.05, 3, 50)
 
     #between delays vself.Ia excitatory pools
     #extensor
@@ -214,16 +218,16 @@ class CPG:
     #self.exconnectcells(self.CV5_1, self.OM4_3, 0.8, 1, 50)
     
     #self.ees
-    self.genconnect(self.ees, self.Ia_aff_F, 1, 0, 50)
-    self.genconnect(self.ees, self.Ia_aff_E, 1, 0, 50)
+    self.genconnect(self.ees, self.Ia_aff_F, 1, 1, 50)
+    self.genconnect(self.ees, self.Ia_aff_E, 1, 1, 50)
     self.genconnect(self.ees, self.CV1, 0.5, 0, 50)
 
     self.exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 50)
-    self.exconnectcells(self.Ia_aff_F, self.mns_F, 0.5, 1, 50)
+    self.exconnectcells(self.Ia_aff_F, self.mns_F, 0.8, 1, 50)
 
     #self.IP
     #Extensor
-    self.exconnectcells(self.OM1_2, self.IP1_E, 0.5, 1, 50)
+    self.exconnectcells(self.OM1_2E, self.IP1_E, 0.5, 1, 50)
     self.exconnectcells(self.OM2_2E, self.IP2_E, 0.5, 2, 50)
     self.exconnectcells(self.OM3_2E, self.IP3_E, 0.5, 1, 50)
     self.exconnectcells(self.OM4_2E, self.IP4_E, 0.5, 1, 50)
@@ -238,19 +242,19 @@ class CPG:
     self.inhconnectcells(self.IP_E, self.Ia_aff_E, 0.02, 2, 80)
 
     #Flexor
-    self.exconnectcells(self.OM1_2, self.IP1_F, 0.5, 2, 50)
-    self.exconnectcells(self.OM2_2E, self.IP2_F, 0.5, 1, 50)
-    self.exconnectcells(self.OM3_2F, self.IP3_F, 0.5, 2, 50)
-    self.exconnectcells(self.OM4_2E, self.IP4_F, 0.5, 1, 50)
-    self.exconnectcells(self.OM5_2, self.IP5_F, 0.5, 2, 50)
-    
-    self.exconnectcells(self.IP1_F, self.mns_F[:2*int(len(self.mns_F)/5)], 0.2, 2, 50)
-    self.exconnectcells(self.IP2_F, self.mns_F[int(len(self.mns_F)/5):int(3*len(self.mns_F)/5)], 0.2, 2, 50)
-    self.exconnectcells(self.IP3_F, self.mns_F, 0.2, 2, 50)
-    self.exconnectcells(self.IP4_F, self.mns_F[int(2*len(self.mns_F)/5):], 0.2, 2, 50)
-    self.exconnectcells(self.IP5_F, self.mns_F[int(3*len(self.mns_F)/5):], 0.2, 2, 50)
+    self.exconnectcells(self.OM1_2E, self.IP1_F, 0.5, 1, 50)
+    self.exconnectcells(self.OM2_2F, self.IP2_F, 0.5, 2, 50)
+    self.exconnectcells(self.OM3_2F, self.IP3_F, 0.5, 1, 50)
+    self.exconnectcells(self.OM4_2F, self.IP4_F, 0.5, 1, 50)
+    self.exconnectcells(self.OM5_2, self.IP5_F, 0.5, 3, 50)
 
-    self.inhconnectcells(self.IP_F, self.Ia_aff_F, 0.005, 2, 80)
+    self.exconnectcells(self.IP3_F, self.mns_F, 0.8, 1, 80)
+    self.exconnectcells(self.IP2_F, self.mns_F[:int(3*len(self.mns_E)/5)], 0.8, 2, 80)
+    self.exconnectcells(self.IP5_F, self.mns_F[:int(3*len(self.mns_E)/5)], 0.8, 3, 80)
+    self.exconnectcells(self.IP4_F, self.mns_F[int(len(self.mns_E)/5):], 0.8, 1, 60)
+    self.exconnectcells(self.IP1_F, self.mns_F[:int(3*len(self.mns_E)/5)], 0.8, 2, 60)
+
+    self.inhconnectcells(self.IP_F, self.Ia_aff_F, 0.0001, 2, 80)
   
     #skin inputs
     self.exconnectcells(self.C1, self.CV1_1, 0.8, 1, 50)
@@ -271,7 +275,7 @@ class CPG:
     self.exconnectcells(self.CV3_1, self.OM3_0 , 0.00036, 1, 27)
 
     #self.C4
-    self.exconnectcells(self.CV4_1, self.OM3_0 , 0.00037, 1, 27)
+    self.exconnectcells(self.CV4_1, self.OM3_0 , 0.00035, 1, 27)
     self.exconnectcells(self.CV4_1, self.OM4_0, 0.00041, 1, 27)
 
     #self.C5
@@ -286,8 +290,9 @@ class CPG:
     self.exconnectcells(self.CV3_1, self.iIP_E, 0.5, 1, 50)
     self.exconnectcells(self.CV4_1, self.iIP_E, 0.5, 1, 50)
     self.exconnectcells(self.CV5_1, self.iIP_E, 0.5, 1, 50)
-
+    
     self.inhconnectcells(self.iIP_E, self.OM1_0F, 0.99, 1, 100)
+    self.inhconnectcells(self.iIP_E, self.OM1_2F, 0.99, 1, 100)
     self.inhconnectcells(self.iIP_E, self.OM2_2F, 0.99, 1, 100)
     self.inhconnectcells(self.iIP_E, self.OM4_2F, 0.99, 1, 100)
     self.inhconnectcells(self.iIP_E, self.OM3_2F, 0.99, 1, 100)
@@ -295,7 +300,6 @@ class CPG:
     self.inhconnectcells(self.iIP_E, self.IP_F, 0.99, 1, 100)
     self.inhconnectcells(self.iIP_E, self.Ia_aff_F, 0.99, 1, 100)
     self.inhconnectcells(self.iIP_E, self.mns_F, 0.99, 1, 100)
-
 
     #self.exconnectcells(self.C_1, self.iIP_E, 0.5, 1, 50)
     #self.inhconnectcells(self.iIP_E, self.IP_F, 0.99, 1, 100)
@@ -331,17 +335,17 @@ class CPG:
     self.inhconnectcells(self.R_E, self.mns_E, 0.005, 1, 45)
     self.inhconnectcells(self.R_E, self.Ia_E, 0.001, 1, 40)
 
-    self.exconnectcells(self.Iagener_F, self.Ia_aff_F[:int(len(self.Ia_aff_F)/6)], 0.001, 1, 20)
+    self.exconnectcells(self.Iagener_F, self.Ia_aff_F[:int(len(self.Ia_aff_F)/6)], 0.08, 1, 20)
     #self.exconnectcells(self.Ia_aff_F, self.Ia_F, 0.5, 1, 30)
     self.exconnectcells(self.iIP_F, self.Ia_F, 0.5, 1, 50)
     self.exconnectcells(self.Ia_aff_F[:int(len(self.Ia_aff_F)/6)], self.Ia_F, 0.8, 1, 30)
-    self.exconnectcells(self.mns_F, self.R_F, 0.01, 1, 30)
+    self.exconnectcells(self.mns_F, self.R_F, 0.0004, 1, 30)
     self.inhconnectcells(self.Ia_F, self.mns_E, 0.04, 1, 45)
-    self.inhconnectcells(self.R_F, self.mns_F, 0.01, 1, 45)
+    self.inhconnectcells(self.R_F, self.mns_F, 0.005, 1, 45)
     self.inhconnectcells(self.R_F, self.Ia_F, 0.001, 1, 20)
 
     self.inhconnectcells(self.R_E, self.R_F, 0.04, 1, 30)
-    self.inhconnectcells(self.Ia_E, self.Ia_F, 0.04, 1, 30)
+    self.inhconnectcells(self.Ia_E, self.Ia_F, 0.08, 1, 30)
     self.inhconnectcells(self.R_F, self.R_E, 0.04, 1, 30)
     self.inhconnectcells(self.Ia_F, self.Ia_E, 0.08, 1, 50)
     self.inhconnectcells(self.iIP_E, self.iIP_F, 0.04, 1, 30)
@@ -624,7 +628,7 @@ class CPG:
     self.exconnectcells(OM0, OM1, 0.05, 1, 27)
     self.exconnectcells(OM1, OM2, 0.05, 2, 27)
     self.exconnectcells(OM2, OM1, 0.05, 2, 27)
-    self.exconnectcells(OM2, OM3, 0.0002, 1, 27)
+    self.exconnectcells(OM2, OM3, 0.00001, 1, 27)
     #self.exconnectcells(g1, g3, 0.001, 1, 27)
     #self.inhconnectcells(g3, g1, 0.08, 1, 27)
     self.inhconnectcells(OM3, OM2, 0.8, 1, 27)
@@ -730,11 +734,11 @@ if __name__ == '__main__':
       affrecorders = []
       for group in cpg_ex.affgroups:
         affrecorders.append(spike_record(group[k_nrns], i))
-      
+      '''
       recorders = []
       for group in cpg_ex.groups:
         recorders.append(spike_record(group[k_nrns], i))
-      '''
+      
       print("- "*10, "\nstart")
       prun(speed, step_number)
       print("- "*10, "\nend")
@@ -744,10 +748,10 @@ if __name__ == '__main__':
       '''
       for group, recorder in zself.IP(cpg_ex.affgroups, affrecorders):
         spikeout(group[k_nrns], group[k_name], i, recorder)
-
-      for group, recorder in zself.IP(cpg_ex.groups, recorders):
-        spikeout(group[k_nrns], group[k_name], i, recorder)
       '''
+      for group, recorder in zip(cpg_ex.groups, recorders):
+        spikeout(group[k_nrns], group[k_name], i, recorder)
+      
       
     #if (nhost > 1):
     finish()

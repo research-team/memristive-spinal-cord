@@ -75,7 +75,7 @@ class motoneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = 10 # microns
+    self.soma.L = self.soma.diam = 36 # microns
     self.dend.L = 200 # microns
     self.dend.diam = 1 # microns
     self.axon.L = 150 # microns
@@ -95,14 +95,16 @@ class motoneuron(object):
     self.soma.insert('motoneuron')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
-    self.soma.cm = 1 # cm uf/cm2 - membrane capacitance   
+    self.soma.cm = 1 # cm uf/cm2 - membrane capacitance  
+    ''' 
     self.soma.insert('pas')
-    self.soma.g_pas = 0.001
-    self.soma.e_pas = -65
+    self.soma.g_pas = 0.002
+    self.soma.e_pas = -80
+    '''
     
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
-    self.dend.e_pas = -65
+    self.dend.e_pas = -80
     self.dend.Ra = 100 # Ra ohm cm - membrane resistance
     self.dend.cm = 1 # cm uf/cm2 - membrane capacitance
 
