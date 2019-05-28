@@ -1,14 +1,19 @@
-#define INITGUID
 #ifdef __JETBRAINS_IDE__
 	#define __host__
 	#define __global__
+	inline void __syncthreads() {}
 #endif
+
+#define DEBUG
 #define COLOR_RED "\x1b[1;31m"
 #define COLOR_GREEN "\x1b[1;32m"
 #define COLOR_RESET "\x1b[0m"
-#define TURN_ON 1
-#define TURN_OFF 0
-#define BASEPORT 0x378 /* lp1 */
+#include <iostream>   // output/input streams definitions
+#include <unistd.h>   // UNIX standard definitions
+#include <fcntl.h>    // file control definitions
+#include <termios.h>  // POSIX terminal control definitions
+#include <cstring>    // string function definitions
+
 
 #include <math.h>
 #include <fcntl.h>
@@ -23,9 +28,6 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include "include/stubs.h"
-#include "include/ioctl.h"
-#include "include/ifc_ldev.h"
 #include <ctime>
 #include <vector>
 #include <random>
@@ -38,19 +40,13 @@
 
 using namespace std;
 
-typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
-void prepare_E154();
-void close_E154();
+constexpr const char* const SERIAL_PORT_USB = "/dev/ttyUSB0";
+
 void prepare_UART();
 void close_UART();
 
-unsigned int *sync1;            // timing
-unsigned short *data1;          // data in buffer
-char model[10] = "e154";        // device name (replace after changing device model)
 bool gpu_is_run = true;         // special flag for controlling ADC/DAC working
 bool EES_signal = false;        // special flag for signalling EES
-unsigned short Pages = 8;       // 4 - size of ring buffer in interrupt steps
-unsigned short IrqStep = 32;    // step of generating interrupts
 float motoneuron_voltage = 0;   // common global variable of motoneuron membrane potential
 
 unsigned int global_id = 0;
@@ -61,7 +57,7 @@ const unsigned int neurons_in_group = 20;
 const unsigned int neurons_in_afferent = 196;
 
 // simulation paramters
-const float T_sim = 30000;
+const float T_sim = 1000;
 // 6 cm/s = 125 [ms]
 // 15 cm/s = 50 [ms]
 // 21 cm/s = 25 [ms]
@@ -89,18 +85,12 @@ const auto frame_time = chrono::microseconds(150);
 const auto dac_sleep_time = chrono::microseconds(50);
 const auto adc_sleep_time = chrono::microseconds(50);
 
+int serial_port;
+
 // device variables
-ADC_PAR adc_par;
-PVOID dll_handle;
-LUnknown *pIUnknown;
-IDaqLDevice *device;
-SLOT_PAR slot_param;
-pthread_t thread_ADC;
+
 pthread_t thread_DAC;
-ASYNC_PAR async_par_dac;
-PLATA_DESCR_U2 plata_descr;
-CREATEFUNCPTR CreateInstance;
-ULONG mem_buffer_size = 131072;
+
 // global vectors of SynapseMetadata of synapses for each neuron
 vector<vector<SynapseMetadata>> metadatas;
 
@@ -116,7 +106,6 @@ void errorchk(bool condition, string text) {
 	if (condition) {
 		cout << COLOR_RED "ERROR" COLOR_RESET << endl;
 		cout << COLOR_RED "FAILED!" COLOR_RESET << endl;
-		close_E154();
 		close_UART();
 		exit(0);
 	} else {
@@ -124,136 +113,94 @@ void errorchk(bool condition, string text) {
 	}
 }
 
-void prepare_E154() {
-	// load the dynamic shared object (shared library). RTLD_LAZY - perform lazy binding
-	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/lcomp/liblcomp.so", RTLD_LAZY);
-	errorchk(!dll_handle, "open DLL");
-
-	// return the address where that symbol is loaded into memory
-	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
-	errorchk(dlerror() != NULL, "create instance");
-
-	// create an object which related with a specific virtual slot (default 0)
-	pIUnknown = CreateInstance(0);
-	errorchk(pIUnknown == NULL, "call create instance");
-
-	// get a pointer to the interface
-	errorchk(pIUnknown->QueryInterface(IID_ILDEV, (void **) &device) != S_OK, "query interface");
-
-	// close an interface
-	errorchk(pIUnknown->Release() != 1, "free IUnknown");
-
-	// open an appropriate link of the board driver
-	errorchk(device->OpenLDevice() == INVALID_HANDLE_VALUE, "open device");
-
-	// get an information of the specific virtual slot
-	errorchk(device->GetSlotParam(&slot_param) != L_SUCCESS, "get slot parameters");
-
-	// load a BIOS to the board
-	errorchk(device->LoadBios(model) != 1, "load BIOS");
-
-	// Test for board availability (always success)
-	errorchk(device->PlataTest() != L_SUCCESS, "plata test");
-
-	// read an user Flash
-	errorchk(device->ReadPlataDescr(&plata_descr) != L_SUCCESS, "read the board description");
-
-	// allocate memory for a big ring buffer
-	errorchk(device->RequestBufferStream(&mem_buffer_size) != L_SUCCESS, "request buffer stream");
-
-	// fill DAC parameters
-	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
-	adc_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
-	adc_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
-	adc_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
-	adc_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
-	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
-	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
-	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
-	adc_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них
-	adc_par.t1.FIFO = 512;           // размер половины аппаратного буфера FIFO на плате
-	adc_par.t1.IrqStep = IrqStep;     // шаг генерации прерываний
-	adc_par.t1.Pages = Pages;         // размер кольцевого буфера в шагах прерываний
-	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
-	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
-
-	// 0 - нет синхронизации
-	// 1 - цифровая синхронизация старта, остальные параметры синхронизации не используются
-	// 2 - покадровая синхронизация, остальные параметры синхронизации не используются
-	// 3 - аналоговая синхронизация старта по выбранному каналу АЦП
-	adc_par.t1.SynchroType = 0;
-
-	// 0 - аналоговая синхронизация по уровню
-	// 1 - аналоговая синхронизация по переходу
-	adc_par.t1.SynchroSensitivity = 0;
-
-	// 0 - по уровню «выше» или переходу «снизу-вверх»
-	// 1 - по уровню «ниже» или переходу «сверху-вниз»
-	adc_par.t1.SynchroMode = 0;
-
-	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
-	errorchk(device->FillDAQparameters(&adc_par.t1) != L_SUCCESS, "fill DAQ parameters");
-
-	// setup the ADC/DAC board setting based on specific i/o parameters
-	errorchk(device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC) != L_SUCCESS, "set ADC parameters stream");
-
-	// show properties
-	cout << "Board properties" << endl;
-	cout << "BrdName           : " << plata_descr.t7.BrdName << endl;
-	cout << "SerNum            : " << plata_descr.t7.SerNum << endl;
-	cout << "Rev               : " << plata_descr.t7.Rev << endl;
-	cout << "Quartz            : " << dec << plata_descr.t7.Quartz << endl;
-
-	// show ADC parameters
-	cout << "ADC parameters" << endl;
-	cout << "Buffer size (word): " << mem_buffer_size << endl;
-	cout << "Pages             : " << adc_par.t1.Pages << endl;
-	cout << "IrqStep           : " << adc_par.t1.IrqStep << endl;
-	cout << "FIFO              : " << adc_par.t1.FIFO << endl;
-	cout << "Rate              : " << adc_par.t1.dRate << endl;
-
-	// init inner variables of the driver before starting collect a data
-	errorchk(device->InitStartLDevice() != L_SUCCESS, "init start device");
-
-	// start collect data from the board into the big ring buffer
-	errorchk(device->StartLDevice() != L_SUCCESS, "START device");
-}
-
-void close_E154() {
-	// stop collecting data from the board
-	device->StopLDevice();
-	errorchk(false, "STOP device");
-
-	// finishing work with the board
-	device->CloseLDevice();
-	errorchk(false, "close device");
-
-	// close an dll handle (decrements the reference count on the dynamic library handle)
-	if (dll_handle)
-		dlclose(dll_handle);
-}
+// structure to store the port settings in
+struct termios port_settings;
+// struct for terminal app, since terminal also connects through a virtual system serial port
+// "/dev/ttyUSB0" so it is necessary to redirect input and output, however this wouldn't be necessary
+// if we want to send data streams from the program directly and also if we don't need to show the
+// raw output to the user.
+struct termios stdio;
+// after our work is over we can reset the terminal input and output to the os instead of to and from the serial port
+struct termios old_port_settings;
 
 void prepare_UART() {
-	// get port access (__from, __num, __turn_on)
-	errorchk(ioperm(BASEPORT, 3, TURN_ON) != 0, "get port access");
+	// get the current options of the STDOUT_FILENO
+	tcgetattr(STDOUT_FILENO, &old_port_settings);
+
+	printf("Start with %s \n", SERIAL_PORT_USB);
+
+	// O_RDWR - read/write access to serial port
+	// O_NONBLOCK - when possible, the file is opened in nonblocking mode
+	serial_port = open(SERIAL_PORT_USB, O_RDWR | O_NONBLOCK);
+	errorchk(serial_port < 0, "open serial port");
+
+	// populate the structures with the memory size of the structure by zeroes
+	memset(&stdio, 0, sizeof(stdio));
+	memset(&port_settings, 0, sizeof(port_settings));
+
+	// output parameters
+	stdio.c_iflag = 0;
+	stdio.c_oflag = 0;
+	stdio.c_cflag = 0;
+	stdio.c_lflag = 0;
+	stdio.c_cc[VMIN] = 0;
+	stdio.c_cc[VTIME] = 0;
+
+	// set the new options for the port
+	// TCSANOW - make changes now without waiting for data to complete
+	// TCSAFLUSH - flush input and output buffers and make the change
+	tcsetattr(STDOUT_FILENO, TCSANOW, &stdio);
+	tcsetattr(STDOUT_FILENO, TCSAFLUSH, &stdio);
+
+	// make the reads non-blocking
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+	// input mode flags:
+	port_settings.c_iflag = 0;
+	// output mode flags: 0 - raw output (no output processing)
+	port_settings.c_oflag = 0;
+	// local mode flags:
+	port_settings.c_lflag = 0;
+	// control mode flags: 8 bits, no parity, 1 stop bit | enable receiver | ignore modem control lines
+	port_settings.c_cflag |= (CS8 | CREAD | CLOCAL);
+	// minimum number of characters to read => 0 - read doesn't block
+	port_settings.c_cc[VMIN] = 0;
+	// time to wait for data (tenths of seconds) => 0 seconds read timeout
+	port_settings.c_cc[VTIME] = 0;
+
+	cfsetispeed(&port_settings, B115200);  // set read speed as 115 200 (bps)
+	cfsetospeed(&port_settings, B115200);  // set write speed as 115 200 (bps)
+
+	// set the new options for the serial port
+	tcsetattr(serial_port, TCSANOW, &port_settings);
+
 }
 
 void close_UART() {
-	// close port access (__from, __num, __turn_on)
-	errorchk(ioperm(BASEPORT, 3, TURN_OFF) != 0, "get port access");
+	// close the serial port
+	close(serial_port);
+
+	// restore old port settings
+	tcsetattr(STDOUT_FILENO, TCSANOW, &old_port_settings);
 }
 
 void *parallel_DAC_UART(void *arg) {
-	float tmp;
+	unsigned char data[2];
+	unsigned short kek;
 
 	while (gpu_is_run) {
-		tmp = motoneuron_voltage;
-		if (tmp > 5)
-			tmp = 5;
+		kek = (unsigned short) motoneuron_voltage;
+		printf("mot: %7.2f (%7.2f) -> kek: %d -> \n", motoneuron_voltage / 10, motoneuron_voltage, kek);
 
-		// output into the port: __value, __port
-		outb(tmp > 0? tmp / 5.0 * 0x7F : 10, BASEPORT);
+		if (kek > 0) {
+			kek = kek + 2048;
+		} else {
+			kek = 2048;
+		}
 
+		data[0] = kek >> 0x08; //kek * 10 + 2048;
+		data[1] = kek & 0xFF; //kek * 10 + 2048;
+		write(serial_port, data, 2);
 		this_thread::sleep_for(dac_sleep_time);
 	}
 
@@ -262,30 +209,6 @@ void *parallel_DAC_UART(void *arg) {
 	return 0;
 }
 
-void *parallel_ADC_E154(void *arg) {
-	int halfbuffer;
-	int fl2, fl1;
-
-	halfbuffer = IrqStep * Pages / 2;
-	fl1 = fl2 = (*sync1 <= halfbuffer)? 0 : 1;
-
-	while(gpu_is_run) {
-		while(fl2 == fl1) {
-			fl2 = (*sync1 <= halfbuffer)? 0 : 1;
-			if(!gpu_is_run)
-				break;
-			this_thread::sleep_for(adc_sleep_time);
-		}
-		fl1 = (*sync1 <= halfbuffer)? 0 : 1;
-
-		// ??? here
-		if(data1[0] > 500){
-			EES_signal = true;
-		}
-	}
-	errorchk(false, "finishing ADC executing commands");
-	return 0;
-}
 
 Group form_group(string group_name, unsigned int nrns_in_group = neurons_in_group) {
 	// form structs of neurons global ID and groups name
@@ -388,7 +311,7 @@ void gpu_neuron_kernel(float* old_v,
 			nrn_current[tid] = 0;
 
 		// EES
-		if (gpu_EES_signal && 1165 <= tid && tid <= 1184) {
+		if (sim_iter % 100 == 0 && 1165 <= tid && tid <= 1184) { // gpu_EES_signal &&
 			nrn_current[tid] = 5000;
 		}
 
@@ -813,8 +736,7 @@ void save_ADC_DAC_mean(unsigned int data_index) {
 	myfile.close();
 }
 
-void save_result(float* voltage_recording,
-                 int neurons_number) {
+void save_result(float* voltage_recording, int neurons_number) {
 	// save results for each neuron (voltage/current/spikes)
 	char cwd[256];
 	ofstream myfile;
@@ -982,12 +904,12 @@ void simulate() {
 	#endif
 
 	// create ADC thread
-	pthread_create(&thread_ADC, NULL, parallel_ADC_E154, 0);
-	errorchk(false, "start ADC parallel function");
+//	pthread_create(&thread_ADC, NULL, parallel_ADC_E154, 0);
+//	errorchk(false, "start ADC parallel function");
 
 	// create DAC thread
-	pthread_create(&thread_DAC, NULL, parallel_DAC_UART, 0);
-	errorchk(false, "start DAC parallel function");
+//	pthread_create(&thread_DAC, NULL, parallel_DAC_UART, 0);
+//	errorchk(false, "start DAC parallel function");
 
 	// show the GPU properties
 	printf("GPU properties: %d threads x %d blocks (Total: %d threads mapped on %d neurons)\n",
@@ -1000,6 +922,9 @@ void simulate() {
 	unsigned int data_index = 0;
 	#endif
 	unsigned short t_cutting_offset = 0;
+
+	unsigned char data[2];
+	unsigned short kek;
 	// sim iterations
 	for (unsigned int sim_iter = 0; sim_iter < sim_time_in_step; sim_iter++) {
 		// start measure time of one iteration
@@ -1060,12 +985,25 @@ void simulate() {
 
 		#ifdef DEBUG
 		motodata[data_index] = motoneuron_voltage / neurons_in_moto;
-		normalized[data_index] = (motoneuron_voltage / neurons_in_moto - c) / 65 * 5;
-		DAC_data[data_index] = async_par_dac.Data[0];
-		ADC_data[data_index++] = data1[0];
+//		normalized[data_index] = (motoneuron_voltage / neurons_in_moto - c) / 65 * 5;
+//		DAC_data[data_index] = async_par_dac.Data[0];
+//		ADC_data[data_index++] = data1[0];
 		#endif
+		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto - c) * 10;
 
-		motoneuron_voltage = (motoneuron_voltage / neurons_in_moto - c) / 65 * 5;
+		kek = (unsigned short) motoneuron_voltage;
+//		printf("mot: %7.2f (%7.2f) -> kek: %d -> \n", motoneuron_voltage / 10, motoneuron_voltage, kek);
+
+		if (kek > 0) {
+			kek = kek + 2048;
+		} else {
+			kek = 2048;
+		}
+
+
+		data[0] = kek >> 0x08; //kek * 10 + 2048;
+		data[1] = kek & 0xFF; //kek * 10 + 2048;
+		write(serial_port, data, 2);
 
 		// stop measure time
 		iter_t_end = std::chrono::system_clock::now();
@@ -1088,8 +1026,8 @@ void simulate() {
 	gpu_is_run = false;
 
 	// close threads properly
-	pthread_join(thread_ADC, NULL);
-	pthread_join(thread_DAC, NULL);
+//	pthread_join(thread_ADC, NULL);
+//	pthread_join(thread_DAC, NULL);
 
 	// show timing information
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
@@ -1114,12 +1052,12 @@ void simulate() {
 }
 
 int main() {
-	prepare_E154();
+//	prepare_E154();
 	prepare_UART();
 
 	simulate();
 
-	close_E154();
+//	close_E154();
 	close_UART();
 
 	// you are awesome
