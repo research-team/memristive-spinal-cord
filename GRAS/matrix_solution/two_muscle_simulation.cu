@@ -251,7 +251,10 @@ void neurons_kernel(float *V_m,
 	if (tid < neurons_number) {
 		// reset spike flag of the current neuron before calculations
 		has_spike[tid] = false;
-
+		// add normal distr
+		if (activated_C_ == 0 && 1345 <= tid && tid <= 1364 && (sim_iter % 4 == 0)) {
+			has_spike[tid] = true;
+		}
 		// Skin stimulations
 		if (activated_C_ == 1) {
 			// CV1
@@ -486,67 +489,67 @@ void init_connectomes() {
 	// inner connectomes
 	connect_fixed_outdegree(OM1_0, OM1_1, 1, 50);
 	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 24); // 23
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 24); // 23
+	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 30); // 23
 	connect_fixed_outdegree(OM1_1, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 20); // 22
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 20); // 22
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_3, OM1_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 23); // 22
+	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 30); // 22
+	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 4); // 3
+	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4); // 3
+	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * INH_COEF);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -10 * INH_COEF);
+	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -0.1 * INH_COEF);
 	// output to OM2
 //	connect_fixed_outdegree(OM1_2_E, OM2_2_E, 1, 50);
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 10, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
-	connect_fixed_outdegree(E2, OM2_0, 3, 7);
+	connect_fixed_outdegree(E2, OM2_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV2, OM2_0, 0.5, 12);
-	connect_one_to_all(CV3, OM2_0, 0.5, 12);
+	connect_one_to_all(CV2, OM2_0, 0.5, 10.5);
+	connect_one_to_all(CV3, OM2_0, 0.5, 10.5);
 	// [inhibition]
 	connect_one_to_all(CV4, OM2_3, 1, 80);
 	connect_one_to_all(CV5, OM2_3, 1, 80);
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0, OM2_1, 1, 50);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 23);
-	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 23);
+	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 24);
+	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 24);
 	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 20);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 20);
-	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
+	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 23);
+	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 23);
+	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 4);
+	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 4);
 	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -20 * INH_COEF);
+	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -20 * INH_COEF);
 	// output to OM3
 //	connect_fixed_outdegree(OM2_2_E, OM3_2_E, 1, 50);
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 15, neurons_in_ip); // 50
-	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 10, neurons_in_ip); // 50
+	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 10, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
-	connect_fixed_outdegree(E3, OM3_0, 3, 7);
+	connect_fixed_outdegree(E3, OM3_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV3, OM3_0, 0.5, 13);
-	connect_one_to_all(CV4, OM3_0, 0.5, 13);
+	connect_one_to_all(CV3, OM3_0, 0.5, 10.5);
+	connect_one_to_all(CV4, OM3_0, 0.5, 10.5);
 	// [INH]
 	connect_one_to_all(CV5, OM3_3, 1, 80);
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM3_0, 1, 11);
 	// inner connectomes
 	connect_fixed_outdegree(OM3_0, OM3_1, 1, 50);
-	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 23);
+	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 22.5);
 	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 30);
 	connect_fixed_outdegree(OM3_1, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 20);
-	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 40);
+	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 20);
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_3, OM3_1, 1, -5 * INH_COEF);
@@ -555,16 +558,15 @@ void init_connectomes() {
 	// output to OM3
 //	connect_fixed_outdegree(OM3_2_E, OM4_2_E, 1, 50);
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 10, neurons_in_ip);
 
 	/// OM 4
 	// input from EES group 4
-	connect_fixed_outdegree(E4, OM4_0, 3, 7);
+	connect_fixed_outdegree(E4, OM4_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV4, OM4_0, 0.5, 12);
-	connect_one_to_all(CV5, OM4_0, 0.5, 12);
-	// [INH]
+	connect_one_to_all(CV4, OM4_0, 0.5, 10.5);
+	connect_one_to_all(CV5, OM4_0, 0.5, 10.5);
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM4_0, 1, 11);
 	connect_one_to_all(CD5, OM4_0, 1, 11);
@@ -583,52 +585,55 @@ void init_connectomes() {
 	// output to OM4
 //	connect_fixed_outdegree(OM4_2_E, OM5_2_E, 1, 50);
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 13, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2_F, eIP_F, 2, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 10, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
-	connect_fixed_outdegree(E5, OM5_0, 3, 7);
+	connect_fixed_outdegree(E5, OM5_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV5, OM5_0, 0.5, 18);
+	connect_one_to_all(CV5, OM5_0, 0.5, 10.5);
 	// input from sensory [CD]
 	connect_one_to_all(CD5, OM5_0, 1, 11);
 	// inner connectomes
 	connect_fixed_outdegree(OM5_0, OM5_1, 1, 50);
 	connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 23);
-	connect_fixed_outdegree(OM5_1, OM5_2_F, 1, 23);
+	connect_fixed_outdegree(OM5_1, OM5_2_F, 1, 30);
 	connect_fixed_outdegree(OM5_1, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 22);
-	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 22);
+	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 30);
 	connect_fixed_outdegree(OM5_2_E, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_2_F, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * INH_COEF);
+	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * INH_COEF);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 15, neurons_in_ip); // 15
-	connect_fixed_outdegree(OM5_2_F, eIP_F, 1, 15, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 10, neurons_in_ip); // 15
+	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 10, neurons_in_ip);
 
-	// inhibition by C=0: IP_E, Ia_Extensor
-	connect_one_to_all(iIP_E, eIP_F, 0.1, -20);
-//	connect_one_to_all(iIP_E, Ia_E_aff, 0.1, -g_bar);
-	// inhibition by C=0: extensor clones D1, D2, G3, D4
-	connect_one_to_all(iIP_E, OM1_2_F, 0.1, -20);
-	connect_one_to_all(iIP_E, OM2_2_F, 0.1, -20);
-	connect_one_to_all(iIP_E, OM3_2_F, 0.1, -20);
-	connect_one_to_all(iIP_E, OM4_2_F, 0.1, -20);
+	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -50, neurons_in_ip);
+	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -50, neurons_in_ip);
 
-	// inhibition by C=1: IP_F, Ia_Flexor
-	connect_one_to_all(iIP_F, eIP_E, 0.1, -20);
-//	connect_one_to_all(iIP_F, Ia_F_aff, 0.1, -g_bar);
+	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -20, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -20, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -20, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -20, neurons_in_ip);
 
 	// reflex arc
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 1, 10, neurons_in_moto); // was 30
+	connect_fixed_outdegree(eIP_E, MN_E, 1, 11, neurons_in_moto);
+	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
-	connect_fixed_outdegree(eIP_F, MN_F, 1, 10, neurons_in_moto);
+	connect_fixed_outdegree(eIP_E, iIP_E, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(eIP_F, iIP_F, 1, 10, neurons_in_ip);
+
+	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
+
+	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -20, neurons_in_ip);
+	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -20, neurons_in_ip);
 
 	connect_fixed_outdegree(Ia_E_aff, MN_E, 1, 5, neurons_in_moto);
 	connect_fixed_outdegree(Ia_F_aff, MN_F, 1, 5, neurons_in_moto);
