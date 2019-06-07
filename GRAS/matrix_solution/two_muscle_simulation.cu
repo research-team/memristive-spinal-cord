@@ -23,8 +23,8 @@
 #include "Group.cpp"
 
 #ifdef __JETBRAINS_IDE__
-	#define __host__
-	#define __global__
+#define __host__
+#define __global__
 #endif
 
 using namespace std;
@@ -46,13 +46,14 @@ const int LEG_STEPS = 3;             // [step] number of full cycle steps
 const float T_SIMULATION = 11 * skin_stim_time * LEG_STEPS;      // [ms] simulation time
 const float INH_COEF = 1.0;          // strength coefficient of inhibitory synapses
 const float SIM_STEP = 0.025;        // [s] simulation step
-const bool is_4pedal = false;      // True if it is a quadrupedal simulation
-const bool has_5HT = false;        // True if nuclei has 5-HT receptors
+const bool is_4pedal = false;        // True if it is a quadrupedal simulation
+const bool has_5HT = false;          // True if nuclei has 5-HT receptors
 
 // stuff variables
 unsigned int global_id = 0;          // iter to count neurons one by one
 const int syn_outdegree = 27;        // synapse number outgoing from one neuron
 const int neurons_in_ip = 196;       // number of neurons in interneuronal pool
+const int neurons_in_aff_ip = 196;       // number of neurons in interneuronal pool
 const int neurons_in_moto = 169;     // motoneurons number
 const int neurons_in_group = 20;     // number of neurons in a group
 const int neurons_in_afferent = 120; // number of neurons in afferent
@@ -183,14 +184,14 @@ Group Ia_F_aff = form_group("Ia_F_aff", neurons_in_afferent);
 Group R_E = form_group("R_E");
 Group R_F = form_group("R_F");
 
-Group Ia_E_pool = form_group("Ia_E_pool");
-Group Ia_F_pool = form_group("Ia_F_pool");
+Group Ia_E_pool = form_group("Ia_E_pool", neurons_in_aff_ip);
+Group Ia_F_pool = form_group("Ia_F_pool", neurons_in_aff_ip);
 
-Group eIP_E = form_group("eIP_E");
-Group eIP_F = form_group("eIP_F");
+Group eIP_E = form_group("eIP_E", neurons_in_ip);
+Group eIP_F = form_group("eIP_F", neurons_in_ip);
 
-Group iIP_E = form_group("iIP_E");
-Group iIP_F = form_group("iIP_F");
+Group iIP_E = form_group("iIP_E", neurons_in_ip);
+Group iIP_F = form_group("iIP_F", neurons_in_ip);
 
 // global vectors of SynapseMetadata of synapses for each neuron
 vector<vector<SynapseMetadata>> metadatas(global_id, vector<SynapseMetadata>());
@@ -214,6 +215,7 @@ void neurons_kernel(float *V_m,
                     int neurons_number,
                     int shifted_sim_iter,
                     int activated_C_,
+                    int early_activated_C_,
                     int sim_iter,
                     int *begin_C_spiking,
                     int *end_C_spiking,
@@ -225,7 +227,7 @@ void neurons_kernel(float *V_m,
 	curandState localState;
 	curand_init(sim_iter, tid, 0, &localState);
 
-	// Ia extensor/flexor IDs [1098 ... 1337], control spike number of Ia afferent by resetting neuron current
+	// Ia aff extensor/flexor IDs [965 ... 1204], control spike number of Ia afferent by resetting neuron current
 	if (965 <= tid && tid <= 1204) {
 		// rule for the 2nd level
 		if (decrease_lvl_Ia_spikes == 1 && tid % 3 == 0) {
@@ -251,9 +253,10 @@ void neurons_kernel(float *V_m,
 	if (tid < neurons_number) {
 		// reset spike flag of the current neuron before calculations
 		has_spike[tid] = false;
-		// add normal distr
-		if (activated_C_ == 0 && 1345 <= tid && tid <= 1364 && (sim_iter % 4 == 0)) {
-			has_spike[tid] = true;
+
+		if (activated_C_ == 0 && early_activated_C_ == 0 && 2225 <= tid && tid <= 2420 && (sim_iter % 10 == 0)) {
+			// normal distribution of choosing which tid's neuron will spike at each 10th step of simulation (0.25ms)
+			has_spike[2225 + static_cast<int>(196 * curand_uniform(&localState))] = true;
 		}
 		// Skin stimulations
 		if (activated_C_ == 1) {
@@ -326,6 +329,7 @@ void neurons_kernel(float *V_m,
 		float I_L = g_L * (V_m[tid] - E_L);
 		float I_syn_exc = g_exc[tid] * (V_m[tid] - E_ex);
 		float I_syn_inh = g_inh[tid] * (V_m[tid] - E_in);
+
 		float dV;
 		// if neuron in the refractory state -- ignore synaptic inputs. Re-calculate membrane potential
 		if (nrn_ref_time_timer[tid] > 0) {
@@ -335,7 +339,6 @@ void neurons_kernel(float *V_m,
 		}
 
 		if (isnan(dV)){
-			printf("NAAAAAN \n");
 			dV = 0;
 		}
 
@@ -401,7 +404,7 @@ void synapses_kernel(bool *neuron_has_spike,     // array of bools -- is neuron 
 	}
 }
 
-void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
+void connect_one_to_all(Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
 	std::default_random_engine generator;
 	generator.seed(time(NULL));
 	std::normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
@@ -415,17 +418,19 @@ void connect_one_to_all( Group pre_neurons, Group post_neurons, float syn_delay,
 
 	synapses_number += pre_neurons.group_size * post_neurons.group_size;
 
-	printf("Connect generator to %s with %s (1:%d). W=%.2f, D=%.1f\n", pre_neurons.group_name.c_str(),
-	       post_neurons.group_name.c_str(), post_neurons.group_size, weight, syn_delay);
+	printf("Connect %s to %s [one_to_all] (1:%d). Total: %d W=%.2f, D=%.1f\n", pre_neurons.group_name.c_str(),
+	       post_neurons.group_name.c_str(), post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size,
+	       weight, syn_delay);
 }
 
-void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_delay, float weight, int outdegree= syn_outdegree) {
-	// connect neurons with uniform distribution and normal distributon for syn delay and weight
+void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
+                             float syn_delay, float syn_weight, int outdegree= syn_outdegree, bool no_distr= false) {
+	// connect neurons with uniform distribution and normal distributon for syn delay and syn_weight
 	default_random_engine generator;
 	generator.seed(time(NULL));
 	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
-	normal_distribution<float> delay_distr(syn_delay, syn_delay / 5);
-	normal_distribution<float> weight_distr(weight, weight / 10);
+	normal_distribution<float> delay_distr_gen(syn_delay, syn_delay / 5);
+	normal_distribution<float> weight_distr_gen(syn_weight, syn_weight / 10);
 
 	#ifdef DEBUG
 	printf("pre group %s (%d, %d) to post %s (%d, %d)\n",
@@ -442,21 +447,23 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons, float syn_de
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
 			int rand_post_id = id_distr(generator);
-			float syn_delay_dist = delay_distr(generator);
-			if (syn_delay_dist <= 0.2) {
-				syn_delay_dist = 0.2;
+			float syn_delay_distr = delay_distr_gen(generator);
+			if (syn_delay_distr <= 0.2) {
+				syn_delay_distr = 0.2;
 			}
-			float syn_weight_dist = weight_distr(generator);
+			float syn_weight_distr = weight_distr_gen(generator);
 			#ifdef DEBUG
-			printf("weight %f (%f), delay %f (%f) \n", syn_weight_dist, weight, syn_delay_dist, syn_delay);
+			printf("syn_weight %f (%f), delay %f (%f) \n", syn_weight_distr, syn_weight, syn_delay_distr, syn_delay);
 			#endif
-			metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay_dist, syn_weight_dist));
-
+			if (no_distr)
+				metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay, syn_weight));
+			else
+				metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay_distr, syn_weight_distr));
 		}
 	}
 
-	printf("Connect %s with %s (1:%d). W=%.2f, D=%.1f\n",
-	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(), outdegree, weight, syn_delay);
+	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
+		   pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(), outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
 }
 
 void init_connectomes() {
@@ -464,11 +471,11 @@ void init_connectomes() {
 	float sero_coef = has_5HT? 1.5 : 1;
 
 	// input from EES
-	connect_fixed_outdegree(EES, E1, 2, 500);
-	connect_fixed_outdegree(E1, E2, 2, 200);
-	connect_fixed_outdegree(E2, E3, 2, 200);
-	connect_fixed_outdegree(E3, E4, 3, 200);
-	connect_fixed_outdegree(E4, E5, 3, 200);
+	connect_fixed_outdegree(EES, E1, 3, 500, syn_outdegree, true);
+	connect_fixed_outdegree(E1, E2, 2, 200, syn_outdegree, true);
+	connect_fixed_outdegree(E2, E3, 2, 200, syn_outdegree, true);
+	connect_fixed_outdegree(E3, E4, 1, 200, syn_outdegree, true);
+	connect_fixed_outdegree(E4, E5, 3, 200, syn_outdegree, true);
 
 	connect_one_to_all(CV1, iIP_E, 0.5, 50);
 	connect_one_to_all(CV2, iIP_E, 0.5, 50);
@@ -496,14 +503,13 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 4); // 3
 	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4); // 3
 	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -10 * INH_COEF);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -20 * INH_COEF);
 	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -0.1 * INH_COEF);
 	// output to OM2
-//	connect_fixed_outdegree(OM1_2_E, OM2_2_E, 1, 50);
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 10, neurons_in_ip);
-	connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 3, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
@@ -516,22 +522,21 @@ void init_connectomes() {
 	connect_one_to_all(CV5, OM2_3, 1, 80);
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0, OM2_1, 1, 50);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 24);
-	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 24);
+	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 23);
+	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 23);
 	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 23);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 23);
-	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 4);
-	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 4);
+	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 20);
+	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 20);
+	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
+	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -20 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -20 * INH_COEF);
+	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * INH_COEF);
 	// output to OM3
-//	connect_fixed_outdegree(OM2_2_E, OM3_2_E, 1, 50);
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 10, neurons_in_ip); // 50
-	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 7, neurons_in_ip); // 50
+	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 7, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
@@ -556,10 +561,9 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -10 * INH_COEF);
 	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -0.1 * INH_COEF);
 	// output to OM3
-//	connect_fixed_outdegree(OM3_2_E, OM4_2_E, 1, 50);
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 10, neurons_in_ip);
-	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 1, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// OM 4
 	// input from EES group 4
@@ -583,10 +587,9 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM4_3, OM4_2_E, 1, -70 * INH_COEF);
 	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * INH_COEF);
 	// output to OM4
-//	connect_fixed_outdegree(OM4_2_E, OM5_2_E, 1, 50);
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 10, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
@@ -608,9 +611,10 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * INH_COEF);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * INH_COEF);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 10, neurons_in_ip); // 15
-	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 7, neurons_in_ip); // 15
+	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
 
+	/// reflex arc
 	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -50, neurons_in_ip);
 	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -50, neurons_in_ip);
 
@@ -619,227 +623,20 @@ void init_connectomes() {
 	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -20, neurons_in_ip);
 	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -20, neurons_in_ip);
 
-	// reflex arc
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
 	connect_fixed_outdegree(eIP_E, MN_E, 1, 11, neurons_in_moto);
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
-	connect_fixed_outdegree(eIP_E, iIP_E, 1, 10, neurons_in_ip);
-	connect_fixed_outdegree(eIP_F, iIP_F, 1, 10, neurons_in_ip);
-
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
 
 	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -20, neurons_in_ip);
-	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -20, neurons_in_ip);
+	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
 
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 1, 5, neurons_in_moto);
-	connect_fixed_outdegree(Ia_F_aff, MN_F, 1, 5, neurons_in_moto);
-
-	/*
-	// EES
-	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
-	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
-	connect_fixed_outdegree(EES, E1, 2, 500);
-	// E1
-	connect_fixed_outdegree(E1, E2, 2, 200);
-	connect_fixed_outdegree(E1, OM1_0, 1, 15);
-	// E2
-	connect_fixed_outdegree(E2, E3, 2, 200);
-	connect_fixed_outdegree(E2, OM2_0, 1, 15);
-	// E3
-	connect_fixed_outdegree(E3, E4, 3, 200);
-	connect_fixed_outdegree(E3, OM3_0, 1, 15);
-	// E4
-	connect_fixed_outdegree(E4, E5, 3, 200);
-	connect_fixed_outdegree(E4, OM4_0, 1, 15);
-	// E5
-	connect_fixed_outdegree(E5, OM5_0, 1, 15);
-
-	// CV1
-	// [excatation]
-	connect_fixed_outdegree(CV1, iIP_E, 1, 5);
-	connect_fixed_outdegree(CV1, OM1_0, 0.5, 3); // 5
-	// CV2
-	// [excatation]
-	connect_fixed_outdegree(CV2, iIP_E, 1, 5);
-	connect_fixed_outdegree(CV2, OM1_0, 0.5, 3); // 5
-	connect_fixed_outdegree(CV2, OM2_0, 0.5, 5);
-	// CV3
-	// [excatation]
-	connect_fixed_outdegree(CV3, iIP_E, 1, 5);
-	connect_fixed_outdegree(CV3, OM2_0, 0.5, 5);
-	connect_fixed_outdegree(CV3, OM3_0, 0.5, 5);
-	// [inhibition]
-	connect_fixed_outdegree(CV3, OM1_3, 1, 5);
-	// CV4
-	// [excatation]
-	connect_fixed_outdegree(CV4, iIP_E, 1, 5);
-	connect_fixed_outdegree(CV4, OM3_0, 0.5, 5);
-	connect_fixed_outdegree(CV4, OM4_0, 0.5, 5);
-	// [inhibition]
-	connect_fixed_outdegree(CV4, OM1_3, 1, 5);
-	connect_fixed_outdegree(CV4, OM2_3, 1, 5);
-	// CV5
-	// [excatation]
-	connect_fixed_outdegree(CV5, iIP_E, 1, 5);
-	connect_fixed_outdegree(CV5, OM4_0, 0.5, 5);
-	connect_fixed_outdegree(CV5, OM5_0, 0.5, 5);
-	// [inhibition]
-	connect_fixed_outdegree(CV5, OM1_3, 1, 5);
-	connect_fixed_outdegree(CV5, OM2_3, 1, 5);
-	connect_fixed_outdegree(CV5, OM3_3, 1, 5);
-
-	// CD4 [for 4pedal simulations]
-	connect_fixed_outdegree(CD4, OM3_0, 1, 5);
-	connect_fixed_outdegree(CD4, OM4_0, 1, 5);
-	// CD5 [for 4pedal simulations]
-	connect_fixed_outdegree(CD5, OM4_0, 1, 5);
-	connect_fixed_outdegree(CD5, OM5_0, 1, 5);
-
-	/// OM 1
-	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 1, 7);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 24); // 23
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 24); // 23
-	connect_fixed_outdegree(OM1_1, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 23); // 22
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 23); // 22
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_3, OM1_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -70 * INH_COEF);
-	// output to OM2
-	connect_fixed_outdegree(OM1_2_E, OM2_2_E, 1, 50);
-	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50);
-	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM1_2_F, eIP_F, 3, 2, neurons_in_ip);
-
-	/// OM 2
-	// inner connectomes
-	connect_fixed_outdegree(OM2_0, OM2_1, 1, 50);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 23);
-	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 23);
-	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 22);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 22);
-	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * INH_COEF);
-	// output to OM3
-	connect_fixed_outdegree(OM2_2_E, OM3_2_E, 1, 50);
-	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
-	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 3, neurons_in_ip);
-
-	/// OM 3
-	// inner connectomes
-	connect_fixed_outdegree(OM3_0, OM3_1, 1, 50);
-	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 24);
-	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 30);
-	connect_fixed_outdegree(OM3_1, OM3_3, 1, 3);
-	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 22);
-	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 40);
-	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);
-	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);
-	connect_fixed_outdegree(OM3_3, OM3_1, 1, -5 * INH_COEF);
-	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -10 * INH_COEF);
-	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -0.1 * INH_COEF);
-	// output to OM4
-	connect_fixed_outdegree(OM3_2_E, OM4_2_E, 1, 50);
-	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
-	// output to IP
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 6, neurons_in_ip);
-
-	/// OM 4
-	// inner connectomes
-	connect_fixed_outdegree(OM4_0, OM4_1, 3, 50);
-	connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 23);
-	connect_fixed_outdegree(OM4_1, OM4_2_F, 1, 23);
-	connect_fixed_outdegree(OM4_1, OM4_3, 1, 3);
-	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 22);
-	connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 22);
-	connect_fixed_outdegree(OM4_2_E, OM4_3, 1, 3);
-	connect_fixed_outdegree(OM4_2_F, OM4_3, 1, 3);
-	connect_fixed_outdegree(OM4_3, OM4_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM4_3, OM4_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * INH_COEF);
-	// output to OM5
-	connect_fixed_outdegree(OM4_2_E, OM5_2_E, 1, 50);
-	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	// output to IP
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 13, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 6, neurons_in_ip);
-
-	/// OM 5
-	// inner connectomes
-	connect_fixed_outdegree(OM5_0, OM5_1, 1, 50);
-	connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 23);
-	connect_fixed_outdegree(OM5_1, OM5_2_F, 1, 23);
-	connect_fixed_outdegree(OM5_1, OM5_3, 1, 3);
-	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 22);
-	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 22);
-	connect_fixed_outdegree(OM5_2_E, OM5_3, 1, 3);
-	connect_fixed_outdegree(OM5_2_F, OM5_3, 1, 3);
-	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -70 * INH_COEF);
-	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 15, neurons_in_ip);
-	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 3, neurons_in_ip);
-
-	/// Reflex arc
-	// inhibition by iIP_E (C0). Aff lens implemented as hard code inhibiting: LiIP_E => Ia_aff --*--> MN_E
-	connect_fixed_outdegree(iIP_E, eIP_F, 1, -10 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(iIP_E, OM1_2_F, 1, -10 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(iIP_E, OM2_2_F, 1, -10 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(iIP_E, OM3_2_E, 1, -10 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(iIP_E, OM4_2_F, 1, -10 * INH_COEF, neurons_in_ip);
-
-	// inhibition by iIP_F (C1). Aff lens implemented as hard code inhibiting: iIP_F => Ia_aff --*--> MN_F
-	connect_fixed_outdegree(iIP_F, eIP_E, 1, -10 * INH_COEF, neurons_in_ip);
-
-	// eIP_E connectomes
-	connect_fixed_outdegree(eIP_E, MN_E, 1, 2, neurons_in_ip);
-//	connect_fixed_outdegree(eIP_E, iIP_E, 1, 10, neurons_in_ip);
-
-	// eIP_F connectomes
-	connect_fixed_outdegree(eIP_F, MN_E, 1, 2, neurons_in_ip);
-	connect_fixed_outdegree(eIP_F, iIP_F, 1, 10, neurons_in_ip);
-
-	// Ia_E_pool
-	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -1 * INH_COEF, neurons_in_ip);
-
-	// Ia_F_pool
-	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1 * INH_COEF, neurons_in_ip);
-	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -1 * INH_COEF, neurons_in_ip);
-
-	// R_E
-	connect_fixed_outdegree(R_E, R_F, 1, -1 * INH_COEF);
-	connect_fixed_outdegree(R_E, MN_E, 1, -1 * INH_COEF);
-	connect_fixed_outdegree(R_E, Ia_E_pool, 1, -1 * INH_COEF);
-
-	// R_F
-	connect_fixed_outdegree(R_F, R_E, 1, -1 * INH_COEF);
-	connect_fixed_outdegree(R_F, MN_F, 1, -1 * INH_COEF);
-	connect_fixed_outdegree(R_F, Ia_F_pool, 1, -1 * INH_COEF);
-
-	// Ia_E_aff
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 1, 5, neurons_in_afferent);
-	connect_fixed_outdegree(Ia_E_aff, Ia_E_pool, 1, 2, neurons_in_afferent);
-
-	// Ia_F_aff
-	connect_fixed_outdegree(Ia_F_aff, MN_F, 1, 5, neurons_in_afferent);
-	connect_fixed_outdegree(Ia_F_aff, Ia_F_pool, 1, 2, neurons_in_afferent);*/
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 6, neurons_in_moto); // 5
+	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 6, neurons_in_moto);
 }
 
 void save(int test_index, Metadata metadata){
@@ -913,17 +710,6 @@ void init_array(type *array, int size, type value) {
 		array[i] = value;
 }
 
-// fill array with normal distribution values
-template <typename type>
-void rand_normal_init_array(type *array, int size, type mean, type stddev) {
-	default_random_engine generator;
-	generator.seed(time(NULL));
-	normal_distribution<float> normal_dist(mean, stddev);
-
-	for(int i = 0; i < size; i++)
-		array[i] = normal_dist(generator);
-}
-
 __host__
 void simulate(int test_index, int full_save) {
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
@@ -945,15 +731,15 @@ void simulate(int test_index, int full_save) {
 	int nrn_ref_time_timer[neurons_number];  // [step] neuron refractory time timer
 
 	int begin_C_spiking[5] = {ms_to_step(0),
-                              ms_to_step(skin_stim_time),
-                              ms_to_step(2 * skin_stim_time),
-                              ms_to_step(3 * skin_stim_time),
-                              ms_to_step(5 * skin_stim_time)};
+	                          ms_to_step(skin_stim_time),
+	                          ms_to_step(2 * skin_stim_time),
+	                          ms_to_step(3 * skin_stim_time),
+	                          ms_to_step(5 * skin_stim_time)};
 	int end_C_spiking[5] = {ms_to_step(skin_stim_time - 0.1),
-                            ms_to_step(2 * skin_stim_time - 0.1),
-                            ms_to_step(3 * skin_stim_time - 0.1),
-                            ms_to_step(5 * skin_stim_time - 0.1),
-                            ms_to_step(6 * skin_stim_time - 0.1)};
+	                        ms_to_step(2 * skin_stim_time - 0.1),
+	                        ms_to_step(3 * skin_stim_time - 0.1),
+	                        ms_to_step(5 * skin_stim_time - 0.1),
+	                        ms_to_step(6 * skin_stim_time - 0.1)};
 
 	// fill arrays by initial data
 	init_array<float>(nrn_n, neurons_number, 0);      // by default neurons have closed potassium channel
@@ -969,11 +755,11 @@ void simulate(int test_index, int full_save) {
 
 	// synapse variables
 	unsigned int syn_id = 0;
-	int synapses_pre_nrn_id[synapses_number];
-	int synapses_post_nrn_id[synapses_number];
-	float synapses_weight[synapses_number];
-	int synapses_delay[synapses_number];
-	int synapses_delay_timer[synapses_number];
+	int *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
+	int *synapses_post_nrn_id = (int *) malloc(datasize<int>(synapses_number));
+	float *synapses_weight = (float *) malloc(datasize<float>(synapses_number));
+	int *synapses_delay = (int *) malloc(datasize<int>(synapses_number));
+	int *synapses_delay_timer = (int *) malloc(datasize<int>(synapses_number));
 
 	// fill arrays of synapses
 	for(int neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
@@ -1050,19 +836,27 @@ void simulate(int test_index, int full_save) {
 	memcpyHtD<int>(gpu_end_C_spiking, end_C_spiking, 5);
 
 	// preparations for simulation
-	int threads_per_block = 512;
+	int threads_per_block = 32;
 	int nrn_num_blocks = neurons_number / threads_per_block + 1;
 	int syn_num_blocks = synapses_number / threads_per_block + 1;
 
-	printf("Size of network: %d, Synapse number: %d\n", neurons_number, synapses_number);
-	printf("Start GPU with %d threads x %d (nrn) / %d (syn) (Total: %d nrn threads / %d syn threads) \n",
-	       threads_per_block, nrn_num_blocks, syn_num_blocks, threads_per_block * nrn_num_blocks, threads_per_block * syn_num_blocks);
+	int total_nrn_threads = threads_per_block * nrn_num_blocks;
+	int total_syn_threads = threads_per_block * syn_num_blocks;
+
+	printf("* * * Start GPU * * *\n");
+	printf("Neurons kernel: %d threads (%.3f%% threads idle) [%d blocks x %d threads per block] mapped on %d neurons \n",
+	       total_nrn_threads, (double)(total_nrn_threads - neurons_number) / total_nrn_threads * 100,
+	       nrn_num_blocks, threads_per_block, neurons_number);
+	printf("Synapses kernel: %d threads (%.3f%% threads idle) [%d blocks x %d threads per block] mapped on %d synapses \n",
+	       total_syn_threads, (double)(total_syn_threads - synapses_number) / total_syn_threads * 100,
+	       syn_num_blocks, threads_per_block, synapses_number);
 
 	// stuff variables for controlling C0/C1 activation
 	int activated_C_ = 0;
 	int shift_time_by_step = 0;
 	int local_iter = 0;
 	int decrease_lvl_Ia_spikes;
+	int early_activated_C_ = 0;
 
 	simulation_t_start = chrono::system_clock::now();
 
@@ -1077,12 +871,18 @@ void simulate(int test_index, int full_save) {
 				local_iter = 0;   // reset local time iterator
 				shift_time_by_step += steps_activation_C0;  // add constant 125 ms
 			}
-		// if extensor C1 activated, find the end of it and change to C0
+			if (local_iter != 0 && (local_iter + 400) % steps_activation_C0 == 0) {
+				early_activated_C_ = 1;
+			}
+			// if extensor C1 activated, find the end of it and change to C0
 		} else {
 			if (local_iter != 0 && local_iter % steps_activation_C1 == 0) {
 				activated_C_ = 0; // change to C0
 				local_iter = 0;   // reset local time iterator
 				shift_time_by_step += steps_activation_C1;  // add time equal to n_layers * 25 ms
+			}
+			if (local_iter != 0 && (local_iter + 400) % steps_activation_C1 == 0) {
+				early_activated_C_ = 0;
 			}
 		}
 
@@ -1129,6 +929,7 @@ void simulate(int test_index, int full_save) {
 		                                                      neurons_number,
 		                                                      sim_iter - shift_time_by_step,
 		                                                      activated_C_,
+		                                                      early_activated_C_,
 		                                                      sim_iter,
 		                                                      gpu_begin_C_spiking,
 		                                                      gpu_end_C_spiking,
