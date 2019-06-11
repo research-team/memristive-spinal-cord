@@ -2,7 +2,7 @@ bio_step = 0.25
 sim_step = 0.025
 gpu_step = 0.1
 
-color_lat = '#F2AA2E'
+color_lat = '#a6261d'
 color_amp = '#472650'
 
 k_max_time = 0

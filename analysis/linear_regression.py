@@ -26,14 +26,13 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 		slices_number (int):
 			number of slices
 	"""
-	# print("slices_number = ", slices_number)
 	sim_mean_volt = sim_pack[k_mean]
 	sim_x = sim_pack[k_x_data]
 	sim_y = sim_pack[k_y_data]
 
 	bio_volt = bio_pack[k_mean]
-	bio_x = bio_pack[k_x_data]
-	bio_y = bio_pack[k_y_data]
+	bio_x = bio_pack[k_x_data]  # [1]
+	bio_y = bio_pack[k_y_data]  # [2]
 
 	slice_indexes = range(slices_number)
 
@@ -45,17 +44,18 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 		end = int((slice_index + 1) * 25 / bio_step)
 		sliced_data = bio_volt[start:end]
 		offset = slice_index * delta_y_step
-		print("len(bio sliced_data) = ", len(sliced_data))
+		# print("len(bio sliced_data) = ", len(sliced_data))
 
 		plt.plot([t * bio_step for t in range(len(sliced_data))],
 		         [offset + d for d in sliced_data],
 		         color=color_bio, linewidth=2)
 		yticks.append(sliced_data[0] + offset)
+
 		# sim data
 		start = int(slice_index * 25 / sim_step)
 		end = int((slice_index + 1) * 25 / sim_step)
 		sliced_data = sim_mean_volt[start:end]
-		print("len(sim sliced_data) = ", len(sliced_data))
+		# print("len(sim sliced_data) = ", len(sliced_data))
 		plt.plot([t * sim_step for t in range(len(sliced_data))],
 		         [offset + d for d in sliced_data],
 		         color=color_sim, linewidth=2)
@@ -65,21 +65,21 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 	y = np.array(bio_y)
 
 	xfit, yfit = calc_linear(x, y)
+
 	num_dots = int(len(x) / 5)
 	x_per_test = []
 	y_per_test = []
 	start = 0
 	for i in range(5):
-		# print(num_dots)
 		x_per_test.append(x[start:start + num_dots])
 		y_per_test.append(y[start:start + num_dots])
 		start += num_dots
 
 	tmp_x = list(zip(*x_per_test))
 	tmp_y = list(zip(*y_per_test))
-	# for i in range(slices_number):
-		# plt.scatter(tmp_x[i], tmp_y[i], label=i, color=color_bio, alpha=0.6)
-	# plt.plot(xfit, yfit, color=color_bio, linestyle='--', linewidth=6, label='BIO')
+	for i in range(slices_number):
+		plt.scatter(tmp_x[i], tmp_y[i], label=i, color=color_bio, alpha=0.6)  #color_bio
+	plt.plot(xfit, yfit, color=color_bio, linestyle='--', linewidth=6, label='BIO')
 	# plt.legend()
 	# SIM data processing
 	x = np.array(sim_x)
@@ -87,8 +87,8 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 
 	xfit, yfit = calc_linear(x, y)
 
-	# plt.scatter(x, y, color=color_sim, alpha=0.6)
-	# plt.plot(xfit, yfit, color=color_sim, linestyle='--', linewidth=6, label='NEST')
+	plt.scatter(x, y, color=color_sim, alpha=0.6)
+	plt.plot(xfit, yfit, color=color_sim, linestyle='--', linewidth=6, label='NEST')
 	# plot properties
 	plt.xlabel("Time, ms", fontsize=56)
 	plt.ylabel("Slices", fontsize=56)
@@ -96,7 +96,6 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 	plt.yticks([], fontsize=56)
 	plt.xlim(0, 25)
 	plt.ylim(-2, slices_number * delta_y_step + 1)
-	# plt.legend()
 	plt.show()
 
 
@@ -116,25 +115,36 @@ def form_bio_pack(volt_and_stim, slice_numbers, reversed_data=False):
 	return bio_pack
 
 
-def form_sim_pack(tests_data, step, reversed_data=False, debugging=False, inhibition_zero=True):
+def form_sim_pack(tests_data, step, reversed_data=False, debugging=False, inhibition_zero=True, bio=False):
 	sim_x = []
 	sim_y = []
 
 	# collect amplitudes and latencies per test data
 	count = 0
-	for test_data in tests_data:
+
+	for e, test_data in enumerate(tests_data):
 		lat, amp = sim_process(test_data, step, debugging=debugging, inhibition_zero=inhibition_zero)
+		print("lat = ", lat)
+		for el in range(len(lat)):
+			if bio:
+				if lat[el] < 20:
+					lat[el] = lat[el - 1]
+		print("lat = ", lat)
+		print("---")
+
 		# fixme
 		# lat = [d if d > 0 else d[-1] for d in lat ]
 		sim_x += lat
-
 		test_data = normalization(test_data, zero_relative=True)
 		count += 1
+		print("count = ", count)
 
 		for slice_index in range(len(lat)):
-			a = slice_index * delta_y_step + test_data[int(lat[slice_index] / step
-			                                               + slice_index * 25 / step)]
+			a = slice_index * delta_y_step + test_data[int(lat[slice_index] / step + slice_index * 25 / step)]
 			sim_y.append(a)
+	print("sim_x = ", sim_x)
+	print("sim_y = ", sim_y)
+
 	# form simulation data pack
 	sim_mean_volt = normalization(list(map(lambda voltages: np.mean(voltages), zip(*tests_data))), zero_relative=True)
 	sim_pack = (sim_mean_volt, sim_x, sim_y)
@@ -143,34 +153,22 @@ def form_sim_pack(tests_data, step, reversed_data=False, debugging=False, inhibi
 
 
 def run():
-	# bio_volt_and_stim = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
-	# print("bio_volt_and_stim = ", bio_volt_and_stim[0])
-	# print("bio_volt_and_stim = ", bio_volt_and_stim[1])
-	nest_tests = select_slices('../../GRAS/E_15cms_40Hz_100%_4pedal_no5ht.hdf5', 1000, 5000)
+	nest_tests = select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000)
 	# 21flexor [1000, 5000] 15flexor [1000, 10000]
 	neuron_tests = select_slices('../../neuron-data/3steps_newmodel_FL.hdf5', 7000, 11000)
 	# 21flexor [7000, 11000] 15flexor [13000, 18000]
-	# neuron_tests = read_neuron_data('../../neuron-data/3steps_speed15_EX.hdf5')
-	# slice_numbers = int(len(neuron_tests[0]) * sim_step // 25)
 
 	# FixMe add new functionality for several bio datas
-	# result = bio_several_runs()
-	# bio_volt = result[0]
-	# bio_volt_and_stim.append(result[1])
-	bio_volt = bio_data_runs('RMG')
-	# bio_volt_and_stim2 = result[2]
-	# bio_volt_and_stim2.append(result[3])
+	bio_volt = bio_data_runs()
 	print("---")
-	bio_pack = form_sim_pack(bio_volt, step=bio_step, debugging=False)
+	bio_pack = form_sim_pack(bio_volt, step=bio_step, debugging=False, bio=True)
 	print("printed bio pack")
-	# bio_pack2 = form_sim_pack(bio_volt_and_stim2, step=0.25)
-	# bio_pack = form_sim_pack(bio_volt, step=0.25, reversed_data=True)
 
 	# loop of NEST and Neuron data
 	for sim_tests in [nest_tests, neuron_tests]:
 		sim_pack = form_sim_pack(sim_tests, sim_step)
 		print("printed sim pack")
-		plot_linear(bio_pack, sim_pack, 4, bio_step, sim_step) # min(len(result[1]), len(result[3]))
+		plot_linear(bio_pack, sim_pack, 6, bio_step, sim_step) # min(len(result[1]), len(result[3]))
 
 	quipazine_patch = mpatches.Patch(color='#FF7254', label='quipazine')
 	no_quipazine_patch = mpatches.Patch(color='#54CBFF', label='no quipazine')

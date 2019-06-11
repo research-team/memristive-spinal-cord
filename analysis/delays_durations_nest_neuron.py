@@ -24,14 +24,14 @@ nest_list = read_nest_data('../../nest-data/sim_extensor_eesF40_i100_s15cms_T.hd
 gpu = read_nest_data('../../GPU_extensor_eesF40_inh100_s15cms_T.hdf5')
 # bio = read_bio_data('../bio-data/3_0.91 volts-Rat-16_5-09-2017_RMG_13m-min_one_step.txt')
 bio = bio_several_runs()
-print("bio = ", len(bio))
-print(bio[0])
-print(bio[1])
+# print("bio = ", len(bio))
+# print(bio[0])
+# print(bio[1])
 bio_data = bio[0]
-print("bio_data = ", bio_data)
-print("bio_data = ", bio_data)
+# print("bio_data = ", bio_data)
+# print("bio_data = ", bio_data)
 bio_indexes = bio[1]
-print(len(bio_data[2]))
+# print(len(bio_data[2]))
 # print("bio_indexes = ", bio_indexes)
 # d1 = read_bio_hdf5('1_new_bio_1.hdf5')
 # d2 = read_bio_hdf5('1_new_bio_2.hdf5')
@@ -42,7 +42,7 @@ print(len(bio_data[2]))
 
 # calculating the number of slices
 slice_numbers = int(len(neuron_list[0]) * sim_step // 25)
-print("slice_numbers = ", slice_numbers)
+# print("slice_numbers = ", slice_numbers)
 # mean values of all runs
 neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
 # print("neuron_means = ", neuron_means)
@@ -52,14 +52,14 @@ gpu_means = list(map(lambda voltages: np.mean(voltages), zip(*gpu)))
 # print("gpu = ", gpu[0])
 # print("gpu_means = ", gpu_means)
 bio_means = list(map(lambda voltages: np.mean(voltages), zip(*bio_data)))
-print(len(bio_means))
+# print(len(bio_means))
 
 # creating the list for bio_process()
 voltages_and_stim = []
 voltages_and_stim.append(bio_means)
 voltages_and_stim.append(bio_indexes)
-print("voltages_and_stim = ", voltages_and_stim[0])
-print("voltages_and_stim = ", voltages_and_stim[1])
+# print("voltages_and_stim = ", voltages_and_stim[0])
+# print("voltages_and_stim = ", voltages_and_stim[1])
 
 # calculating latencies and amplitudes of mean values
 neuron_means_lat = sim_process(neuron_means, sim_step, inhibition_zero=False)[0]
@@ -76,8 +76,8 @@ gpu_means_amp = sim_process(gpu_means, gpu_step)[1]
 # bio_means_amp = bio_process(voltages_and_stim, slice_numbers, reversed_data=True)[1]
 # print("bio_lat = ", bio_means_lat)
 # print("bio_amp = ", bio_means_amp)
-print(len(neuron_means_lat), neuron_means_lat)
-print(len(neuron_means_amp), neuron_means_amp)
+# print(len(neuron_means_lat), neuron_means_lat)
+# print(len(neuron_means_amp), neuron_means_amp)
 
 # indexes of stimulations in simulated data
 sim_stim_indexes = list(range(0, len(nest_means), int(25 / 0.025)))
@@ -90,8 +90,8 @@ for test_data in bio_data:
 	to_process = []
 	to_process.append(test_data)
 	to_process.append(bio_indexes)
-	print("to_process = ", to_process[0])
-	print("to_process = ", to_process[1])
+	# print("to_process = ", to_process[0])
+	# print("to_process = ", to_process[1])
 	# bio_lat_tmp, bio_amp_tmp = bio_process(to_process, slice_numbers, reversed_data=True)
 	# checking for the elements less than zero
 	# for i in range(len(bio_lat_tmp)):
@@ -101,8 +101,8 @@ for test_data in bio_data:
 	# 		bio_amp_tmp[i] = bio_amp_tmp[i - 1]
 	# bio_lat.append(bio_lat_tmp)
 	# bio_amp.append(bio_amp_tmp)
-	print("bio_lat = ", bio_lat)
-	print("bio_amp = ", bio_amp)
+	# print("bio_lat = ", bio_lat)
+	# print("bio_amp = ", bio_amp)
 
 # debug(nest_means, nest_means_datas, sim_stim_indexes, nest_ees_indexes, nest_means_lat, sim_step)
 # debug(neuron_means, neuron_means_datas, sim_stim_indexes, neuron_ees_indexes, neuron_means_lat, sim_step)
@@ -144,7 +144,7 @@ for sl in range(len(neuron_lat[0])):
 		# print("dot = ", dot)
 		latencies_all_runs_neuron_tmp.append(neuron_lat[dot][sl])
 	latencies_all_runs_neuron.append(latencies_all_runs_neuron_tmp)
-print("latencies_all_runs_neuron = ", len(latencies_all_runs_neuron))
+# print("latencies_all_runs_neuron = ", len(latencies_all_runs_neuron))
 
 for sl in range(len(nest_lat[0])):
 	# print("sl = ", sl)
@@ -166,7 +166,7 @@ for sl in range(len(gpu_lat[0])):
 	for dot in range(len(bio_lat)):
 		latencies_all_runs_bio_tmp.append(bio_lat[dot][sl])
 	latencies_all_runs_bio.append(latencies_all_runs_bio_tmp)
-print("latencies_all_runs_bio = ", len(latencies_all_runs_bio))
+# print("latencies_all_runs_bio = ", len(latencies_all_runs_bio))
 
 amplitudes_all_runs_nest = []
 amplitudes_all_runs_neuron = []
@@ -179,7 +179,7 @@ for sl in range(len(neuron_amp[0])):
 	for dot in range(len(neuron_amp)):
 		amplitudes_all_runs_neuron_tmp.append(neuron_amp[dot][sl])
 	amplitudes_all_runs_neuron.append(amplitudes_all_runs_neuron_tmp)
-print("amplitudes_all_runs_neuron = ", amplitudes_all_runs_neuron)
+# print("amplitudes_all_runs_neuron = ", amplitudes_all_runs_neuron)
 
 for sl in range(len(nest_amp[0])):
 	amplitudes_all_runs_nest_tmp = []
@@ -199,7 +199,7 @@ for sl in range(len(gpu_amp[0])):
 	for dot in range(len(bio_amp)):
 		amplitudes_all_runs_bio_tmp.append(bio_amp[dot][sl])
 	amplitudes_all_runs_bio.append(amplitudes_all_runs_bio_tmp)
-print("amplitudes_all_runs_bio = ", amplitudes_all_runs_bio)
+# print("amplitudes_all_runs_bio = ", amplitudes_all_runs_bio)
 
 # finding the fliers of all the data and recreating the lists of latencies and aplitudes by deleting these fliers
 proceed_neuron = find_fliers(amplitudes_all_runs_neuron, latencies_all_runs_neuron)
@@ -215,9 +215,10 @@ corr_amplitudes_all_runs_nest = proceed_nest[1]
 fliers_nest = proceed_nest[2]
 fliers_latencies_nest_values = proceed_nest[3]
 fliers_amplitudes_nest_values = proceed_nest[4]
-print("corr_latencies_all_runs_nest = ", len(corr_latencies_all_runs_nest[5]))
-print("fliers_latencies_nest_values = ", fliers_latencies_nest_values)
-print("fliers_amplitudes_nest_values = ", fliers_amplitudes_nest_values)
+for i in corr_latencies_all_runs_nest:
+	print("corr_latencies_all_runs_nest = ", i)
+# print("fliers_latencies_nest_values = ", fliers_latencies_nest_values)
+# print("fliers_amplitudes_nest_values = ", fliers_amplitudes_nest_values)
 
 proceed_gpu = find_fliers(amplitudes_all_runs_gpu, latencies_all_runs_gpu)
 corr_latencies_all_runs_gpu = proceed_gpu[0]
@@ -243,15 +244,15 @@ time = []
 time_neuron = []
 time_gpu = []
 time_bio = []
-print("len(nest_means_amp) = ", len(nest_means_amp))
+# print("len(nest_means_amp) = ", len(nest_means_amp))
 for i in range(len(neuron_means_amp)):
 	time.append(i)
 	time_neuron.append(i + 0.5)
 	time_gpu.append(i + 0.25)
 	time_bio.append(i + 0.15)
-print("time = ", time)
-print("time_neuron = ", time_neuron)
-print("time_bio = ", time_bio)
+# print("time = ", time)
+# print("time_neuron = ", time_neuron)
+# print("time_bio = ", time_bio)
 
 # times for clouds
 times_nest = []
@@ -269,21 +270,21 @@ for dot in range(len(corr_latencies_all_runs_nest)):
 	for l in range(len(corr_latencies_all_runs_nest[dot])):
 		times_tmp.append(dot)
 	times_nest.append(times_tmp)
-print("times_nest = ", len(times_nest[0]))
+# print("times_nest = ", len(times_nest[0]))
 
 for dot in range(len(corr_latencies_all_runs_neuron)):
 	times_tmp = []
 	for l in range(len(corr_latencies_all_runs_neuron[dot])):
 		times_tmp.append(dot + 0.5)
 	times_neuron.append(times_tmp)
-print("times_neuron = ", len(times_neuron[0]))
+# print("times_neuron = ", len(times_neuron[0]))
 
 for dot in range(len(corr_latencies_all_runs_gpu)):
 	times_tmp = []
 	for l in range(len(corr_latencies_all_runs_gpu[dot])):
 		times_tmp.append(dot + 0.25)
 	times_gpu.append(times_tmp)
-print("times_gpu = ", len(times_gpu[0]))
+# print("times_gpu = ", len(times_gpu[0]))
 
 # for dot in range(len(corr_latencies_all_runs_bio)):
 # 	times_tmp = []
@@ -309,7 +310,7 @@ for dot in range(len(corr_latencies_all_runs_gpu)):
 	for l in range(len(fliers_gpu[dot])):
 		times_tmp.append(dot + 0.25)
 	old_times_gpu.append(times_tmp)
-print("old_times_gpu = ", old_times_gpu)
+# print("old_times_gpu = ", old_times_gpu)
 
 # plot mean values (lines)
 fig = plt.figure()
@@ -335,6 +336,7 @@ ax.plot(time_neuron, neuron_means_lat, neuron_means_amp, '.', lw=0.5, color='r',
 # y and z coordinates of the extreme points of nest clouds
 nest_y = max(corr_latencies_all_runs_nest)
 nest_z = max(corr_amplitudes_all_runs_nest)
+
 # list of dots of all clouds
 nest = []
 for sl in range(len(corr_latencies_all_runs_nest)):
@@ -345,7 +347,8 @@ for sl in range(len(corr_latencies_all_runs_nest)):
 		one_dot.append(corr_amplitudes_all_runs_nest[sl][dot])
 		nest_sl.append(one_dot)
 	nest.append(nest_sl)
-
+for n in nest:
+	print("nest = ", n)
 neuron = []
 for sl in range(len(corr_latencies_all_runs_neuron)):
 	# print("sl = ", sl)
@@ -433,6 +436,7 @@ convex_gpus = []
 convex_bios = []
 
 for sl in range(len(nest)):
+	print("nest[{}] = ".format(sl), nest[sl])
 	convex_nest = grahamscan(nest[sl])
 	convex_nests.append(convex_nest)
 
@@ -540,7 +544,9 @@ for dot in range(len(corr_latencies_all_runs_neuron)):
 	x_neuron = times_convex_neuron[dot] + [times_convex_neuron[dot][0]]
 	y_neuron = latencies_convex_neuron[dot] + [latencies_convex_neuron[dot][0]]
 	z_neuron = amplitudes_convex_neuron[dot] + [amplitudes_convex_neuron[dot][0]]
-
+	print("x_neuron = ", x_neuron)
+	print("y_neuron = ", y_neuron)
+	print("z_neuron = ", z_neuron)
 	# x_gpu = times_convex_gpu[dot] + [times_convex_gpu[dot][0]]
 	# y_gpu = latencies_convex_gpu[dot] + [latencies_convex_gpu[dot][0]]
 	# z_gpu = amplitudes_convex_gpu[dot] + [amplitudes_convex_gpu[dot][0]]

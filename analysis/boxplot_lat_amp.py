@@ -8,8 +8,8 @@ import numpy as np
 from analysis.cut_several_steps_files import select_slices
 from analysis.functions import normalization
 
-color_lat = '#BD821B'
-fill_color_lat = '#F3CB84'
+color_lat = '#4f120d'
+fill_color_lat = '#a6261d'
 color_amp = '#472650'
 fill_color_amp = '#855F8E'
 
@@ -90,9 +90,9 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 def run():
 	# get data
 	# nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s6cms_T.hdf5')
-	neuron_tests_ex = select_slices('../../neuron-data/3steps_newmodel_EX.hdf5', 0, 6000)
-	# 15cm/s [0, 11000] 21cm/s [0, 6000]
-	gras_tests_ex = select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000)
+	neuron_tests_ex = select_slices('../../neuron-data/3steps_speed15_EX.hdf5', 0, 11000)
+	# 15cm/s [0, 12000] 21cm/s [0, 6000]
+	gras_tests_ex = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 	# 15cm/s [10000, 22000] 21cm/s [5000, 11000]
 
 	for test in range(len(neuron_tests_ex)):
@@ -112,13 +112,13 @@ def run():
 	                                (gras_tests_ex, sim_step)]:
 		latencies = []
 		amplitudes = []
-		amplitudes_fl = []
-		# print("sim_datas = ", len(sim_datas))
 		# collect amplitudes and latencies per test data
 		for i, test_data in enumerate(sim_datas):
-			sim_lat, sim_amp = sim_process(test_data, step)
+			print("i = ", i)
+			sim_lat, sim_amp = sim_process(test_data, step, after_latencies=False)
 			latencies.append(sim_lat)
 			amplitudes.append(sim_amp)
+		print("amplitudes = ", amplitudes)
 		# plot simulation data
 		plot_box(latencies, amplitudes)
 

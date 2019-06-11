@@ -46,8 +46,7 @@ def normalization(data, a=0, b=1, zero_relative=False):
 def calc_linear(x, y):
 	model = LinearRegression(fit_intercept=True)
 	model.fit(x[:, np.newaxis], y)
-
-	xfit = np.linspace(0, 25, 2)
+	xfit = np.linspace(0, 25, 10)
 	yfit = model.predict(X=xfit[:, np.newaxis])
 
 	return xfit, yfit
@@ -203,7 +202,7 @@ def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhi
 
 		while True:
 			if inhibition_zero:
-				left = 12 - additional_border   # 11
+				left = 11 - additional_border   # 11
 				right = 25 + additional_border
 				# print('inhibition zero')
 			else:
@@ -252,7 +251,8 @@ def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhi
 			# for f in found_points:
 				# print("count = ", count)
 				# print("found_points values = ", slice_values[slice_values.index(f)])
-				# print("found_points times = ", slice_times[slice_values.index(f)] * 0.25)
+				# print("found_points times = ", slice_times[slice_values.index(f)] * 0.025)
+				# print()
 				# if slice_values[slice_values.index(f) > thresholds[count]]:
 					# latencies.append(slice_times[slice_values.index(f)])
 
@@ -347,30 +347,30 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	Returns:
 		list: amplitudes per slice
 	"""
-	for data in datas:
-		print("datas = ", len(data), data)
+	# for data in datas:
+		# print("datas = ", len(data), data)
 	amplitudes = []
 	slice_numbers = len(datas[0])
 
-	print("latencies = ", latencies)
+	# print("latencies = ", latencies)
 
 	for l in range(len(latencies)):
 		latencies[l] /= step
 		latencies[l] = int(latencies[l])
 
-	print("---")
-	print("latencies = ", latencies)
-	print("---")
+	# print("---")
+	# print("latencies = ", latencies)
+	# print("---")
 
 	max_times = datas[0]
 	max_values = datas[1]
 	min_times = datas[2]
 	min_values = datas[3]
 
-	print("max_times = ", len(max_times[0]), max_times)
-	print("max_values = ", len(max_values[0]), max_values)
-	print("min_times = ", len(min_times[0]), min_times)
-	print("min_values = ", len(min_values[0]), min_values)
+	# print("max_times = ", len(max_times[0]), max_times)
+	# print("max_values = ", len(max_values[0]), max_values)
+	# print("min_times = ", len(min_times[0]), min_times)
+	# print("min_values = ", len(min_values[0]), min_values)
 
 	if after_latencies:
 		for l in latencies:
@@ -390,12 +390,10 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 			# print("slice = ", slice)
 			# print("to_delete[{}] = ".format(slice), len(to_delete[slice]), to_delete[slice])
 			for slice_of_all_data in range(len(max_times[slice]) - 1, -1, -1):
-				# print("slice_of_all_data = ", slice_of_all_data)
 				for dot in to_delete[slice]:
 					# print("max_times[{}][{}] = ".format(slice, slice_of_all_data), max_times[slice][slice_of_all_data])
 					# print("dot = ", dot)
 					if max_times[slice][slice_of_all_data] == dot:
-						# print(dot)
 						del max_times[slice][slice_of_all_data]
 						to_delete_value_max_tmp.append(slice_of_all_data)
 				to_delete_value_max.append(to_delete_value_max_tmp)
@@ -408,13 +406,12 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		# del max_values[slice][dot]
 		# del min_times[slice][dot]
 		# del min_values[slice][dot]
-		print("to_delete_value_max = ", to_delete_value_max)
+		# print("to_delete_value_max = ", to_delete_value_max)
 
 		for s in range(len(to_delete_value_max)):
 			for d in to_delete_value_max[s]:
 				del max_values[s][d]
 		for l in latencies:
-			# print("l = ", l)
 			to_delete_mins = []
 			for s in range(len(min_times)):
 				to_delete_mins_slice = []
@@ -422,7 +419,7 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 					if min_times[s][d] < l:
 						to_delete_mins_slice.append(min_times[s][d])
 				to_delete_mins.append(to_delete_mins_slice)
-		print("to_delete_mins = ", to_delete_mins)
+
 		to_delete_value_min = []
 		for slice in range(len(to_delete_mins)):
 			to_delete_value_min_tmp = []
@@ -443,26 +440,25 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		# del max_values[slice][dot]
 		# del min_times[slice][dot]
 		# del min_values[slice][dot]
-		print("to_delete_value_min = ", to_delete_value_min)
+		# print("to_delete_value_min = ", to_delete_value_min)
 
 		for s in range(len(to_delete_value_min)):
 			for d in to_delete_value_min[s]:
 				del min_values[s][d]
 
-	print("---")
-	print("max_times = ", len(max_times[0]), max_times)
-	print("max_values = ", len(max_values[0]), max_values)
-	print("min_times = ", len(min_times[0]), min_times)
-	print("min_values = ", len(min_values[0]), min_values)
-	print("---")
+	# print("---")
+	# print("max_times = ", len(max_times[0]), max_times)
+	# print("max_values = ", len(max_values[0]), max_values)
+	# print("min_times = ", len(min_times[0]), min_times)
+	# print("min_values = ", len(min_values[0]), min_values)
+	# print("---")
 
 	amplitudes = []
 	for sl in range(len(max_values)):
 		amplitudes_slice = 0
 		for i in range(len(min_values[sl]) - 1, -1, -1):
 			amplitudes_slice += max_values[sl][i] - min_values[sl][i]
-		amplitudes.append(amplitudes_slice)
-	print("amplitudes = ", amplitudes)
+		amplitudes.append(abs(amplitudes_slice))
 
 	# for slice_index in range(slice_numbers):
 	# 	mins_v = datas[k_min_val][slice_index]
@@ -611,8 +607,8 @@ def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhi
 	# print("len(mins_maxes[2][0]) = ", len(mins_maxes[2][0]))
 	# print("len(mins_maxes[3][0]) = ", len(mins_maxes[3][0]))
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
-	norm_voltages = normalization(voltages, zero_relative=True)
-	mins_maxes = calc_max_min(ees_indexes, norm_voltages, stim_corr=stim_indexes)
+	# norm_voltages = normalization(voltages, zero_relative=True)
+	mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
 	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
 	                           inhibition_zero=inhibition_zero) # , thresholds
 	amplitudes = calc_amplitudes(mins_maxes, latencies, step, after_latencies)
@@ -973,3 +969,61 @@ def grahamscan(A):
 			del S[-1]
 		S.append(P[i])
 	return S
+
+
+def find_min_diff(all_maxes, all_mins, step):
+	ees_end = 6
+	min_difference = []
+	max_difference = []
+	min_difference_indexes = []
+	max_difference_indexes = []
+
+	diffs = []
+	for slice in range(len(all_mins)):
+		diffs_tmp = []
+		for dot in range(len(all_mins[slice])):
+			diffs_tmp.append(all_maxes[slice][dot] - all_mins[slice][dot])
+		diffs.append(diffs_tmp)
+
+	for slice in range(len(all_mins)):
+		# for dot in range(int(6 / step), len(all_mins[slice])):
+		# 	print("dot = ", dot)
+		max_dif = max(diffs[slice][int(ees_end / step):])
+		max_dif_index = diffs[slice].index(max_dif)
+		min_dif = min(diffs[slice][int(ees_end / step):max_dif_index])
+		min_dif_index = diffs[slice].index(min_dif)
+
+		min_difference.append(min_dif)
+		min_difference_indexes.append(min_dif_index)
+
+		max_difference.append(max_dif)
+		max_difference_indexes.append(max_dif_index)
+
+		print("min_difference_indexes = ", min_difference_indexes)
+		print("min_difference = ", min_difference)
+
+	thresholds = []
+	for i in max_difference:
+		thresholds.append(i * 0.1)
+
+	vars = []
+# for slice in range(len(all_means)):
+# 	for dot in range(min_difference_indexes[slice] + 1, len(all_mins[slice])):
+# 		if all_maxes[slice][dot] - all_mins[slice][dot] - min_difference[slice] < var:
+# 			var = all_maxes[slice][dot] - all_mins[slice][dot] - min_difference[slice]
+# 	vars.append(var)
+# print("vars = ", vars)
+	necessary_values = []
+	for i in range(len(thresholds)):
+		necessary_values.append(min_difference[i] + thresholds[i])
+	print("necessary_values = ", necessary_values)
+	necessary_indexes = []
+	for slice in range(len(all_mins)):
+		for dot in range(min_difference_indexes[slice], len(all_mins[slice])):
+			if diffs[slice][dot] > necessary_values[slice]:
+				vars.append(diffs[slice][dot])
+				necessary_indexes.append(dot)
+				break
+	print("necessary_indexes = ", necessary_indexes)
+	return min_difference_indexes, max_difference_indexes, necessary_indexes
+
