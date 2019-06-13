@@ -1,4 +1,4 @@
-import math
+import struct
 import numpy as np
 import pylab as plt
 import h5py as hdf5
@@ -10,8 +10,8 @@ from matplotlib.patches import Ellipse
 from analysis.functions import normalization
 from analysis.histogram_lat_amp import sim_process
 
-sim_step = 0.025
 bio_step = 0.25
+sim_step = 0.025
 
 data_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/"
 
@@ -82,40 +82,43 @@ def select_slices(path, begin, end):
 	return [data[begin:end] for data in read_data(path)]
 
 
-def hex_to_rgb(hex_color):
+def hex2rgb(hex_color):
 	hex_color = hex_color.lstrip('#')
-	hlen = len(hex_color)
-	x = [int(hex_color[i:i+hlen//3], 16) for i in range(0, hlen, hlen//3)]
-	return [i / 256 for i in x]
-
-
-def dotproduct(v1, v2):
-	return sum((a * b) for a, b in zip(v1, v2))
+	return [int("".join(gr), 16) / 256 for gr in zip(*[iter(hex_color)] * 2)]
 
 
 def length(v):
-	return math.sqrt(dotproduct(v, v))
+	return np.sqrt(v[0] ** 2 + v[1] ** 2)
 
 
-def get_angle(v1, v2):
-	return math.degrees(math.acos(dotproduct(v1, v2) / (length(v1) * length(v2))))
+def unit_vector(vector):
+	return vector / np.linalg.norm(vector)
+
+
+def angle_between(v1, v2):
+	v1_u = unit_vector(v1)
+	v2_u = unit_vector(v2)
+	return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
 
 def run():
-
-	points_in_slice = int(25 / bio_step)
+	# keys
+	X = 0
+	Y = 1
+	# calc how much dots in one slice
+	dots_in_slice = int(25 / bio_step)
 
 	# group by 100 in each data case
-	all_bio_slices = [zip(*[iter(bio_data)] * points_in_slice) for bio_data in bio_data_runs()]
+	all_bio_slices = [zip(*[iter(bio_data)] * dots_in_slice) for bio_data in bio_data_runs()]
 	# reverse data: 5 tests with 11 slices with each 100 dots -> 11 slices with 5 tests with each 100 dots
 	all_bio_slices = list(zip(*all_bio_slices))
 
-	instant_mean = []
+	normalized_means_per_slice = []
 	for slice_data in all_bio_slices:
-		instant_mean.append(normalization([sum(map(abs, x)) for x in zip(*slice_data)], -1, 1))
+		normalized_means_per_slice.append(normalization([sum(map(abs, x)) for x in zip(*slice_data)], -1, 1))
 
-	# creating the lists of voltages
-	bio_volts = list(chain.from_iterable(instant_mean))
+	# create the list of normalized mean voltages
+	bio_means = list(chain.from_iterable(normalized_means_per_slice))
 
 	neuron_list = select_slices(f'{data_folder}/mn_E25tests (7).hdf5', 0, 12000)
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
@@ -126,8 +129,8 @@ def run():
 	gras_means = normalization(gras_means, -1, 1)
 
 	# calculating latencies and amplitudes of mean values
-	bio_means_lat = sim_process(bio_volts, bio_step, inhibition_zero=True)[0]
-	bio_means_amp = sim_process(bio_volts, bio_step, inhibition_zero=True, after_latencies=True)[1]
+	bio_means_lat = sim_process(bio_means, bio_step, inhibition_zero=True)[0]
+	bio_means_amp = sim_process(bio_means, bio_step, inhibition_zero=True, after_latencies=True)[1]
 
 	neuron_means_lat = sim_process(neuron_means, sim_step, inhibition_zero=True)[0]
 	neuron_means_amp = sim_process(neuron_means, sim_step, inhibition_zero=True, after_latencies=True)[1]
@@ -139,71 +142,55 @@ def run():
 	neuron_pack = [np.array(list(zip(neuron_means_amp, neuron_means_lat))), '#f2aa2e', 'neuron']
 	gras_pack = [np.array(list(zip(gras_means_amp, gras_means_lat))), '#287a72', 'gras']
 
-	# start plot
+	# start plotting
 	fig, ax = plt.subplots()
 
+	# plot per data pack
 	for coords, color, label in [bio_pack, neuron_pack, gras_pack]:
-		# create PCA instance
-		pca = PCA(n_components=2)
-		# fit the model with coords
-		pca.fit(coords)
+		pca = PCA(n_components=2)     # create PCA instance
+		pca.fit(coords)               # fit the model with coords
+		center = np.array(pca.mean_)  # get the center (mean value)
 
 		# calc vectors
 		vectors = []
 		for v_length, vector in zip(pca.explained_variance_, pca.components_):
 			v = vector * 3 * np.sqrt(v_length)
-			vectors.append((pca.mean_, pca.mean_ + v))
+			vectors.append((center, center + v))
 
-		# calc angle
-		center = pca.mean_
-		p1 = np.array([center[0], center[1] + 10])
-		p2 = np.array(vectors[0][1])
-		p_center = np.array(center)
+		# calc an angle between vector[first vector][top coords of vector] and vertical vector from the center
+		first_vector = np.array(vectors[0][1])
+		vertical = np.array([center[X], center[Y] + 10])
+		angle_degrees = angle_between(vertical - center, first_vector - center)
 
-		# check on angle sign
-		if vectors[0][1][0] > p1[0]:
-			sign = -1
-		else:
-			sign = 1
+		# check on angle sign (vector[first vector][top coord of vector][x coord]) > point1[x coord]
+		sign = -1 if vectors[0][1][0] > vertical[0] else 1
 
-		ba = p1 - p_center
-		bc = p2 - p_center
-
-		cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-
-		angle = np.degrees(np.arccos(cosine_angle))
-		print(f"angle {angle:.2f}")
-
-		first = np.array(vectors[0][1])
-		second = np.array(vectors[1][1])
-		ba = first - p_center
-		bc = second - p_center
-
-		width_radius = (bc[0] ** 2 + bc[1] ** 2) ** 0.5
-		height_radius = (ba[0] ** 2 + ba[1] ** 2) ** 0.5
+		# calculate ellipse size
+		ellipse_width = length(vectors[1][1] - center) * 2
+		ellipse_height = length(vectors[0][1] - center) * 2
 
 		# plot vectors
 		for vector in vectors:
 			ax.annotate('', vector[1], vector[0], arrowprops=dict(facecolor=color, linewidth=1.0))
 
 		# plot dots
-		ax.scatter(coords[:, 0], coords[:, 1], color=color, label=label, s=80)
+		ax.scatter(coords[:, X], coords[:, Y], color=color, label=label, s=80)
 
 		# plot ellipse
-		ell = Ellipse(xy=center, width=width_radius * 2, height=height_radius * 2, angle=angle * sign)
-		ax.add_artist(ell)
-		ell.set_fill(False)
-		ell.set_edgecolor(hex_to_rgb(color))
+		ellipse = Ellipse(xy=center, width=ellipse_width, height=ellipse_height, angle=angle_degrees * sign)
+		ellipse.set_fill(False)
+		ellipse.set_edgecolor(hex2rgb(color))
+		ax.add_artist(ellipse)
 
 		# fill convex
 		hull = ConvexHull(coords)
-		plt.fill(coords[hull.vertices, 0], coords[hull.vertices, 1], color=color, alpha=0.3)
+		ax.fill(coords[hull.vertices, X], coords[hull.vertices, Y], color=color, alpha=0.3)
 
+	# plot atributes
 	plt.xticks(fontsize=28)
 	plt.yticks(fontsize=28)
 	plt.xlabel('Amplitudes, mV', fontsize=28)
 	plt.ylabel('Latencies, ms', fontsize=28)
-
 	plt.legend()
 	plt.show()
 
