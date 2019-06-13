@@ -1,10 +1,14 @@
+import math
 import numpy as np
+import pylab as plt
 import h5py as hdf5
 import scipy.io as sio
 from itertools import chain
-from matplotlib import pylab as plt
+from scipy.spatial import ConvexHull
+from sklearn.decomposition import PCA
+from matplotlib.patches import Ellipse
+from analysis.functions import normalization
 from analysis.histogram_lat_amp import sim_process
-from analysis.functions import normalization, grahamscan
 
 sim_step = 0.025
 bio_step = 0.25
@@ -78,7 +82,27 @@ def select_slices(path, begin, end):
 	return [data[begin:end] for data in read_data(path)]
 
 
+def hex_to_rgb(hex_color):
+	hex_color = hex_color.lstrip('#')
+	hlen = len(hex_color)
+	x = [int(hex_color[i:i+hlen//3], 16) for i in range(0, hlen, hlen//3)]
+	return [i / 256 for i in x]
+
+
+def dotproduct(v1, v2):
+	return sum((a * b) for a, b in zip(v1, v2))
+
+
+def length(v):
+	return math.sqrt(dotproduct(v, v))
+
+
+def get_angle(v1, v2):
+	return math.degrees(math.acos(dotproduct(v1, v2) / (length(v1) * length(v2))))
+
+
 def run():
+
 	points_in_slice = int(25 / bio_step)
 
 	# group by 100 in each data case
@@ -90,8 +114,6 @@ def run():
 	for slice_data in all_bio_slices:
 		instant_mean.append(normalization([sum(map(abs, x)) for x in zip(*slice_data)], -1, 1))
 
-	print("instant_mean = ", instant_mean)
-
 	# creating the lists of voltages
 	bio_volts = list(chain.from_iterable(instant_mean))
 
@@ -99,7 +121,7 @@ def run():
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
 	neuron_means = normalization(neuron_means, -1, 1)
 
-	gras_list = select_slices(f'{data_folder}/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000)
+	gras_list = select_slices(f'{data_folder}/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 	gras_means = list(map(lambda voltages: np.mean(voltages), zip(*gras_list)))
 	gras_means = normalization(gras_means, -1, 1)
 
@@ -113,109 +135,69 @@ def run():
 	gras_means_lat = sim_process(gras_means, sim_step, inhibition_zero=True)[0]
 	gras_means_amp = sim_process(gras_means, sim_step, inhibition_zero=True, after_latencies=True)[1]
 
-	bio_lat_nparray = np.array([np.array(x) for x in bio_means_lat]).T
-	bio_amp_nparray = np.array([np.array(x) for x in bio_means_amp]).T
+	bio_pack = [np.array(list(zip(bio_means_amp, bio_means_lat))), '#a6261d', 'bio']
+	neuron_pack = [np.array(list(zip(neuron_means_amp, neuron_means_lat))), '#f2aa2e', 'neuron']
+	gras_pack = [np.array(list(zip(gras_means_amp, gras_means_lat))), '#287a72', 'gras']
 
-	neuron_lat_nparray = np.array([np.array(x) for x in neuron_means_lat]).T
-	neuron_amp_nparray = np.array([np.array(x) for x in neuron_means_amp]).T
-
-	gras_lat_nparray = np.array([np.array(x) for x in gras_means_lat]).T
-	gras_amp_nparray = np.array([np.array(x) for x in gras_means_amp]).T
-
-	bio_amp_nparray = np.reshape(bio_amp_nparray, (len(bio_means_lat), 1))
-	bio_lat_nparray = np.reshape(bio_lat_nparray, (len(bio_means_lat), 1))
-
-	neuron_amp_nparray = np.reshape(neuron_amp_nparray, (len(neuron_means_lat), 1))
-	neuron_lat_nparray = np.reshape(neuron_lat_nparray, (len(neuron_means_lat), 1))
-
-	gras_amp_nparray = np.reshape(gras_amp_nparray, (len(gras_means_lat), 1))
-	gras_lat_nparray = np.reshape(gras_lat_nparray, (len(gras_means_lat), 1))
-
-	data_bio = np.hstack((bio_amp_nparray, bio_lat_nparray))
-	data_gras = np.hstack((gras_amp_nparray, gras_lat_nparray))
-	data_neuron = np.hstack((neuron_amp_nparray, neuron_lat_nparray))
-
-	mu_bio = data_bio.mean(axis=0)
-	mu_gras = data_gras.mean(axis=0)
-	mu_neuron = data_neuron.mean(axis=0)
-
-	data_bio = data_bio - mu_bio
-	data_gras = data_gras - mu_gras
-	data_neuron = data_neuron - mu_neuron
-
-	eigenvectors_bio, eigenvalues_bio, V_bio = np.linalg.svd(data_bio.T, full_matrices=False)
-	eigenvectors_neuron, eigenvalues, V = np.linalg.svd(data_neuron.T, full_matrices=False)
-	eigenvectors_gras, eigenvalues_gras, V_gras = np.linalg.svd(data_gras.T, full_matrices=False)
-
-	projected_data_bio = np.dot(data_bio, eigenvectors_bio)
-	projected_data = np.dot(data_neuron, eigenvectors_neuron)
-	projected_data_gras = np.dot(data_gras, eigenvectors_gras)
-
-	sigma_bio = projected_data_bio.std(axis=0).mean()
-	sigma = projected_data.std(axis=0).mean()
-	sigma_gras = projected_data_gras.std(axis=0).mean()
-
-	bio_coords = list(zip(bio_means_amp, bio_means_lat))
-	neuron_coords = list(zip(neuron_means_amp, neuron_means_lat))
-	gras_coords = list(zip(gras_means_amp, gras_means_lat))
-
-	convex_bio = grahamscan(bio_coords)
-	convex_neuron = grahamscan(neuron_coords)
-	convex_gras = grahamscan(gras_coords)
-
-	# bio
-	convex_amp_bio = [bio_means_amp[sl] for sl in convex_bio]
-	convex_amp_bio.append(convex_amp_bio[0])
-
-	convex_lat_bio = [bio_means_lat[sl] for sl in convex_bio]
-	convex_lat_bio.append(convex_lat_bio[0])
-
-	# neuron
-	convex_amp_neuron = [neuron_means_amp[sl] for sl in convex_neuron]
-	convex_amp_neuron.append(convex_amp_neuron[0])
-
-	convex_lat_neuron = [neuron_means_lat[sl] for sl in convex_neuron]
-	convex_lat_neuron.append(convex_lat_neuron[0])
-
-	# gras
-	convex_amp_gras = [gras_means_amp[sl] for sl in convex_gras]
-	convex_amp_gras.append(convex_amp_gras[0])
-
-	convex_lat_gras = [gras_means_lat[sl] for sl in convex_gras]
-	convex_lat_gras.append(convex_lat_gras[0])
-
-	# plot
+	# start plot
 	fig, ax = plt.subplots()
 
-	# BIO
-	ax.scatter(bio_amp_nparray, bio_lat_nparray, color='#a6261d', label='bio', s=80)
-	start = mu_bio
-	end = mu_bio + sigma_bio * eigenvectors_bio[0]
-	ax.annotate('', xy=end, xycoords='data',
-	            xytext=start, textcoords='data',
-	            arrowprops=dict(facecolor='#a6261d', width=4.0))
-	plt.plot(convex_amp_bio, convex_lat_bio, color='#a6261d')
-	plt.fill_between(convex_amp_bio, convex_lat_bio, min(convex_lat_bio), color='#a6261d', alpha=0.3)
+	for coords, color, label in [bio_pack, neuron_pack, gras_pack]:
+		# create PCA instance
+		pca = PCA(n_components=2)
+		# fit the model with coords
+		pca.fit(coords)
 
-	# NEURON
-	ax.scatter(neuron_amp_nparray, neuron_lat_nparray, color='#f2aa2e', label='neuron', s=80)
-	start = mu_neuron
-	end = mu_neuron + sigma * eigenvectors_neuron[0]
-	ax.annotate('', xy=end, xycoords='data',
-	            xytext=start, textcoords='data',
-	            arrowprops=dict(facecolor='#f2aa2e', width=4.0))
-	plt.plot(convex_amp_neuron, convex_lat_neuron, color='#f2aa2e')
-	plt.fill_between(convex_amp_neuron, convex_lat_neuron, min(convex_lat_neuron), color='#f2aa2e', alpha=0.3)
+		# calc vectors
+		vectors = []
+		for v_length, vector in zip(pca.explained_variance_, pca.components_):
+			v = vector * 3 * np.sqrt(v_length)
+			vectors.append((pca.mean_, pca.mean_ + v))
 
-	# GRAS
-	ax.scatter(gras_amp_nparray, gras_lat_nparray, color='#287a72', label='gras', s=80)
-	start = mu_gras
-	end = mu_gras + sigma_gras * eigenvectors_gras[0]
-	ax.annotate('', xy=end, xycoords='data',
-	            xytext=start, textcoords='data',
-	            arrowprops=dict(facecolor='#287a72', width=4.0))
-	plt.plot(convex_amp_gras, convex_lat_gras, color='#287a72')
-	plt.fill_between(convex_amp_gras, convex_lat_gras, min(convex_lat_gras), color='#287a72', alpha=0.3)
+		# calc angle
+		center = pca.mean_
+		p1 = np.array([center[0], center[1] + 10])
+		p2 = np.array(vectors[0][1])
+		p_center = np.array(center)
+
+		# check on angle sign
+		if vectors[0][1][0] > p1[0]:
+			sign = -1
+		else:
+			sign = 1
+
+		ba = p1 - p_center
+		bc = p2 - p_center
+
+		cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+
+		angle = np.degrees(np.arccos(cosine_angle))
+		print(f"angle {angle:.2f}")
+
+		first = np.array(vectors[0][1])
+		second = np.array(vectors[1][1])
+		ba = first - p_center
+		bc = second - p_center
+
+		width_radius = (bc[0] ** 2 + bc[1] ** 2) ** 0.5
+		height_radius = (ba[0] ** 2 + ba[1] ** 2) ** 0.5
+
+		# plot vectors
+		for vector in vectors:
+			ax.annotate('', vector[1], vector[0], arrowprops=dict(facecolor=color, linewidth=1.0))
+
+		# plot dots
+		ax.scatter(coords[:, 0], coords[:, 1], color=color, label=label, s=80)
+
+		# plot ellipse
+		ell = Ellipse(xy=center, width=width_radius * 2, height=height_radius * 2, angle=angle * sign)
+		ax.add_artist(ell)
+		ell.set_fill(False)
+		ell.set_edgecolor(hex_to_rgb(color))
+
+		# fill convex
+		hull = ConvexHull(coords)
+		plt.fill(coords[hull.vertices, 0], coords[hull.vertices, 1], color=color, alpha=0.3)
 
 	plt.xticks(fontsize=28)
 	plt.yticks(fontsize=28)
