@@ -3,6 +3,7 @@ import time
 import logging
 import subprocess
 import numpy as np
+import pandas as pd
 import h5py as hdf5
 import pylab as plt
 from multiprocessing import Pool
@@ -11,46 +12,43 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('Converter')
 
 
-def measure_time(func):
-	def wrapper(*args, **kwargs):
-		start_time = time.time()
-		func(*args, **kwargs)
-		end_time = time.time()
-		print(f"Elapsed {end_time - start_time:.2f} s")
-	return wrapper
-
-
-@measure_time
 def run_tests(script_place, tests_number):
 	for test_index in range(tests_number):
 		logger.info(f"Run test #{test_index}")
 		command = f"{script_place} {test_index} 0"
+
+		start_time = time.time()
 		process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		output, error = process.communicate()
+		end_time = time.time()
 
-		error_text = str(error.decode("UTF-8")).split("\n")
-		if error_text:
+		logger.info(f"Elapsed {end_time - start_time:.2f} s")
+
+		if len(error) > 0:
+			error_text = str(error.decode("UTF-8")).split("\n")
 			for error in error_text:
 				logger.info(error)
 
 
-def convert_to_hdf5(result_folder, tests_number):
+def convert_to_hdf5(result_folder):
 	for muscle in ["MN_E", "MN_F"]:
 		logger.info("writing data to the HDF5")
+
+		files = filter(lambda f: f.endswith(f"{muscle}.dat"), os.listdir(result_folder))
+
 		with hdf5.File(f'{result_folder}/{muscle}.hdf5', 'w') as hdf5_file:
-			for test_index in range(tests_number):
+			for test_index, filename in enumerate(files):
 				logger.info(f"process test #{test_index}")
-				with open(f"{result_folder}/{test_index}_{muscle}.dat") as dat_file:
+				with open(f"{result_folder}/{filename}") as dat_file:
 					data = list(map(lambda x: -float(x), dat_file.readline().split()))
 					if any(map(lambda x: np.isnan(x), data)):
-						logging.info(f"{muscle} in {test_index} has NaN... skip")
+						logging.info(f"{filename} has NaN... skip")
 						continue
 					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
 		# check HDF5
 		with hdf5.File(f'{result_folder}/{muscle}.hdf5') as hdf5_file:
 			for data in hdf5_file.values():
 				assert len(data) > 0
-
 
 def boxplot_processing(data):
 	"""
@@ -65,12 +63,19 @@ def boxplot_processing(data):
 	slice_data = data[1]
 	# set offset for Y
 	y_offset = slice_index * 30
+
 	# calculate fliers, whiskers and medians (thanks to pylab <3)
+	start_time = time.time()
 	boxplot_data = plt.boxplot(slice_data, showfliers=True, showcaps=True)
+	plt.close()
+
+	end_time = time.time()
+	logger.info(f"Elapsed # {slice_index} {end_time - start_time:.2f} s")
 	# get the necessary data
 	medians = boxplot_data['medians']
 	whiskers_data = boxplot_data['whiskers']
 	fliers = boxplot_data['fliers']
+
 	# separate data
 	whiskers_data_high = whiskers_data[1::2]
 	whiskers_data_low = whiskers_data[::2]
@@ -79,24 +84,19 @@ def boxplot_processing(data):
 	assert len(whiskers_data_low) == len(whiskers_data_high)
 	assert len(whiskers_data_low) == len(fliers)
 
-	get_y0 = lambda bp_data: bp_data.get_ydata()[0]
-	get_y1 = lambda bp_data: bp_data.get_ydata()[1]
-
 	# calc Y for median
-	median_y = list(map(lambda median: y_offset + get_y0(median), medians))
+	median_y = [y_offset + median.get_ydata()[0] for median in medians]
 	# calc Y for boxes
-	boxes_y_high = list(map(lambda whisker: y_offset + get_y0(whisker), whiskers_data_high))
-	boxes_y_low = list(map(lambda whisker: y_offset + get_y0(whisker), whiskers_data_low))
+	boxes_y_high = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_high]
+	boxes_y_low = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_low]
 	# calc Y for whiskers
-	whiskers_y_high = list(map(lambda whisker: y_offset + get_y1(whisker), whiskers_data_high))
-	whiskers_y_low = list(map(lambda whisker: y_offset + get_y1(whisker), whiskers_data_low))
+	whiskers_y_high = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_high]
+	whiskers_y_low = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_low]
 
 	# calc Y for fliers, compute each flier point
 	fliers_y_max = []
 	fliers_y_min = []
-	for index, flier in enumerate(fliers):
-		lowest_whisker = whiskers_y_low[index]
-		highest_whisker = whiskers_y_high[index]
+	for flier, highest_whisker, lowest_whisker in zip(fliers, whiskers_y_high, whiskers_y_low):
 		flier_y_data = flier.get_ydata()
 		# if more than 1 dot
 		if len(flier_y_data) > 1:
@@ -112,8 +112,6 @@ def boxplot_processing(data):
 		else:
 			fliers_y_max.append(highest_whisker)
 			fliers_y_min.append(lowest_whisker)
-
-	logging.info(f"calculated slice #{slice_index + 1}")
 
 	return fliers_y_min, fliers_y_max, whiskers_y_low, whiskers_y_high, boxes_y_low, boxes_y_high, median_y
 
@@ -134,8 +132,12 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	if len(data_per_test) == 0:
 		raise Exception("Empty input data")
 
-	yticks = []         # y ticks for slices
-	prepared_data = []  # prepare data for parallelizing
+	if save_folder is None:
+		save_folder = os.getcwd()
+
+	yticks = []
+	cpu_cores = 3
+	abs_saving_path = f"{save_folder}/shadow_{filename}.png"
 
 	# stuff variables
 	slice_time_length = int(1 / ees_hz * 1000)
@@ -143,18 +145,17 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	steps_in_slice = int(slice_time_length / step)
 	# tests dots at each time -> N (test number) dots at each time
 	data_per_step = list(zip(*data_per_test))
-	shared_x = [x * step for x in range(steps_in_slice)]
-
-	for slice_index in range(slices_number):
-		dots_per_slice = data_per_step[slice_index * steps_in_slice:(slice_index + 1) * steps_in_slice]
-		prepared_data.append((slice_index, dots_per_slice))
+	prepared_data = list(zip(range(slices_number), zip(*[iter(data_per_step)] * steps_in_slice)))
 
 	# parallelized calculations
-	with Pool(processes=4) as pool:
+	logging.info(f"Start parallelizing with {cpu_cores} cores")
+	with Pool(processes=cpu_cores) as pool:
 		all_data = pool.map(boxplot_processing, prepared_data)
 
 	# build plot
 	plt.figure(figsize=(16, 9))
+
+	shared_x = [x * step for x in range(steps_in_slice)]
 
 	for slice_index, bp_data_per_slice in enumerate(all_data, 1):
 		flow, fhigh, wlow, whigh, blow, bhigh, med = bp_data_per_slice
@@ -169,12 +170,6 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	plt.xticks(range(slice_time_length + 1), range(slice_time_length + 1))
 	plt.xlim(0, slice_time_length)
 	plt.yticks(yticks, range(1, slices_number + 1))
-
-	if save_folder is None:
-		save_folder = os.getcwd()
-
-	abs_saving_path = f"{save_folder}/shadow_{filename}.png"
-
 	plt.subplots_adjust(left=0.04, bottom=0.05, right=0.99, top=0.99)
 	plt.savefig(abs_saving_path, dpi=250, format="png")
 
@@ -186,17 +181,18 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	logging.info(f"Saved file at {abs_saving_path}")
 
 
-@measure_time
 def plot_results(save_folder, step=0.1, ees_hz=40):
 	chunk_size = int(step / 0.025)
-	hdf5_filenames = [filename for filename in os.listdir(save_folder) if filename.endswith(".hdf5")]
+	logging.info("Start plotting")
 
-	for filename in hdf5_filenames:
-		title = "".join(filename.split(".")[:-1])
+	for filename in filter(lambda f: f.endswith(".hdf5"), os.listdir(save_folder)):
+		logging.info(f"Slimming data from {filename}")
 		with hdf5.File(f'{save_folder}/{filename}') as hdf5_file:
 			slimmed_data_per_test = []
 			for data in hdf5_file.values():
 				slimmed_data_per_test.append([np.mean(data[i:i+chunk_size]) for i in range(0, len(data), chunk_size)])
+
+		title = "".join(filename.split(".")[:-1])
 		boxplot_shadows(slimmed_data_per_test, ees_hz, step, save_folder=save_folder, filename=title)
 
 
@@ -206,7 +202,7 @@ def testrunner():
 	save_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat"
 
 	run_tests(script_place, tests_number)
-	convert_to_hdf5(save_folder, tests_number)
+	convert_to_hdf5(save_folder)
 	plot_results(save_folder, step=0.1, ees_hz=40)
 
 
