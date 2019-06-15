@@ -298,29 +298,35 @@ void neurons_kernel(float *V_m,
 
 		// transition rates between open and closed states of the potassium channels
 		float alpha_n = 0.032 * (15.0 - V) / (exp((15.0 - V) / 5.0) - 1.0);
+		if (isnan(alpha_n)) alpha_n = 0;
 		float beta_n = 0.5 * exp((10.0 - V) / 40.0);
+		if (isnan(beta_n)) beta_n = 0;
 
 		// transition rates between open and closed states of the activation of sodium channels
 		float alpha_m = 0.32 * (13.0 - V) / (exp((13.0 - V) / 4.0) - 1.0);
+		if (isnan(alpha_m)) alpha_m = 0;
 		float beta_m = 0.28 * (V - 40.0) / (exp((V - 40.0) / 5.0) - 1.0);
+		if (isnan(beta_m)) beta_m = 0;
 
 		// transition rates between open and closed states of the inactivation of sodium channels
 		float alpha_h = 0.128 * exp((17.0 - V) / 18.0);
+		if (isnan(alpha_h)) alpha_h = 0;
 		float beta_h = 4.0 / (1.0 + exp((40.0 - V) / 5.0));
+		if (isnan(beta_h)) beta_h = 0;
 
 		// re-calculate activation variables
 		n[tid] += (alpha_n - (alpha_n + beta_n) * n[tid]) * SIM_STEP;
 		m[tid] += (alpha_m - (alpha_m + beta_m) * m[tid]) * SIM_STEP;
 		h[tid] += (alpha_h - (alpha_h + beta_h) * h[tid]) * SIM_STEP;
 
-		if (n[tid] > 1) n[tid] = 1;
-		if (n[tid] < 0) n[tid] = 0;
+		if (n[tid] > 1) printf("n > 1\n");
+		if (n[tid] < 0) printf("n < 0\n");
 
-		if (m[tid] > 1) m[tid] = 1;
-		if (m[tid] < 0) m[tid] = 0;
+		if (m[tid] > 1) printf("m > 1\n");
+		if (m[tid] < 0) printf("m < 0\n");
 
-		if (h[tid] > 1) h[tid] = 1;
-		if (h[tid] < 0) h[tid] = 0;
+		if (h[tid] > 1) printf("h > 1\n");
+		if (h[tid] < 0) printf("h < 0\n");
 
 		// ionic currents
 		float I_NA = g_Na * pow(m[tid], 3) * h[tid] * (V_m[tid] - E_Na);
@@ -337,19 +343,7 @@ void neurons_kernel(float *V_m,
 			dV = -(I_L + I_K + I_NA + I_syn_exc + 4 * I_syn_inh) / C_m * SIM_STEP;
 		}
 
-		if (isnan(dV)){
-			// reset neuron values
-			V_m[tid] = - 72;
-			n[tid] = 0;
-			m[tid] = 0;
-			h[tid] = 1;
-			g_exc[tid] = 0;
-			g_inh[tid] = 0;
-
-			printf("IS nan %d \n", tid);
-		} else {
-			V_m[tid] += dV;
-		}
+		V_m[tid] += dV;
 
 		// re-calculate conductance
 		g_exc[tid] += -g_exc[tid] / tau_syn_exc * SIM_STEP;
@@ -492,7 +486,7 @@ void init_connectomes() {
 
 	/// OM 1
 	// input from EES group 1
-	connect_fixed_outdegree(E1, OM1_0, 2, 16, syn_outdegree, true); // 17
+	connect_fixed_outdegree(E1, OM1_0, 1, 16, syn_outdegree, true); // 17
 	// input from sensory
 	connect_one_to_all(CV1, OM1_0, 0.5, 10); // 18
 	connect_one_to_all(CV2, OM1_0, 0.5, 10); // 18
@@ -502,10 +496,10 @@ void init_connectomes() {
 	connect_one_to_all(CV5, OM1_3, 1, 80);
 	// inner connectomes
 	connect_fixed_outdegree(OM1_0, OM1_1, 1, 50);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 25); // 24
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 27); // 24
 	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 30); // 23
 	connect_fixed_outdegree(OM1_1, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 25); // 22
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 27); // 22
 	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 30); // 22
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 4); // 3
 	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4); // 3
@@ -547,7 +541,7 @@ void init_connectomes() {
 
 	/// OM 3
 	// input from EES group 3
-	connect_fixed_outdegree(E3, OM3_0, 3, 8);
+	connect_fixed_outdegree(E3, OM3_0, 1, 8);
 	// input from sensory [CV]
 	connect_one_to_all(CV3, OM3_0, 0.5, 10.5);
 	connect_one_to_all(CV4, OM3_0, 0.5, 10.5);
@@ -574,7 +568,7 @@ void init_connectomes() {
 
 	/// OM 4
 	// input from EES group 4
-	connect_fixed_outdegree(E4, OM4_0, 3, 8);
+	connect_fixed_outdegree(E4, OM4_0, 2, 8);
 	// input from sensory [CV]
 	connect_one_to_all(CV4, OM4_0, 0.5, 10.5);
 	connect_one_to_all(CV5, OM4_0, 0.5, 10.5);
@@ -595,7 +589,7 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * INH_COEF);
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 11, neurons_in_ip); // 10
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 5
@@ -633,7 +627,7 @@ void init_connectomes() {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 2, 1.5, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
+	connect_fixed_outdegree(eIP_E, MN_E, 2.5, 1.4, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
