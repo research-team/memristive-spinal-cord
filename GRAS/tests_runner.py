@@ -3,26 +3,26 @@ import time
 import logging
 import subprocess
 import numpy as np
-import pandas as pd
 import h5py as hdf5
 import pylab as plt
-from multiprocessing import Pool
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('Converter')
-
+logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
+logger = logging.getLogger()
 
 def run_tests(script_place, tests_number):
 	for test_index in range(tests_number):
-		logger.info(f"Run test #{test_index}")
-		command = f"{script_place} {test_index} 0"
+		logger.info(f"run test #{test_index}")
+
+		cmd_run = f"{script_place}/kek {test_index} 0"
 
 		start_time = time.time()
-		process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+		process = subprocess.Popen(cmd_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		output, error = process.communicate()
+
 		end_time = time.time()
 
-		logger.info(f"Elapsed {end_time - start_time:.2f} s")
+		logger.info(f"test #{test_index} elapsed {end_time - start_time:.2f}s")
 
 		if len(error) > 0:
 			error_text = str(error.decode("UTF-8")).split("\n")
@@ -32,11 +32,11 @@ def run_tests(script_place, tests_number):
 
 def convert_to_hdf5(result_folder):
 	for muscle in ["MN_E", "MN_F"]:
-		logger.info("writing data to the HDF5")
+		logger.info(f"converting {muscle} data: .dat -> .hdf5")
 
 		files = filter(lambda f: f.endswith(f"{muscle}.dat"), os.listdir(result_folder))
 
-		with hdf5.File(f'{result_folder}/{muscle}.hdf5', 'w') as hdf5_file:
+		with hdf5.File(f"{result_folder}/{muscle}.hdf5", 'w') as hdf5_file:
 			for test_index, filename in enumerate(files):
 				logger.info(f"process test #{test_index}")
 				with open(f"{result_folder}/{filename}") as dat_file:
@@ -45,75 +45,46 @@ def convert_to_hdf5(result_folder):
 						logging.info(f"{filename} has NaN... skip")
 						continue
 					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
-		# check HDF5
-		with hdf5.File(f'{result_folder}/{muscle}.hdf5') as hdf5_file:
-			for data in hdf5_file.values():
-				assert len(data) > 0
+		# check hdf5
+		with hdf5.File(f"{result_folder}/{muscle}.hdf5") as hdf5_file:
+			assert all(map(lambda d: len(d) > 0, hdf5_file.values()))
 
-def boxplot_processing(data):
-	"""
-	Special function for preparing data from the boxplot (medians, whiskers, fliers)
-	Args:
-		data:
-	Returns:
-		tuple: data per parameter
-	"""
-	# extract the data
-	slice_index = data[0]
-	slice_data = data[1]
-	# set offset for Y
-	y_offset = slice_index * 30
 
-	# calculate fliers, whiskers and medians (thanks to pylab <3)
-	start_time = time.time()
-	boxplot_data = plt.boxplot(slice_data, showfliers=True, showcaps=True)
-	plt.close()
+def calc_box(data_per_step):
+	medians = []
+	boxes_y_high = []
+	boxes_y_low = []
+	whiskers_y_high = []
+	whiskers_y_low = []
+	fliers_high = []
+	fliers_low = []
 
-	end_time = time.time()
-	logger.info(f"Elapsed # {slice_index} {end_time - start_time:.2f} s")
-	# get the necessary data
-	medians = boxplot_data['medians']
-	whiskers_data = boxplot_data['whiskers']
-	fliers = boxplot_data['fliers']
+	for dots in data_per_step:
+		low_box_Q1, median, high_box_Q3 = np.percentile(dots, [25, 50, 75])
+		# calc borders
+		IQR = high_box_Q3 - low_box_Q1
+		Q1_15 = low_box_Q1 - 1.5 * IQR
+		Q3_15 = high_box_Q3 + 1.5 * IQR
+		# median and high/low box
+		medians.append(median)
+		boxes_y_high.append(high_box_Q3)
+		boxes_y_low.append(low_box_Q1)
+		# whisker maximal
+		high_whisker = [dot for dot in dots if high_box_Q3 < dot < Q3_15]
+		high_whisker = max(high_whisker) if high_whisker else high_box_Q3
+		whiskers_y_high.append(high_whisker)
+		# whisker minimal
+		low_whisker = [dot for dot in dots if Q1_15 < dot < low_box_Q1]
+		low_whisker = min(low_whisker) if low_whisker else low_box_Q1
+		whiskers_y_low.append(low_whisker)
+		# flier maximal
+		high_flier = [dot for dot in dots if dot > Q3_15]
+		fliers_high.append(max(high_flier) if high_flier else high_whisker)
+		# flier minimal
+		low_flier = [dot for dot in dots if dot < Q1_15]
+		fliers_low.append(min(low_flier) if low_flier else low_whisker)
 
-	# separate data
-	whiskers_data_high = whiskers_data[1::2]
-	whiskers_data_low = whiskers_data[::2]
-
-	# check on equal size
-	assert len(whiskers_data_low) == len(whiskers_data_high)
-	assert len(whiskers_data_low) == len(fliers)
-
-	# calc Y for median
-	median_y = [y_offset + median.get_ydata()[0] for median in medians]
-	# calc Y for boxes
-	boxes_y_high = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_high]
-	boxes_y_low = [y_offset + whisker.get_ydata()[0] for whisker in whiskers_data_low]
-	# calc Y for whiskers
-	whiskers_y_high = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_high]
-	whiskers_y_low = [y_offset + whisker.get_ydata()[1] for whisker in whiskers_data_low]
-
-	# calc Y for fliers, compute each flier point
-	fliers_y_max = []
-	fliers_y_min = []
-	for flier, highest_whisker, lowest_whisker in zip(fliers, whiskers_y_high, whiskers_y_low):
-		flier_y_data = flier.get_ydata()
-		# if more than 1 dot
-		if len(flier_y_data) > 1:
-			flier_max = max(flier_y_data) + y_offset
-			flier_min = min(flier_y_data) + y_offset
-			fliers_y_max.append(highest_whisker if flier_max < highest_whisker else flier_max)
-			fliers_y_min.append(lowest_whisker if flier_min > lowest_whisker else flier_min)
-		# if only 1 dot
-		elif len(flier_y_data) == 1:
-			fliers_y_max.append(max(flier_y_data[0] + y_offset, highest_whisker))
-			fliers_y_min.append(min(flier_y_data[0] + y_offset, lowest_whisker))
-		# no dots in flier -- use whiskers
-		else:
-			fliers_y_max.append(highest_whisker)
-			fliers_y_min.append(lowest_whisker)
-
-	return fliers_y_min, fliers_y_max, whiskers_y_low, whiskers_y_high, boxes_y_low, boxes_y_high, median_y
+	return medians, boxes_y_high, boxes_y_low, whiskers_y_high, whiskers_y_low, fliers_high, fliers_low
 
 
 def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None, debugging=False):
@@ -121,89 +92,74 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	Plot shadows (and/or save) based on the input data
 	Args:
 		data_per_test (list of list): data per test with list of dots
-		step (float): step size of the data for human-read normalization time
 		ees_hz (int): EES value
+		step (float): step size of the data for human-read normalization time
 		save_folder (str): saving folder path
 		filename (str): filename
 		debugging (bool): show debug info
 	Returns:
 		kawai pictures =(^-^)=
 	"""
-	if len(data_per_test) == 0:
-		raise Exception("Empty input data")
-
 	if save_folder is None:
 		save_folder = os.getcwd()
 
-	yticks = []
-	cpu_cores = 3
-	abs_saving_path = f"{save_folder}/shadow_{filename}.png"
-
 	# stuff variables
-	slice_time_length = int(1 / ees_hz * 1000)
-	slices_number = int(len(data_per_test[0]) / slice_time_length * step)
-	steps_in_slice = int(slice_time_length / step)
+	slice_length_ms = int(1 / ees_hz * 1000)
+	slices_number = int(len(data_per_test[0]) / slice_length_ms * step)
+	steps_in_slice = int(slice_length_ms / step)
 	# tests dots at each time -> N (test number) dots at each time
-	data_per_step = list(zip(*data_per_test))
-	prepared_data = list(zip(range(slices_number), zip(*[iter(data_per_step)] * steps_in_slice)))
-
-	# parallelized calculations
-	logging.info(f"Start parallelizing with {cpu_cores} cores")
-	with Pool(processes=cpu_cores) as pool:
-		all_data = pool.map(boxplot_processing, prepared_data)
+	data_per_step = zip(*data_per_test)
+	data_per_slice = [calc_box(data_per_slice) for data_per_slice in list(zip(*[iter(data_per_step)] * steps_in_slice))]
 
 	# build plot
-	plt.figure(figsize=(16, 9))
-
+	yticks = []
 	shared_x = [x * step for x in range(steps_in_slice)]
 
-	for slice_index, bp_data_per_slice in enumerate(all_data, 1):
-		flow, fhigh, wlow, whigh, blow, bhigh, med = bp_data_per_slice
-		plt.fill_between(shared_x, flow, fhigh, alpha=0.1, color='r')   # fliers shadow
-		plt.fill_between(shared_x, wlow, whigh, alpha=0.25, color='r')  # whiskers shadow
-		plt.fill_between(shared_x, blow, bhigh, alpha=0.5, color='r')   # boxes shadow
-		plt.plot(shared_x, med, color='k', linewidth=0.7)               # median line
-		yticks.append(med[0])
-		logging.info(f"plotted slice #{slice_index}/{slices_number}")
+	fig, ax = plt.subplots(figsize=(16, 9))
+	# plot each slice
+	for slice_index, bp_data_per_slice in enumerate(data_per_slice, 1):
+		y_offset = slice_index * 30
+		med, b_high, b_low, w_high, w_low, f_high, f_low = bp_data_per_slice
+		ax.fill_between(shared_x, [y + y_offset for y in f_low], [y + y_offset for y in f_high], alpha=0.1, color='r')
+		ax.fill_between(shared_x, [y + y_offset for y in w_low], [y + y_offset for y in w_high], alpha=0.25, color='r')
+		ax.fill_between(shared_x, [y + y_offset for y in b_low], [y + y_offset for y in b_high], alpha=0.5, color='r')
+		ax.plot(shared_x, [y + y_offset for y in med], color='k', linewidth=0.7)
+		yticks.append(med[0] + y_offset)
 
 	# plotting stuff
-	plt.xticks(range(slice_time_length + 1), range(slice_time_length + 1))
-	plt.xlim(0, slice_time_length)
-	plt.yticks(yticks, range(1, slices_number + 1))
-	plt.subplots_adjust(left=0.04, bottom=0.05, right=0.99, top=0.99)
-	plt.savefig(abs_saving_path, dpi=250, format="png")
+	ax.set_xlim(0, slice_length_ms)
+	ax.set_xticks(range(slice_length_ms + 1))
+	ax.set_xticklabels(range(slice_length_ms + 1))
+	ax.set_yticks(yticks)
+	ax.set_yticklabels(range(1, slices_number + 1))
+	fig.subplots_adjust(left=0.04, bottom=0.05, right=0.99, top=0.99)
+	fig.savefig(f"{save_folder}/shadow_{filename}.png", dpi=250, format="png")
 
 	if debugging:
 		plt.show()
 
 	plt.close()
 
-	logging.info(f"Saved file at {abs_saving_path}")
+	logging.info(f"saved file in {save_folder}")
 
 
-def plot_results(save_folder, step=0.1, ees_hz=40):
-	chunk_size = int(step / 0.025)
-	logging.info("Start plotting")
-
+def plot_results(save_folder, ees_hz=40, sim_step=0.025):
 	for filename in filter(lambda f: f.endswith(".hdf5"), os.listdir(save_folder)):
-		logging.info(f"Slimming data from {filename}")
-		with hdf5.File(f'{save_folder}/{filename}') as hdf5_file:
-			slimmed_data_per_test = []
-			for data in hdf5_file.values():
-				slimmed_data_per_test.append([np.mean(data[i:i+chunk_size]) for i in range(0, len(data), chunk_size)])
-
-		title = "".join(filename.split(".")[:-1])
-		boxplot_shadows(slimmed_data_per_test, ees_hz, step, save_folder=save_folder, filename=title)
+		logging.info(f"start plotting {filename}")
+		with hdf5.File(f"{save_folder}/{filename}") as hdf5_file:
+			listed_data = [data[:] for data in hdf5_file.values()]
+			title = os.path.splitext(filename)[0]
+			boxplot_shadows(listed_data, ees_hz, sim_step, save_folder=save_folder, filename=title)
 
 
 def testrunner():
 	tests_number = 25
-	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/kek"
-	save_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat"
+	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
+	save_folder = f"{script_place}/dat"
 
-	run_tests(script_place, tests_number)
-	convert_to_hdf5(save_folder)
-	plot_results(save_folder, step=0.1, ees_hz=40)
+	# run_tests(script_place, tests_number)
+	# convert_to_hdf5(save_folder)
+	plot_results(save_folder, sim_step=0.025, ees_hz=40)
 
 
 if __name__ == "__main__":
