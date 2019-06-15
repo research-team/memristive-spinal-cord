@@ -100,7 +100,7 @@ def angle_between(v1, v2):
 	return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
 
-def run(with_mono=False):
+def run(with_mono=False, debugging=False):
 	after_latencies = not with_mono
 
 	# keys
@@ -125,7 +125,7 @@ def run(with_mono=False):
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
 	neuron_means = normalization(neuron_means, -1, 1)
 
-	gras_list = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5', 10000, 22000)
+	gras_list = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5', 5000, 11000)
 	gras_means = list(map(lambda voltages: np.mean(voltages), zip(*gras_list)))
 	gras_means = normalization(gras_means, -1, 1)
 
@@ -176,6 +176,9 @@ def run(with_mono=False):
 
 		# plot dots
 		ax.scatter(coords[:, X], coords[:, Y], color=color, label=label, s=80)
+		if debugging:
+			for index, x, y in zip(range(len(coords[:, X])), coords[:, X], coords[:, Y]):
+				ax.text(x, y, index + 1)
 
 		# plot ellipse
 		ellipse = Ellipse(xy=center, width=ellipse_width, height=ellipse_height, angle=angle_degrees * sign)
