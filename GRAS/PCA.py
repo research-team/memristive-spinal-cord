@@ -1,4 +1,3 @@
-import struct
 import numpy as np
 import pylab as plt
 import h5py as hdf5
@@ -101,7 +100,9 @@ def angle_between(v1, v2):
 	return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
 
-def run():
+def run(with_mono=False):
+	after_latencies = not with_mono
+
 	# keys
 	X = 0
 	Y = 1
@@ -124,19 +125,19 @@ def run():
 	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
 	neuron_means = normalization(neuron_means, -1, 1)
 
-	gras_list = select_slices(f'{data_folder}/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
+	gras_list = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5', 10000, 22000)
 	gras_means = list(map(lambda voltages: np.mean(voltages), zip(*gras_list)))
 	gras_means = normalization(gras_means, -1, 1)
 
 	# calculating latencies and amplitudes of mean values
 	bio_means_lat = sim_process(bio_means, bio_step, inhibition_zero=True)[0]
-	bio_means_amp = sim_process(bio_means, bio_step, inhibition_zero=True, after_latencies=True)[1]
+	bio_means_amp = sim_process(bio_means, bio_step, inhibition_zero=True, after_latencies=after_latencies)[1]
 
 	neuron_means_lat = sim_process(neuron_means, sim_step, inhibition_zero=True)[0]
-	neuron_means_amp = sim_process(neuron_means, sim_step, inhibition_zero=True, after_latencies=True)[1]
+	neuron_means_amp = sim_process(neuron_means, sim_step, inhibition_zero=True, after_latencies=after_latencies)[1]
 
 	gras_means_lat = sim_process(gras_means, sim_step, inhibition_zero=True)[0]
-	gras_means_amp = sim_process(gras_means, sim_step, inhibition_zero=True, after_latencies=True)[1]
+	gras_means_amp = sim_process(gras_means, sim_step, inhibition_zero=True, after_latencies=after_latencies)[1]
 
 	bio_pack = [np.array(list(zip(bio_means_amp, bio_means_lat))), '#a6261d', 'bio']
 	neuron_pack = [np.array(list(zip(neuron_means_amp, neuron_means_lat))), '#f2aa2e', 'neuron']

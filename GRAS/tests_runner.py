@@ -6,8 +6,10 @@ import numpy as np
 import h5py as hdf5
 import pylab as plt
 
+
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
+
 
 def run_tests(script_place, tests_number):
 	for test_index in range(tests_number):
@@ -32,25 +34,24 @@ def run_tests(script_place, tests_number):
 
 def convert_to_hdf5(result_folder):
 	for muscle in ["MN_E", "MN_F"]:
-		logger.info(f"converting {muscle} data: .dat -> .hdf5")
-
-		files = filter(lambda f: f.endswith(f"{muscle}.dat"), os.listdir(result_folder))
+		logger.info(f"converting {muscle} dat files to hdf5")
+		is_datfile = lambda f: f.endswith(f"{muscle}.dat")
+		datfiles = filter(is_datfile, os.listdir(result_folder))
 
 		with hdf5.File(f"{result_folder}/{muscle}.hdf5", 'w') as hdf5_file:
-			for test_index, filename in enumerate(files):
-				logger.info(f"process test #{test_index}")
+			for test_index, filename in enumerate(datfiles):
 				with open(f"{result_folder}/{filename}") as dat_file:
-					data = list(map(lambda x: -float(x), dat_file.readline().split()))
-					if any(map(lambda x: np.isnan(x), data)):
+					data = [-float(v) for v in dat_file.readline().split()]
+					if any(map(np.isnan, data)):
 						logging.info(f"{filename} has NaN... skip")
 						continue
 					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
 		# check hdf5
 		with hdf5.File(f"{result_folder}/{muscle}.hdf5") as hdf5_file:
-			assert all(map(lambda d: len(d) > 0, hdf5_file.values()))
+			assert all(map(len, hdf5_file.values()))
 
 
-def calc_box(data_per_step):
+def calc_boxplots(data_per_slice):
 	medians = []
 	boxes_y_high = []
 	boxes_y_low = []
@@ -59,7 +60,7 @@ def calc_box(data_per_step):
 	fliers_high = []
 	fliers_low = []
 
-	for dots in data_per_step:
+	for dots in data_per_slice:
 		low_box_Q1, median, high_box_Q3 = np.percentile(dots, [25, 50, 75])
 		# calc borders
 		IQR = high_box_Q3 - low_box_Q1
@@ -108,8 +109,8 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 	slices_number = int(len(data_per_test[0]) / slice_length_ms * step)
 	steps_in_slice = int(slice_length_ms / step)
 	# tests dots at each time -> N (test number) dots at each time
-	data_per_step = zip(*data_per_test)
-	data_per_slice = [calc_box(data_per_slice) for data_per_slice in list(zip(*[iter(data_per_step)] * steps_in_slice))]
+	bars_per_step = zip(*data_per_test)
+	data_per_slice = map(calc_boxplots, zip(*[iter(bars_per_step)] * steps_in_slice))
 
 	# build plot
 	yticks = []
@@ -121,11 +122,10 @@ def boxplot_shadows(data_per_test, ees_hz, step, save_folder=None, filename=None
 		y_offset = slice_index * 30
 		med, b_high, b_low, w_high, w_low, f_high, f_low = bp_data_per_slice
 		ax.fill_between(shared_x, [y + y_offset for y in f_low], [y + y_offset for y in f_high], alpha=0.1, color='r')
-		ax.fill_between(shared_x, [y + y_offset for y in w_low], [y + y_offset for y in w_high], alpha=0.25, color='r')
-		ax.fill_between(shared_x, [y + y_offset for y in b_low], [y + y_offset for y in b_high], alpha=0.5, color='r')
+		ax.fill_between(shared_x, [y + y_offset for y in w_low], [y + y_offset for y in w_high], alpha=0.3, color='r')
+		ax.fill_between(shared_x, [y + y_offset for y in b_low], [y + y_offset for y in b_high], alpha=0.6, color='r')
 		ax.plot(shared_x, [y + y_offset for y in med], color='k', linewidth=0.7)
 		yticks.append(med[0] + y_offset)
-
 	# plotting stuff
 	ax.set_xlim(0, slice_length_ms)
 	ax.set_xticks(range(slice_length_ms + 1))
@@ -158,7 +158,7 @@ def testrunner():
 	save_folder = f"{script_place}/dat"
 
 	# run_tests(script_place, tests_number)
-	# convert_to_hdf5(save_folder)
+	convert_to_hdf5(save_folder)
 	plot_results(save_folder, sim_step=0.025, ees_hz=40)
 
 
