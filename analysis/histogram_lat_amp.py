@@ -23,13 +23,13 @@ def draw_lat_amp(data_pack):
 		data_pack (tuple):
 			data pack of latenccies and amplitudes
 	"""
-	bar_width = 0.2
+	bar_width = 0.35
 	latencies = data_pack[0]
 	amplitudes = data_pack[1]
 
 	# create axes
 	fig, lat_axes = plt.subplots(1, 1, figsize=(15, 12))
-	xticks = range(len(amplitudes))
+	xticks = [i + 1 for i in range(len(amplitudes))]
 
 	print("xticks = ", len(xticks), xticks)
 	print("latencies = ", len(latencies), latencies)
@@ -51,7 +51,7 @@ def draw_lat_amp(data_pack):
 		lat = round(latencies[index], 2)
 		# lat_axes.text(index - bar_width / 2, lat + max(latencies) / 50, str(lat))
 		# amp_axes.text(index + bar_width / 2, amp + max(amplitudes) / 50, str(amp))
-	plt.xticks(fontsize=45)
+	plt.xticks(fontsize=56)
 	plt.yticks(fontsize=56)
 	# plt.legend((lat_plot, amp_plot), ("Latency", "Amplitude"), loc='best')
 	plt.show()
@@ -71,21 +71,21 @@ def run():
 		bio_volt = bio_data_runs()
 		bio_data = list(map(lambda voltages: np.mean(voltages), zip(*bio_volt)))
 		bio_volt = normalization(bio_data, -1, 1)
-		bio_pack = sim_process(bio_volt, step=bio_step, debugging=False, inhibition_zero=True)
+		bio_pack = sim_process(bio_volt, step=bio_step, debugging=False, inhibition_zero=True, after_latencies=False)
 		print("bio_pack = ", bio_pack)
 		nest_pack = sim_process(list(map(lambda voltages: np.mean(voltages), zip(*nest_tests))), sim_step,
-		                        inhibition_zero=True)
+		                        inhibition_zero=True, after_latencies=False)
 		neuron_data = list(map(lambda voltages: np.mean(voltages), zip(*neuron_tests)))
 		print("neuron_data = ", len(neuron_data))
 		neuron_data = normalization(neuron_data, -1, 1)
 		print("neuron_data = ", neuron_data)
 
-		neuron_pack = sim_process(neuron_data, sim_step, inhibition_zero=True)
+		neuron_pack = sim_process(neuron_data, sim_step, inhibition_zero=True, after_latencies=False)
 		print("neuron_pack = ", neuron_pack)
 		gpu_data = list(map(lambda voltages: np.mean(voltages), zip(*gpu_data)))
 		gpu_data = normalization(gpu_data, -1, 1)
 		gpu_pack = sim_process(gpu_data, sim_step,
-		                       inhibition_zero=True)
+		                       inhibition_zero=True, after_latencies=False)
 
 		res_pack = calc_delta(bio_pack, neuron_pack)
 		print("bio - neuron")
