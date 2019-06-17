@@ -9,26 +9,38 @@ from GRAS.shadows_boxplot import plot_shadows_boxplot
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
+tests_number, cms, ees, inh, ped, ht5 = range(6)
 
-def run_tests(build_folder, tests_number):
+def run_tests(build_folder, args):
 	"""
 	Run N-times cpp builded CUDA file via bash commands
 	Args:
 		build_folder (str): where cpp file is placed
-		tests_number (int): number of tests
+		args (dict): special args for building properly simulation
 	"""
-	for test_index in range(tests_number):
-		logger.info(f"running test #{test_index}")
+	buildname = "build"
+	assert args[ped] in [2, 4]
+	assert args[ht5] in [0, 1]
+	assert 0 <= args[inh] <= 100
+	assert args[cms] in [21, 15, 6]
 
-		cmd_run = f"{build_folder}/kek {test_index} 0"
+	nvcc = "/usr/local/cuda-10.0/bin/nvcc"
+	buildfile = "two_muscle_simulation.cu"
 
-		process = subprocess.Popen(cmd_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-		out, err = process.communicate()
+	for itest in range(args[tests_number]):
+		logger.info(f"running test #{itest}")
+		cmd_build = f"{nvcc} -o {build_folder}/{buildname} {build_folder}/{buildfile}"
+		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {itest} 0"
 
-		for output in str(out.decode("UTF-8")).split("\n"):
-			logger.info(output)
-		for error in str(err.decode("UTF-8")).split("\n"):
-			logger.info(error)
+		for cmd in [cmd_build, cmd_run]:
+			logger.info(f"Execute: {cmd}")
+			process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			out, err = process.communicate()
+
+			for output in str(out.decode("UTF-8")).split("\n"):
+				logger.info(output)
+			for error in str(err.decode("UTF-8")).split("\n"):
+				logger.info(error)
 
 
 def convert_to_hdf5(result_folder):
@@ -70,18 +82,28 @@ def plot_results(save_folder, ees_hz=40, sim_step=0.025):
 		title = os.path.splitext(filename)[0]
 		logging.info(f"start plotting {filename}")
 		with hdf5.File(f"{save_folder}/{filename}") as hdf5_file:
-			listed_data = [data[:] for data in hdf5_file.values()]
+			listed_data = np.array([data[:] for data in hdf5_file.values()])
+			from time import time
+			start = time()
 			plot_shadows_boxplot(listed_data, ees_hz, sim_step, save_folder=save_folder, filename=title)
+			end = time()
+			print(end - start)
 
 
 def testrunner():
-	tests_number = 25
 	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
 	save_folder = f"{script_place}/dat"
 
-	run_tests(script_place, tests_number)
-	convert_to_hdf5(save_folder)
-	plot_results(save_folder, sim_step=0.025, ees_hz=40)
+	args = {tests_number: 5,
+	        cms: 21,
+	        ees: 40,
+	        inh: 100,
+	        ped: 2,
+	        ht5: 0}
+
+	run_tests(script_place, args)
+	# convert_to_hdf5(save_folder)
+	# plot_results(save_folder, ees_hz=args[ees])
 
 
 if __name__ == "__main__":
