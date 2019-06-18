@@ -49,22 +49,20 @@ def plot_shadows_boxplot(data_per_test, ees_hz, step, save_folder, filename, deb
 	steps_in_slice = int(slice_length_ms / step)
 	# tests dots at each time -> N (test number) dots at each time
 	splitted = np.split(np.array([calc_boxplots(dot) for dot in data_per_test.T]), slices_number)
-	splitted = np.array([matrix + y for matrix, y in zip(splitted, range(0, slices_number * 30, 30))])
 
 	# build plot
 	yticks = []
-	shared_x = [x * step for x in range(steps_in_slice)]
+	shared_x = np.arange(steps_in_slice) * step
 
 	fig, ax = plt.subplots(figsize=(16, 9))
-	# plot each slice
-	# 0     1       2       3       4       5       6
-	# med, b_high, b_low, w_high, w_low, f_high, f_low
-	for data in splitted:
+
+	for i, data in enumerate(splitted):
+		data += i * 30
+		ax.fill_between(shared_x, data[:, 6], data[:, 5], alpha=0.1, color='r')  # 6 f_low, 5 f_high
+		ax.fill_between(shared_x, data[:, 4], data[:, 3], alpha=0.3, color='r')  # 4 w_low, 3 w_high
+		ax.fill_between(shared_x, data[:, 2], data[:, 1], alpha=0.6, color='r')  # 2 b_low, 1 b_high
+		ax.plot(shared_x, data[:, 0], color='k', linewidth=0.7)  # 0 med
 		yticks.append(data[0, 0])
-		ax.fill_between(shared_x, data[:, 6], data[:, 5], alpha=0.1, color='r')
-		ax.fill_between(shared_x, data[:, 4], data[:, 3], alpha=0.3, color='r')
-		ax.fill_between(shared_x, data[:, 2], data[:, 1], alpha=0.6, color='r')
-		ax.plot(shared_x, data[:, 0], color='k', linewidth=0.7)
 
 	# plotting stuff
 	ax.set_xlim(0, slice_length_ms)
