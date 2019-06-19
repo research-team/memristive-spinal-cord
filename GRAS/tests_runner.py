@@ -1,109 +1,110 @@
+import os
 import logging
 import subprocess
 import numpy as np
 import h5py as hdf5
-from analysis.shadows import plot_shadows
-
-ABS_PATH = "/home/alex/GitHub/memristive-spinal-cord/izhikevichGPU/"
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('Converter')
-
-def run_tests(command, tests_number):
-	logger.info("start {} tests".format(tests_number))
-	for i in range(tests_number):
-		logger.info("running test #{}".format(i))
-		subprocess.call([command, str(i)])
+from GRAS.shadows_boxplot import plot_shadows_boxplot
 
 
-def write_to_hdf5(tests_number, filename, step):
-	all_data_E = []
-	all_data_F = []
-	logger.info("start write data to the HDF5")
-	flexor_end = int(125 / step)
+logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
+logger = logging.getLogger()
 
-	for test_index in range(tests_number):
-		logger.info("process test #{}".format(test_index))
-		with open('{}/volt_{}.dat'.format(ABS_PATH, test_index), 'r') as file:
-			per_test_mean_data_extensor = []
-			per_test_mean_data_flexor = []
-			for line in file.readlines():
-				nrn_id, *volts = line.split()
-				if 1212 <= int(nrn_id) <= 1380:
-					first_val = float(volts[0])
-					per_test_mean_data_extensor.append([-float(volt) + first_val for volt in volts])
-				if 1381 <= int(nrn_id) <= 1549:
-					first_val = float(volts[0])
-					per_test_mean_data_flexor.append([-float(volt) + first_val for volt in volts])
-			mean_extensor = list(map(lambda x: np.mean(x), zip(*per_test_mean_data_extensor)))
-			mean_flexor = list(map(lambda x: np.mean(x), zip(*per_test_mean_data_flexor)))
+tests_number, cms, ees, inh, ped, ht5 = range(6)
 
-			if test_index == 1:
-				import pylab
-				shared_x = [x * step for x in range(len(mean_extensor))]
-				pylab.plot(shared_x, mean_flexor, label="Flexor")
-				pylab.plot(shared_x, mean_extensor, label="Extensor")
-				pylab.xlim(0, 275)
-				for i in range(0, 276, 25):
-					pylab.axvline(x=i, color='grey', linestyle='--')
-				pylab.xticks(range(0, 276, 25))
-				pylab.yticks([])
-				pylab.legend()
-				pylab.show()
+def run_tests(build_folder, args):
+	"""
+	Run N-times cpp builded CUDA file via bash commands
+	Args:
+		build_folder (str): where cpp file is placed
+		args (dict): special args for building properly simulation
+	"""
+	buildname = "build"
+	assert args[ped] in [2, 4]
+	assert args[ht5] in [0, 1]
+	assert 0 <= args[inh] <= 100
+	assert args[cms] in [21, 15, 6]
 
-			all_data_F.append(mean_flexor)
-			all_data_E.append(mean_extensor)
+	nvcc = "/usr/local/cuda-10.0/bin/nvcc"
+	buildfile = "two_muscle_simulation.cu"
 
-			with open("/home/alex/MP_E.dat", 'w') as f:
-				for v in mean_extensor:
-					f.write("{} ".format(v))
-			with open("/home/alex/MP_F.dat", 'w') as f:
-				for v in mean_flexor:
-					f.write("{} ".format(v))
+	for itest in range(args[tests_number]):
+		logger.info(f"running test #{itest}")
+		cmd_build = f"{nvcc} -o {build_folder}/{buildname} {build_folder}/{buildfile}"
+		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {itest} 0"
 
-	logger.info("writing data to the HDF5")
-	with hdf5.File('{}E.hdf5'.format(filename), 'w') as file:
-		# foreach test data
-		for test_index, test_data in enumerate(all_data_E):
-			# convert iterator 'test_data' to the list
-			file.create_dataset("test_{}".format(test_index), data=list(test_data), compression="gzip")
-	with hdf5.File('{}F.hdf5'.format(filename), 'w') as file:
-		# foreach test data
-		for test_index, test_data in enumerate(all_data_F):
-			# convert iterator 'test_data' to the list
-			file.create_dataset("test_{}".format(test_index), data=list(test_data), compression="gzip")
+		for cmd in [cmd_build, cmd_run]:
+			logger.info(f"Execute: {cmd}")
+			process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			out, err = process.communicate()
+
+			for output in str(out.decode("UTF-8")).split("\n"):
+				logger.info(output)
+			for error in str(err.decode("UTF-8")).split("\n"):
+				logger.info(error)
 
 
-def read_hdf5(filename, step=0.25, begin=0, end=0):
-	step_begin = int(begin / step)
-	step_end = int(end / step)
+def convert_to_hdf5(result_folder):
+	"""
+	Converts dat files into hdf5 with compression
+	Args:
+		result_folder (str): folder where is the dat files placed
+	"""
+	# process only files with these muscle names
+	for muscle in ["MN_E", "MN_F"]:
+		logger.info(f"converting {muscle} dat files to hdf5")
+		is_datfile = lambda f: f.endswith(f"{muscle}.dat")
+		datfiles = filter(is_datfile, os.listdir(result_folder))
+		# prepare hdf5 file for writing data per test
+		with hdf5.File(f"{result_folder}/{muscle}.hdf5", 'w') as hdf5_file:
+			for test_index, filename in enumerate(datfiles):
+				with open(f"{result_folder}/{filename}") as datfile:
+					data = [-float(v) for v in datfile.readline().split()]
+					# check on NaN values (!important)
+					if any(map(np.isnan, data)):
+						logging.info(f"{filename} has NaN... skip")
+						continue
+					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
+		# check that hdf5 file was written properly
+		with hdf5.File(f"{result_folder}/{muscle}.hdf5") as hdf5_file:
+			assert all(map(len, hdf5_file.values()))
 
-	all_data_E = []
-	all_data_F = []
-	logger.info("read data from {} ms to {} ms with step {}".format(begin, end, step))
-	with hdf5.File('{}/{}E.hdf5'.format(ABS_PATH, filename), 'r') as file:
-		for data in file.values():
-			all_data_E.append(list(data[step_begin:step_end]))
-	with hdf5.File('{}/{}F.hdf5'.format(ABS_PATH, filename), 'r') as file:
-		for data in file.values():
-			all_data_F.append(list(data[step_begin:step_end]))
 
-	return all_data_F, all_data_E
+def plot_results(save_folder, ees_hz=40, sim_step=0.025):
+	"""
+	Plot hdf5 results by invoking special function of plotting shadows based on boxplots
+	Args:
+		save_folder (str): folder of hdf5 results and folder for saving current plots
+		ees_hz (int): value of EES in Hz
+		sim_step (float): simulation step (0.025 is standard)
+	"""
+	# for each hdf5 file get its data and plot
+	for filename in filter(lambda f: f.endswith(".hdf5"), os.listdir(save_folder)):
+		title = os.path.splitext(filename)[0]
+		logging.info(f"start plotting {filename}")
+		with hdf5.File(f"{save_folder}/{filename}") as hdf5_file:
+			listed_data = np.array([data[:] for data in hdf5_file.values()])
+			from time import time
+			start = time()
+			plot_shadows_boxplot(listed_data, ees_hz, sim_step, save_folder=save_folder, filename=title)
+			end = time()
+			print(end - start)
 
 
-def run():
-	tests_number = 20
-	command = "/home/alex/GitHub/memristive-spinal-cord/izhikevichGPU/matrix_solution/kek"
-	hdf5_filename = "two_muslces_{}_tests".format(tests_number)
-	step = 0.25
+def testrunner():
+	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
+	save_folder = f"{script_place}/dat"
 
-	run_tests(command, tests_number)
-	write_to_hdf5(tests_number, hdf5_filename, step)
-	all_data_F, all_data_E = read_hdf5(hdf5_filename, step=step, begin=0, end=275)
-	plot_shadows(all_data_F, step=step, save_folder=ABS_PATH, filename=hdf5_filename+"F")
-	plot_shadows(all_data_E, step=step, save_folder=ABS_PATH, filename=hdf5_filename+"E")
+	args = {tests_number: 5,
+	        cms: 21,
+	        ees: 40,
+	        inh: 100,
+	        ped: 2,
+	        ht5: 0}
 
-	# ToDo send 'data' to the shadows plotting script
+	run_tests(script_place, args)
+	# convert_to_hdf5(save_folder)
+	# plot_results(save_folder, ees_hz=args[ees])
+
 
 if __name__ == "__main__":
-	run()
+	testrunner()
