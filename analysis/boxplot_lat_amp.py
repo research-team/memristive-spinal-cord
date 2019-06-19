@@ -101,6 +101,8 @@ def run():
 	for test in range(len(gras_tests_ex)):
 		gras_tests_ex[test] = normalization(gras_tests_ex[test], -1, 1)
 
+	bio_volt = bio_data_runs()
+
 	# the main loop of simulations data
 	# bio_data_ex = bio_data_runs('RMG')
 	# bio_data_fl = bio_data_runs('RTA')
@@ -108,14 +110,14 @@ def run():
 	# 	bio_data_ex[test] = normalization(bio_data_ex[test], -1, 1)
 	# for test in range(len(bio_data_fl)):
 	# 	bio_data_fl[test] = normalization(bio_data_fl[test], -1, 1)
-	for sim_datas, step in [(neuron_tests_ex, sim_step),
+	for sim_datas, step in [(bio_volt, bio_step),
 	                                (gras_tests_ex, sim_step)]:
 		latencies = []
 		amplitudes = []
 		# collect amplitudes and latencies per test data
 		for i, test_data in enumerate(sim_datas):
 			print("i = ", i)
-			sim_lat, sim_amp = sim_process(test_data, step, after_latencies=False)
+			sim_lat, sim_amp = sim_process(test_data, step, inhibition_zero=True, after_latencies=False)
 			latencies.append(sim_lat)
 			amplitudes.append(sim_amp)
 		print("amplitudes = ", amplitudes)

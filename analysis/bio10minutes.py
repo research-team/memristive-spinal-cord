@@ -7,8 +7,8 @@ from matplotlib import pyplot
 from analysis.functions import read_neuron_data
 import numpy as np
 
-path = '../bio-data/notiception/atp/atp_75002880.txt'
-path_neuron = '/home/anna/PycharmProjects/LAB/neuron-data/resATP3.hdf5'
+path = '../bio-data/notiception/5ht/5ht_4Ser2mkM_75002880.txt'
+path_neuron = '/home/anna/PycharmProjects/LAB/neuron-data/res5HT (2).hdf5'
 # path_spike_times = '../../neuron-data/st2.txt'
 # path_neuron = '../../neuron-data/resATP.hdf5'
 # additional_path_neuron = '../../neuron-data/resATP.hdf5'
@@ -60,10 +60,10 @@ for i in range(5):
 
 # print("neuron_by_1min = ", len(neuron_by_1min))
 # for m  in neuron_by_1min:
-	# plt.plot(m)
-	# plt.title('neuron')
-	# plt.show()
-# 	print("len(m) = ", m[0:100])
+# 	plt.plot(m)
+# 	plt.title('neuron')
+# 	plt.show()
+	# print("len(m) = ", m[0:100])
 # raise Exception
 # plt.show()
 with open(path) as f:
@@ -71,10 +71,10 @@ with open(path) as f:
 # print("len(floats) = ", len(floats))    # 75002880
 # raise Exception
 # floats = floats[int(len(floats) / 2):]
-# plt.plot(floats)
-# plt.title('bio')
+plt.plot(floats)
+plt.title('bio')
 # plt.ylim(-0.68, 0.95)
-# plt.show()
+plt.show()
 # print("len(floats) = ", len(floats))
 
 # with open(path_neuron) as f:
@@ -172,7 +172,7 @@ print("spikes_bio = ", spikes_bio)
 	# print("minu = ", len(minu))
 	# pyplot.vlines(minu, ymin=0, ymax=1)
 	# pyplot.ylim(0, 2)
-	# pyplot.title("Spike times neuron ATP")
+	# pyplot.title("Spike times neuron 5HT")
 	# plt.show()
 # spikes_neuron = [s / 40 for s in spikes_neuron]
 
@@ -240,4 +240,6 @@ print("median_bio = ", median_bio)
 fig, ax = pyplot.subplots()
 ax.boxplot(data)
 ax.set_xticklabels(names)
+int = [intervals, intervals_bio]
+pyplot.ylim(-100, 5000)
 pyplot.show()

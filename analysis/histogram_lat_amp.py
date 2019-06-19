@@ -58,7 +58,7 @@ def draw_lat_amp(data_pack):
 
 
 def run():
-	plot_delta = True
+	plot_delta = False
 
 	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
 	nest_tests = read_nest_data('../../nest-data/sim_extensor_eesF40_i100_s15cms_T.hdf5')

@@ -4,11 +4,12 @@ from matplotlib import pylab as plt
 from cycler import cycler
 import matplotlib.patches as mpatches
 from analysis.shadows import debugging
-from analysis.functions import find_min_diff
+from analysis.functions import find_min_diff, sim_process
 from analysis.cut_several_steps_files import select_slices
 
 # importing bio runs from the function 'bio_data_runs'
 bio_runs = bio_data_runs()
+bio_mean_data = list(map(lambda voltages: np.mean(voltages), zip(*bio_runs)))
 
 # forming list for shadows plotting
 all_bio_slices = []
@@ -100,9 +101,9 @@ for index, run in enumerate(all_neuron_slices):
 	# yticks.append(means[0])
 	minimal_per_step = [min(a) for a in zip(*run)]
 	maximal_per_step = [max(a) for a in zip(*run)]
-	plt.plot(times, means, linewidth=0.5, color='k')
-	plt.fill_between(times, [mini + offset for mini in minimal_per_step],
-	                 [maxi + offset for maxi in maximal_per_step], alpha=0.35, color=colors[1])
+	# plt.plot(times, means, linewidth=0.5, color='k')
+	# plt.fill_between(times, [mini + offset for mini in minimal_per_step],
+	#                  [maxi + offset for maxi in maximal_per_step], alpha=0.35, color=colors[1])
 
 
 
@@ -110,24 +111,31 @@ for index, run in enumerate(all_neuron_slices):
 # print("necessary_indexes = ", necessary_indexes)
 # print("min_indexes_in_min = ", min_indexes_in_min)
 # print("min_indexes_in_max = ", min_indexes_in_max)
-# min_difference_indexes, max_difference_indexes, necessary_indexes = find_min_diff(all_maxes, all_mins, step)
+min_difference_indexes, max_difference_indexes, necessary_indexes = find_min_diff(all_maxes, all_mins, step)
+
+lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True, first_kink=True)[0]
+min_lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True)[0]
 x_coor = []
 y_coor = []
 
 for index, run in enumerate(all_bio_slices):
-	offset = index * 6
+	coord = int(lat[index] * 4)
+	min_lat_coord = int(min_lat[index] * 4)
+	offset = index * 12
 	mean_data = list(map(lambda elements: np.mean(elements), zip(*run)))
 	times = [time * step for time in range(len(mean_data))]
 	# print("times = ", len(times), times)
 	# print("necessary_indexes[{}] = ".format(index), necessary_indexes[index])
-	# plt.plot(times[min_difference_indexes[index]], mean_data[min_difference_indexes[index]] + offset, marker='.',
-	#          markersize=12, color='red')
-	# plt.plot(times[max_difference_indexes[index]], mean_data[max_difference_indexes[index]] + offset, marker='.',
-	#          markersize=12,	color='blue')
-	# plt.plot(times[necessary_indexes[index]], mean_data[necessary_indexes[index]] + offset, marker='.',
-	#          markersize=12,	color='black')
-	# x_coor.append(times[necessary_indexes[index]])
-	# y_coor.append(mean_data[necessary_indexes[index]] + offset)
+	plt.plot(times[min_difference_indexes[index]], mean_data[min_difference_indexes[index]] + offset, marker='.',
+	         markersize=12, color='red')
+	plt.plot(times[max_difference_indexes[index]], mean_data[max_difference_indexes[index]] + offset, marker='.',
+	         markersize=12,	color='blue')
+	plt.plot(times[necessary_indexes[index]], mean_data[necessary_indexes[index]] + offset, marker='.',
+	         markersize=12,	color='black')
+	plt.plot(times[coord], mean_data[coord] + offset, marker='s', markersize=12, color='k')
+	plt.plot(times[min_lat_coord], mean_data[min_lat_coord] + offset, marker='d', markersize=12, color='k')
+	x_coor.append(times[necessary_indexes[index]])
+	y_coor.append(mean_data[necessary_indexes[index]] + offset)
 	x_2_coors = []
 	y_2_coors = []
 	if len(x_coor) > 1:
@@ -135,7 +143,7 @@ for index, run in enumerate(all_bio_slices):
 		x_2_coors.append(x_coor[-1])
 		y_2_coors.append(y_coor[-2])
 		y_2_coors.append(y_coor[-1])
-		# plt.plot(x_2_coors, y_2_coors, linestyle='--', color='black')
+		plt.plot(x_2_coors, y_2_coors, linestyle='--', color='black')
 		# plt.plot(6, times[necessary_indexes[index]], color='green', marker='.', markersize=24)
 plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
 plt.yticks(yticks, range(1, len(all_bio_slices) + 1), fontsize=14)

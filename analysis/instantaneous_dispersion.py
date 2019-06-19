@@ -187,17 +187,19 @@ latencies = sim_process(volts, step, inhibition_zero=True)[0]
 print("latencies = ", latencies)
 # print("latencies = ", latencies)
 yticks = []
-# color_number = 0
-# for index, sl in enumerate(all_bio_slices):
-# 	offset = index * 16
+color_number = 0
+for index, sl in enumerate(all_bio_slices):
+	offset = index * 2
 	# print("sl[{}][0]".format(run), sl[run][0])
-	# times = [time * step for time in range(len(all_bio_slices[0][0]))]
-	# for run in range(len(sl)):
-		# plt.plot(times, [s + offset for s in sl[run]], color=colors[color_number], linewidth=1)
+	times = [time * step for time in range(len(all_bio_slices[0][0]))]
+	for run in range(len(sl)):
+		plt.plot(times, [s + offset for s in sl[run]], color=colors[color_number], linewidth=1)
 	#  this think draws a lot of slices
-	# color_number += 1
-	# yticks.append(sl[run][0] + offset)
-
+	color_number += 1
+	yticks.append(sl[run][0] + offset)
+plt.yticks(yticks, range(1, len(all_bio_slices) + 1), fontsize=14)
+plt.xlim(0, 25)
+plt.show()
 # color_number = 12
 # yticks = []
 
@@ -235,17 +237,17 @@ for index, sl in enumerate(instant_mean_sim):
 		# plt.plot(x_2_coors, y_2_coors, linestyle='--', color='green')
 print("yticks sim= ", yticks)
 
-# times = []
-# for index, sl in enumerate(slices):
-# 	offset = index * 16 + 8
-	# yticks.append(sl[0] + offset)
-	# times = [time * step for time in range(len(sl))]
-	# plt.plot(times, [s + offset for s in sl])
-# plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)])
-# plt.yticks(yticks, range(1, len(slices) + 1))
-# plt.xlim(0, 25)
-# plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
-# plt.show()
+times = []
+for index, sl in enumerate(slices):
+	offset = index * 16 + 8
+	yticks.append(sl[0] + offset)
+	times = [time * step for time in range(len(sl))]
+	plt.plot(times, [s + offset for s in sl])
+plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)])
+plt.yticks(yticks, range(1, len(slices) + 1))
+plt.xlim(0, 25)
+plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+plt.show()
 
 # plotting the dispersion
 # yticks = []
@@ -285,7 +287,7 @@ for index, sl in enumerate(instant_mean):
 	plt.plot(times, [s + offset for s in sl], linewidth=2, color='red')
 	yticks.append(sl[0] + offset)
 	plt.plot(latencies[index], sl[int(latency_x[index] / step)] + offset, marker='.', markersize=12, color='red')
-	plt.plot([s + offset for s in der_slices[index]], color='black')
+	# plt.plot([s + offset for s in der_slices[index]], color='black')
 	# pltting of the lines
 	x_coor.append(latencies[index])
 	y_coor.append(sl[int(latencies[index] / step)] + offset)
