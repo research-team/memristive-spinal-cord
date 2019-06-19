@@ -121,8 +121,8 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 		# x_coor.append(times[necessary_indexes[slice_number]])
 		# y_coor.append(mean_data[necessary_indexes[slice_number]] + offset)
 
-		print("x_coor = ", x_coor)
-		print("y_coor = ", y_coor)
+		# print("x_coor = ", x_coor)
+		# print("y_coor = ", y_coor)
 
 		x_2_coors = []
 		y_2_coors = []
@@ -135,9 +135,9 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 
 	# plot bio slices
 	step = 0.25
-	pylab.xticks(range(21), [i if i % 1 == 0 else "" for i in range(21)], fontsize=14)
-	pylab.yticks(yticks, range(1, len(slices) + 1), fontsize=6)
-	pylab.xlim(0, 20)
+	pylab.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
+	pylab.yticks(yticks, range(1, len(slices) + 1), fontsize=14)
+	pylab.xlim(0, 25)
 	pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 	# pylab.show()
 	# if the save path is not specified
@@ -161,7 +161,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../neuron-data/mn_E25testsspeed15.hdf5'
+	path = '../../neuron-data/mn_E10tests.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
@@ -169,11 +169,11 @@ def debugging():
 	slices = restructure_data(data, sim_step=sim_step)
 	dictionary = deepcopy(slices)
 
-	slices_1 = addFromTo(0, 12, dictionary)
-	slices_2 = addFromTo(18, 30, dictionary)
+	# slices_1 = addFromTo(0, 12, dictionary)
+	# slices_2 = addFromTo(18, 30, dictionary)
 
-	all_maxes, all_mins = plot(slices_1, sim_step, path, 0.2, 0.45, '#ed553b')
-	all_maxes, all_mins = plot(slices_2, sim_step, path, 0.2, 0.45, '#079294')
+	all_maxes, all_mins = plot(slices, sim_step, path, 0.2, 0.45, '#ed553b')
+	# all_maxes, all_mins = plot(slices_2, sim_step, path, 0.2, 0.45, '#079294')
 	# all_maxes, all_mins = plot(slices3, sim_step, path, 0.2, 0.45, '#fbad18')
 	pylab.show()
 	return all_maxes, all_mins

@@ -39,21 +39,15 @@ References:
 
 **/
 
-// parameters for variability of the simulation
-const int skin_stim_time = 25;       // [ms] time of stimulating sensory (based on speed)
-const int EES_FREQ = 40;             // [hz] spike frequency of EES
+int global_id = 0;
+int SIM_TIME_IN_STEPS;
 const int LEG_STEPS = 3;             // [step] number of full cycle steps
-const float T_SIMULATION = 11 * skin_stim_time * LEG_STEPS;      // [ms] simulation time
-const float INH_COEF = 1.0;          // strength coefficient of inhibitory synapses
 const float SIM_STEP = 0.025;        // [s] simulation step
-const bool is_4pedal = false;        // True if it is a quadrupedal simulation
-const bool has_5HT = false;          // True if nuclei has 5-HT receptors
 
 // stuff variables
-unsigned int global_id = 0;          // iter to count neurons one by one
 const int syn_outdegree = 27;        // synapse number outgoing from one neuron
 const int neurons_in_ip = 196;       // number of neurons in interneuronal pool
-const int neurons_in_aff_ip = 196;       // number of neurons in interneuronal pool
+const int neurons_in_aff_ip = 196;   // number of neurons in interneuronal pool
 const int neurons_in_moto = 169;     // motoneurons number
 const int neurons_in_group = 20;     // number of neurons in a group
 const int neurons_in_afferent = 120; // number of neurons in afferent
@@ -73,46 +67,40 @@ const float tau_syn_inh = 2.0;       // [ms] Decay time of inhibitory synaptic c
 const float V_adj = -63.0;           // adjusts threshold to around -50 mV
 const float g_bar = 1500;            // [nS] the maximal possible conductivity
 
-unsigned int synapses_number = 0;
-
-// calculate spike frequency in steps [steps]
-const unsigned int ees_spike_each_step = (unsigned int)(1000 / EES_FREQ / SIM_STEP);
-// calculate steps activation of C0 and C1
-const unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
-const unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
-// calculate how much steps in simulation time [steps]
-const unsigned int sim_time_in_steps = (unsigned int)(T_SIMULATION / SIM_STEP);
-
 // struct for human-readable initialization of connectomes
 struct SynapseMetadata {
-	unsigned int post_id;           // post neuron ID
-	unsigned int synapse_delay;     // [step] synaptic delay of the synapse (axonal delay is included to this delay)
-	float synapse_weight;  // [nS] synaptic weight. Interpreted as changing conductivity of neuron membrane
+	unsigned int pre_id;         // pre neuron ID
+	unsigned int post_id;        // post neuron ID
+	unsigned int synapse_delay;  // [step] synaptic delay of the synapse (axonal delay is included to this delay)
+	float synapse_weight;        // [nS] synaptic weight. Interpreted as changing conductivity of neuron membrane
 
-	SynapseMetadata() = default;
-	SynapseMetadata(int post_id, float synapse_delay, float synapse_weight){
+	SynapseMetadata(int pre_id, int post_id, float synapse_delay, float synapse_weight){
+		this->pre_id = pre_id;
 		this->post_id = post_id;
 		this->synapse_delay = static_cast<int>(synapse_delay * (1 / SIM_STEP) + 0.5);  // round
 		this->synapse_weight = synapse_weight;
 	}
 };
 
-// struct for human-readable initialization of connectomes
-struct Metadata {
-	Group group;
-	float* voltage_array = new float[sim_time_in_steps];  // [mV] array of membrane potential
-	float* g_exc = new float[sim_time_in_steps];          // [nS] array of excitatory conductivity
-	float* g_inh = new float[sim_time_in_steps];          // [nS] array of inhibition conductivity
-	vector<float> spike_vector;                           // [ms] spike times
 
-	Metadata() = default;
-	Metadata(Group group){
+// struct for human-readable initialization of connectomes
+struct GroupMetadata {
+	Group group;
+	float* g_exc;                // [nS] array of excitatory conductivity
+	float* g_inh;                // [nS] array of inhibition conductivity
+	float* voltage_array;        // [mV] array of membrane potential
+	vector<float> spike_vector;  // [ms] spike times
+
+	GroupMetadata(Group group){
 		this->group = group;
+		voltage_array = new float[SIM_TIME_IN_STEPS];
+		g_exc = new float[SIM_TIME_IN_STEPS];
+		g_inh = new float[SIM_TIME_IN_STEPS];
 	}
 };
 
-// keep all pointers to the groups to compute their mean voltage, g_exc and etc.
-vector<Metadata> all_groups;
+vector<GroupMetadata> all_groups;
+vector<SynapseMetadata> all_synapses;
 
 // form structs of neurons global ID and groups name
 Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
@@ -122,79 +110,14 @@ Group form_group(string group_name, int nrns_in_group = neurons_in_group) {
 	group.id_end = global_id + nrns_in_group - 1;  // the latest ID in the group
 	group.group_size = nrns_in_group;  // size of the neurons group
 
+	all_groups.push_back(GroupMetadata(group));
+
 	global_id += nrns_in_group;
+	printf("Formed %s IDs [%d ... %d] = %d\n",
+	       group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
 
-	printf("Formed %s IDs [%d ... %d] = %d\n", group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
-
-	all_groups.push_back(Metadata(group));
 	return group;
 }
-
-Group EES = form_group("EES");
-Group E1 = form_group("E1");
-Group E2 = form_group("E2");
-Group E3 = form_group("E3");
-Group E4 = form_group("E4");
-Group E5 = form_group("E5");
-
-Group CV1 = form_group("CV1", 1);
-Group CV2 = form_group("CV2", 1);
-Group CV3 = form_group("CV3", 1);
-Group CV4 = form_group("CV4", 1);
-Group CV5 = form_group("CV5", 1);
-Group CD4 = form_group("CD4", 1);
-Group CD5 = form_group("CD5", 1);
-
-Group OM1_0 = form_group("OM1_0");
-Group OM1_1 = form_group("OM1_1");
-Group OM1_2_E = form_group("OM1_2_E");
-Group OM1_2_F = form_group("OM1_2_F");
-Group OM1_3 = form_group("OM1_3");
-
-Group OM2_0 = form_group("OM2_0");
-Group OM2_1 = form_group("OM2_1");
-Group OM2_2_E = form_group("OM2_2_E");
-Group OM2_2_F = form_group("OM2_2_F");
-Group OM2_3 = form_group("OM2_3");
-
-Group OM3_0 = form_group("OM3_0");
-Group OM3_1 = form_group("OM3_1");
-Group OM3_2_E = form_group("OM3_2_E");
-Group OM3_2_F = form_group("OM3_2_F");
-Group OM3_3 = form_group("OM3_3");
-
-Group OM4_0 = form_group("OM4_0");
-Group OM4_1 = form_group("OM4_1");
-Group OM4_2_E = form_group("OM4_2_E");
-Group OM4_2_F = form_group("OM4_2_F");
-Group OM4_3 = form_group("OM4_3");
-
-Group OM5_0 = form_group("OM5_0");
-Group OM5_1 = form_group("OM5_1");
-Group OM5_2_E = form_group("OM5_2_E");
-Group OM5_2_F = form_group("OM5_2_F");
-Group OM5_3 = form_group("OM5_3");
-
-Group MN_E = form_group("MN_E", neurons_in_moto);
-Group MN_F = form_group("MN_F", neurons_in_moto);
-
-Group Ia_E_aff = form_group("Ia_E_aff", neurons_in_afferent);
-Group Ia_F_aff = form_group("Ia_F_aff", neurons_in_afferent);
-
-Group R_E = form_group("R_E");
-Group R_F = form_group("R_F");
-
-Group Ia_E_pool = form_group("Ia_E_pool", neurons_in_aff_ip);
-Group Ia_F_pool = form_group("Ia_F_pool", neurons_in_aff_ip);
-
-Group eIP_E = form_group("eIP_E", neurons_in_ip);
-Group eIP_F = form_group("eIP_F", neurons_in_ip);
-
-Group iIP_E = form_group("iIP_E", neurons_in_ip);
-Group iIP_F = form_group("iIP_F", neurons_in_ip);
-
-// global vectors of SynapseMetadata of synapses for each neuron
-vector<vector<SynapseMetadata>> metadatas(global_id, vector<SynapseMetadata>());
 
 __host__
 int ms_to_step(float ms) { return (int)(ms / SIM_STEP); }
@@ -219,7 +142,8 @@ void neurons_kernel(float *V_m,
                     int sim_iter,
                     int *begin_C_spiking,
                     int *end_C_spiking,
-                    int decrease_lvl_Ia_spikes){
+                    int decrease_lvl_Ia_spikes,
+                    int ees_spike_each_step){
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -375,13 +299,13 @@ void synapses_kernel(bool *neuron_has_spike,     // array of bools -- is neuron 
                      int *synapses_delay,        // array of synaptic delay per synapse
                      int *synapses_delay_timer,  // array as above but changable
                      float *synapses_weight,     // array of synaptic weight per synapse
-                     int synapses_number){       // number of synapses
+                     int syn_number){       // number of synapses
 
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// ignore threads which ID is greater than neurons number
-	if (tid < synapses_number) {
+	if (tid < syn_number) {
 		// add synaptic delay if neuron has spike
 		if (synapses_delay_timer[tid] == -1 && neuron_has_spike[synapses_pre_nrn_id[tid]]) {
 			synapses_delay_timer[tid] = synapses_delay[tid];
@@ -413,11 +337,9 @@ void connect_one_to_all(Group pre_neurons, Group post_neurons, float syn_delay, 
 
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int post_id = post_neurons.id_start; post_id <= post_neurons.id_end; post_id++) {
-			metadatas.at(pre_id).push_back(SynapseMetadata(post_id, delay_distr(generator), weight_distr(generator)));
+			all_synapses.push_back(SynapseMetadata(pre_id, post_id, delay_distr(generator), weight_distr(generator)));
 		}
 	}
-
-	synapses_number += pre_neurons.group_size * post_neurons.group_size;
 
 	printf("Connect %s to %s [one_to_all] (1:%d). Total: %d W=%.2f, D=%.1f\n", pre_neurons.group_name.c_str(),
 	       post_neurons.group_name.c_str(), post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size,
@@ -435,15 +357,13 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 
 	#ifdef DEBUG
 	printf("pre group %s (%d, %d) to post %s (%d, %d)\n",
-	       pre_neurons.group_name.c_str(),
+	       pre_neurons.name.c_str(),
 	       pre_neurons.id_start,
 	       pre_neurons.id_end,
-	       post_neurons.group_name.c_str(),
+	       post_neurons.name.c_str(),
 	       post_neurons.id_start,
 	       post_neurons.id_end);
 	#endif
-
-	synapses_number += pre_neurons.group_size * outdegree;
 
 	for (int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
@@ -457,21 +377,87 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 			printf("syn_weight %f (%f), delay %f (%f) \n", syn_weight_distr, syn_weight, syn_delay_distr, syn_delay);
 			#endif
 			if (no_distr)
-				metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay, syn_weight));
+				all_synapses.push_back(SynapseMetadata(pre_id, rand_post_id, syn_delay, syn_weight));
 			else
-				metadatas.at(pre_id).push_back(SynapseMetadata(rand_post_id, syn_delay_distr, syn_weight_distr));
+				all_synapses.push_back(SynapseMetadata(pre_id, rand_post_id, syn_delay_distr, syn_weight_distr));
 		}
 	}
 
 	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
-		   pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(), outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
+	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
 }
 
-void init_connectomes() {
-	float quadru_coef = is_4pedal? 0.5 : 1;
-	float sero_coef = has_5HT? 1.5 : 1;
+void init_network(float inh_coef, int pedal, int has5ht) {
+	float quadru_coef = pedal? 0.5 : 1;
+	float sero_coef = has5ht? 1.5 : 1;
 
-	// input from EES
+	/// groups of neurons
+	Group EES = form_group("EES");
+	Group E1 = form_group("E1");
+	Group E2 = form_group("E2");
+	Group E3 = form_group("E3");
+	Group E4 = form_group("E4");
+	Group E5 = form_group("E5");
+
+	Group CV1 = form_group("CV1", 1);
+	Group CV2 = form_group("CV2", 1);
+	Group CV3 = form_group("CV3", 1);
+	Group CV4 = form_group("CV4", 1);
+	Group CV5 = form_group("CV5", 1);
+	Group CD4 = form_group("CD4", 1);
+	Group CD5 = form_group("CD5", 1);
+
+	Group OM1_0 = form_group("OM1_0");
+	Group OM1_1 = form_group("OM1_1");
+	Group OM1_2_E = form_group("OM1_2_E");
+	Group OM1_2_F = form_group("OM1_2_F");
+	Group OM1_3 = form_group("OM1_3");
+
+	Group OM2_0 = form_group("OM2_0");
+	Group OM2_1 = form_group("OM2_1");
+	Group OM2_2_E = form_group("OM2_2_E");
+	Group OM2_2_F = form_group("OM2_2_F");
+	Group OM2_3 = form_group("OM2_3");
+
+	Group OM3_0 = form_group("OM3_0");
+	Group OM3_1 = form_group("OM3_1");
+	Group OM3_2_E = form_group("OM3_2_E");
+	Group OM3_2_F = form_group("OM3_2_F");
+	Group OM3_3 = form_group("OM3_3");
+
+	Group OM4_0 = form_group("OM4_0");
+	Group OM4_1 = form_group("OM4_1");
+	Group OM4_2_E = form_group("OM4_2_E");
+	Group OM4_2_F = form_group("OM4_2_F");
+	Group OM4_3 = form_group("OM4_3");
+
+	Group OM5_0 = form_group("OM5_0");
+	Group OM5_1 = form_group("OM5_1");
+	Group OM5_2_E = form_group("OM5_2_E");
+	Group OM5_2_F = form_group("OM5_2_F");
+	Group OM5_3 = form_group("OM5_3");
+
+	Group MN_E = form_group("MN_E", neurons_in_moto);
+	Group MN_F = form_group("MN_F", neurons_in_moto);
+
+	Group Ia_E_aff = form_group("Ia_E_aff", neurons_in_afferent);
+	Group Ia_F_aff = form_group("Ia_F_aff", neurons_in_afferent);
+
+	Group R_E = form_group("R_E");
+	Group R_F = form_group("R_F");
+
+	Group Ia_E_pool = form_group("Ia_E_pool", neurons_in_aff_ip);
+	Group Ia_F_pool = form_group("Ia_F_pool", neurons_in_aff_ip);
+
+	Group eIP_E = form_group("eIP_E", neurons_in_ip);
+	Group eIP_F = form_group("eIP_F", neurons_in_ip);
+
+	Group iIP_E = form_group("iIP_E", neurons_in_ip);
+	Group iIP_F = form_group("iIP_F", neurons_in_ip);
+
+
+	/// connectomes
 	connect_fixed_outdegree(EES, E1, 1, 500, syn_outdegree, true);
 	connect_fixed_outdegree(E1, E2, 1, 200, syn_outdegree, true);
 	connect_fixed_outdegree(E2, E3, 1, 200, syn_outdegree, true);
@@ -486,30 +472,30 @@ void init_connectomes() {
 
 	/// OM 1
 	// input from EES group 1
-	connect_fixed_outdegree(E1, OM1_0, 1, 16, syn_outdegree, true); // 17
+	connect_fixed_outdegree(E1, OM1_0, 1, 16, syn_outdegree, true);
 	// input from sensory
-	connect_one_to_all(CV1, OM1_0, 0.5, 10); // 18
-	connect_one_to_all(CV2, OM1_0, 0.5, 10); // 18
+	connect_one_to_all(CV1, OM1_0, 0.5, 10);
+	connect_one_to_all(CV2, OM1_0, 0.5, 10);
 	// [inhibition]
 	connect_one_to_all(CV3, OM1_3, 1, 80);
 	connect_one_to_all(CV4, OM1_3, 1, 80);
 	connect_one_to_all(CV5, OM1_3, 1, 80);
 	// inner connectomes
 	connect_fixed_outdegree(OM1_0, OM1_1, 1, 50);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 27); // 24
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 30); // 23
-	connect_fixed_outdegree(OM1_1, OM1_3, 1, 3);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 27); // 22
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 30); // 22
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 4); // 3
-	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4); // 3
-	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 1, -50 * INH_COEF);
-	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -0.1 * INH_COEF);
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 23.5);
+	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 24);
+	connect_fixed_outdegree(OM1_1, OM1_3, 1, 2);
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 23.5);
+	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 24);
+	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 2);
+	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4);
+	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * inh_coef);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -50 * inh_coef);
+	connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -0.1 * inh_coef);
 	// output to OM2
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 16, neurons_in_ip); // 13
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 14, neurons_in_ip);
 	connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 2
@@ -530,13 +516,13 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 20);
 	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
-	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * inh_coef);
 	// output to OM3
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 10, neurons_in_ip); // 50
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 10, neurons_in_ip);
 	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 7, neurons_in_ip);
 
 	/// OM 3
@@ -545,7 +531,7 @@ void init_connectomes() {
 	// input from sensory [CV]
 	connect_one_to_all(CV3, OM3_0, 0.5, 10.5);
 	connect_one_to_all(CV4, OM3_0, 0.5, 10.5);
-	// [INH]
+	// [inhibition]
 	connect_one_to_all(CV5, OM3_3, 1, 80);
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM3_0, 1, 11);
@@ -558,9 +544,9 @@ void init_connectomes() {
 	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 20);
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);
-	connect_fixed_outdegree(OM3_3, OM3_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM3_3, OM3_1, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * inh_coef);
 	// output to OM3
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
 	connect_fixed_outdegree(OM3_2_E, eIP_E, 2, 9, neurons_in_ip);
@@ -577,19 +563,19 @@ void init_connectomes() {
 	connect_one_to_all(CD5, OM4_0, 1, 11);
 	// inner connectomes
 	connect_fixed_outdegree(OM4_0, OM4_1, 3, 50);
-	connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 25);
+	connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 26);
 	connect_fixed_outdegree(OM4_1, OM4_2_F, 1, 23);
 	connect_fixed_outdegree(OM4_1, OM4_3, 1, 3);
-	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 25);
+	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 26);
 	connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 20);
 	connect_fixed_outdegree(OM4_2_E, OM4_3, 1, 3);
 	connect_fixed_outdegree(OM4_2_F, OM4_3, 1, 3);
-	connect_fixed_outdegree(OM4_3, OM4_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM4_3, OM4_2_E, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * INH_COEF);
+	connect_fixed_outdegree(OM4_3, OM4_1, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM4_3, OM4_2_E, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * inh_coef);
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 11, neurons_in_ip); // 10
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 9, neurons_in_ip);
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 5
@@ -601,18 +587,18 @@ void init_connectomes() {
 	connect_one_to_all(CD5, OM5_0, 1, 11);
 	// inner connectomes
 	connect_fixed_outdegree(OM5_0, OM5_1, 1, 50);
-	connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 25);
+	connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 26);
 	connect_fixed_outdegree(OM5_1, OM5_2_F, 1, 30);
 	connect_fixed_outdegree(OM5_1, OM5_3, 1, 3);
-	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 25);
+	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 26);
 	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 30);
 	connect_fixed_outdegree(OM5_2_E, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_2_F, OM5_3, 1, 3);
-	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * INH_COEF);
-	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * INH_COEF);
+	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
+	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 10, neurons_in_ip); // 15
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 9, neurons_in_ip);
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// reflex arc
@@ -638,7 +624,7 @@ void init_connectomes() {
 	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
 	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip);
 
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 8, neurons_in_moto); // 6
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 8, neurons_in_moto);
 	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 6, neurons_in_moto);
 
 	connect_fixed_outdegree(MN_E, R_E, 2, 1);
@@ -651,22 +637,22 @@ void init_connectomes() {
 	connect_fixed_outdegree(R_F, R_E, 2, -1);
 }
 
-void save(int test_index, Metadata metadata){
+void save(int test_index, GroupMetadata metadata, string folder){
 	ofstream file;
 	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
-	file.open("/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/" + file_name);
+	file.open(folder + file_name);
 	// save voltage
-	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
 		file << metadata.voltage_array[sim_iter] << " ";
 	file << endl;
 
 	// save g_exc
-	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
 		file << metadata.g_exc[sim_iter] << " ";
 	file << endl;
 
 	// save g_inh
-	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++)
+	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
 		file << metadata.g_inh[sim_iter] << " ";
 	file << endl;
 
@@ -679,19 +665,18 @@ void save(int test_index, Metadata metadata){
 	printf("saved %s \n", metadata.group.group_name.c_str());
 }
 
-void save_result(int test_index, int full_save) {
-	char cwd[256];
-	getcwd(cwd, sizeof(cwd));
-	printf("[Test #%d] Save %s results to: %s \n", test_index, (full_save == 0)? "only MOTO" : "ALL", cwd);
+void save_result(int test_index, int save_all) {
+	string current_path = getcwd(NULL, 0);
+	printf("[Test #%d] Save %s results to: %s \n", test_index, (save_all == 0)? "MOTO" : "ALL", current_path.c_str());
 
-	for(Metadata metadata : all_groups) {
-		if (full_save == 0) {
+	for(GroupMetadata metadata : all_groups) {
+		if (save_all == 0) {
 			if(metadata.group.group_name == "MN_E")
-				save(test_index, metadata);
+				save(test_index, metadata, current_path);
 			if(metadata.group.group_name == "MN_F")
-				save(test_index, metadata);
+				save(test_index, metadata, current_path);
 		} else {
-			save(test_index, metadata);
+			save(test_index, metadata, current_path);
 		}
 	}
 }
@@ -721,13 +706,52 @@ void init_array(type *array, int size, type value) {
 		array[i] = value;
 }
 
-__host__
-void simulate(int test_index, int full_save) {
-	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
-	const int neurons_number = static_cast<int>(metadatas.size());
 
-	// init connectomes
-	init_connectomes();
+int get_skin_stim_time(int cms) {
+	if (cms == 21)
+		return 25;
+	if (cms == 15)
+		return 50;
+	return 125;
+}
+
+void copy_data_to(GroupMetadata metadata, float* nrn_v_m,  float* nrn_g_exc, float* nrn_g_inh, bool *nrn_has_spike, int sim_iter) {
+	float nrn_mean_volt = 0;
+	float nrn_mean_g_exc = 0;
+	float nrn_mean_g_inh = 0;
+
+	for(int tid = metadata.group.id_start; tid <= metadata.group.id_end; tid++) {
+		nrn_mean_volt += nrn_v_m[tid];
+		nrn_mean_g_exc += nrn_g_exc[tid];
+		nrn_mean_g_inh += nrn_g_inh[tid];
+		if (nrn_has_spike[tid]) {
+			metadata.spike_vector.push_back(step_to_ms(sim_iter) + 0.25);
+		}
+	}
+	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
+	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
+	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
+}
+
+__host__
+void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_all) {
+	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
+
+	const unsigned int skin_stim_time = get_skin_stim_time(cms);
+	const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS;
+	// calculate how much steps in simulation time [steps]
+	SIM_TIME_IN_STEPS = (unsigned int)(T_simulation / SIM_STEP);
+
+	// calculate spike frequency and C0/C1 activation time in steps
+	unsigned int ees_spike_each_step = (unsigned int)(1000 / ees / SIM_STEP);
+	unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
+	unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
+
+	// init neuron groups and connectomes
+	init_network((float) inh / 100, ped == 4, ht5 == 1);
+
+	const int neurons_number = global_id;
+	const int synapses_number = static_cast<int>(all_synapses.size());
 
 	/// CPU variables
 	// neuron variables
@@ -771,19 +795,17 @@ void simulate(int test_index, int full_save) {
 	float *synapses_weight = (float *) malloc(datasize<float>(synapses_number));
 	int *synapses_delay = (int *) malloc(datasize<int>(synapses_number));
 	int *synapses_delay_timer = (int *) malloc(datasize<int>(synapses_number));
+	init_array<int>(synapses_delay_timer, synapses_number, -1);
 
 	// fill arrays of synapses
-	for(int neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
-		// for each metadata of current neuron fill data in array to copy in future pointers to the GPU
-		for(SynapseMetadata metadata : metadatas.at(neuron_id)) {
-			synapses_pre_nrn_id[syn_id] = neuron_id;
-			synapses_post_nrn_id[syn_id] = metadata.post_id;
-			synapses_delay[syn_id] = metadata.synapse_delay;
-			synapses_weight[syn_id] = metadata.synapse_weight;
-			syn_id++;
-		}
+	for(SynapseMetadata metadata : all_synapses) {
+		synapses_pre_nrn_id[syn_id] = metadata.pre_id;
+		synapses_post_nrn_id[syn_id] = metadata.post_id;
+		synapses_delay[syn_id] = metadata.synapse_delay;
+		synapses_weight[syn_id] = metadata.synapse_weight;
+		syn_id++;
 	}
-	init_array<int>(synapses_delay_timer, synapses_number, -1);
+	all_synapses.clear();
 
 	// neuron variables
 	float* gpu_nrn_n;
@@ -872,7 +894,7 @@ void simulate(int test_index, int full_save) {
 	simulation_t_start = chrono::system_clock::now();
 
 	// the main simulation loop
-	for (int sim_iter = 0; sim_iter < sim_time_in_steps; sim_iter++) {
+	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++) {
 		decrease_lvl_Ia_spikes = 0;
 
 		// if flexor C0 activated, find the end of it and change to C1
@@ -926,7 +948,6 @@ void simulate(int test_index, int full_save) {
 
 		// update local iter (warning: can be resetted at C0/C1 activation)
 		local_iter++;
-
 		// invoke GPU kernel for neurons
 		neurons_kernel<<<nrn_num_blocks, threads_per_block>>>(gpu_nrn_v_m,
 		                                                      gpu_nrn_h,
@@ -944,7 +965,8 @@ void simulate(int test_index, int full_save) {
 		                                                      sim_iter,
 		                                                      gpu_begin_C_spiking,
 		                                                      gpu_end_C_spiking,
-		                                                      decrease_lvl_Ia_spikes);
+		                                                      decrease_lvl_Ia_spikes,
+		                                                      ees_spike_each_step);
 
 		// copy data from GPU
 		memcpyDtH<float>(nrn_v_m, gpu_nrn_v_m, neurons_number);
@@ -953,22 +975,14 @@ void simulate(int test_index, int full_save) {
 		memcpyDtH<bool>(nrn_has_spike, gpu_nrn_has_spike, neurons_number);
 
 		// fill records arrays
-		for(Metadata &metadata : all_groups) {
-			float nrn_mean_volt = 0;
-			float nrn_mean_g_exc = 0;
-			float nrn_mean_g_inh = 0;
-
-			for(int tid = metadata.group.id_start; tid <= metadata.group.id_end; tid++) {
-				nrn_mean_volt += nrn_v_m[tid];
-				nrn_mean_g_exc += nrn_g_exc[tid];
-				nrn_mean_g_inh += nrn_g_inh[tid];
-				if (nrn_has_spike[tid]) {
-					metadata.spike_vector.push_back(step_to_ms(sim_iter) + 0.25);
-				}
-			}
-			metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
-			metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
-			metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
+		for(GroupMetadata metadata : all_groups) {
+			if (save_all == 0) {
+				if (metadata.group.group_name == "MN_E")
+					copy_data_to(metadata, nrn_v_m, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+				if (metadata.group.group_name == "MN_F")
+					copy_data_to(metadata, nrn_v_m, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+			} else
+				copy_data_to(metadata, nrn_v_m, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
 		}
 
 		// invoke GPU kernel for synapses
@@ -986,22 +1000,29 @@ void simulate(int test_index, int full_save) {
 	simulation_t_end = chrono::system_clock::now();
 
 	cudaDeviceSynchronize();  // tell the CPU to halt further processing until the CUDA has finished doing its business
-	cudaDeviceReset();  // remove all all device allocations (destroy a CUDA context)
+	cudaDeviceReset();        // remove all all device allocations (destroy a CUDA context)
 
 	// save recorded data
-	save_result(test_index, full_save);
+	save_result(itest, save_all);
 
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
-	printf("Elapsed %li ms (measured) | T_sim = %.2f ms\n", sim_time_diff, T_SIMULATION);
-	printf("%s x%f\n", (double)(T_SIMULATION / sim_time_diff) > 1?
-	                   COLOR_GREEN "faster" COLOR_RESET: COLOR_RED "slower" COLOR_RESET, T_SIMULATION / sim_time_diff);
+	printf("Elapsed %li ms (measured) | T_sim = %d ms\n", sim_time_diff, T_simulation);
+	printf("%s x%f\n", (float)(T_simulation / sim_time_diff) > 1?
+	                   COLOR_GREEN "faster" COLOR_RESET: COLOR_RED "slower" COLOR_RESET,
+	                   (float)T_simulation / sim_time_diff);
 }
 
 // runner
 int main(int argc, char* argv[]) {
-	// arg 1: test index (0 equal to test with i=0, 1 equal to tests with i=0,1)
-	// arg 2: 0 - save only motoneurons V_m, 1 - save all results
-	simulate(atoi(argv[1]), atoi(argv[2]));
+	int cms = atoi(argv[1]);
+	int ees = atoi(argv[2]);
+	int inh = atoi(argv[3]);
+	int ped = atoi(argv[4]);
+	int ht5 = atoi(argv[5]);
+	int itest = atoi(argv[6]);
+	int save_all = atoi(argv[7]);
+
+	simulate(cms, ees, inh, ped, ht5, itest, save_all);
 
 	return 0;
 }

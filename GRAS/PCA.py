@@ -1,8 +1,6 @@
 import numpy as np
 import pylab as plt
 import h5py as hdf5
-import scipy.io as sio
-from itertools import chain
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
@@ -13,62 +11,6 @@ bio_step = 0.25
 sim_step = 0.025
 
 data_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/"
-
-
-def read_mat_data(file_path):
-	return sio.loadmat(file_path)
-
-
-def trim_myogram(raw_data):
-	volt_data = []
-	stim_data = []
-	slices_begin_time = []
-	ms_pause = 0
-
-	# data processing
-	title_rmg = 'RMG'
-	title_stim = 'Stim'
-
-	for index, data_title in enumerate(raw_data['titles']):
-		data_start = int(raw_data['datastart'][index]) - 1
-		data_end = int(raw_data['dataend'][index])
-		float_data = [round(float(x), 3) for x in raw_data['data'][0][data_start:data_end]]
-
-		if title_rmg in data_title:
-			volt_data = float_data
-		if title_stim in data_title:
-			stim_data = float_data
-
-	for index in range(1, len(stim_data) - 1):
-		if stim_data[index - 1] < stim_data[index] > stim_data[index + 1] and ms_pause <= 0 and stim_data[index] > 0.5:
-			slices_begin_time.append(index)
-			ms_pause = int(3 / bio_step)
-		ms_pause -= 1
-
-	offset = slices_begin_time[0]
-	volt_data = volt_data[slices_begin_time[0]:slices_begin_time[-1]]
-	slices_begin_time = [t - offset for t in slices_begin_time]
-
-	return volt_data, slices_begin_time
-
-
-def bio_data_runs():
-	data = []
-
-	filenames = [f"{index}.mat" for index in range(1, 6)]
-	mat_datas = []
-
-	for filename in filenames:
-		raw_mat_data = read_mat_data(f"{data_folder}/{filename}")
-		mat_datas.append(trim_myogram(raw_mat_data))
-
-	data.append(mat_datas[0][0][0:1200])
-	data.append(mat_datas[1][0][0:1200])
-	data.append(mat_datas[2][0][1000:2200])
-	data.append(mat_datas[3][0][900:2100])
-	data.append(mat_datas[4][0][600:1800])
-
-	return data
 
 
 def read_data(filepath):
@@ -102,31 +44,16 @@ def angle_between(v1, v2):
 
 def run(with_mono=False, debugging=False):
 	after_latencies = not with_mono
-
 	# keys
 	X = 0
 	Y = 1
-	# calc how much dots in one slice
-	dots_in_slice = int(25 / bio_step)
+	bio_means = np.sum(np.array([np.absolute(data) for data in read_data(f"{data_folder}/bio_15.hdf5")]), axis=0)
+	bio_means = normalization(bio_means, -1, 1)
 
-	# group by 100 in each data case
-	all_bio_slices = [zip(*[iter(bio_data)] * dots_in_slice) for bio_data in bio_data_runs()]
-	# reverse data: 5 tests with 11 slices with each 100 dots -> 11 slices with 5 tests with each 100 dots
-	all_bio_slices = list(zip(*all_bio_slices))
-
-	normalized_means_per_slice = []
-	for slice_data in all_bio_slices:
-		normalized_means_per_slice.append(normalization([sum(map(abs, x)) for x in zip(*slice_data)], -1, 1))
-
-	# create the list of normalized mean voltages
-	bio_means = list(chain.from_iterable(normalized_means_per_slice))
-
-	neuron_list = select_slices(f'{data_folder}/mn_E25tests (7).hdf5', 0, 12000)
-	neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
+	neuron_means = np.sum(np.array([np.absolute(data) for data in select_slices(f"{data_folder}/neuron_15.hdf5", 0, 12000)]), axis=0)
 	neuron_means = normalization(neuron_means, -1, 1)
 
-	gras_list = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5', 5000, 11000)
-	gras_means = list(map(lambda voltages: np.mean(voltages), zip(*gras_list)))
+	gras_means = np.sum(np.array([np.absolute(data) for data in select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)]), axis=0)
 	gras_means = normalization(gras_means, -1, 1)
 
 	# calculating latencies and amplitudes of mean values
