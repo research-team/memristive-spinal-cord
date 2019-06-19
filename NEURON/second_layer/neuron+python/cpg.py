@@ -136,13 +136,13 @@ class CPG:
     for i in range(step_number):
         self.C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
-        self.C2.append(self.addgener(speed*1 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int))
+        self.C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
-        self.C3.append(self.addgener(speed*2 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int))
+        self.C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
-        self.C4.append(self.addgener(speed*3 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, 2*speed/c_int))
+        self.C4.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, 2*speed/c_int))
     for i in range(step_number):
-        self.C5.append(self.addgener(speed*5 + i*(speed*6 + 125) - random.uniform(0, speed/5), c_int, speed/c_int))
+        self.C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
     for i in range(step_number):
         self.Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
     for i in range(step_number):
@@ -198,7 +198,7 @@ class CPG:
     self.exconnectcells(self.CV3, self.CV4, 0.5, 1, 27)
     self.exconnectcells(self.CV4, self.CV5, 0.5, 1, 27)
 
-    self.exconnectcells(self.CV1, self.OM1_0E, 0.0004, 1, 27)
+    self.exconnectcells(self.CV1, self.OM1_0E, 0.00037, 1, 27)
     self.exconnectcells(self.CV2, self.OM2_0, 0.00037, 1, 27)
     self.exconnectcells(self.CV3, self.OM3_0, 0.00037, 1, 27)
     self.exconnectcells(self.CV4, self.OM4_0, 0.00037, 1, 27)
@@ -216,7 +216,7 @@ class CPG:
     self.exconnectcells(self.C5, self.OM3_3, 0.9, 1, 80)
     #self.exconnectcells(self.CV5_1, self.OM4_3, 0.8, 1, 50)
     
-    #self.ees
+    #ees
     self.genconnect(self.ees, self.Ia_aff_F, 1, 0, 50)
     self.genconnect(self.ees, self.Ia_aff_E, 1, 0, 50)
     self.genconnect(self.ees, self.CV1, 0.5, 0, 50)
@@ -224,7 +224,7 @@ class CPG:
     self.exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 0, 50)
     self.exconnectcells(self.Ia_aff_F, self.mns_F, 0.8, 0, 50)
 
-    #self.IP
+    #IP
     #Extensor
     self.exconnectcells(self.OM1_2E, self.IP1_E, 0.5, 1, 50)
     self.exconnectcells(self.OM2_2E, self.IP2_E, 0.5, 2, 50)
@@ -233,10 +233,10 @@ class CPG:
     self.exconnectcells(self.OM5_2, self.IP5_E, 0.5, 3, 50)
 
     self.exconnectcells(self.IP3_E, self.mns_E, 0.8, 3, 50)
-    self.exconnectcells(self.IP2_E, self.mns_E[:int(3*len(self.mns_E)/5)], 0.8, 2, 50)
-    self.exconnectcells(self.IP5_E, self.mns_E[:int(2*len(self.mns_E)/5)], 0.8, 3, 50)
-    self.exconnectcells(self.IP4_E, self.mns_E[int(3*len(self.mns_E)/5):], 0.8, 3, 50)
-    self.exconnectcells(self.IP1_E, self.mns_E[:int(len(self.mns_E)/5)], 0.8, 1, 50)
+    self.exconnectcells(self.IP2_E, self.mns_E[:int(len(self.mns_E)/2)], 0.8, 2, 50)
+    self.exconnectcells(self.IP5_E, self.mns_E, 0.8, 3, 50)
+    self.exconnectcells(self.IP4_E, self.mns_E, 0.8, 3, 50)
+    self.exconnectcells(self.IP1_E, self.mns_E[int(len(self.mns_E)/2):], 0.8, 1, 50)
 
     self.inhconnectcells(self.IP_E, self.Ia_aff_E, 0.06, 2, 80)
 
@@ -262,23 +262,23 @@ class CPG:
     self.exconnectcells(self.C4, self.CV4_1, 0.8, 2, 50)
     self.exconnectcells(self.C5, self.CV5_1, 0.8, 2, 50)
 
-    #self.C1
-    self.exconnectcells(self.CV1_1, self.OM1_0E, 0.015, 1, 50)
+    #C1
+    self.exconnectcells(self.CV1_1, self.OM1_0E, 0.0004, 1, 30)
 
-    #self.C2
-    self.exconnectcells(self.CV2_1, self.OM1_0E, 0.0004, 1, 30)
-    self.exconnectcells(self.CV2_1, self.OM2_0, 0.0003, 1, 27)
+    #C2
+    self.exconnectcells(self.CV2_1, self.OM1_0E, 0.0002, 1, 30)
+    self.exconnectcells(self.CV2_1, self.OM2_0, 0.0004, 1, 27)
 
-    #self.C3
-    self.exconnectcells(self.CV3_1, self.OM2_0, 0.0003, 1, 27)
-    self.exconnectcells(self.CV3_1, self.OM3_0 , 0.00033, 1, 27)
+    #C3
+    self.exconnectcells(self.CV3_1, self.OM2_0, 0.0004, 1, 27)
+    self.exconnectcells(self.CV3_1, self.OM3_0 , 0.00036, 1, 27)
 
-    #self.C4
-    self.exconnectcells(self.CV4_1, self.OM3_0 , 0.0003, 2, 27)
-    self.exconnectcells(self.CV4_1, self.OM4_0, 0.00035, 2, 27)
+    #C4
+    self.exconnectcells(self.CV4_1, self.OM3_0 , 0.0004, 2, 27)
+    self.exconnectcells(self.CV4_1, self.OM4_0, 0.00038, 2, 27)
 
-    #self.C5
-    self.exconnectcells(self.CV5_1, self.OM5_0 , 0.00035, 2, 27)
+    #C5
+    self.exconnectcells(self.CV5_1, self.OM5_0 , 0.0004, 2, 27)
     self.exconnectcells(self.CV5_1, self.OM4_0, 0.00015, 2, 25)
     
     #C=1 Extensor
@@ -305,15 +305,12 @@ class CPG:
     '''
     self.inhconnectcells(self.IP_E, self.Ia_aff_F, 0.99, 1, 100)
     self.inhconnectcells(self.IP_E, self.mns_F, 0.99, 1, 100)
-
     self.inhconnectcells(self.iIP_E, self.OM1_0F, 0.8, 1, 80)
     self.inhconnectcells(self.iIP_E, self.OM2_2F, 0.8, 1, 80)
     self.inhconnectcells(self.iIP_E, self.OM4_2F, 0.8, 1, 80)
     self.inhconnectcells(self.iIP_E, self.OM3_2F, 0.8, 1, 80)
-
     self.inhconnectcells(self.iIP_E, self.IP_F, 0.9, 1, 100)
     self.inhconnectcells(self.iIP_E, self.Ia_aff_F, 0.9, 1, 80)
-
     self.inhconnectcells(self.IP_E, self.mns_F, 0.9, 1, 100)
     self.inhconnectcells(self.iIP_E, self.mns_F, 0.9, 1, 100)
     ''' 
@@ -706,7 +703,7 @@ def prun(speed, step_number):
   speed: int
     duration of each layer 
   '''
-  tstop = (6*speed + 125)*step_number
+  tstop = 150#(6*speed + 125)*step_number
   pc.set_maxstep(10)
   h.stdinit()
   pc.psolve(tstop)
@@ -731,14 +728,12 @@ if __name__ == '__main__':
       motorecorders = []
       for group in cpg_ex.motogroups:
         motorecorders.append(spike_record(group[k_nrns], i))
-      '''
-      affrecorders = []
-      for group in cpg_ex.affgroups:
-        affrecorders.append(spike_record(group[k_nrns], i))   
-      recorders = []
-      for group in cpg_ex.groups:
-        recorders.append(spike_record(group[k_nrns], i))
-      '''
+      # affrecorders = []
+      # for group in cpg_ex.affgroups:
+      #   affrecorders.append(spike_record(group[k_nrns], i))   
+      # recorders = []
+      # for group in cpg_ex.groups:
+      #   recorders.append(spike_record(group[k_nrns], i))
 
       print("- "*10, "\nstart")
       prun(speed, step_number)
@@ -746,12 +741,10 @@ if __name__ == '__main__':
 
       for group, recorder in zip(cpg_ex.motogroups, motorecorders):
         spikeout(group[k_nrns], group[k_name], i, recorder)
-      '''
-      for group, recorder in zself.IP(cpg_ex.affgroups, affrecorders):
-        spikeout(group[k_nrns], group[k_name], i, recorder)
-      for group, recorder in zip(cpg_ex.groups, recorders):
-        spikeout(group[k_nrns], group[k_name], i, recorder)
-      '''
-      
+      # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+      #   spikeout(group[k_nrns], group[k_name], i, recorder)
+      # for group, recorder in zip(cpg_ex.groups, recorders):
+      #   spikeout(group[k_nrns], group[k_name], i, recorder)
+           
     #if (nhost > 1):
     finish()

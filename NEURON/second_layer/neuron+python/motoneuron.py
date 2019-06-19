@@ -94,7 +94,7 @@ class motoneuron(object):
     '''
     self.soma.insert('motoneuron')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
-    self.soma.Ra = 200 # Ra ohm cm - membrane resistance
+    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.cm = 1 # cm uf/cm2 - membrane capacitance  
     ''' 
     self.soma.insert('pas')

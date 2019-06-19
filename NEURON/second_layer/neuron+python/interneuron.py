@@ -101,7 +101,7 @@ class interneuron(object):
       sec.Ra = 100 # Ra ohm cm - membrane resistance
       sec.cm = 1 # cm uf/cm2 - membrane capacitance
     self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.5
+    self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -70 
@@ -152,7 +152,7 @@ class interneuron(object):
         connection between neurons
     '''
     nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
-    nc.threshold = -20
+    nc.threshold = 10
     return nc
 
   def synapses(self):
