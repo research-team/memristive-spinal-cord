@@ -94,7 +94,13 @@ def print_e(t, x, y=None):
 
 
 def remove_flatters(array):
+	# return array
 	return np.array([point for point, diff in zip(array, np.diff(array, n=1)) if diff > 1] + [array[-1]])
+
+
+def smooth(y, box_pts):
+	box = np.ones(box_pts) / box_pts
+	return np.convolve(y, box, mode='same')
 
 
 def run(with_mono=False, debugging=True):
@@ -104,8 +110,7 @@ def run(with_mono=False, debugging=True):
 	Y = 1
 	# read all bio data (list of tests)
 	bio_data = np.array(read_data(f"{data_folder}/bio_15.hdf5"))
-	#
-	slices_number = int(len(bio_data[0]) / (25 / 0.25))
+	slices_number = int(len(bio_data[0]) / (25 / bio_step))
 
 	splitted_per_slice = np.split(np.array([calc_boxplots(dot) for dot in bio_data.T]), slices_number)
 
@@ -113,126 +118,294 @@ def run(with_mono=False, debugging=True):
 
 	shared_x = np.arange(25 / bio_step) * bio_step
 
-	after_ees_step_offset = int(4 / bio_step)
+	time_offset = int(10 / bio_step)
 
+	k_low = 'low_Q1'
+	k_high = 'high_Q3'
+	k_minima = 'e_minima'
+	k_maxima = 'e_maxima'
+	k_indexes = 0
+	k_values = 1
+
+	global_lat_indexes = []
+
+	# compute per slice data
 	for slice_index, slice_data in enumerate(splitted_per_slice):
-		# check sign
-		# if max()
-		y_high = slice_data[:, k_box_high]
-		y_low = slice_data[:, k_box_low]
+		extremuma = {k_low: {}, k_high: {}}
+
+
+		y_original_high = slice_data[:, k_box_high]
+		y_original_low = slice_data[:, k_box_low]
+
+		y_high = smooth(slice_data[:, k_box_high], 2)
+		y_low = smooth(slice_data[:, k_box_low], 2)
+
+		# fix the last broken data after smoothing
+		y_high[-2:] = y_original_high[-2:]
+		y_low[-2:] = y_original_low[-2:]
+
 		median = slice_data[:, k_median]
 
-		e_maxima_index = remove_flatters(argrelextrema(y_high, np.greater_equal)[0])
-		e_minima_index = remove_flatters(argrelextrema(y_low, np.less_equal)[0])
-		e_maxima_value = y_high[e_maxima_index]
-		e_minima_value = y_low[e_minima_index]
+		# for high Q3
+		ind = remove_flatters(argrelextrema(y_high, np.greater_equal)[0])
+		extremuma[k_high][k_maxima] = np.stack((ind, y_high[ind]))
+		ind = remove_flatters(argrelextrema(y_high, np.less_equal)[0])
+		extremuma[k_high][k_minima] = np.stack((ind, y_high[ind]))
+
+
+		# for low Q1
+		ind = remove_flatters(argrelextrema(y_low, np.greater_equal)[0])
+		extremuma[k_low][k_maxima] = np.stack((ind, y_low[ind]))
+		ind = remove_flatters(argrelextrema(y_low, np.less_equal)[0])
+		extremuma[k_low][k_minima] = np.stack((ind, y_low[ind]))
+
+		differed_per_iter = np.abs(y_high - y_low)
+
+		# [0, 5, 7]
+		# [3, 6, 8]
+		# [0, 3, 5, 6, 7, 8]
+		a = [int(ind_dot) for ind_dot in extremuma[k_high][k_maxima][0, :] if ind_dot > time_offset]
+		b = [int(ind_dot) for ind_dot in extremuma[k_high][k_minima][0, :] if ind_dot > time_offset]
+		c = np.array(sorted(a + b))
+
+		print(a)
+		print(b)
+		print(c)
+
+		lat1 = []
+
+		for dot_left, dot_right in zip(c, c[1:]):
+			dot_left += 1
+			if dot_right - dot_left == 0:
+				global_ind = dot_right
+			else:
+				local_ind = np.argmin(differed_per_iter[dot_left:dot_right])
+				global_ind = local_ind + dot_left
+			lat1.append(global_ind)
+
+		plt.plot(lat1, y_high[lat1], '.', markersize=20, color='orange', alpha=0.9)
+
+
+		""" =============== """
+		a = [int(ind_dot) for ind_dot in extremuma[k_low][k_maxima][0, :] if ind_dot > time_offset]
+		b = [int(ind_dot) for ind_dot in extremuma[k_low][k_minima][0, :] if ind_dot > time_offset]
+		c = np.array(sorted(a + b))
+
+		lat2 = []
+
+		for dot_left, dot_right in zip(c, c[1:]):
+			dot_left += 1
+			if dot_right - dot_left == 0:
+				global_ind = dot_right
+			else:
+				local_ind = np.argmin(differed_per_iter[dot_left:dot_right])
+				global_ind = local_ind + dot_left
+			lat2.append(global_ind)
+
+		plt.plot(lat2, y_low[lat2], '.', markersize=20, color='green', alpha=0.9)
+		""" =============== """
+		print(f"lat {slice_index + 1}")
+		print(f"lat1 = {lat1}")
+		print(f"lat2 = {lat2}")
+		common = sorted(list(set(lat1) & set(lat2)))
+		print(f"comm = {common}")
+		# plot common found diffs
+		plt.plot(common, [-1] * len(common), '.', markersize=30, color='#35A53F')
+
+		smallest_diff_index = np.argmin(differed_per_iter[common])
+		print(f"differed_per_iter = {differed_per_iter[common]}")
+		smallest_diff_index += common[int(smallest_diff_index)]
+		print(f"smallest_diff_index {smallest_diff_index}")
+
+		smallest_diff_index = common[0]
+
+		global_lat_indexes.append(smallest_diff_index)
+
+		plt.plot([smallest_diff_index], [y_high[smallest_diff_index] + 2], '.', markersize=15,  color='k')
+
+
+		plt.axvspan(xmin=0, xmax=time_offset, color='g', alpha=0.3)
+		plt.suptitle(f"Slice #{slice_index + 1}")
+		plt.plot(y_high, color='k')
+		plt.plot(y_low, color='k')
+		plt.plot(smooth(median, 5), linestyle='--', color='k')
+
+		for q_data in extremuma.values():
+			for name, extremuma in q_data.items():
+				plt.plot(extremuma[k_indexes, :], extremuma[k_values, :], '.', color='r' if 'maxima' in name else 'b')
+		plt.xticks(range(0, 101, 4), [int(x * bio_step) for x in range(0, 101, 4)])
+		plt.tight_layout()
+		plt.show()
+
+		"""
+		continue
+		print(extremuma)
+		print(extremuma[k_high][k_maxima][k_values, :])
 
 		# finding EES
-		max_diff_in_high_index = np.argmax(np.absolute(e_maxima_value[first_10ms] - median[0]))
-		max_diff_in_low_index = np.argmax(np.absolute(e_minima_value[first_10ms] - median[0]))
+		max_diff_in_high_index = np.argmax(np.abs(e_maxima_value[first_10ms] - median[0]))
+		max_diff_in_low_index = np.argmax(np.abs(e_minima_value[first_10ms] - median[0]))
 
 		if e_maxima_value[max_diff_in_high_index] > e_minima_value[max_diff_in_low_index]:
 			ees_index = e_maxima_index[max_diff_in_high_index]
 		else:
 			ees_index = e_maxima_index[max_diff_in_low_index]
 
-		e_maxima_index = remove_flatters(argrelextrema(y_high, np.greater_equal)[0])
-		e_minima_index = remove_flatters(argrelextrema(y_low, np.less_equal)[0])
-		e_maxima_value = y_high[e_maxima_index]
-
 		print_e("maxima", e_maxima_index, e_maxima_value)
 		print_e("minima", e_minima_index, e_minima_value)
 
 		# (III parameter) finding number of waves
-		# exclude first 4 ms after EES
-		e_maxima_poly_index = np.compress(e_maxima_index > ees_index + after_ees_step_offset, e_maxima_index)
-		e_minima_poly_index = np.compress(e_minima_index > ees_index + after_ees_step_offset, e_minima_index)
+		# exclude first 10 ms
+		e_maxima_poly_index = np.compress(e_maxima_index >= time_offset, e_maxima_index)
+		e_minima_poly_index = np.compress(e_minima_index >= time_offset, e_minima_index)
 		e_maxima_poly_value = e_maxima_value[-len(e_maxima_poly_index):]
 		e_minima_poly_value = e_minima_value[-len(e_minima_poly_index):]
 
-		# for
-		stacked_per_iter = np.stack((y_high, y_low))
-		differed_per_iter = np.abs(np.diff(stacked_per_iter, axis=0)[0])
+		# get difference between
+		differed_per_iter = np.abs(y_high - y_low)
+
+		dot_index = 1
+		waves = 0
+
+		plt.figure(figsize=(16, 9))
+
+		tmp_all_lat_per_slice = []
+		tmp_all_lat_per_slice_minima = []
+
+		max_poly = (0, 0)
+		max_poly_minima = (0, 0)
 
 		for dot_left, dot_right in zip(e_maxima_index, e_maxima_index[1:]):
-			if dot_left >= ees_index + after_ees_step_offset:
-				dot_right += 1
+			dot_left += 1
 
+			if dot_right > time_offset:
+				if dot_left < time_offset:
+					dot_left = time_offset
 				local_ind = np.argmin(differed_per_iter[dot_left:dot_right])
 				global_ind = local_ind + dot_left
 
+				# if waves == 0:
+				# 	lat_per_slice.append((global_ind, y_high[dot_left:dot_right][local_ind]))
+
+				local_MAX_ind = np.argmax(differed_per_iter[dot_left:dot_right])
+				global_MAX_ind = local_MAX_ind + dot_left
+
+				if differed_per_iter[local_MAX_ind] > max_poly[Y]:
+					max_poly = (global_ind, y_high[global_ind])
+
+
+				tmp_all_lat_per_slice.append((global_ind, y_high[dot_left:dot_right][local_ind]))
+
 				if debugging:
-					plt.plot([global_ind], [y_low[global_ind] + differed_per_iter[global_ind] / 2], '*', markersize=10, color='w')
-					plt.plot([global_ind] * 2, [y_low[global_ind], y_high[global_ind]], linewidth=2, color='w')
-					plt.fill_between(range(dot_left, dot_right), y_low[dot_left:dot_right], y_high[dot_left:dot_right])
-					print(dot_left, dot_right, global_ind)
+					plt.plot([global_ind] * 2, [y_low[global_ind], 5], linewidth=2, color='k')
+					plt.text(global_ind, 5, f"Lat {dot_index}", rotation=90)
+					plt.fill_between(range(dot_left, dot_right), y_low[dot_left:dot_right], y_high[dot_left:dot_right], alpha=0.5)
+					print(f"({dot_left}, {dot_right})")
+				waves += 1
+				dot_index += 1
 
 
+		for dot_left, dot_right in zip(e_minima_index, e_minima_index[1:]):
+			dot_left += 1
+
+			if dot_right > time_offset:
+				if dot_left < time_offset:
+					dot_left = time_offset
+				local_ind = np.argmin(differed_per_iter[dot_left:dot_right])
+				global_ind = local_ind + dot_left
+
+				local_MAX_ind = np.argmax(differed_per_iter[dot_left:dot_right])
+
+				if differed_per_iter[local_MAX_ind] > max_poly[Y]:
+					max_poly_minima = (global_ind, y_high[global_ind])
+
+				tmp_all_lat_per_slice_minima.append((global_ind, y_high[dot_left:dot_right][local_ind]))
+
+
+		lat_per_slice.append(max_poly)
+		lat_per_slice_minima.append(max_poly_minima)
+
+		all_lat_maxima.append(tmp_all_lat_per_slice)
+		all_lat_minima.append(tmp_all_lat_per_slice_minima)
+
+
+
+		plt.plot(y_original_high, color='r')
+		plt.plot(y_original_low, color='r')
 		plt.plot(y_high, color='k')
 		plt.plot(y_low, color='k')
+
+		plt.axvspan(0, time_offset, alpha=0.2, color='green')
 
 		plt.plot(median, color='k', linestyle='--')
 		plt.plot(e_maxima_index, e_maxima_value, '.', color='r')
 		plt.plot(e_minima_index, e_minima_value, '.', color='b')
 
 		plt.axvline(x=ees_index, color='#FE9C1F', linewidth=5)
-		plt.axvline(x=0, color='cyan', linewidth=3, linestyle='--')
 
 		plt.plot(e_maxima_poly_index, e_maxima_poly_value, '.', color='r', markersize=15)
 		plt.plot(e_minima_poly_index, e_minima_poly_value, '.', color='b', markersize=15)
 
-		iii = min(len(e_maxima_poly_index), len(e_minima_poly_index))
-
 		X = np.arange(0, len(slice_data) + 1, 4)
-		# plt.xticks(X, X * bio_step)
+		plt.xticks(X, X * bio_step)
 		plt.grid(axis='x')
 
-		plt.suptitle(f"Slice #{slice_index}, I=? II=? III={iii}")
+		plt.suptitle(f"Slice #{slice_index + 1}, waves={waves}")
+		# plt.tight_layout()
+		# plt.savefig(f"/home/alex/{slice_index + 1}.png", format="png", dpi=120)
 		plt.show()
-	raise Exception
+		plt.close()
+
+	# assert len(lat_per_slice) == slices_number
+	print(len(lat_per_slice), lat_per_slice)
 
 	# build plot
+	"""
+	plt.close('all')
+
 	yticks = []
-	shared_x = np.arange(25 / 0.25) * 0.25
 
-	fig, ax = plt.subplots(figsize=(16, 9))
+	plt.subplots(figsize=(16, 9))
 
-	for i, data in enumerate(splitted_per_slice):
-		for i_da, da in enumerate(data):
-			ax.scatter([i_da * 0.25] * len(da), [d + i * 6 for d in da], color='k', s=3)
-			for t in da:
-				ax.text(i_da * 0.25 + 0.02, t + i * 6, "{:.2f}".format(t), fontsize=5)
+	y_offset = 3
+	slice_in_ms = 25
 
-		data += i * 6
+	bio_data = read_data(f"{data_folder}/bio_15.hdf5")
+	slices_number = int(len(bio_data[0]) / (slice_in_ms / bio_step))
 
-		ax.fill_between(shared_x, data[:, k_fliers_low], data[:, k_fliers_high], alpha=0.1, color='r')
-		ax.fill_between(shared_x, data[:, k_whiskers_low], data[:, k_whiskers_high], alpha=0.3, color='r')
-		ax.fill_between(shared_x, data[:, k_box_low], data[:, k_box_high], alpha=0.6, color='r')
-		ax.plot(shared_x, data[:, k_median], color='k', linewidth=0.7)
-		yticks.append(data[0, k_median])
+	splitted_per_slice = np.split(np.array(bio_data[0]), slices_number)
+	shared_x = np.arange(slice_in_ms / bio_step) * bio_step
+
+	for slice_index, data in enumerate(splitted_per_slice):
+		data += slice_index * y_offset  # is a link (!)
+		plt.plot(shared_x, data, color='r')
+		yticks.append(data[0])
+
+	dots = [15.044, 15, 14.32, 16.6, 16.9, 12.1, 16.2, 16.5, 19.7, 24.7, 24.7, 24.7]
+	vals = [splitted_per_slice[ind][int(dot / bio_step)] for ind, dot in enumerate(dots)]
+
+	plt.plot(dots, vals, '.', markersize=10, color='k')
+	plt.plot(dots, vals, color='b', linewidth=3)
+
+	print("GLOBAL: ", global_lat_indexes)
+
+	lat_x = [x * bio_step for x in global_lat_indexes]
+	lat_y = [splitted_per_slice[slice_index][lat] for slice_index, lat in enumerate(global_lat_indexes)]
+	plt.plot(lat_x, lat_y, linestyle='--', color='g')
+
+	# plt.xticks(range(100), [x * bio_step for x in range(100) if x % 4 == 0])
+	plt.yticks(yticks, range(1, slices_number + 1))
+	plt.xlim(0, 25)
+
 	plt.show()
+
+
+	raise Exception
+
+
 
 	splitted_per_slice = np.split(np.array([calc_boxplots(dot) for dot in bio_data.T]), slices_number)
 
-	# build plot
-	yticks = []
-	shared_x = np.arange(25 / 0.25) * 0.25
-
-	fig, ax = plt.subplots(figsize=(16, 9))
-
-	for i, data in enumerate(splitted_per_slice):
-		for i_da, da in enumerate(data):
-			ax.scatter([i_da * 0.25] * len(da), [d + i * 6 for d in da], color='k', s=3)
-			for t in da:
-				ax.text(i_da * 0.25 + 0.02, t + i * 6, "{:.2f}".format(t), fontsize=5)
-
-		data += i * 6
-		ax.fill_between(shared_x, data[:, 6], data[:, 5], alpha=0.1, color='r')  # 6 f_low, 5 f_high
-		ax.fill_between(shared_x, data[:, 4], data[:, 3], alpha=0.3, color='r')  # 4 w_low, 3 w_high
-		ax.fill_between(shared_x, data[:, 2], data[:, 1], alpha=0.6, color='r')  # 2 b_low, 1 b_high
-		ax.plot(shared_x, data[:, 0], color='k', linewidth=0.7)  # 0 med
-		yticks.append(data[0, 0])
-	plt.show()
 
 	bio_means = np.sum(np.array([np.absolute(normalization(data, -1, 1)) for data in read_data(f"{data_folder}/bio_15.hdf5")]), axis=0)
 
