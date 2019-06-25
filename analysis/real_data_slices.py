@@ -61,31 +61,23 @@ def trim_myogram(raw_data, path, slicing_index='Stim'):
 			slices_begin_time.append(index)  # * real_data_step  # division by 4 gives us the normal 1 ms step size
 			ms_pause = int(3 / bio_step)
 		ms_pause -= 1
-	# 		raw_stim = [i for i, d in enumerate(float_data) if d > 0.5]
-	# 		raw_stim = list(map(lambda x: x - raw_stim[0], raw_stim))
-	# 		o = 0
-	# 		i = 0
-
+			# raw_stim = [i for i, d in enumerate(float_data) if d > 0.5]
+			# raw_stim = list(map(lambda x: x - raw_stim[0], raw_stim))
+			# o = 0
+			# i = 0
+			#
 			# for d in raw_stim:
-				# print("KKK", d)
-
-				# if len(slices_begin_time) != 0 and d - 10 < slices_begin_time[i - 1] < d + 10:
-				# 	continue
-				# if o - 10 < d < o + 10:
-				# 	slices_begin_time.append(d)
-				# 	o += 100
-				# 	i += 1
-					# print(f"{d} DAAAAAAAAAAAAAAAAa")
-	# print(volt_data)
-	# print(slices_begin_time[0])
-	# print(slices_begin_time[-1])
-	# print(len(volt_data))
+			# 	if len(slices_begin_time) != 0 and d - 10 < slices_begin_time[i - 1] < d + 10:
+			# 		continue
+			# 	if o - 10 < d < o + 10:
+			# 		slices_begin_time.append(d)
+			# 		o += 100
+			# 		i += 1
 	volt_data = volt_data[slices_begin_time[0]:slices_begin_time[-1]]
 
 	# move times to the begin (start from 0 ms)
 	slices_begin_time = [t - slices_begin_time[0] for t in slices_begin_time]
 
-	# print("len(volt_data) = ", len(volt_data))
 	return volt_data, slices_begin_time
 
 

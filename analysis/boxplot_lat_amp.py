@@ -80,7 +80,7 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 	# plot setting
 	lat_axes.set_xlabel('Slices', fontsize=56)
 	lat_axes.set_ylabel("Latencies, ms", fontsize=56)
-	amp_axes.set_ylabel("Amplitudes, mV (normalized)", fontsize=56)
+	amp_axes.set_ylabel("Amplitudes, mV", fontsize=56)
 	plt.xticks([i * box_distance for i in slice_indexes], [i + 1 for i in slice_indexes])
 	plt.yticks(fontsize=56)
 	plt.xlim(-0.5, len(slice_indexes) * box_distance)
@@ -90,7 +90,7 @@ def plot_box(latencies_per_test, amplitudes_per_test):
 def run():
 	# get data
 	# nest_tests = read_nest_data('../../GPU_extensor_eesF40_inh100_s6cms_T.hdf5')
-	neuron_tests_ex = select_slices('../../neuron-data/3steps_speed15_EX.hdf5', 0, 11000)
+	neuron_tests_ex = select_slices('../../neuron-data/mn_E25tests (8).hdf5', 0, 6000)
 	# 15cm/s [0, 12000] 21cm/s [0, 6000]
 	gras_tests_ex = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 	# 15cm/s [10000, 22000] 21cm/s [5000, 11000]

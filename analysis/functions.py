@@ -160,7 +160,7 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 	return slices_max_time, slices_max_value, slices_min_time, slices_min_value
 
 
-def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhibition_zero=False, first_kink=False): # , thresholds
+def find_latencies(mins_maxes, step, norm_to_ms=False, reversed_data=False, inhibition_zero=False, first_kink=False):
 	"""
 	Function for autonomous finding the latencies in slices by bordering and finding minimals
 	Args:
@@ -391,18 +391,10 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		# del max_values[slice][dot]
 		# del min_times[slice][dot]
 		# del min_values[slice][dot]
-		# print("to_delete_value_min = ", to_delete_value_min)
 
 		for s in range(len(to_delete_value_min)):
 			for d in to_delete_value_min[s]:
 				del min_values[s][d]
-
-	# print("---")
-	# print("max_times = ", len(max_times[0]), max_times)
-	# print("max_values = ", len(max_values[0]), max_values)
-	# print("min_times = ", len(min_times[0]), min_times)
-	# print("min_values = ", len(min_values[0]), min_values)
-	# print("---")
 
 	amplitudes = []
 	for sl in range(len(max_values)):
@@ -918,13 +910,14 @@ def grahamscan(A):
 	return S
 
 
-def find_min_diff(all_maxes, all_mins, step):
-	ees_end = 10
+def find_min_diff(all_maxes, all_mins, step, first_kink, from_first_kink=False):
+	ees_end = 12
 	min_difference = []
 	max_difference = []
 	min_difference_indexes = []
 	max_difference_indexes = []
 
+	# find difference between all maxes and mins where we fill between
 	diffs = []
 	for slice in range(len(all_mins)):
 		diffs_tmp = []
@@ -932,10 +925,16 @@ def find_min_diff(all_maxes, all_mins, step):
 			diffs_tmp.append(all_maxes[slice][dot] - all_mins[slice][dot])
 		diffs.append(diffs_tmp)
 
+	# find max and min differences and their indexes in each slice from the ees
 	for slice in range(len(all_mins)):
 		print("slice = ", slice)
 		max_dif = max(diffs[slice][int(ees_end / step):])
-		max_dif_index = diffs[slice].index(max_dif)
+		if diffs[slice].index(max_dif) >= int(ees_end / step):
+			max_dif_index = diffs[slice].index(max_dif)
+		else:
+			del diffs[slice][diffs[slice].index(max_dif)]
+			max_dif_index = diffs[slice].index(max_dif) + 1
+
 		print("max_dif_index = ", max_dif_index)
 		min_dif = min(diffs[slice][int(ees_end / step):max_dif_index])
 		min_dif_index = diffs[slice].index(min_dif)
@@ -948,7 +947,7 @@ def find_min_diff(all_maxes, all_mins, step):
 
 	thresholds = []
 	for i in max_difference:
-		thresholds.append(i * 0.1)
+		thresholds.append(i * 0.0125)
 
 	vars = []
 # for slice in range(len(all_means)):
@@ -958,16 +957,39 @@ def find_min_diff(all_maxes, all_mins, step):
 # 	vars.append(var)
 # print("vars = ", vars)
 	necessary_values = []
-	for i in range(len(thresholds)):
-		necessary_values.append(min_difference[i] + thresholds[i])
-	print("necessary_values = ", necessary_values)
-	necessary_indexes = []
-	for slice in range(len(all_mins)):
-		for dot in range(min_difference_indexes[slice], len(all_mins[slice])):
-			if diffs[slice][dot] > necessary_values[slice]:
-				vars.append(diffs[slice][dot])
-				necessary_indexes.append(dot)
+
+	if from_first_kink:
+		first_kink_indexes = [int(f * 4) for f in first_kink]
+		for s in diffs:
+			for i in range(len(thresholds)):
+				necessary_values.append(s[first_kink_indexes[i]] + thresholds[i])
 				break
-	print("necessary_indexes = ", necessary_indexes)
+		necessary_indexes = []
+		print("len(all_mins) = ", len(all_mins))
+		print("diffs[4] = ", len(diffs[4]), diffs[4][52:])
+		print("necessary_values[4] = ", necessary_values[4])
+		print("first_kink_indexes[4] = ", first_kink_indexes[4])
+		for slice in range(len(all_mins)):
+			for dot in range(first_kink_indexes[slice], len(all_mins[slice])):
+				# print("diffs[{}][{}] = ".format(slice, dot), diffs[slice][dot])
+				# print("necessary_values[{}] = ".format(slice), necessary_values[slice])
+				if diffs[slice][dot] > necessary_values[slice]:
+					vars.append(diffs[slice][dot])
+					necessary_indexes.append(dot)
+					# print("diffs[{}][{}] = ".format(slice, dot), diffs[slice][dot])
+					# print("necessary_values[{}] = ".format(slice), necessary_values[slice])
+					break
+	else:
+		for i in range(len(thresholds)):
+			necessary_values.append(min_difference[i] + thresholds[i])
+		necessary_indexes = []
+		for slice in range(len(all_mins)):
+			for dot in range(min_difference_indexes[slice], len(all_mins[slice])):
+				if diffs[slice][dot] > necessary_values[slice]:
+					vars.append(diffs[slice][dot])
+					necessary_indexes.append(dot)
+					break
+	# print("---")
+	# print("necessary_indexes = ", necessary_indexes)
 	return min_difference_indexes, max_difference_indexes, necessary_indexes
 

@@ -58,11 +58,11 @@ def draw_lat_amp(data_pack):
 
 
 def run():
-	plot_delta = False
+	plot_delta = True
 
 	bio = read_bio_data('../bio-data/3_1.31 volts-Rat-16_5-09-2017_RMG_9m-min_one_step.txt')
 	nest_tests = read_nest_data('../../nest-data/sim_extensor_eesF40_i100_s15cms_T.hdf5')
-	neuron_tests = select_slices('../../neuron-data/3steps_speed15_EX.hdf5', 0, 11000)
+	neuron_tests = select_slices('../../neuron-data/mn_E25tests (8).hdf5', 0, 6000)
 	gpu_data = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 	slice_numbers = int(len(neuron_tests[0]) / 25 * sim_step)
 

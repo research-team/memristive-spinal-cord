@@ -2,14 +2,13 @@ from analysis.real_data_slices import read_data, trim_myogram
 
 
 def bio_data_runs():
-	path = '../bio-data/bipedal control rats 9 m-min/5_0.86 volts_BiRat-16_5-09-2017_RMG&RTA_9m-min_one_step.mat'
-	path2 = '../bio-data/bipedal control rats 9 m-min/8_1.3 volts_BiRat-16_5-09-2017_RMG&RTA_9m-min_one_step.mat'
-	path3 = '../bio-data/bipedal control rats 9 m-min/9_1.3 volts_BiRat-16_5-09-2017_RMG&RTA_9m-min_one_step.mat'
-	path4 = '../bio-data/bipedal control rats 9 m-min/10_1.3 volts_BiRat-16_5-09-2017_RMG&RTA_9m-min_one_step.mat'
-	# path5 = '../bio-data/quadrupedal control rats 9 m-min/10_1.1 volts_QuadRat-16_5-09-2017_RMG&RTA_9m-min_one_step.mat'
+	path = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/10_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
+	path2 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/5_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
+	path3 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/4_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
+	path4 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/3_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
+	path5 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/1_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 
-	# path6 = '../bio-data/Quipazine-Bipedal_SCI Rats_3 volts_40Hz/7Qbi_3 volts__Rat-1_12-05-2016_RMG&RTA_one_step.mat'
-# path7 = '../bio-data/10cms/Week6/7_WEEK6_Rat 40_8-8-2018.mat'
+	# path7 = '../bio-data/10cms/Week6/7_WEEK6_Rat 40_8-8-2018.mat'
 # path8 = '../bio-data/10cms/Week6/8_WEEK6_Rat 40_8-8-2018.mat'
 # path9 = '../bio-data/10cms/Week6/9_WEEK6_Rat 40_8-8-2018.mat'
 # path10 = '../bio-data/10cms/Week6/10_WEEK6_Rat 40_8-8-2018.mat'
@@ -21,8 +20,8 @@ def bio_data_runs():
 	raw_mat_data2  = read_data(path2)
 	raw_mat_data3  = read_data(path3)
 	raw_mat_data4  = read_data(path4)
-	# raw_mat_data5  = read_data(path5)
-# raw_mat_data6 = read_data(path6)
+	raw_mat_data5  = read_data(path5)
+	# raw_mat_data6 = read_data(path6)
 # raw_mat_data7 = read_data(path7)
 # raw_mat_data8 = read_data(path8)
 # raw_mat_data9 = read_data(path9)
@@ -39,16 +38,16 @@ def bio_data_runs():
 	mat_data2 = trim_myogram(raw_mat_data2, folder)
 	mat_data3 = trim_myogram(raw_mat_data3, folder)
 	mat_data4 = trim_myogram(raw_mat_data4, folder)
-	# mat_data5 = trim_myogram(raw_mat_data5, folder)
+	mat_data5 = trim_myogram(raw_mat_data5, folder)
 	# mat_data6 = trim_myogram(raw_mat_data6, folder)
 
-	data.append([d for d in mat_data[0][0:1200]])    # bipedal control rats 21cm/s ex [0:600]
+	data.append([d for d in mat_data[0][300:1500]])    # bipedal control rats 21cm/s ex [0:600]
 	# no quipazine bipedal [0:1200] quadrupedal [0:1200]
-	data.append([d for d in mat_data2[0][0:1200]])  # no quipazine bipedal [0:1200]
-	data.append([d for d in mat_data3[0][0:1200]])   # no quipazine bipedal [1000:2200]
-	data.append([d for d in mat_data4[0][0:1200]])    # no quipazine bipedal [900:2100]
-	# data.append([d for d in mat_data5[0][0:1200]])    # no quipazine bipedal [600:1800] quadrupedal [1400:2600]
-	# data.append([d for d in mat_data6[0][:1700]])
+	data.append([d for d in mat_data2[0][300:1500]])  # no quipazine bipedal [0:1200]
+	data.append([d for d in mat_data3[0][300:1500]])   # no quipazine bipedal [1000:2200]
+	data.append([d for d in mat_data4[0][300:1500]])    # no quipazine bipedal [900:2100]
+	data.append([d for d in mat_data5[0][300:1500]])    # no quipazine bipedal [600:1800] quadrupedal [1400:2600]
+	# data.append([d for d in mat_data6[0][0:1200]])
 	# data.append([d for d in mat_data7[0]])
 	# data.append([d for d in mat_data8[0]])
 	# data.append([d for d in mat_data9[0]])

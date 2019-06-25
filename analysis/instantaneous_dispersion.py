@@ -3,6 +3,7 @@ from matplotlib import pylab as plt
 from cycler import cycler
 from analysis.functions import sim_process, normalization
 from analysis.cut_several_steps_files import select_slices
+import numpy as np
 
 # importing the list of all runs of the bio  data from the function 'bio_data_runs'
 bio_runs = bio_data_runs()
@@ -30,7 +31,6 @@ for k in range(len(bio_runs)):
 		bio_slices.append(normalization(bio_slices_tmp, -1, 1))
 		offset += 100
 	all_bio_slices.append(bio_slices)   # list [4][16][100]
-# print("all_bio_slices = ", all_bio_slices)
 all_bio_slices = list(zip(*all_bio_slices)) # list [16][4][100]
 
 all_sim_slices = []
@@ -113,15 +113,47 @@ for i in instant_mean_sim:
 
 # derivatives
 derivatives = []
-for i in range(1, len(volts)):
-	derivatives.append((volts[i] - volts[i - 1]) / step)
+for run in bio_runs:
+	derivatives_by_run = []
+	for i in range(1, len(run)):
+		derivatives_by_run.append((run[i] - run[i - 1]) / step)
+	derivatives.append(derivatives_by_run)
 print("derivatives = ", len(derivatives), derivatives)
+for der in derivatives:
+	print("der = ", der)
 
+mean_der_by_runs = list(map(lambda elements: np.mean(elements), zip(*derivatives)))
+mean_der_by_runs.insert(0, mean_der_by_runs[0])
+print("len(mean_der_by_runs) = ", len(mean_der_by_runs))
+
+offset = 0
+mean_der_slices = []
+for i in range(int(len(mean_der_by_runs) / 100)):
+	mean_der_slices_tmp = []
+	for j in range(offset, offset + 100):
+		mean_der_slices_tmp.append(mean_der_by_runs[j])
+	mean_der_slices.append(mean_der_slices_tmp)
+	offset += 100
+
+print("len(mean_der_slices) = ", len(mean_der_slices))
+for sl in mean_der_slices:
+	print("sl = ", sl)
+
+yticks = []
+for index, sl in enumerate(mean_der_slices):
+	offset = index
+	times = [time * step for time in range(len(mean_der_slices[0]))]
+	# plt.plot(times, [s + offset for s in sl])
+	# yticks.append(sl[0] + offset)
+# plt.yticks(yticks, range(1, len(mean_der_slices) + 1))
+# plt.xlim(0, 25)
+# plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+# plt.show()
 der_slices = []
 der_first_slice = []
 der_last_slice = []
-for i in range(99):
-	der_first_slice.append(derivatives[i])
+# for i in range(99):
+	# der_first_slice.append(derivatives[i])
 print("der_first_slice = ", der_first_slice)
 
 for i in range(500, len(derivatives)):
@@ -131,8 +163,8 @@ print("der_last_slice = ", der_last_slice)
 offset = 99
 for i in range(4):
 	der_slice_tmp = []
-	for j in range(offset, offset + 100):
-		der_slice_tmp.append(derivatives[j])
+	# for j in range(offset, offset + 100):
+		# der_slice_tmp.append(derivatives[j])
 	print("der_slice_tmp = ", der_slice_tmp)
 	offset += 100
 	der_slices.append(der_slice_tmp)
@@ -185,20 +217,21 @@ print("latencies_sim = ", latencies_sim)
 # raise Exception
 latencies = sim_process(volts, step, inhibition_zero=True)[0]
 print("latencies = ", latencies)
-# print("latencies = ", latencies)
+
 yticks = []
-color_number = 0
 for index, sl in enumerate(all_bio_slices):
+	color_number = 0
 	offset = index * 2
-	# print("sl[{}][0]".format(run), sl[run][0])
 	times = [time * step for time in range(len(all_bio_slices[0][0]))]
 	for run in range(len(sl)):
 		plt.plot(times, [s + offset for s in sl[run]], color=colors[color_number], linewidth=1)
 	#  this think draws a lot of slices
-	color_number += 1
+		color_number += 1
 	yticks.append(sl[run][0] + offset)
 plt.yticks(yticks, range(1, len(all_bio_slices) + 1), fontsize=14)
+plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
 plt.xlim(0, 25)
+plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.show()
 # color_number = 12
 # yticks = []
@@ -206,8 +239,6 @@ plt.show()
 sim_latency_x = []
 for slice in range(len(instant_mean_sim)):
 	for dot in range(int(latencies_sim[slice] * interslice_coef), 36, -1):
-	# 	print("dot = ", dot / 4)
-		# print("instant_mean[{}][{}] = ".format(slice, dot), instant_mean[slice][dot])
 		# if instant_mean[slice][dot] < necessary_points[count]:
 		# 	necessary_latencies.append(instant_mean[slice][dot])
 			sim_latency_x.append(dot / interslice_coef)

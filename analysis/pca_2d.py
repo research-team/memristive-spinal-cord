@@ -4,6 +4,7 @@ from matplotlib import pylab as plt
 from analysis.histogram_lat_amp import sim_process
 from analysis.cut_several_steps_files import select_slices
 from analysis.functions import normalization, grahamscan
+from GRAS.PCA import length
 
 sim_step = 0.025
 bio_step = 0.25
@@ -56,11 +57,11 @@ for i in instant_mean:
 	for j in i:
 		volts.append(j)
 
-neuron_list = select_slices('../../neuron-data/mn_E25tests (7).hdf5', 0, 12000)
-gras_list = select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000)
+neuron_list = select_slices('../../neuron-data/mn_E15_speed25tests.hdf5', 0, 12000)
+gras_list = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000)
 
-neuron_means = list(map(lambda voltages: np.mean(voltages), zip(*neuron_list)))
-gras_means = list(map(lambda voltages: np.mean(voltages), zip(*gras_list)))
+neuron_means = np.sum(np.array([np.absolute(data) for data in neuron_list]), axis=0)
+gras_means = np.sum(np.array([np.absolute(data) for data in gras_list]), axis=0)
 
 neuron_means = normalization(neuron_means, -1, 1)
 gras_means = normalization(gras_means, -1, 1)

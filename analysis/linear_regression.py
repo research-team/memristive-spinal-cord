@@ -7,7 +7,7 @@ import matplotlib.patches as mpatches
 from analysis.patterns_in_bio_data import bio_data_runs
 from analysis.cut_several_steps_files import select_slices
 
-delta_y_step = 0.3
+delta_y_step = 0.25
 
 k_mean = 0
 k_x_data = 1
@@ -30,9 +30,14 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 	sim_x = sim_pack[k_x_data]
 	sim_y = sim_pack[k_y_data]
 
+	print("sim_x = ", len(sim_x))
 	bio_volt = bio_pack[k_mean]
 	bio_x = bio_pack[k_x_data]  # [1]
 	bio_y = bio_pack[k_y_data]  # [2]
+	runs_number = bio_pack[3]
+
+	print("bio_x = ", len(bio_x))
+	print("bio_y = ", len(bio_y))
 
 	slice_indexes = range(slices_number)
 
@@ -44,7 +49,6 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 		end = int((slice_index + 1) * 25 / bio_step)
 		sliced_data = bio_volt[start:end]
 		offset = slice_index * delta_y_step
-		# print("len(bio sliced_data) = ", len(sliced_data))
 
 		plt.plot([t * bio_step for t in range(len(sliced_data))],
 		         [offset + d for d in sliced_data],
@@ -56,27 +60,31 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 		end = int((slice_index + 1) * 25 / sim_step)
 		sliced_data = sim_mean_volt[start:end]
 		# print("len(sim sliced_data) = ", len(sliced_data))
-		plt.plot([t * sim_step for t in range(len(sliced_data))],
-		         [offset + d for d in sliced_data],
-		         color=color_sim, linewidth=2)
+		# plt.plot([t * sim_step for t in range(len(sliced_data))],
+		#          [offset + d for d in sliced_data],
+		#          color=color_sim, linewidth=2)
 
 	# BIO data processing
 	x = np.array(bio_x)
 	y = np.array(bio_y)
 
+	print("len(x) = ", len(x))
 	xfit, yfit = calc_linear(x, y)
 
-	num_dots = int(len(x) / 5)
+	num_dots = int(len(x) / runs_number)
+	print("num_dots = ", num_dots)
 	x_per_test = []
 	y_per_test = []
 	start = 0
-	for i in range(5):
+	for i in range(runs_number):
 		x_per_test.append(x[start:start + num_dots])
 		y_per_test.append(y[start:start + num_dots])
 		start += num_dots
 
 	tmp_x = list(zip(*x_per_test))
 	tmp_y = list(zip(*y_per_test))
+
+	print("len(tmp_x) = ", len(tmp_x))
 	for i in range(slices_number):
 		plt.scatter(tmp_x[i], tmp_y[i], label=i, color=color_bio, alpha=0.6)  #color_bio
 	plt.plot(xfit, yfit, color=color_bio, linestyle='--', linewidth=6, label='BIO')
@@ -87,15 +95,15 @@ def plot_linear(bio_pack, sim_pack, slices_number, bio_step, sim_step):
 
 	xfit, yfit = calc_linear(x, y)
 
-	plt.scatter(x, y, color=color_sim, alpha=0.6)
-	plt.plot(xfit, yfit, color=color_sim, linestyle='--', linewidth=6, label='NEST')
+	# plt.scatter(x, y, color=color_sim, alpha=0.6)
+	# plt.plot(xfit, yfit, color=color_sim, linestyle='--', linewidth=6, label='NEST')
 	# plot properties
-	plt.xlabel("Time, ms", fontsize=56)
-	plt.ylabel("Slices", fontsize=56)
-	plt.xticks(fontsize=56)
-	plt.yticks([], fontsize=56)
+	plt.xlabel("Time, ms", fontsize=28)
+	plt.ylabel("Slices", fontsize=28)
+	plt.xticks(fontsize=28)
+	plt.yticks([], fontsize=28)
 	plt.xlim(0, 25)
-	plt.ylim(-2, slices_number * delta_y_step + 1)
+	plt.ylim(-1.5, slices_number * delta_y_step)
 	plt.show()
 
 
@@ -124,30 +132,26 @@ def form_sim_pack(tests_data, step, reversed_data=False, debugging=False, inhibi
 
 	for e, test_data in enumerate(tests_data):
 		lat, amp = sim_process(test_data, step, debugging=debugging, inhibition_zero=inhibition_zero)
-		print("lat = ", lat)
-		for el in range(len(lat)):
-			if bio:
-				if lat[el] < 20:
-					lat[el] = lat[el - 1]
-		print("lat = ", lat)
-		print("---")
+		# for el in range(len(lat)):
+		# 	if bio:
+		# 		if lat[el] < 20:
+		# 			lat[el] = lat[el - 1]
 
 		# fixme
 		# lat = [d if d > 0 else d[-1] for d in lat ]
 		sim_x += lat
 		test_data = normalization(test_data, zero_relative=True)
 		count += 1
-		print("count = ", count)
 
 		for slice_index in range(len(lat)):
 			a = slice_index * delta_y_step + test_data[int(lat[slice_index] / step + slice_index * 25 / step)]
 			sim_y.append(a)
-	print("sim_x = ", sim_x)
-	print("sim_y = ", sim_y)
+	print("sim_x = ", len(sim_x))
+	print("sim_y = ", len(sim_y))
 
 	# form simulation data pack
 	sim_mean_volt = normalization(list(map(lambda voltages: np.mean(voltages), zip(*tests_data))), zero_relative=True)
-	sim_pack = (sim_mean_volt, sim_x, sim_y)
+	sim_pack = (sim_mean_volt, sim_x, sim_y, len(tests_data))
 
 	return sim_pack
 
