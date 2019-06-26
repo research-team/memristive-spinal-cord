@@ -189,7 +189,7 @@ def run(debugging=True):
 
 	shared_x = np.arange(25 / bio_step) * bio_step
 
-	ees_zone_time = int(10 / bio_step)
+	ees_zone_time = int(8 / bio_step) # 10
 
 	k_Q1 = 'low_Q1'
 	k_Q3 = 'high_Q3'
@@ -200,11 +200,15 @@ def run(debugging=True):
 
 	global_lat_indexes = []
 
+	l_poly_border = ees_zone_time
+	r_poly_border = 100
+
 	# compute per slice data
 	for slice_index, slice_data in enumerate(splitted_per_slice_boxplots):
-		print("- " * 20)
-		print("{:^40}".format(f"Slice {slice_index + 1}"))
-		print("- " * 20)
+		print("\n")
+		print("- " * 30)
+		print("{:^60}".format(f"Slice {slice_index + 1}"))
+		print("- " * 30)
 
 		latencies_Q1 = []
 		latencies_Q3 = []
@@ -238,7 +242,7 @@ def run(debugging=True):
 		indexes, values = find_extremuma(smoothed_high, np.less_equal)
 		extremuma[k_Q3][k_minima] = np.stack((indexes, values))
 
-		diff_per_iter_whiskers = np.abs(smoothed_low - smoothed_high)
+		diff_smoothed_data = np.abs(smoothed_low - smoothed_high)
 
 		# get Q1 extremuma of mono and poly answers
 		e_all_Q1_maxima_indexes = extremuma[k_Q1][k_maxima][k_indexes, :]
@@ -281,8 +285,8 @@ def run(debugging=True):
 				global_ind = dot_right
 			# else find indexes of minimal variance in (dot left, dot right] interval
 			else:
-				local_ind, _ = min_at(diff_per_iter_whiskers[dot_left:dot_right])
-				global_ind = local_ind + dot_left
+				local_index, _ = min_at(diff_smoothed_data[dot_left:dot_right])
+				global_ind = local_index + dot_left
 			latencies_Q1.append(global_ind)
 
 		# find latencies in Q3
@@ -297,202 +301,178 @@ def run(debugging=True):
 				global_ind = dot_right
 			# else find indexes of minimal variance in (dot left, dot right] interval
 			else:
-				local_ind, _ = min_at(diff_per_iter_whiskers[dot_left:dot_right])
-				global_ind = local_ind + dot_left
+				local_index, _ = min_at(diff_smoothed_data[dot_left:dot_right])
+				global_ind = local_index + dot_left
 			latencies_Q3.append(global_ind)
 
-
-		print(f"EES at {ees_index * bio_step}ms (index {ees_index})")
-
-		print(f"maxima_indexes Q1: {e_poly_Q1_maxima_indexes}")
-		print(f"minima_indexes Q1: {e_poly_Q1_minima_indexes}")
-		print(f"merged Q1: {e_poly_Q1_indexes}")
-		print(f"latencies Q1: {latencies_Q1}")
-
-		print("- " * 20)
-
-		print(f"maxima_indexes Q3: {e_poly_Q3_maxima_indexes}")
-		print(f"minima_indexes Q3: {e_poly_Q3_minima_indexes}")
-		print(f"merged Q3: {e_poly_Q3_indexes}")
-		print(f"latencies Q3: {latencies_Q3}")
-
-		print("- " * 20)
-
-		# global_lat_indexes.append(smallest_diff_index)
-
-		# plot EES
-		plt.axvline(x=ees_index, color='orange', linewidth=3)
-
-		'''-------------------'''
-		diff_per_iter_fliers = np.abs(slice_data[:, k_fliers_low] - slice_data[:, k_fliers_high])
-
-		# find min
-		l_border = ees_zone_time
-		r_border = 100
-		print(f"POLY area ({l_border}, {r_border}) -> ms ({l_border * bio_step}, {r_border * bio_step})")
-
-		indexes_min, values_min = find_extremuma(diff_per_iter_fliers[l_border:r_border], np.less_equal)
-		indexes_max, values_max = find_extremuma(diff_per_iter_fliers[l_border:r_border], np.greater_equal)
-
+		# prepare lists
 		merged_name = []
 		merged_values = []
 		merged_indexes = []
 
-		print(f"indexes_min: {indexes_min}")
-		print(f"indexes_max: {indexes_max}")
-
-		if indexes_min[0] < indexes_max[0]:
-			if len(indexes_max) > len(indexes_min):
-				length = len(indexes_max)
+		# get delta of NOT smoothed fliers data
+		diff_per_iter_fliers = np.abs(slice_data[:, k_fliers_low] - slice_data[:, k_fliers_high])
+		# find extremuma for deltas
+		filtered_indexes_min, values_min = find_extremuma(diff_per_iter_fliers[l_poly_border:r_poly_border], np.less_equal)
+		filtered_indexes_max, values_max = find_extremuma(diff_per_iter_fliers[l_poly_border:r_poly_border], np.greater_equal)
+		# concatenate lists of extremuma with some rules
+		if filtered_indexes_min[0] < filtered_indexes_max[0]:
+			if len(filtered_indexes_max) > len(filtered_indexes_min):
+				length = len(filtered_indexes_max)
 			else:
-				length = len(indexes_min)
+				length = len(filtered_indexes_min)
 
 			for x in range(length):
-				if x < len(indexes_min):
+				if x < len(filtered_indexes_min):
 					merged_name.append("min")
-					merged_indexes.append(indexes_min[x])
+					merged_indexes.append(filtered_indexes_min[x])
 					merged_values.append(values_min[x])
-
-				if x < len(indexes_max):
+				if x < len(filtered_indexes_max):
 					merged_name.append("max")
-					merged_indexes.append(indexes_max[x])
+					merged_indexes.append(filtered_indexes_max[x])
 					merged_values.append(values_max[x])
-
-			if len(indexes_max) > len(indexes_min):
-				merged_indexes.append(indexes_max[-1])
+			if len(filtered_indexes_max) > len(filtered_indexes_min):
+				merged_indexes.append(filtered_indexes_max[-1])
 				merged_values.append(values_max[-1])
-
 		else:
-			if len(indexes_max) > len(indexes_min):
-				length = len(indexes_max)
+			if len(filtered_indexes_max) > len(filtered_indexes_min):
+				length = len(filtered_indexes_max)
 			else:
-				length = len(indexes_min)
+				length = len(filtered_indexes_min)
 
 			for x in range(length):
-				if x < len(indexes_max):
+				if x < len(filtered_indexes_max):
 					merged_name.append("max")
-					merged_indexes.append(indexes_max[x])
+					merged_indexes.append(filtered_indexes_max[x])
 					merged_values.append(values_max[x])
-
-				if x < len(indexes_min):
+				if x < len(filtered_indexes_min):
 					merged_name.append("min")
-					merged_indexes.append(indexes_min[x])
+					merged_indexes.append(filtered_indexes_min[x])
 					merged_values.append(values_min[x])
-
-			if len(indexes_max) > len(indexes_min):
-				merged_indexes.append(indexes_max[-1])
+			if len(filtered_indexes_max) > len(filtered_indexes_min):
+				merged_indexes.append(filtered_indexes_max[-1])
 				merged_values.append(values_max[-1])
 
+		# get difference of merged indexes with step 1
+		differed_indexes = np.abs(np.diff(merged_indexes, n=1))
+		# filter closest indexes
+		is_index_ok = [index > 1 for index in differed_indexes] #2
+
+		print(f"EES at {ees_index * bio_step}ms (index {ees_index})")
+		print(f"maxima_indexes Q1: {e_poly_Q1_maxima_indexes}")
+		print(f"minima_indexes Q1: {e_poly_Q1_minima_indexes}")
+		print(f"merged Q1: {e_poly_Q1_indexes}")
+		print(f"latencies Q1: {latencies_Q1}")
+		print("- " * 20)
+		print(f"maxima_indexes Q3: {e_poly_Q3_maxima_indexes}")
+		print(f"minima_indexes Q3: {e_poly_Q3_minima_indexes}")
+		print(f"merged Q3: {e_poly_Q3_indexes}")
+		print(f"latencies Q3: {latencies_Q3}")
+		print("- " * 20)
+		print(f"poly area ({l_poly_border * bio_step}, {r_poly_border * bio_step})")
+		print(f"indexes_min: {filtered_indexes_min}")
+		print(f"indexes_max: {filtered_indexes_max}")
 		print(f"merged т: {merged_name}")
 		print(f"merged i: {merged_indexes}")
 		print(f"merged v: {merged_values}")
-
-		differed_indexes = np.abs(np.diff(merged_indexes, n=1))
-		differed_values = np.abs(np.diff(merged_values, n=1))
 		print(f"differed_indexes: {differed_indexes}")
-		print(f"differed_values: {differed_values}")
+		print("before index filtering: ", is_index_ok)
 
-		is_index_ok = [index > 1 for index in differed_indexes]
-		is_diff_ok = [value > 0.03 for value in differed_values]
-		is_differed_ok = [a and b for a, b in zip(is_index_ok, is_diff_ok)]
-		print("BEFORE: ", is_differed_ok)
-		# ToDo optimize?
-		x = 0
-		while 1:
-			if x >= len(is_differed_ok):
+		index = 0
+		while True:
+			if index >= len(is_index_ok):
 				break
-			if not is_differed_ok[x] and x + 1 < len(is_differed_ok):
-				is_differed_ok[x + 1] = False
-				x += 2
+			if not is_index_ok[index] and index + 1 < len(is_index_ok):
+				is_index_ok[index + 1] = False
+				index += 2
 				continue
-			x += 1
+			index += 1
 
-		print("AFTER: ", is_differed_ok)
+		print("after index filtering: ", is_index_ok)
 
-		indexes_min = np.array([val for is_ok, val, name in zip(is_differed_ok, merged_indexes, merged_name) if is_ok and name == "min"])
-		indexes_max = np.array([val for is_ok, val, name in zip(is_differed_ok, merged_indexes, merged_name) if is_ok and name == "max"])
+		# filter indexes by name and filtering list 'is_index_ok'
+		info_pack = zip(is_index_ok, merged_indexes, merged_name)
+		filtered_indexes_min = np.array([val for is_ok, val, name in info_pack if is_ok and name == "min"])
+		filtered_indexes_max = np.array([val for is_ok, val, name in info_pack if is_ok and name == "max"])
 
-		values_min = np.array([val for is_ok, val, name in zip(is_differed_ok, merged_values, merged_name) if is_ok and name == "min"])
-		values_max = np.array([val for is_ok, val, name in zip(is_differed_ok, merged_values, merged_name) if is_ok and name == "max"])
+		# find best right border
+		i_min = 0
+		r_best_border = 0
+		l_best_border = filtered_indexes_min[0] + l_poly_border
+		is_border_found = False
 
-		merged_name_filtered = np.array([name for is_ok, name in zip(is_differed_ok, merged_name) if is_ok])
-		print(f"indexes_max: {indexes_max}")
-		if len(indexes_max) == 1:
-			f_right_border = indexes_max[0] + l_border
-		else:
-			if merged_name_filtered[0] == "min":
-				f_right_border = indexes_max[0] + l_border
-			else:
-				f_right_border = indexes_max[1] + l_border
+		while not is_border_found and i_min < len(merged_name):
+			if merged_name[i_min] == 'min' and is_index_ok[i_min]:
+				for i_max in range(i_min + 1, len(merged_name)):
+					if merged_name[i_max] == 'max' and is_index_ok[i_max] and abs(merged_values[i_max] - merged_values[i_min]) > 0.11:
+						r_best_border = merged_indexes[i_max] + l_poly_border
+						is_border_found = True
+						break
+			i_min += 1
 
-		f_left_border = indexes_min[0] + l_border
-
-		print(f"fliers border ({f_left_border}, {f_right_border}) -> ms "
-		      f"({f_left_border * bio_step}, {f_right_border * bio_step})")
-
-		# find best latency
-		best_latency = (f_right_border, diff_per_iter_whiskers[f_left_border])
-
-		for lat_Q1 in filter(lambda dot: f_left_border < dot < f_right_border, latencies_Q1):
-			if diff_per_iter_whiskers[lat_Q1] > best_latency[1]:
-				best_latency = (lat_Q1, diff_per_iter_whiskers[lat_Q1])
+		if not is_border_found:
+			raise Exception("WHERE IS MAXIMAL BORDER???")
 
 
-		for lat_Q3 in filter(lambda dot: f_left_border < dot < f_right_border, latencies_Q3):
-			if diff_per_iter_whiskers[lat_Q3] > best_latency[1]:
-				best_latency = (lat_Q3, diff_per_iter_whiskers[lat_Q3])
+		print(f"best area between {l_best_border * bio_step}ms and {r_best_border * bio_step}ms")
 
-		print(best_latency)
+		# find the best latency, by default set the leftmost dot
+		best_latency = (l_best_border, diff_smoothed_data[l_best_border])
+
+		# find the latency only on the specific data -- low or high
+		for lat_Q1 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q1):
+			if diff_smoothed_data[lat_Q1] > best_latency[1]:
+				best_latency = (lat_Q1, diff_smoothed_data[lat_Q1])
+		for lat_Q3 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q3):
+			if diff_smoothed_data[lat_Q3] > best_latency[1]:
+				best_latency = (lat_Q3, diff_smoothed_data[lat_Q3])
 
 		global_lat_indexes.append(best_latency[0])
+		print(f"latency at {best_latency[0] * bio_step}ms")
 
-		'''-------------------'''
-		# plot area where we try to find best latency
-		plt.axvspan(xmin=f_left_border, xmax=f_right_border, color='g', alpha=0.5)
-
+		# plot an area of EES
+		plt.axvspan(xmin=0, xmax=ees_zone_time, color='g', alpha=0.3, label="EES area")
+		# plot EES
+		plt.axvline(x=ees_index, color='orange', linewidth=3)
+		# plot an area where we try to find best latency
+		plt.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3)
 		# plot histograms extremuma
-		plt.axhline(y=-10)
-		plt.plot(indexes_min + l_border, values_min - 10, '.', color='b', markersize=15)
-		plt.plot(indexes_max + l_border, values_max - 10, '.', color='r', markersize=15)
-		# plot area of best latency
-		plt.axvspan(xmin=l_border, xmax=r_border, alpha=0.5)
-		# plot histograms (delta of variance)
-		diff_per_iter_fliers -= 10
-		plt.plot(range(len(diff_per_iter_fliers)), diff_per_iter_fliers, '.', markersize=5)
-		for x, y in enumerate(diff_per_iter_fliers):
-			plt.plot([x] * 2, [-10, y], color='k')
+		plt.axhline(y=-10, color='k')
+		# plot histogram bins (delta of variance)
+		colors = ['#2B2B2B'] * len(diff_per_iter_fliers)
+		for i in filtered_indexes_min + l_poly_border:
+			colors[i] = 'b'
+		for i in filtered_indexes_max + l_poly_border:
+			colors[i] = 'r'
+		plt.bar(range(len(diff_per_iter_fliers)), diff_per_iter_fliers, bottom=-10, width=0.4, color=colors)
+		# plot not filtered extremuma
+		plt.plot(np.array(merged_indexes) + l_poly_border, np.array(merged_values) - 9.7, '.', markersize=7, color='k')
+		# plot latencies for low (Q1) data
+		plt.plot(latencies_Q1, smoothed_low[latencies_Q1], '.', markersize=20, color='#227734', alpha=0.9, label="Q1 latencies")
+		# plot latencies for high (Q3) data
+		plt.plot(latencies_Q3, smoothed_high[latencies_Q3], '.', markersize=20, color="#FF6600", alpha=0.9, label="Q3 latencies")
+		# plot the best latency with guidline
+		best_lat_x = best_latency[0]
+		best_lat_y = smoothed_low[best_lat_x]
+		plt.plot([best_lat_x] * 2, [best_lat_y - 2, best_lat_y], color="k", linewidth=0.5)
+		plt.text(best_lat_x, best_lat_y - 2, best_lat_x * bio_step)
 
 		# plot original bio data per slice
 		plt.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
-
-		# plot latencies
-		plt.plot(latencies_Q1, smoothed_low[latencies_Q1], '.', markersize=20, color='g', alpha=0.9, label="Q1 latencies")
-		plt.plot(latencies_Q3, smoothed_high[latencies_Q3], '.', markersize=20, color="#FF6600", alpha=0.9, label="Q3 latencies")
-
-		# plot the best latency with guidline
-		best_lat_x = best_latency[0]
-		best_lat_y = best_latency[1]
-		plt.plot([best_lat_x] * 2, [best_lat_y, best_lat_y + 2], color="k", linewidth=0.5)
-		plt.plot([best_lat_x], [best_lat_y + 2], '.', markersize=15,  color='k', label="Best latency (no)")
-
-		# plot an EES area
-		plt.axvspan(xmin=0, xmax=ees_zone_time, color='g', alpha=0.3, label="EES area")
-
 		# plot Q1 and Q3 areas, and median
 		plt.plot(smoothed_low, color='k', linewidth=3.5)
 		plt.plot(smoothed_high, color='k', linewidth=3.5, label="Q1/Q3 values")
 		plt.plot(median, linestyle='--', color='k', label="Median")
-
 		# plot extrema (minima and maxima)
 		for q_data in extremuma.values():
 			for name, extremuma in q_data.items():
 				x = extremuma[k_indexes, :]
 				y = extremuma[k_values, :]
 				plt.plot(x, y, '.', color=max_color if 'maxima' in name else min_color)
-
 		# figure properties
 		plt.suptitle(f"Slice #{slice_index + 1}")
-		plt.xticks(range(0, 101, 4), [int(x * bio_step) for x in range(0, 101, 4)])
+		plt.xticks(range(0, 101, 4), (np.arange(0, 101, 4) * bio_step).astype(int))
+		plt.xlim(0, 100)
 		plt.tight_layout()
 		plt.legend()
 		plt.show()
