@@ -10,8 +10,8 @@ from analysis.real_data_slices import read_data, trim_myogram
 import matplotlib.patches as mpatches
 from matplotlib import pyplot
 
-align_coef = -0.0002    # flexors 15 / 21 cm/s bipedal no quipazine
-omission_coef = -0.
+align_coef = -0.0009    # flexors 15 / 21 cm/s bipedal no quipazine
+omission_coef = -0.05
 sim_step = 0.025
 step = 0.25
 color_bio = '#a6261d'
@@ -112,10 +112,10 @@ for i in range(int(len(bio_mean_data) / 100)):
 bio_lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True)[0]
 print("bio_lat= ", bio_lat)
 
-path_neuron = '../../neuron-data/mn_E25tests (8).hdf5'
+path_neuron = '../../neuron-data/mn_E15_speed25tests.hdf5'
 path_gras = '../../GRAS/F_15cms_40Hz_100%_2pedal_no5ht.hdf5'
 
-neuron_data = select_slices(path_neuron, 0, 6000)
+neuron_data = select_slices(path_neuron, 0, 12000)
 gras_data = select_slices(path_gras, 0, 12000)
 
 neuron_mean_data = list(map(lambda elements: np.mean(elements), zip(*neuron_data)))
@@ -136,8 +136,8 @@ for i in range(120):
 
 gras_mean_data = list(map(lambda elements: np.mean(elements), zip(*gras_data)))
 gras_mean_data = normalization(gras_mean_data)
-plt.plot(gras_mean_data)
-plt.show()
+# plt.plot(gras_mean_data)
+# plt.show()
 neuron_data_zoomed = []
 for i in range(0, len(neuron_mean_data), 10):
 	neuron_data_zoomed.append(neuron_mean_data[i])
@@ -292,22 +292,22 @@ plt.show()
 corr, _ = spearmanr(bio_mean_data, neuron_data_zoomed)
 print("spearman = ", corr)
 # print("rank = ", np.rank(neuron_data_zoomed))
-pear, _ = pearsonr(neuron_data_zoomed, bio_mean_data)
+pear, _ = pearsonr(bio_mean_data, neuron_data_zoomed)
 print("pearson = ", pear)
-cov = np.cov(neuron_data_zoomed, bio_mean_data)
+cov = np.cov(bio_mean_data, neuron_data_zoomed)
 # print("cov = ", cov)
 print("len(bio_slices[0]) = ", len(bio_slices[0]))
 print(len(neuron_slices[0]))
 yticks = []
 offset = 0
 for index, sl in enumerate(bio_slices):
-	offset = index * 0.25
+	offset = index * 0.5
 	times = [time * step for time in range(len(bio_slices[0]))]
 	for run in range(len(sl)):
 		plt.plot(times, [s + offset for s in sl], linewidth=1, color=color_bio)
 	yticks.append(sl[0] + offset)
 for index, sl in enumerate(neuron_slices):
-	offset = index * 0.25
+	offset = index * 0.5
 	for run in range(len(sl)):
 		plt.plot(times, [s + offset for s in sl], linewidth=1, color=color_sim)
 # offset = 0

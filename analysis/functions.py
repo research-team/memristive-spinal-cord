@@ -6,7 +6,7 @@ from analysis.namespaces import *
 from sklearn.linear_model import LinearRegression
 import statistics
 import copy
-#from analysis.patterns_in_bio_data import bio_data_runs
+from analysis.patterns_in_bio_data import bio_data_runs
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -72,6 +72,7 @@ def calc_max_min(slices_start_time, test_data, remove_micropeaks=False, stim_cor
 		(list): slices_min_time
 		(list): slices_min_value
 	"""
+	print("slices_start_time = ", slices_start_time)
 	slices_max_time = []
 	slices_max_value = []
 	slices_min_time = []
@@ -330,12 +331,58 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		latencies[l] /= step
 		latencies[l] = int(latencies[l])
 
+	print("latencies = ", latencies)
 	max_times = datas[0]
 	max_values = datas[1]
 	min_times = datas[2]
 	min_values = datas[3]
 
-	if after_latencies:
+	print("max_times = ", max_times)
+	print("max_values = ", max_values)
+	print("min_times = ", min_times)
+	print("min_values = ", min_values)
+	max_times_amp = []
+	min_times_amp = []
+	max_values_amp = []
+	min_values_amp = []
+
+	for i in range(len(latencies)):
+		max_times_amp_tmp = []
+		for j in range(len(max_times[i])):
+			if max_times[i][j] > latencies[i]:
+				max_times_amp_tmp.append(max_times[i][j])
+		max_times_amp.append(max_times_amp_tmp)
+		min_times_amp_tmp = []
+		for j in range(len(min_times[i])):
+			if min_times[i][j] > latencies[i]:
+				min_times_amp_tmp.append(min_times[i][j])
+		min_times_amp.append(min_times_amp_tmp)
+
+		max_values_amp.append(max_values[i][len(max_times[i]) - len(max_times_amp[i]):])
+		min_values_amp.append(min_values[i][len(min_times[i]) - len(min_times_amp[i]):])
+
+	print("max_times = ", len(max_times), max_times)
+	print("max_times_amp = ", len(max_times_amp), max_times_amp)
+	for m in max_times_amp:
+		print("len(max_times_amp) = ", len(m))
+	print("min_times = ", len(min_times), min_times)
+	print("min_times_amp = ", len(min_times_amp), min_times_amp)
+	for m in min_times_amp:
+		print("len(min_times_amp) = ", len(m))
+	print("max_values = ", len(max_values), max_values)
+	print("max_values_amp = ", len(max_values_amp), max_values_amp)
+	for m in max_values_amp:
+		print("len(max_values_amp) = ", len(m))
+
+	print("min_values = ", len(min_values), min_values)
+	print("min_values_amp = ", len(min_values_amp), min_values_amp)
+	for m in min_values_amp:
+		print("len(min_values_amp) = ", len(m))
+
+	amplitudes = []
+	# for i in range(len(max_values_amp)):
+
+	"""if after_latencies:
 		for l in latencies:
 			to_delete = []
 			for s in range(len(max_times)):
@@ -394,6 +441,8 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 
 		for s in range(len(to_delete_value_min)):
 			for d in to_delete_value_min[s]:
+				# print("d = ", d)
+				# print("min_values[{}] = ".format(s), len(min_values[s]))
 				del min_values[s][d]
 
 	amplitudes = []
@@ -401,7 +450,7 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		amplitudes_slice = 0
 		for i in range(len(min_values[sl]) - 1, -1, -1):
 			amplitudes_slice += max_values[sl][i] - min_values[sl][i]
-		amplitudes.append(abs(amplitudes_slice))
+		amplitudes.append(abs(amplitudes_slice))"""
 
 	# for slice_index in range(slice_numbers):
 	# 	mins_v = datas[k_min_val][slice_index]
@@ -425,7 +474,12 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	for l in range(len(latencies)):
 		latencies[l] *= step
 
-	return amplitudes
+	peaks_number = []
+	for i in range(len(max_values)):
+		peaks_number.append(len(max_values[i]) + len(min_values[i]))
+	# print("peaks_number = ", peaks_number)
+	# return amplitudes, peaks_number, max_times, min_times, max_values, min_values
+	return max_times_amp, max_values_amp, min_times_amp, min_values_amp
 
 
 def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, step):
@@ -546,16 +600,16 @@ def __process(voltages, stim_indexes, step, debugging, reversed_data=False, inhi
 	"""
 	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)   # check
 	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
-	# norm_voltages = normalization(voltages, zero_relative=True)
+	norm_voltages = normalization(voltages, zero_relative=True)
 	mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
 	latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
 	                           inhibition_zero=inhibition_zero, first_kink=first_kink) # , thresholds
-	amplitudes = calc_amplitudes(mins_maxes, latencies, step, after_latencies)
+	max_times, min_times, max_values, min_values = calc_amplitudes(mins_maxes, latencies, step, after_latencies)
 
-	if debugging:
-		debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
+	# if debugging:
+	# 	debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
 
-	return latencies, amplitudes
+	return latencies, max_times, min_times, max_values, min_values
 
 
 def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data=False, reverse_ees=False):
@@ -608,11 +662,12 @@ def sim_process(voltages, step, debugging=False, inhibition_zero=False, after_la
 	# form EES stimulations indexes (in simulators begin from 0)
 	stim_indexes = list(range(0, len(voltages), int(25 / step)))
 	# calculate the latencies and amplitudes
-	sim_lat, sim_amp = __process(voltages, stim_indexes, step, debugging, inhibition_zero=inhibition_zero,
-	                             after_latencies=after_latencies, first_kink=first_kink)
+	latencies, max_times, min_times, max_values, min_values = \
+		__process(voltages, stim_indexes, step, debugging, inhibition_zero=inhibition_zero,
+		          after_latencies=after_latencies, first_kink=first_kink)
 	# change the step
 
-	return sim_lat, sim_amp
+	return latencies, max_times, min_times, max_values, min_values
 
 
 def find_mins(data_array): # matching_criteria was None
@@ -993,3 +1048,36 @@ def find_min_diff(all_maxes, all_mins, step, first_kink, from_first_kink=False):
 	# print("necessary_indexes = ", necessary_indexes)
 	return min_difference_indexes, max_difference_indexes, necessary_indexes
 
+
+def absolute_sum():
+	bio_runs = bio_data_runs()
+	all_bio_slices = []
+	# forming list for the plot
+	for k in range(len(bio_runs)):
+		bio_slices = []
+		offset = 0
+		for i in range(int(len(bio_runs[k]) / 100)):
+			bio_slices_tmp = []
+			for j in range(offset, offset + 100):
+				bio_slices_tmp.append(bio_runs[k][j])
+			bio_slices.append(normalization(bio_slices_tmp, -1, 1))
+			offset += 100
+		all_bio_slices.append(bio_slices)  # list [4][16][100]
+	all_bio_slices = list(zip(*all_bio_slices))  # list [16][4][100]
+
+	instant_mean = []
+	for slice in range(len(all_bio_slices)):
+		instant_mean_sum = []
+		for dot in range(len(all_bio_slices[slice][0])):
+			instant_mean_tmp = []
+			for run in range(len(all_bio_slices[slice])):
+				instant_mean_tmp.append(abs(all_bio_slices[slice][run][dot]))
+			instant_mean_sum.append(sum(instant_mean_tmp))
+		instant_mean.append(instant_mean_sum)
+
+	volts = []
+	for i in instant_mean:
+		for j in i:
+			volts.append(j)
+
+	return volts

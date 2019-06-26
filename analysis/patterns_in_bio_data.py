@@ -8,6 +8,7 @@ def bio_data_runs():
 	path4 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/3_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 	path5 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/1_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 
+
 	# path7 = '../bio-data/10cms/Week6/7_WEEK6_Rat 40_8-8-2018.mat'
 # path8 = '../bio-data/10cms/Week6/8_WEEK6_Rat 40_8-8-2018.mat'
 # path9 = '../bio-data/10cms/Week6/9_WEEK6_Rat 40_8-8-2018.mat'

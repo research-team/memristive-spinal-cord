@@ -92,7 +92,7 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 	x_coor = []
 	y_coor = []
 	for slice_number, tests in slices.items():
-		offset = slice_number * 96
+		offset = slice_number * 6
 		# for k, v in tests.items():
 		# 	tests[k] = normalization(v, zero_relative=True)
 		mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
@@ -158,7 +158,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5'
+	path = '../../neuron-data/mn_E5HT.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
