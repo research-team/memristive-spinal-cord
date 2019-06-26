@@ -171,11 +171,11 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	raise Exception("You didn't choose any condtinion!")
 
 
-def slice_metainfo(data, ees_hz, debugging=True):
+def slice_metainfo(runs_data, ees_hz, debugging=True):
 	"""
 	ToDo fill the docstring
 	Args:
-		data:
+		runs_data:
 		ees_hz:
 		debugging:
 	Returns:
@@ -200,35 +200,22 @@ def slice_metainfo(data, ees_hz, debugging=True):
 	shared_x = np.arange(slice_in_ms / bio_step) * bio_step
 
 	# read all bio data (list of tests)
-	bio_data = np.array(data)
+	runs_data = np.array(runs_data)
 	# get number of slices based on length of the bio data
-	slices_number = int(len(bio_data[0]) / (slice_in_ms / bio_step))
+	slices_number = int(len(runs_data[0]) / (slice_in_ms / bio_step))
 
 	# split original data only for visualization
-	splitted_per_slice_original = np.split(bio_data.T, slices_number)
+	splitted_per_slice_original = np.split(runs_data.T, slices_number)
 	# calc boxplot per step and split it by number of slices
-	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in bio_data.T]), slices_number)
+	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in runs_data.T]), slices_number)
 
 	# set the poly area
 	l_poly_border = ees_zone_time
 	r_poly_border = int(slice_in_ms / bio_step)
 	poly_area = slice(l_poly_border, r_poly_border)
 
-	# just for visualization
-	if debugging:
-		for slice_index, slice_data in enumerate(splitted_per_slice_original):
-			y_offset = slice_index * 10
-			plt.plot(np.arange(len(slice_data)) * bio_step, slice_data * 1.5 + y_offset)
-		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
-		plt.grid(axis='x')
-		plt.xlim(0, slice_in_ms)
-		plt.show()
-
 	# compute latency per slice
 	for slice_index, slice_data in enumerate(splitted_per_slice_boxplots):
-		latencies_Q1 = []
-		latencies_Q3 = []
-
 		'''[1] preparing data'''
 		# get data by keys
 		data_Q1 = slice_data[:, k_fliers_low]
@@ -275,6 +262,7 @@ def slice_metainfo(data, ees_hz, debugging=True):
 		e_poly_Q3_indexes = np.sort(np.concatenate((e_poly_Q3_minima_indexes, e_poly_Q3_maxima_indexes))).astype(int)
 
 		# find latencies in Q1 (zip into the pairs)
+		latencies_Q1 = []
 		for e_left, e_right in zip(e_poly_Q1_indexes, e_poly_Q1_indexes[1:]):
 			# if dots are too close
 			if e_right - e_left == 1:
@@ -285,6 +273,7 @@ def slice_metainfo(data, ees_hz, debugging=True):
 			latencies_Q1.append(latency_index)
 
 		# find latencies in Q3
+		latencies_Q3 = []
 		for e_left, e_right in zip(e_poly_Q3_indexes, e_poly_Q3_indexes[1:]):
 			# if dots are too close
 			if e_right - e_left == 1:
@@ -295,56 +284,29 @@ def slice_metainfo(data, ees_hz, debugging=True):
 			latencies_Q3.append(latency_index)
 
 		'''[5] finding best borders by delta'''
-		# prepare lists
-		merged_names = []
-		merged_values = []
-		merged_indexes = []
-
 		# find extremuma for deltas
 		poly_hist_indexes_min, poly_hist_values_min = find_extremuma(delta_data[poly_area], np.less_equal)
 		poly_hist_indexes_max, poly_hist_values_max = find_extremuma(delta_data[poly_area], np.greater_equal)
 
-		# TODO OPTIMIZE ME
-		# concatenate lists of extremuma with some rules
-		if poly_hist_indexes_min[0] < poly_hist_indexes_max[0]:
-			if len(poly_hist_indexes_max) > len(poly_hist_indexes_min):
-				length = len(poly_hist_indexes_max)
-			else:
-				length = len(poly_hist_indexes_min)
+		# prepare data for concatenating dots into one list (per parameter)
+		common_lenght = len(poly_hist_indexes_min) + len(poly_hist_indexes_max)
+		merged_names = [None] * common_lenght
+		merged_indexes = [None] * common_lenght
+		merged_values = [None] * common_lenght
 
-			for x in range(length):
-				if x < len(poly_hist_indexes_min):
-					merged_names.append("min")
-					merged_indexes.append(poly_hist_indexes_min[x])
-					merged_values.append(poly_hist_values_min[x])
-				if x < len(poly_hist_indexes_max):
-					merged_names.append("max")
-					merged_indexes.append(poly_hist_indexes_max[x])
-					merged_values.append(poly_hist_values_max[x])
-			if len(poly_hist_indexes_max) > len(poly_hist_indexes_min):
-				merged_names.append('max')
-				merged_indexes.append(poly_hist_indexes_max[-1])
-				merged_values.append(poly_hist_values_max[-1])
-		else:
-			if len(poly_hist_indexes_max) > len(poly_hist_indexes_min):
-				length = len(poly_hist_indexes_max)
-			else:
-				length = len(poly_hist_indexes_min)
+		# who located earlier -- max or min
+		min_starts = 0 if poly_hist_indexes_min[0] < poly_hist_indexes_max[0] else 1
+		max_starts = 1 if poly_hist_indexes_min[0] < poly_hist_indexes_max[0] else 0
 
-			for x in range(length):
-				if x < len(poly_hist_indexes_max):
-					merged_names.append("max")
-					merged_indexes.append(poly_hist_indexes_max[x])
-					merged_values.append(poly_hist_values_max[x])
-				if x < len(poly_hist_indexes_min):
-					merged_names.append("min")
-					merged_indexes.append(poly_hist_indexes_min[x])
-					merged_values.append(poly_hist_values_min[x])
-			if len(poly_hist_indexes_max) > len(poly_hist_indexes_min):
-				merged_names.append('max')
-				merged_indexes.append(poly_hist_indexes_max[-1])
-				merged_values.append(poly_hist_values_max[-1])
-
+		# fill minima lists based on the precedence
+		merged_names[min_starts::2] = ['min'] * len(poly_hist_indexes_min)
+		merged_indexes[min_starts::2] = poly_hist_indexes_min
+		merged_values[min_starts::2] = poly_hist_values_min
+		# the same for the maxima
+		merged_names[max_starts::2] = ['max'] * len(poly_hist_indexes_max)
+		merged_indexes[max_starts::2] = poly_hist_indexes_max
+		merged_values[max_starts::2] = poly_hist_values_max
+		# convert them to the array for usability
 		merged_names = np.array(merged_names)
 		merged_values = np.array(merged_values)
 		merged_indexes = np.array(merged_indexes)
@@ -477,10 +439,20 @@ def slice_metainfo(data, ees_hz, debugging=True):
 
 	# show latencies on the all slices (shadows)
 	if debugging:
+		# original data
+		plt.subplots(figsize=(16, 9))
+		for slice_index, slice_data in enumerate(splitted_per_slice_original):
+			y_offset = slice_index * 10
+			plt.plot(np.arange(len(slice_data)) * bio_step, slice_data * 1.5 + y_offset)
+		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
+		plt.grid(axis='x')
+		plt.xlim(0, slice_in_ms)
+		plt.show()
+
+		# original data with latency
 		plt.subplots(figsize=(16, 9))
 		yticks = []
 		y_offset = 3
-
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3, label="flier")
@@ -488,7 +460,7 @@ def slice_metainfo(data, ees_hz, debugging=True):
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
-		plt.xticks(range(26), range(26))
+		plt.xticks(range(slice_in_ms + 1), range(slice_in_ms + 1))
 		plt.grid(axis='x')
 
 		lat_x = [x * bio_step for x in global_lat_indexes]
@@ -507,9 +479,9 @@ def slice_metainfo(data, ees_hz, debugging=True):
 
 
 def plot_pca():
-	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in bio_data.T]), slices_number)
-
 	bio_meta = slice_metainfo(read_data(f"{data_folder}/21cms_40Hz_100%_slices5-10.hdf5"), ees_hz=40)
+
+	raise Exception
 
 	neuron_means = np.sum(np.array(
 		[np.absolute(normalization(data, -1, 1)) for data in select_slices(f"{data_folder}/neuron_15.hdf5", 0, 12000)]),
