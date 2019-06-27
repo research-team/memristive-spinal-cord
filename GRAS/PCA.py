@@ -5,7 +5,6 @@ from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
-from sklearn.preprocessing import normalize
 from analysis.histogram_lat_amp import sim_process
 
 bio_step = 0.25
@@ -62,10 +61,11 @@ def poly_area_by_coords(x, y):
 
 def calc_boxplots(dots):
 	"""
-	ToDo fill the docstring
+	Function for calculating boxplots from array of dots
 	Args:
-		dots:
+		dots (np.ndarray): array of dots
 	Returns:
+		tuple: [7 elements] median, Q3 and Q1 values, highest and lowest whiskers, highest and lowest fliers
 	"""
 	low_box_Q1, median, high_box_Q3 = np.percentile(dots, percents)
 	# calc borders
@@ -92,27 +92,24 @@ def calc_boxplots(dots):
 	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
 
 
-def normalization(data, a=0, b=1, zero_relative=False):
+def normalization(data, a=0, b=1, save_centering=False):
 	"""
-	Normalization in [a, b] interval
+	Normalization in [a, b] interval or with saving centering
 	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
 	Args:
-		data (list): data for normalization
-		a (float or int): left interval a
-		b (float or int): right interval b
-		zero_relative (bool): if True -- recalculate data where 0 is the first element and -1 is min(EES)
+		data (np.ndarray): data for normalization
+		a (float): left interval
+		b (float): right interval
+		save_centering (bool): if True -- will save data centering and just normalize by lowest data
 	Returns:
-		list: normalized data
+		np.ndarray: normalized data
 	"""
 	# checking on errors
 	if a >= b:
 		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
-
-	if zero_relative:
-		first = data[0]
+	if save_centering:
 		minimal = abs(min(data))
-
-		return [(volt - first) / minimal for volt in data]
+		return [volt / minimal for volt in data]
 	else:
 		min_x = min(data)
 		max_x = max(data)
@@ -166,8 +163,8 @@ def find_extremuma(array, condition):
 	"""
 	Wrapper of numpy.argrelextrema for siplifying code
 	Args:
-		array (np.ndarray):
-		condition (np.ufunc):
+		array (np.ndarray): data array
+		condition (np.ufunc): e.g. np.less (<), np.great_equal (>=) and etc.
 	Returns:
 		np.ndarray: indexes of extremuma
 		np.ndarray: values of extremuma
@@ -200,205 +197,131 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	raise Exception("You didn't choose any condtinion!")
 
 
-def straighten_data(points):
+def draw_vector(p0, p1):
 	"""
-
+	Small function for drawing vector with arrow by two points
 	Args:
-		points:
-
-	Returns:
-
+		p0 (np.ndarray): begin of the vector
+		p1 (np.ndarray): end of the vector
 	"""
-	sim = select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)[1][::10]
-	PPP = np.stack((range(len(sim)), sim), axis=1)
-	plt.plot(PPP[:,1])
-	plt.show()
+	ax = plt.gca()
+	ax.annotate('', p1, p0, arrowprops=dict(arrowstyle='->', linewidth=2, shrinkA=0, shrinkB=0))
+	# this plot is fixing the problem of hiding annotations because of their not markers origin
+	ax.plot(p1[0], p1[1], '.')
 
-	P = np.stack((range(len(points)), points), axis=1)
 
+def center_data_by_line(y_points, debugging=False):
+	"""
+	Straight the data and center the rotated points cloud at (0, 0)
+	Args:
+		y_points (list or np.ndarray): list of Y points value
+		debugging (bool): True -- will print debugging info and plot figures
+	Returns:
+		np.ndarray: new straighten Y data
+	"""
+	# prepare original data (convert to 2D ndarray)
+	dots_2D = np.stack((range(len(y_points)), y_points), axis=1)
+	# calc PCA for dots cloud
 	pca = PCA(n_components=2)
-	pca.fit(P)
+	pca.fit(dots_2D)
+	# get PCA components for finding an rotation angle
+	cos_theta = pca.components_[0, 0]
+	sin_theta = pca.components_[0, 1]
+	# one possible value of Theta that lies in [0, pi]
+	arccos = np.arccos(cos_theta)
 
-	##
-	center = np.array(pca.mean_)  # get the center (mean value)
-
-	# calc vectors
-	vectors = []
-	for v_length, vector in zip(pca.explained_variance_, pca.components_):
-		y = vector * 3 * np.sqrt(v_length)
-		vectors.append((center, center + y))
-
-	def draw_vector(v0, v1, ax=None):
-		ax = ax or plt.gca()
-		arrowprops = dict(arrowstyle='->',
-		                  linewidth=2,
-		                  shrinkA=0, shrinkB=0)
-		ax.annotate('', v1, v0, arrowprops=arrowprops)
-
-	# plot data
-	plt.scatter(P[:, 0], P[:, 1], alpha=0.2)
-	plt.plot(P[:, 0], P[:, 1])
-
-	for length, vector in zip(pca.explained_variance_, pca.components_):
-		v = vector * 3 * np.sqrt(length)
-		draw_vector(pca.mean_, pca.mean_ + v)
-
-	plt.show()
-
-	# pca.components_ : array, shape (n_components, n_features)
-	# cos theta
-	ct = pca.components_[0, 0]
-	# sin theta
-	st = pca.components_[0, 1]
-
-	# One possible value of theta that lies in [0, pi]
-	t = np.arccos(ct)
-
-	# If t is in quadrant 1, rotate CLOCKwise by t
-	if ct > 0 and st > 0:
-		t *= -1
-	# If t is in Q2, rotate COUNTERclockwise by the complement of theta
-	elif ct < 0 and st > 0:
-		t = np.pi - t
-	# If t is in Q3, rotate CLOCKwise by the complement of theta
-	elif ct < 0 and st < 0:
-		t = -(np.pi - t)
-	# If t is in Q4, rotate COUNTERclockwise by theta, i.e., do nothing
-	elif ct > 0 and st < 0:
+	# if arccos is in Q1 (quadrant), rotate CLOCKwise by arccos
+	if cos_theta > 0 and sin_theta > 0:
+		arccos *= -1
+	# elif arccos is in Q2, rotate COUNTERclockwise by the complement of theta
+	elif cos_theta < 0 and sin_theta > 0:
+		arccos = np.pi - arccos
+	# elif arccos is in Q3, rotate CLOCKwise by the complement of theta
+	elif cos_theta < 0 and sin_theta < 0:
+		arccos = -(np.pi - arccos)
+	# if arccos is in Q4, rotate COUNTERclockwise by theta, i.e. do nothing
+	elif cos_theta > 0 and sin_theta < 0:
 		pass
 
-	# Manually build the ccw rotation matrix
-	rotmat = np.array([[np.cos(t), -np.sin(t)],
-	                   [np.sin(t), np.cos(t)]])
-	# Apply rotation to each row of m (@ is a matrix multiplication)
-	m2 = (rotmat @ P.T).T
+	# manually build the counter-clockwise rotation matrix
+	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
+	                            [np.sin(arccos), np.cos(arccos)]])
+	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
+	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
+	# center the rotated point cloud at (0, 0)
+	rotated_dots_2D -= rotated_dots_2D.mean(axis=0)
 
-	# Center the rotated point cloud at (0, 0)
-	m2 -= m2.mean(axis=0)
+	# plot debugging figures
+	if debugging:
+		plt.figure(figsize=(16, 9))
+		plt.suptitle("PCA")
+		# plot all dots and connect them
+		plt.scatter(dots_2D[:, 0], dots_2D[:, 1], alpha=0.2)
+		plt.plot(dots_2D[:, 0], dots_2D[:, 1])
+		# plot vectors
+		for v_length, vector in zip(pca.explained_variance_, pca.components_):
+			v = vector * 3 * np.sqrt(v_length)
+			draw_vector(pca.mean_, pca.mean_ + v)
+		# figure properties
+		plt.tight_layout()
+		plt.show()
+		plt.close()
 
-	fig, ax = plt.subplots()
-	plot_kws = {'alpha': '0.75',
-	            'edgecolor': 'white',
-	            'linewidths': 0.75}
+		plt.figure(figsize=(16, 9))
+		plt.suptitle("Centered data")
+		# plot ogignal data on centered
+		plt.plot(range(len(dots_2D)), dots_2D[:, 1], label='original')
+		plt.plot(range(len(rotated_dots_2D)), rotated_dots_2D[:, 1], label='centered')
+		plt.axhline(y=0, color='g', linestyle='--')
+		# figure properties
+		plt.tight_layout()
+		plt.legend()
+		plt.show()
 
-	pca = PCA(n_components=2)
-	pca.fit(PPP)
-	# pca.components_ : array, shape (n_components, n_features)
-	# cos theta
-	ct = pca.components_[0, 0]
-	# sin theta
-	st = pca.components_[0, 1]
-
-	# One possible value of theta that lies in [0, pi]
-	t = np.arccos(ct)
-
-	# If t is in quadrant 1, rotate CLOCKwise by t
-	if ct > 0 and st > 0:
-		t *= -1
-	# If t is in Q2, rotate COUNTERclockwise by the complement of theta
-	elif ct < 0 and st > 0:
-		t = np.pi - t
-	# If t is in Q3, rotate CLOCKwise by the complement of theta
-	elif ct < 0 and st < 0:
-		t = -(np.pi - t)
-	# If t is in Q4, rotate COUNTERclockwise by theta, i.e., do nothing
-	elif ct > 0 and st < 0:
-		pass
-
-	# Manually build the ccw rotation matrix
-	rotmat = np.array([[np.cos(t), -np.sin(t)],
-	                   [np.sin(t), np.cos(t)]])
-	# Apply rotation to each row of m (@ is a matrix multiplication)
-	sim_m2 = (rotmat @ PPP.T).T
-
-	# Center the rotated point cloud at (0, 0)
-	sim_m2 -= sim_m2.mean(axis=0)
-
-	plot_kws = {'alpha': '0.75',
-	            'edgecolor': 'white',
-	            'linewidths': 0.75}
+	return rotated_dots_2D[:, 1]
 
 
-
-	# ax.scatter(range(len(P[:, 0])), m2[:, 1] * 5, **plot_kws)
-	n_bio = normalization(np.append(m2[:, 1], 0))
-	# ax.scatter(range(len(sim_m2[:, 1])), sim_m2[:, 1], **plot_kws)
-	n_sim = normalization(np.append(sim_m2[:, 1], 0))
-
-	ax.plot(range(len(n_bio)), n_bio - (n_bio[-1] - n_sim[-1]), color='orange', label="BIO", linewidth=3)
-	ax.plot(range(len(n_sim)), n_sim, color='g', label="SIM", linewidth=3)
-
-	# plt.axhline(y=n_bio[-1], color='orange', label="BIO 0", linestyle='--')
-	plt.axhline(y=n_sim[-1], color='g', label="SIM 0", linestyle='--')
-	plt.legend()
-	plt.show()
-
-
-def slice_metainfo(runs_data, ees_hz, debugging=True):
+def get_latencies(data_test_runs, ees_hz, debugging=True):
 	"""
-	ToDo fill the docstring
+	Function for finding latencies at each slice in normalized (!) data
 	Args:
-		runs_data:
-		ees_hz:
-		debugging:
+		data_test_runs (list or np.ndarry): arrays of data
+		ees_hz (int): EES value
+		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
+		list: latencies indexes
 	"""
-	global_amp_values = []
 	global_lat_indexes = []
-	global_peaks_numbers = []
 
 	# keys
-	X = 0
-	Y = 1
 	k_index = 0
 	k_value = 1
 
 	# additional properties
-	allowed_diff = 0.11
+	allowed_diff = 0.011
 	min_index_interval = 1
 	slice_in_ms = int(1000 / ees_hz)
-
-	original = np.array(runs_data[0]) - runs_data[0][0]
-	normalized_old = normalization(list(original), zero_relative=True)
-
-
-	plt.axhspan(ymin=-1, ymax=1, color='g', alpha=0.1)
-
-
-	original_reversed = np.negative(original)
-	normalized_lib = normalize(original_reversed.reshape(1, -1), norm="max")
-
-	normalized_strange = (original - original.min(0)) / original.ptp(0)
-
-	plt.plot(original, label='original')
-	plt.plot(normalized_old, label='normalized_old', linewidth=3)
-	plt.plot(np.negative(normalized_lib.T), label='normalized_lib')
-	plt.plot(normalized_strange, label='???')
-	plt.legend()
-	plt.show()
-
 
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / bio_step)
 	shared_x = np.arange(slice_in_ms / bio_step) * bio_step
 
-	# read all bio data (list of tests)
-	runs_data = np.array(runs_data)
+	data_test_runs = np.array(data_test_runs)
 	# get number of slices based on length of the bio data
-	slices_number = int(len(runs_data[0]) / (slice_in_ms / bio_step))
+	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / bio_step))
 
 	# split original data only for visualization
-	splitted_per_slice_original = np.split(runs_data.T, slices_number)
+	splitted_per_slice_original = np.split(data_test_runs.T, slices_number)
 	# calc boxplot per step and split it by number of slices
-	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in runs_data.T]), slices_number)
+	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in data_test_runs.T]), slices_number)
 
 	# compute latency per slice
-	for slice_index, slice_data in enumerate(splitted_per_slice_boxplots):
-		'''[1] preparing data'''
+	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
+		"""[1] prepare data"""
 		# get data by keys
-		data_Q1 = slice_data[:, k_fliers_low]
-		data_Q3 = slice_data[:, k_fliers_high]
-		median = slice_data[:, k_median]
+		data_Q1 = slice_boxplot_data[:, k_fliers_low]
+		data_Q3 = slice_boxplot_data[:, k_fliers_high]
+		median = slice_boxplot_data[:, k_median]
 		# smooth the data to avoid micropeaks
 		smoothed_Q1 = smooth(data_Q1, 2)
 		smoothed_Q3 = smooth(data_Q3, 2)
@@ -412,7 +335,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		# get a delta of smoothed data
 		delta_smoothed_data = np.abs(smoothed_Q1 - smoothed_Q3)
 
-		'''[2] finding extremuma'''
+		"""[2] find extremuma"""
 		# find all Q1 extremuma indexes and values
 		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extremuma(smoothed_Q1, np.less_equal)
 		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extremuma(smoothed_Q1, np.greater_equal)
@@ -420,7 +343,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
 		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
 
-		'''[3] finding EES'''
+		'''[3] find EES'''
 		# get the lowest (Q1) mono minima extremuma
 		e_mono_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes < ees_zone_time].astype(int)
 		# find an index of the biggest delta between median[0] and mono extremuma
@@ -428,7 +351,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		# get index of extremuma with the biggest delta
 		ees_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
 
-		'''[3] find a good poly area'''
+		"""[3] find a good poly area"""
 		l_poly_border = ees_zone_time
 		for index_Q1, index_Q3 in zip(e_all_Q1_maxima_indexes, e_all_Q3_maxima_indexes):
 			index = index_Q1 if index_Q1 > index_Q3 else index_Q3
@@ -438,7 +361,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		r_poly_border = int(slice_in_ms / bio_step)
 		poly_area = slice(l_poly_border, r_poly_border)
 
-		'''[4] finding poly answer'''
+		"""[4] find poly answers in the poly area"""
 		# get only poly Q1 extremuma indexes
 		e_poly_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes > ees_zone_time]
 		e_poly_Q1_maxima_indexes = e_all_Q1_maxima_indexes[e_all_Q1_maxima_indexes > ees_zone_time]
@@ -479,7 +402,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 				latency_index = e_left + min_at(delta_smoothed_data[e_left:e_right])[k_index]
 			latencies_Q3.append(latency_index)
 
-		'''[5] finding best borders by delta'''
+		"""[5] find a best searching borders for latencies by delta"""
 		# find extremuma for deltas of Q1 and Q3
 		e_delta_minima_indexes, e_delta_minima_values = find_extremuma(delta_data[poly_area], np.less_equal)
 		e_delta_maxima_indexes, e_delta_maxima_values = find_extremuma(delta_data[poly_area], np.greater_equal)
@@ -551,7 +474,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		if not is_border_found:
 			raise Exception("WHERE IS MAXIMAL BORDER???")
 
-		'''[6] finding best latency in borders'''
+		"""[6] find the best latency in borders"""
 		best_latency = (0, 0)
 		# find the latency in Q1 and Q3 data (based on the maximal variance)
 		while best_latency[k_value] == 0:
@@ -595,11 +518,10 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 			print(f" best area between: {l_best_border * bio_step}ms and {r_best_border * bio_step}ms")
 			print(f"        latency at: {best_latency[0] * bio_step}ms")
 
+			plt.figure(figsize=(16, 9))
 			gridsize = (3, 1)
-
-			fig = plt.figure(figsize=(16, 9))
-			ax1 = plt.subplot2grid(gridsize, (0, 0), rowspan=2)
-			ax2 = plt.subplot2grid(gridsize, (2, 0), sharex=ax1)
+			ax1 = plt.subplot2grid(shape=gridsize, loc=(0, 0), rowspan=2)
+			ax2 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
 
 			ax1.title.set_text(f"Bio data of slice #{slice_index + 1}")
 			# plot an area of EES
@@ -658,9 +580,9 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 	if debugging:
 		# original data
 		plt.subplots(figsize=(16, 9))
-		for slice_index, slice_data in enumerate(splitted_per_slice_original):
-			y_offset = slice_index * 10
-			plt.plot(np.arange(len(slice_data)) * bio_step, slice_data * 1.5 + y_offset)
+		for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_original):
+			y_offset = slice_index * 1
+			plt.plot(np.arange(len(slice_boxplot_data)) * bio_step, slice_boxplot_data + y_offset)
 		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
 		plt.grid(axis='x')
 		plt.xlim(0, slice_in_ms)
@@ -669,7 +591,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		# original data with latency
 		plt.subplots(figsize=(16, 9))
 		yticks = []
-		y_offset = 3
+		y_offset = 1
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3, label="flier")
@@ -690,23 +612,55 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 
 		plt.show()
 
-	return global_lat_indexes, global_amp_values, global_peaks_numbers
+	return global_lat_indexes
+
+
+def get_peaks(data, start_from):
+	"""
+
+	Args:
+		data:
+		start_from:
+
+	Returns:
+
+	"""
+	return
+
+
+def get_amplitudes(data, peaks):
+	"""
+
+	Args:
+		data:
+		peaks:
+
+	Returns:
+
+	"""
+	return
 
 
 def plot_pca():
-	for d in read_data(f"{data_folder}/bio_15.hdf5"):
-		straighten_data(d)
-	raise Exception
-	bio_meta = slice_metainfo(read_data(f"{data_folder}/bio_15.hdf5"), ees_hz=40)
+	"""
+
+	Returns:
+
+	"""
+	normalized_data = []
+	for data_per_test in read_data(f"{data_folder}/bio_15.hdf5"):
+		centered_data = center_data_by_line(data_per_test)
+		normalized_data.append(normalization(centered_data, save_centering=True))
+
+	normalized_data = np.array(normalized_data)
+	lat_per_slice_in_run = get_latencies(normalized_data, ees_hz=40)
+	peaks_per_slice_in_run = get_peaks(normalized_data, start_from=lat_per_slice_in_run)
+	amp_per_slice_in_run = get_amplitudes(normalized_data, peaks=peaks_per_slice_in_run)
 
 	raise Exception
 
-	neuron_means = np.sum(np.array(
-		[np.absolute(normalization(data, -1, 1)) for data in select_slices(f"{data_folder}/neuron_15.hdf5", 0, 12000)]),
-	                      axis=0)
-
-	gras_means = np.sum(np.array([np.absolute(normalization(data, -1, 1)) for data in
-	                              select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)]), axis=0)
+	neuron_means = np.sum(np.array([np.absolute(normalization(data, -1, 1)) for data in select_slices(f"{data_folder}/neuron_15.hdf5", 0, 12000)]), axis=0)
+	gras_means = np.sum(np.array([np.absolute(normalization(data, -1, 1)) for data in select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)]), axis=0)
 
 	# calculating latencies and amplitudes of mean values
 	bio_means_lat = sim_process(bio_meta, bio_step, inhibition_zero=True, debugging=True)[0]
