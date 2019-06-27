@@ -5,7 +5,7 @@ from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
-from analysis.functions import normalization
+from sklearn.preprocessing import normalize
 from analysis.histogram_lat_amp import sim_process
 
 bio_step = 0.25
@@ -29,12 +29,12 @@ percents = [25, 50, 75]
 
 def read_data(filepath):
 	with hdf5.File(filepath) as file:
-		data_by_test = [test_values[:] for test_values in file.values()]
+		data_by_test = [-test_values[:] for test_values in file.values()]
 	return data_by_test
 
 
 def select_slices(path, begin, end):
-	return [data[begin:end] for data in read_data(path)]
+	return [-data[begin:end] for data in read_data(path)]
 
 
 def hex2rgb(hex_color):
@@ -90,6 +90,35 @@ def calc_boxplots(dots):
 			low_flier = dot
 
 	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
+
+
+def normalization(data, a=0, b=1, zero_relative=False):
+	"""
+	Normalization in [a, b] interval
+	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
+	Args:
+		data (list): data for normalization
+		a (float or int): left interval a
+		b (float or int): right interval b
+		zero_relative (bool): if True -- recalculate data where 0 is the first element and -1 is min(EES)
+	Returns:
+		list: normalized data
+	"""
+	# checking on errors
+	if a >= b:
+		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
+
+	if zero_relative:
+		first = data[0]
+		minimal = abs(min(data))
+
+		return [(volt - first) / minimal for volt in data]
+	else:
+		min_x = min(data)
+		max_x = max(data)
+		const = (b - a) / (max_x - min_x)
+
+		return [(x - min_x) * const + a for x in data]
 
 
 def smooth(data, box_pts):
@@ -171,6 +200,140 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	raise Exception("You didn't choose any condtinion!")
 
 
+def straighten_data(points):
+	"""
+
+	Args:
+		points:
+
+	Returns:
+
+	"""
+	sim = select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)[1][::10]
+	PPP = np.stack((range(len(sim)), sim), axis=1)
+	plt.plot(PPP[:,1])
+	plt.show()
+
+	P = np.stack((range(len(points)), points), axis=1)
+
+	pca = PCA(n_components=2)
+	pca.fit(P)
+
+	##
+	center = np.array(pca.mean_)  # get the center (mean value)
+
+	# calc vectors
+	vectors = []
+	for v_length, vector in zip(pca.explained_variance_, pca.components_):
+		y = vector * 3 * np.sqrt(v_length)
+		vectors.append((center, center + y))
+
+	def draw_vector(v0, v1, ax=None):
+		ax = ax or plt.gca()
+		arrowprops = dict(arrowstyle='->',
+		                  linewidth=2,
+		                  shrinkA=0, shrinkB=0)
+		ax.annotate('', v1, v0, arrowprops=arrowprops)
+
+	# plot data
+	plt.scatter(P[:, 0], P[:, 1], alpha=0.2)
+	plt.plot(P[:, 0], P[:, 1])
+
+	for length, vector in zip(pca.explained_variance_, pca.components_):
+		v = vector * 3 * np.sqrt(length)
+		draw_vector(pca.mean_, pca.mean_ + v)
+
+	plt.show()
+
+	# pca.components_ : array, shape (n_components, n_features)
+	# cos theta
+	ct = pca.components_[0, 0]
+	# sin theta
+	st = pca.components_[0, 1]
+
+	# One possible value of theta that lies in [0, pi]
+	t = np.arccos(ct)
+
+	# If t is in quadrant 1, rotate CLOCKwise by t
+	if ct > 0 and st > 0:
+		t *= -1
+	# If t is in Q2, rotate COUNTERclockwise by the complement of theta
+	elif ct < 0 and st > 0:
+		t = np.pi - t
+	# If t is in Q3, rotate CLOCKwise by the complement of theta
+	elif ct < 0 and st < 0:
+		t = -(np.pi - t)
+	# If t is in Q4, rotate COUNTERclockwise by theta, i.e., do nothing
+	elif ct > 0 and st < 0:
+		pass
+
+	# Manually build the ccw rotation matrix
+	rotmat = np.array([[np.cos(t), -np.sin(t)],
+	                   [np.sin(t), np.cos(t)]])
+	# Apply rotation to each row of m (@ is a matrix multiplication)
+	m2 = (rotmat @ P.T).T
+
+	# Center the rotated point cloud at (0, 0)
+	m2 -= m2.mean(axis=0)
+
+	fig, ax = plt.subplots()
+	plot_kws = {'alpha': '0.75',
+	            'edgecolor': 'white',
+	            'linewidths': 0.75}
+
+	pca = PCA(n_components=2)
+	pca.fit(PPP)
+	# pca.components_ : array, shape (n_components, n_features)
+	# cos theta
+	ct = pca.components_[0, 0]
+	# sin theta
+	st = pca.components_[0, 1]
+
+	# One possible value of theta that lies in [0, pi]
+	t = np.arccos(ct)
+
+	# If t is in quadrant 1, rotate CLOCKwise by t
+	if ct > 0 and st > 0:
+		t *= -1
+	# If t is in Q2, rotate COUNTERclockwise by the complement of theta
+	elif ct < 0 and st > 0:
+		t = np.pi - t
+	# If t is in Q3, rotate CLOCKwise by the complement of theta
+	elif ct < 0 and st < 0:
+		t = -(np.pi - t)
+	# If t is in Q4, rotate COUNTERclockwise by theta, i.e., do nothing
+	elif ct > 0 and st < 0:
+		pass
+
+	# Manually build the ccw rotation matrix
+	rotmat = np.array([[np.cos(t), -np.sin(t)],
+	                   [np.sin(t), np.cos(t)]])
+	# Apply rotation to each row of m (@ is a matrix multiplication)
+	sim_m2 = (rotmat @ PPP.T).T
+
+	# Center the rotated point cloud at (0, 0)
+	sim_m2 -= sim_m2.mean(axis=0)
+
+	plot_kws = {'alpha': '0.75',
+	            'edgecolor': 'white',
+	            'linewidths': 0.75}
+
+
+
+	# ax.scatter(range(len(P[:, 0])), m2[:, 1] * 5, **plot_kws)
+	n_bio = normalization(np.append(m2[:, 1], 0))
+	# ax.scatter(range(len(sim_m2[:, 1])), sim_m2[:, 1], **plot_kws)
+	n_sim = normalization(np.append(sim_m2[:, 1], 0))
+
+	ax.plot(range(len(n_bio)), n_bio - (n_bio[-1] - n_sim[-1]), color='orange', label="BIO", linewidth=3)
+	ax.plot(range(len(n_sim)), n_sim, color='g', label="SIM", linewidth=3)
+
+	# plt.axhline(y=n_bio[-1], color='orange', label="BIO 0", linestyle='--')
+	plt.axhline(y=n_sim[-1], color='g', label="SIM 0", linestyle='--')
+	plt.legend()
+	plt.show()
+
+
 def slice_metainfo(runs_data, ees_hz, debugging=True):
 	"""
 	ToDo fill the docstring
@@ -195,8 +358,28 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 	min_index_interval = 1
 	slice_in_ms = int(1000 / ees_hz)
 
+	original = np.array(runs_data[0]) - runs_data[0][0]
+	normalized_old = normalization(list(original), zero_relative=True)
+
+
+	plt.axhspan(ymin=-1, ymax=1, color='g', alpha=0.1)
+
+
+	original_reversed = np.negative(original)
+	normalized_lib = normalize(original_reversed.reshape(1, -1), norm="max")
+
+	normalized_strange = (original - original.min(0)) / original.ptp(0)
+
+	plt.plot(original, label='original')
+	plt.plot(normalized_old, label='normalized_old', linewidth=3)
+	plt.plot(np.negative(normalized_lib.T), label='normalized_lib')
+	plt.plot(normalized_strange, label='???')
+	plt.legend()
+	plt.show()
+
+
 	# set ees area, before that time we don't try to find latencies
-	ees_zone_time = int(8 / bio_step)
+	ees_zone_time = int(7 / bio_step)
 	shared_x = np.arange(slice_in_ms / bio_step) * bio_step
 
 	# read all bio data (list of tests)
@@ -209,11 +392,6 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 	# calc boxplot per step and split it by number of slices
 	splitted_per_slice_boxplots = np.split(np.array([calc_boxplots(dot) for dot in runs_data.T]), slices_number)
 
-	# set the poly area
-	l_poly_border = ees_zone_time
-	r_poly_border = int(slice_in_ms / bio_step)
-	poly_area = slice(l_poly_border, r_poly_border)
-
 	# compute latency per slice
 	for slice_index, slice_data in enumerate(splitted_per_slice_boxplots):
 		'''[1] preparing data'''
@@ -225,20 +403,20 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		smoothed_Q1 = smooth(data_Q1, 2)
 		smoothed_Q3 = smooth(data_Q3, 2)
 		smoothed_median = smooth(median, 2)
-		# fix the last broken data after smoothing
+		# fix the last broken data after smoothing (found by experimental way)
 		smoothed_Q1[-2:] = data_Q1[-2:]
 		smoothed_Q3[-2:] = data_Q3[-2:]
 		smoothed_median[-2:] = median[-2:]
-		# get a delta of NOT smoothed fliers data
+		# get a delta of NOT smoothed data
 		delta_data = np.abs(data_Q1 - data_Q3)
-		# get a delta of smoothed fliers data
+		# get a delta of smoothed data
 		delta_smoothed_data = np.abs(smoothed_Q1 - smoothed_Q3)
 
 		'''[2] finding extremuma'''
-		# get all Q1 extremuma indexes and values
+		# find all Q1 extremuma indexes and values
 		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extremuma(smoothed_Q1, np.less_equal)
 		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extremuma(smoothed_Q1, np.greater_equal)
-		# get all Q3 extremuma indexes and values
+		# find all Q3 extremuma indexes and values
 		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
 		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
 
@@ -249,6 +427,16 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		max_delta_Q1_index, _ = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))
 		# get index of extremuma with the biggest delta
 		ees_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
+
+		'''[3] find a good poly area'''
+		l_poly_border = ees_zone_time
+		for index_Q1, index_Q3 in zip(e_all_Q1_maxima_indexes, e_all_Q3_maxima_indexes):
+			index = index_Q1 if index_Q1 > index_Q3 else index_Q3
+			if index > ees_index and index > ees_zone_time:
+				l_poly_border = index
+				break
+		r_poly_border = int(slice_in_ms / bio_step)
+		poly_area = slice(l_poly_border, r_poly_border)
 
 		'''[4] finding poly answer'''
 		# get only poly Q1 extremuma indexes
@@ -265,6 +453,10 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		latencies_Q1 = []
 		for e_left, e_right in zip(e_poly_Q1_indexes, e_poly_Q1_indexes[1:]):
 			# if dots are too close
+			e_left += 1
+			e_right -= 1
+			if e_right - e_left <= 0:
+				continue
 			if e_right - e_left == 1:
 				latency_index = e_right
 			# else find indexes of minimal variance index in [dot left, dot right) interval
@@ -275,6 +467,10 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		# find latencies in Q3
 		latencies_Q3 = []
 		for e_left, e_right in zip(e_poly_Q3_indexes, e_poly_Q3_indexes[1:]):
+			e_left += 1
+			e_right -= 1
+			if e_right - e_left <= 0:
+				continue
 			# if dots are too close
 			if e_right - e_left == 1:
 				latency_index = e_right
@@ -284,28 +480,28 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 			latencies_Q3.append(latency_index)
 
 		'''[5] finding best borders by delta'''
-		# find extremuma for deltas
-		poly_hist_indexes_min, poly_hist_values_min = find_extremuma(delta_data[poly_area], np.less_equal)
-		poly_hist_indexes_max, poly_hist_values_max = find_extremuma(delta_data[poly_area], np.greater_equal)
+		# find extremuma for deltas of Q1 and Q3
+		e_delta_minima_indexes, e_delta_minima_values = find_extremuma(delta_data[poly_area], np.less_equal)
+		e_delta_maxima_indexes, e_delta_maxima_values = find_extremuma(delta_data[poly_area], np.greater_equal)
 
 		# prepare data for concatenating dots into one list (per parameter)
-		common_lenght = len(poly_hist_indexes_min) + len(poly_hist_indexes_max)
+		common_lenght = len(e_delta_minima_indexes) + len(e_delta_maxima_indexes)
 		merged_names = [None] * common_lenght
 		merged_indexes = [None] * common_lenght
 		merged_values = [None] * common_lenght
 
 		# who located earlier -- max or min
-		min_starts = 0 if poly_hist_indexes_min[0] < poly_hist_indexes_max[0] else 1
-		max_starts = 1 if poly_hist_indexes_min[0] < poly_hist_indexes_max[0] else 0
+		min_starts = 0 if e_delta_minima_indexes[0] < e_delta_maxima_indexes[0] else 1
+		max_starts = 1 if e_delta_minima_indexes[0] < e_delta_maxima_indexes[0] else 0
 
 		# fill minima lists based on the precedence
-		merged_names[min_starts::2] = ['min'] * len(poly_hist_indexes_min)
-		merged_indexes[min_starts::2] = poly_hist_indexes_min
-		merged_values[min_starts::2] = poly_hist_values_min
+		merged_names[min_starts::2] = ['min'] * len(e_delta_minima_indexes)
+		merged_indexes[min_starts::2] = e_delta_minima_indexes
+		merged_values[min_starts::2] = e_delta_minima_values
 		# the same for the maxima
-		merged_names[max_starts::2] = ['max'] * len(poly_hist_indexes_max)
-		merged_indexes[max_starts::2] = poly_hist_indexes_max
-		merged_values[max_starts::2] = poly_hist_values_max
+		merged_names[max_starts::2] = ['max'] * len(e_delta_maxima_indexes)
+		merged_indexes[max_starts::2] = e_delta_maxima_indexes
+		merged_values[max_starts::2] = e_delta_maxima_values
 		# convert them to the array for usability
 		merged_names = np.array(merged_names)
 		merged_values = np.array(merged_values)
@@ -317,9 +513,7 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		is_index_ok = np.append(differed_indexes > min_index_interval, True)
 
 		index = 0
-		while True:
-			if index + 1 >= len(is_index_ok):
-				break
+		while index < len(is_index_ok):
 			if not is_index_ok[index] and index + 1 < len(is_index_ok):
 				is_index_ok[index + 1] = False
 				index += 2
@@ -333,13 +527,13 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 		min_mask = is_index_ok & (merged_names == "min")
 		max_mask = is_index_ok & (merged_names == "max")
 		# use filters
-		poly_hist_indexes_min = merged_indexes[min_mask]
-		poly_hist_indexes_max = merged_indexes[max_mask]
+		e_delta_minima_indexes = merged_indexes[min_mask]
+		e_delta_maxima_indexes = merged_indexes[max_mask]
 
 		# find the best right border
 		i_min = 0
 		r_best_border = 0
-		l_best_border = poly_hist_indexes_min[0] + l_poly_border
+		l_best_border = e_delta_minima_indexes[0] + l_poly_border if e_delta_minima_indexes[0] > e_delta_maxima_indexes[0] else e_delta_minima_indexes[1] + l_poly_border
 		is_border_found = False
 
 		while not is_border_found and i_min < len(merged_names):
@@ -351,18 +545,24 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 						break
 			i_min += 1
 
+		if r_best_border < l_best_border:
+			l_best_border, r_best_border = r_best_border, l_best_border
+
 		if not is_border_found:
 			raise Exception("WHERE IS MAXIMAL BORDER???")
 
 		'''[6] finding best latency in borders'''
-		best_latency = (l_best_border, delta_smoothed_data[l_best_border])
+		best_latency = (0, 0)
 		# find the latency in Q1 and Q3 data (based on the maximal variance)
-		for lat_Q1 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q1):
-			if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
-				best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
-		for lat_Q3 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q3):
-			if delta_smoothed_data[lat_Q3] > best_latency[k_value]:
-				best_latency = (lat_Q3, delta_smoothed_data[lat_Q3])
+		while best_latency[k_value] == 0:
+			for lat_Q1 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q1):
+				if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
+					best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
+			for lat_Q3 in filter(lambda dot: l_best_border < dot < r_best_border, latencies_Q3):
+				if delta_smoothed_data[lat_Q3] > best_latency[k_value]:
+					best_latency = (lat_Q3, delta_smoothed_data[lat_Q3])
+			if best_latency[k_value] == 0:
+				r_best_border += 1
 
 		# append found latency to the global list of the all latencies per slice
 		global_lat_indexes.append(best_latency[k_index])
@@ -374,67 +574,84 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 			print("{:^40}".format(f"SLICE {slice_index + 1}"))
 			print("- " * 20)
 			print(f"  EES was found at: {ees_index * bio_step}ms (index {ees_index})")
-			print(f" minima_indexes Q1: {e_poly_Q1_minima_indexes}")
-			print(f" maxima_indexes Q1: {e_poly_Q1_maxima_indexes}")
+			print(f" minima indexes Q1: {e_poly_Q1_minima_indexes}")
+			print(f" maxima indexes Q1: {e_poly_Q1_maxima_indexes}")
 			print(f" merged indexes Q1: {e_poly_Q1_indexes}")
 			print(f"found latencies Q1: {latencies_Q1}")
 			print("- " * 20)
-			print(f" minima_indexes Q3: {e_poly_Q3_minima_indexes}")
-			print(f" maxima_indexes Q3: {e_poly_Q3_maxima_indexes}")
+			print(f" minima indexes Q3: {e_poly_Q3_minima_indexes}")
+			print(f" maxima indexes Q3: {e_poly_Q3_maxima_indexes}")
 			print(f" merged indexes Q3: {e_poly_Q3_indexes}")
 			print(f"found latencies Q3: {latencies_Q3}")
 			print("- " * 20)
 			print(f" poly answers area: [{l_poly_border * bio_step}, {r_poly_border * bio_step}]ms")
-			print(f"  hist indexes min: {poly_hist_indexes_min}")
-			print(f"  hist indexes max: {poly_hist_indexes_max}")
+			print(f"  hist indexes min: {e_delta_minima_indexes}")
+			print(f"  hist indexes max: {e_delta_maxima_indexes}")
 			print(f"      merged names: {merged_names}")
 			print(f"    merged indexes: {merged_indexes}")
 			print(f"     merged values: {merged_values}")
 			print(f"  differed_indexes: {differed_indexes}")
 			print(f" indexes that okay: {is_index_ok}")
-			print(f"best area between {l_best_border * bio_step}ms and {r_best_border * bio_step}ms")
-			print(f"latency at {best_latency[0] * bio_step}ms")
+			print(f" best area between: {l_best_border * bio_step}ms and {r_best_border * bio_step}ms")
+			print(f"        latency at: {best_latency[0] * bio_step}ms")
 
+			gridsize = (3, 1)
+
+			fig = plt.figure(figsize=(16, 9))
+			ax1 = plt.subplot2grid(gridsize, (0, 0), rowspan=2)
+			ax2 = plt.subplot2grid(gridsize, (2, 0), sharex=ax1)
+
+			ax1.title.set_text(f"Bio data of slice #{slice_index + 1}")
 			# plot an area of EES
-			plt.axvspan(xmin=0, xmax=ees_zone_time, color='g', alpha=0.3, label="EES area")
+			ax1.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
 			# plot EES
-			plt.axvline(x=ees_index, color='orange', linewidth=3, label="EES")
+			ax1.axvline(x=ees_index, color='orange', linewidth=3, label="EES")
 			# plot an area where we try to find a best latency
-			plt.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
-			# plot bars (delta of variance) and colorize extremuma
-			colors = ['#2B2B2B'] * len(delta_data)
-			for i in poly_hist_indexes_min + l_poly_border:
-				colors[i] = 'b'
-			for i in poly_hist_indexes_max + l_poly_border:
-				colors[i] = 'r'
-			plt.bar(range(len(delta_data)), delta_data, bottom=-10, width=0.4, color=colors)
-			# plot not filtered extremuma
-			plt.plot(merged_indexes + l_poly_border, merged_values - 9.7, '.', markersize=7, color='k')
+			ax1.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
+			# plot original bio data per slice
+			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
+			# plot Q1 and Q3 areas, and median
+			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
+			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
+			ax1.plot(median, linestyle='--', color='k', label="median value")
+			# plot extremuma
+			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', color=min_color, label="minima extremuma")
+			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', color=max_color, label="maxima extremuma")
+			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', color=min_color)
+			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', color=max_color)
 			# plot latencies for Q1 and Q3
-			plt.plot(latencies_Q1, smoothed_Q1[latencies_Q1], '.', markersize=20, color='#227734', label="Q1 latencies")
-			plt.plot(latencies_Q3, smoothed_Q3[latencies_Q3], '.', markersize=20, color="#FF6600", label="Q3 latencies")
+			ax1.plot(latencies_Q1, smoothed_Q1[latencies_Q1], '.', markersize=20, color='#227734', label="Q1 latencies")
+			ax1.plot(latencies_Q3, smoothed_Q3[latencies_Q3], '.', markersize=20, color="#FF6600", label="Q3 latencies")
 			# plot the best latency with guidline
 			best_lat_x = best_latency[0]
 			best_lat_y = smoothed_Q1[best_lat_x]
-			plt.plot([best_lat_x] * 2, [best_lat_y - 2, best_lat_y], color="k", linewidth=0.5)
-			plt.text(best_lat_x, best_lat_y - 2, best_lat_x * bio_step)
-			# plot original bio data per slice
-			plt.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
-			# plot Q1 and Q3 areas, and median
-			plt.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
-			plt.plot(smoothed_Q3, color='k', linewidth=3.5)
-			plt.plot(median, linestyle='--', color='k', label="median value")
-			# plot extremuma
-			plt.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', color=min_color, label="minima extremuma")
-			plt.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', color=max_color, label="maxima extremuma")
-			plt.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', color=min_color)
-			plt.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', color=max_color)
-			# figure properties
-			plt.suptitle(f"Slice #{slice_index + 1}")
-			plt.xticks(range(0, 101, 4), (np.arange(0, 101, 4) * bio_step).astype(int))
-			plt.xlim(0, 100)
+			ax1.plot([best_lat_x] * 2, [best_lat_y - 2, best_lat_y], color="k", linewidth=0.5)
+			ax1.text(best_lat_x, best_lat_y - 2, best_lat_x * bio_step)
+			ax1.set_xticks(range(0, 101, 4))
+			ax1.set_xticklabels((np.arange(0, 101, 4) * bio_step).astype(int))
+			ax1.set_xlim(0, 100)
+			ax1.grid(axis='x', linestyle='--')
+			ax1.legend()
+
+			ax2.title.set_text("Delta of variance per iter")
+			# plot an area where we try to find a best latency
+			ax2.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
+			# plot not filtered extremuma
+			ax2.plot(merged_indexes + l_poly_border, merged_values + 0.2, '.', markersize=7, color='k')
+			# plot bars (delta of variance) and colorize extremuma
+			colors = ['#2B2B2B'] * len(delta_data)
+			for i in e_delta_minima_indexes + l_poly_border:
+				colors[i] = 'b'
+			for i in e_delta_maxima_indexes + l_poly_border:
+				colors[i] = 'r'
+			ax2.bar(range(len(delta_data)), delta_data, width=0.4, color=colors, zorder=3)
+			ax2.set_xticks(range(0, 101, 4))
+			ax2.set_xticklabels((np.arange(0, 101, 4) * bio_step).astype(int))
+			ax2.set_xlim(0, 100)
+			ax2.grid(axis='x', linestyle='--', zorder=0)
+			ax2.legend()
+
 			plt.tight_layout()
-			plt.legend()
 			plt.show()
 
 	# show latencies on the all slices (shadows)
@@ -475,11 +692,12 @@ def slice_metainfo(runs_data, ees_hz, debugging=True):
 
 	return global_lat_indexes, global_amp_values, global_peaks_numbers
 
-	raise Exception
-
 
 def plot_pca():
-	bio_meta = slice_metainfo(read_data(f"{data_folder}/21cms_40Hz_100%_slices5-10.hdf5"), ees_hz=40)
+	for d in read_data(f"{data_folder}/bio_15.hdf5"):
+		straighten_data(d)
+	raise Exception
+	bio_meta = slice_metainfo(read_data(f"{data_folder}/bio_15.hdf5"), ees_hz=40)
 
 	raise Exception
 
