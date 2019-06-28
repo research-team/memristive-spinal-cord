@@ -8,8 +8,13 @@ from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
 from analysis.histogram_lat_amp import sim_process
 
+np.set_printoptions(threshold=np.inf)
+
 data_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/"
 
+# keys
+k_index = 0
+k_value = 1
 k_median = 0
 k_box_Q3 = 1
 k_box_Q1 = 2
@@ -279,6 +284,34 @@ def center_data_by_line(y_points, debugging=False):
 	return rotated_dots_2D[:, 1]
 
 
+def find_min_scatters(array, extremuma):
+	"""
+	Function for finding minimal scatter between two extremuma
+	Args:
+		array (list or np.ndarray): Y values
+		extremuma (list or np.ndarray): indexes of extremuma
+	Returns:
+		list: indexes of minimal scatters
+	"""
+	min_scatters = []
+
+	for e_left, e_right in zip(extremuma, extremuma[1:]):
+		# if dots are too close (no place for minimal scatter) -- ignore them
+		if e_right - e_left == 1:
+			continue
+		# elif distance is enough to place one dot
+		elif e_right - e_left == 2:
+			min_scatter_index = e_left + 1
+		# else find indexes of minimal variance index in [dot left, dot right) interval
+		else:
+			e_left += 1
+			e_right -= 1
+			min_scatter_index = e_left + min_at(array[e_left:e_right])[k_index]
+		min_scatters.append(min_scatter_index)
+
+	return min_scatters
+
+
 def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
@@ -290,28 +323,21 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	Returns:
 		list: latencies indexes
 	"""
+
 	global_lat_indexes = []
 	global_amp_values = []
 
-	# keys
-	k_index = 0
-	k_value = 1
+	data_test_runs = np.array(data_test_runs)
 
 	# additional properties
-	min_index_interval = 1
 	slice_in_ms = int(1000 / ees_hz)
-
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / data_step)
 	shared_x = np.arange(slice_in_ms / data_step) * data_step
-
-	data_test_runs = np.array(data_test_runs)
 	# get number of slices based on length of the bio data
 	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
-
 	# split original data only for visualization
 	splitted_per_slice_original = np.split(data_test_runs.T, slices_number)
-
 	# calc boxplot per step and split it by number of slices
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in data_test_runs.T])
 	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
@@ -319,7 +345,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	''' NEEEEEEW )only for poly??'''
 	# calc minimal diff for dots
 
-	delta = np.abs(boxplots_per_iter[:, k_fliers_low] - boxplots_per_iter[:, k_fliers_high])
+	delta = np.abs(boxplots_per_iter[:, k_fliers_low] - boxplots_per_iter[:, k_fliers_high])[ees_zone_time:]
 
 	# delta_poly = np.array([slice_data[int(10 / data_step):] for slice_data in np.split(delta, slices_number)]).flatten()
 	# import itertools
@@ -331,7 +357,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	# raise Exception
 	delta_poly_diff = np.abs(np.diff(delta, n=1))
 
-	allowed_diff = np.percentile(delta_poly_diff, percents)[2] # median 2, Q3 - 3
+	allowed_diff = np.percentile(delta_poly_diff, percents)[1] # [0] is Q1, [1] is median, [2] is Q3
 	print(f"allowed diff: {allowed_diff}")
 
 	# compute latency per slice
@@ -365,107 +391,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
 		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
 
-		##
-		np.set_printoptions(threshold=np.inf)
-		# ===========================
-		# begin
-		# ===========================
-		common_lenght = len(e_all_Q1_minima_indexes) + len(e_all_Q1_maxima_indexes)
-		merged_names = [None] * common_lenght
-		merged_indexes = [None] * common_lenght
-		merged_values = [None] * common_lenght
-
-		# who located earlier -- max or min
-		min_starts = 0 if e_all_Q1_minima_indexes[0] < e_all_Q1_maxima_indexes[0] else 1
-		max_starts = 1 if e_all_Q1_minima_indexes[0] < e_all_Q1_maxima_indexes[0] else 0
-
-		# fill minima lists based on the precedence
-		merged_names[min_starts::2] = ['min'] * len(e_all_Q1_minima_indexes)
-		merged_indexes[min_starts::2] = e_all_Q1_minima_indexes
-		merged_values[min_starts::2] = e_all_Q1_minima_values
-		# the same for the maxima
-		merged_names[max_starts::2] = ['max'] * len(e_all_Q1_maxima_indexes)
-		merged_indexes[max_starts::2] = e_all_Q1_maxima_indexes
-		merged_values[max_starts::2] = e_all_Q1_maxima_values
-
-		# convert them to the array for usability
-		delta_value = np.append(np.abs(np.diff(merged_values, n=1)), 10)
-		delta_index = np.append(np.abs(np.diff(merged_indexes, n=1)), 10)
-
-		is_value_ok = delta_value > allowed_diff
-		is_index_ok = delta_index > int(0.4 / data_step)
-		total = is_value_ok & is_index_ok
-
-		x = PrettyTable(["type", "index", "i diff", "i ok?", "value", "v diff", "v ok?", "total"], title='Q1')
-		for row in zip(merged_names, merged_indexes, delta_index.astype(int), is_value_ok,
-		               [f"{v:.4f}" for v in merged_values], [f"{v:.4f}" for v in delta_value], is_index_ok,
-		               total):
-			x.add_row(row)
-		print(x)
-
-		merged_names = np.array(merged_names)
-		merged_values = np.array(merged_values)
-		merged_indexes = np.array(merged_indexes)
-		# ===========================
-		# end
-		# ===========================
-
-
-		e_all_Q1_minima_indexes = merged_indexes[total & (merged_names == "min")]
-		e_all_Q1_minima_values = merged_values[total & (merged_names == "min")]
-		e_all_Q1_maxima_indexes = merged_indexes[total & (merged_names == "max")]
-		e_all_Q1_maxima_values = merged_values[total & (merged_names == "max")]
-
-		# ===========================
-		# begin
-		# ===========================
-		common_lenght = len(e_all_Q3_minima_indexes) + len(e_all_Q3_maxima_indexes)
-		merged_names = [None] * common_lenght
-		merged_indexes = [None] * common_lenght
-		merged_values = [None] * common_lenght
-
-		# who located earlier -- max or min
-		min_starts = 0 if e_all_Q3_minima_indexes[0] < e_all_Q3_maxima_indexes[0] else 1
-		max_starts = 1 if e_all_Q3_minima_indexes[0] < e_all_Q3_maxima_indexes[0] else 0
-
-		# fill minima lists based on the precedence
-		merged_names[min_starts::2] = ['min'] * len(e_all_Q3_minima_indexes)
-		merged_indexes[min_starts::2] = e_all_Q3_minima_indexes
-		merged_values[min_starts::2] = e_all_Q3_minima_values
-		# the same for the maxima
-		merged_names[max_starts::2] = ['max'] * len(e_all_Q3_maxima_indexes)
-		merged_indexes[max_starts::2] = e_all_Q3_maxima_indexes
-		merged_values[max_starts::2] = e_all_Q3_maxima_values
-
-		# convert them to the array for usability
-		delta_value = np.append(np.abs(np.diff(merged_values, n=1)), 10)
-		delta_index = np.append(np.abs(np.diff(merged_indexes, n=1)), 10)
-
-		is_value_ok = delta_value > allowed_diff
-		is_index_ok = delta_index > int(0.2 / data_step)
-		total = is_value_ok & is_index_ok
-
-		x = PrettyTable(["type", "index", "i diff", "i ok?", "value", "v diff", "v ok?", "total"], title='Q1')
-		for row in zip(merged_names, merged_indexes, delta_index.astype(int), is_value_ok,
-		               [f"{v:.4f}" for v in merged_values], [f"{v:.4f}" for v in delta_value], is_index_ok,
-		               total):
-			x.add_row(row)
-		print(x)
-
-		merged_names = np.array(merged_names)
-		merged_values = np.array(merged_values)
-		merged_indexes = np.array(merged_indexes)
-		# ===========================
-		# end
-		# ===========================
-
-		e_all_Q3_minima_indexes = merged_indexes[total & (merged_names == "min")]
-		e_all_Q3_minima_values = merged_values[total & (merged_names == "min")]
-		e_all_Q3_maxima_indexes = merged_indexes[total & (merged_names == "max")]
-		e_all_Q3_maxima_values = merged_values[total & (merged_names == "max")]
-
-
-		##
 		'''[3] find EES'''
 		# get the lowest (Q1) mono minima extremuma
 		e_mono_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes < ees_zone_time].astype(int)
@@ -476,11 +401,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 
 		"""[3] find a good poly area"""
 		l_poly_border = ees_zone_time
-		# for index_Q1, index_Q3 in zip(e_all_Q1_maxima_indexes, e_all_Q3_maxima_indexes):
-		# 	index = index_Q1 if index_Q1 > index_Q3 else index_Q3
-		# 	if index > ees_index and index > ees_zone_time:
-		# 		l_poly_border = index
-		# 		break
+		for index_Q1, index_Q3 in zip(e_all_Q1_maxima_indexes, e_all_Q3_maxima_indexes):
+			index = index_Q1 if index_Q1 > index_Q3 else index_Q3
+			if index > ees_index and index > ees_zone_time:
+				l_poly_border = index
+				break
+		if l_poly_border > int(10 / data_step):
+			l_poly_border = int(10 / data_step)
 		r_poly_border = int(slice_in_ms / data_step)
 		poly_area = slice(l_poly_border, r_poly_border)
 
@@ -495,35 +422,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		e_poly_Q1_indexes = np.sort(np.concatenate((e_poly_Q1_minima_indexes, e_poly_Q1_maxima_indexes))).astype(int)
 		e_poly_Q3_indexes = np.sort(np.concatenate((e_poly_Q3_minima_indexes, e_poly_Q3_maxima_indexes))).astype(int)
 
-		# find latencies in Q1 (zip into the pairs)
-		min_scatters_Q1 = []
-		for e_left, e_right in zip(e_poly_Q1_indexes, e_poly_Q1_indexes[1:]):
-			# if dots are too close
-			# e_left += 1
-			# e_right -= 1
-			if e_right - e_left <= 0:
-				continue
-			if e_right - e_left == 1:
-				latency_index = e_right
-			# else find indexes of minimal variance index in [dot left, dot right) interval
-			else:
-				latency_index = e_left + min_at(delta_smoothed_data[e_left:e_right])[k_index]
-			min_scatters_Q1.append(latency_index)
-
-		# find latencies in Q3
-		min_scatters_Q3 = []
-		for e_left, e_right in zip(e_poly_Q3_indexes, e_poly_Q3_indexes[1:]):
-			# e_left += 1
-			# e_right -= 1
-			if e_right - e_left <= 0:
-				continue
-			# if dots are too close
-			if e_right - e_left == 1:
-				latency_index = e_right
-			# else find indexes of minimal variance index in [dot left, dot right) interval
-			else:
-				latency_index = e_left + min_at(delta_smoothed_data[e_left:e_right])[k_index]
-			min_scatters_Q3.append(latency_index)
+		# find minimal scatters between extremuma
+		min_scatters_Q1 = find_min_scatters(delta_smoothed_data, extremuma=e_poly_Q1_indexes)
+		min_scatters_Q3 = find_min_scatters(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
 
 		"""[5] find a best searching borders for latencies by delta"""
 		# find extremuma for deltas of Q1 and Q3
@@ -556,7 +457,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		# get difference of merged indexes with step 1
 		differed_indexes = np.abs(np.diff(merged_indexes, n=1))
 		# filter closest indexes and add the True to the end, because the last dot doesn't have diff with next point
-		is_index_ok = np.append(differed_indexes > min_index_interval, True)
+		is_index_ok = np.append(differed_indexes > 0, True)
 
 		index = 0
 		while index < len(is_index_ok):
@@ -598,16 +499,16 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 			raise Exception("WHERE IS MAXIMAL BORDER???")
 
 		"""[6] find the best latency in borders"""
-		best_latency = (0, 0)
+		best_latency = (None, -np.inf)
 		# find the latency in Q1 and Q3 data (based on the maximal variance)
-		while best_latency[k_value] == 0:
+		while best_latency[k_index] is None and r_best_border < int(slice_in_ms / data_step):
 			for lat_Q1 in filter(lambda dot: l_best_border < dot < r_best_border, min_scatters_Q1):
 				if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
 					best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
 			for lat_Q3 in filter(lambda dot: l_best_border < dot < r_best_border, min_scatters_Q3):
 				if delta_smoothed_data[lat_Q3] > best_latency[k_value]:
 					best_latency = (lat_Q3, delta_smoothed_data[lat_Q3])
-			if best_latency[k_value] == 0:
+			if best_latency[k_index] is None:
 				r_best_border += 1
 
 		# append found latency to the global list of the all latencies per slice
@@ -651,6 +552,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 			ax1.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
 			# plot EES
 			ax1.axvline(x=ees_index, color='orange', linewidth=3, label="EES")
+			# plot zero line
+			ax1.axhline(y=0, color='k', linewidth=1, linestyle='dotted')
 			# plot an area where we try to find a best latency
 			ax1.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
 			# plot original bio data per slice
@@ -661,8 +564,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
-			ax1.plot(median, linestyle='--', color='k', label="median value")
-
+			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
 			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', color=min_color, label="minima extremuma")
 			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', color=max_color, label="maxima extremuma")
@@ -758,22 +660,12 @@ def plot_pca():
 	"""
 
 	"""
-
-
 	normalized_data = []
 	# for data_per_test in read_data(f"{data_folder}/bio_15.hdf5"):
 	for data_per_test in select_slices(f"{data_folder}/neuron_21.hdf5", 0, 6000):
-		centered_data = center_data_by_line(data_per_test)
+		centered_data = center_data_by_line(data_per_test[::10])
 		normalized_data.append(normalization(centered_data, save_centering=True))
-	lat_per_slice, amp_per_slice = get_lat_amp(normalized_data, ees_hz=40, data_step=0.025)
-
-
-
-
-
-
-
-
+	lat_per_slice, amp_per_slice = get_lat_amp(normalized_data, ees_hz=40, data_step=0.25)
 
 
 	raise Exception
