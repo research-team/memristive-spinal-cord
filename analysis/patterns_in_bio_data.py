@@ -42,12 +42,12 @@ def bio_data_runs():
 	mat_data5 = trim_myogram(raw_mat_data5, folder)
 	# mat_data6 = trim_myogram(raw_mat_data6, folder)
 
-	data.append([d for d in mat_data[0][300:1500]])    # bipedal control rats 21cm/s ex [0:600]
+	data.append([-d for d in mat_data[0][300:1500]])    # bipedal control rats 21cm/s ex [0:600]
 	# no quipazine bipedal [0:1200] quadrupedal [0:1200]
-	data.append([d for d in mat_data2[0][300:1500]])  # no quipazine bipedal [0:1200]
-	data.append([d for d in mat_data3[0][300:1500]])   # no quipazine bipedal [1000:2200]
-	data.append([d for d in mat_data4[0][300:1500]])    # no quipazine bipedal [900:2100]
-	data.append([d for d in mat_data5[0][300:1500]])    # no quipazine bipedal [600:1800] quadrupedal [1400:2600]
+	data.append([-d for d in mat_data2[0][300:1500]])  # no quipazine bipedal [0:1200]
+	data.append([-d for d in mat_data3[0][300:1500]])   # no quipazine bipedal [1000:2200]
+	data.append([-d for d in mat_data4[0][300:1500]])    # no quipazine bipedal [900:2100]
+	data.append([-d for d in mat_data5[0][300:1500]])    # no quipazine bipedal [600:1800] quadrupedal [1400:2600]
 	# data.append([d for d in mat_data6[0][0:1200]])
 	# data.append([d for d in mat_data7[0]])
 	# data.append([d for d in mat_data8[0]])

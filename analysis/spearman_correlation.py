@@ -10,8 +10,8 @@ from analysis.real_data_slices import read_data, trim_myogram
 import matplotlib.patches as mpatches
 from matplotlib import pyplot
 
-align_coef = -0.0009    # flexors 15 / 21 cm/s bipedal no quipazine
-omission_coef = -0.05
+align_coef = 0.00065#.0004    # flexors 15 / 21 cm/s bipedal no quipazine
+omission_coef = -0
 sim_step = 0.025
 step = 0.25
 color_bio = '#a6261d'
@@ -23,7 +23,9 @@ bio_data = bio_data_runs()
 for run in bio_data:
 	for dot in range(len(run)):
 		run[dot] -= align_coef * dot
-
+for run in bio_data:
+	plt.plot(run)
+	plt.show()
 print("len(bio_data) = ", len(bio_data))
 # calculate the mean data of all bio runs
 bio_mean_data = list(map(lambda elements: np.mean(elements), zip(*bio_data)))

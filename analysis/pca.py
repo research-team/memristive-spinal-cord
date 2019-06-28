@@ -10,12 +10,23 @@ from plotly.offline import plot
 from analysis.cut_several_steps_files import select_slices
 from GRAS.PCA import smooth
 
-bio_data = absolute_sum()
+# bio_data = absolute_sum()
+bio_data = bio_data_runs()
+# plt.plot(bio_data[0])
+# plt.show()
+bio_slices = []
+offset = 0
+for i in range(int(len(bio_data[0]) / 100)):
+	bio_slices_tmp = []
+	for j in range(offset, offset + 100):
+		bio_slices_tmp.append(bio_data[0][j])
+	offset += 100
+	bio_slices.append(bio_slices_tmp)
+
 print("bio_data = ", len(bio_data), bio_data)
 bio_np_array = np.array([np.array(x) for x in bio_data])
 
 bio_np_array = bio_np_array.T
-
 
 sim_step = 0.025
 bio_step = 0.25
@@ -33,17 +44,31 @@ for sl in range(int(len(neuron_list[0]) / 1000)):
 	offset += 1000
 	neuron_slices.append(neuron_slices_tmp)
 
-# print("len(neuron_slices) = ", len(neuron_slices))
+proceed_bio = sim_process(bio_data[0], bio_step, inhibition_zero=True, after_latencies=True)
 proceed = sim_process(neuron_list[0], sim_step, inhibition_zero=True, after_latencies=True)
 
 latencies = proceed[0]
-max_times_amp = proceed[1]
-max_values_amp = proceed[2]
-min_times_amp = proceed[3]
-min_values_amp = proceed[4]
+amplitudes = proceed[1]
+peaks_number_neuron = proceed[2]
+max_times_amp = proceed[3]
+max_values_amp = proceed[4]
+min_times_amp = proceed[5]
+min_values_amp = proceed[6]
 
-print("max_times_amp = ", max_times_amp)
-print("min_times_amp = ", min_times_amp)
+latencies_bio = proceed_bio[0]
+amplitudes_bio = proceed_bio[1]
+peaks_number = proceed_bio[2]
+max_times_amp_bio = proceed_bio[3]
+max_values_amp_bio = proceed_bio[4]
+min_times_amp_bio = proceed_bio[5]
+min_values_amp_bio = proceed_bio[6]
+print()
+# print("amplitudes_bio = ", amplitudes_bio)
+print()
+# print("max_times_amp = ", max_times_amp_bio)
+# print("max_values_amp = ", max_values_amp_bio)
+# print("min_times_amp= ", min_times_amp_bio)
+# print("min_values_amp = ", min_values_amp_bio)
 # max_values_mean = proceed[5]
 # min_values_mean = proceed[6]
 
@@ -55,16 +80,204 @@ print("min_times_amp = ", min_times_amp)
 # print("max_values_mean = ", len(max_values_mean), max_values_mean)
 # print("min_values_mean = ", len(min_values_mean), min_values_mean)
 latencies = [int(l / sim_step) for l in latencies]
+latencies_bio = [int(l / bio_step) for l in latencies_bio]
+
+max_amp_in_sl = []
+min_amp_in_sl = []
+max_indexes = []
+sum_min_max_amp_sl = []
+for sl in amplitudes_bio:
+	max_amp_in_sl.append(max(sl))
+	min_amp_in_sl.append(min(sl))
+	max_indexes.append(sl.index(max(sl)))
+max_amp = max(max_amp_in_sl)
+min_amp = min(min_amp_in_sl)
+print("max_amp = ", max_amp)
+print("min_amp = ", min_amp)
+for sl in range(len(max_amp_in_sl)):
+	sum_min_max_amp_sl.append(max_amp_in_sl[sl] - min_amp_in_sl[sl])
+
+neuron_max_amp_in_sl = []
+neuron_min_amp_in_sl = []
+neuron_max_indexes = []
+neuron_sum_min_max_amp_sl = []
+for sl in amplitudes:
+	neuron_max_amp_in_sl.append(max(sl))
+	neuron_min_amp_in_sl.append(min(sl))
+	neuron_max_indexes.append(sl.index(max(sl)))
+neuron_max_amp = max(neuron_max_amp_in_sl)
+neuron_max_index = neuron_max_amp_in_sl.index(max(neuron_max_amp_in_sl))
+neuron_min_amp = min(neuron_min_amp_in_sl)
+neuron_min_index = neuron_min_amp_in_sl.index(min(neuron_min_amp_in_sl))
+print("neuron_max_amp = ", neuron_max_amp)
+print("neuron_max_amp = ", neuron_max_amp)
+print("neuron_min_amp = ", neuron_min_amp)
+print()
+# print("neuron_max_amp_in_sl = ", neuron_max_amp_in_sl)
+# print("neuron_min_amp_in_sl = ", neuron_min_amp_in_sl)
+# print("neuron_max_indexes = ", neuron_max_indexes)
+for sl in range(len(neuron_max_amp_in_sl)):
+	neuron_sum_min_max_amp_sl.append(neuron_max_amp_in_sl[sl] - neuron_min_amp_in_sl[sl])
+
+thresholds_sl = []
+for sl in sum_min_max_amp_sl:
+	thresholds_sl.append(sl * 0.3)
+
+neuron_threshold = neuron_max_amp * 0.3
+
+neuron_thresholds_sl = []
+for sl in neuron_sum_min_max_amp_sl:
+	neuron_thresholds_sl.append(sl * 0.3)
+
+amplitudes_sl_corr = []
+amp_indexes = []
+for sl in range(len(thresholds_sl)):
+	amplitudes_sl_corr_tmp = []
+	amp_indexes_tmp = []
+	for a in range(len(amplitudes_bio[sl])):
+		if amplitudes_bio[sl][a] > thresholds_sl[sl]:
+			amplitudes_sl_corr_tmp.append(amplitudes_bio[sl][a])
+			amp_indexes_tmp.append(a)
+	amplitudes_sl_corr.append(amplitudes_sl_corr_tmp)
+	amp_indexes.append(amp_indexes_tmp)
+
+for sl in range(len(amplitudes_sl_corr)):
+	if len(amplitudes_sl_corr[sl]) == 0:
+		amplitudes_sl_corr[sl].append(max_amp_in_sl[sl])
+		amp_indexes[sl].append(max_indexes[sl])
+# print("amp_indexes = ", amp_indexes)
+
+times = []
+values = []
+
+for sl in range(len(max_values_amp_bio)):
+	times.append(max_times_amp_bio[sl] + min_times_amp_bio[sl])
+	values.append(max_values_amp_bio[sl] + min_values_amp_bio[sl])
+
+# print("times = ", times)
+# print("values = ", values)
+
+for sl in range(len(times)):
+	times[sl], values[sl] = (list(x) for x in zip(*sorted(zip(times[sl], values[sl]))))
+
+# print("times = ", times)
+# print("values = ", values)
+
+min_times_amp_bio = []
+for i in range(len(amp_indexes)):
+	min_times_amp_bio_tmp = []
+	for j in amp_indexes[i]:
+		min_times_amp_bio_tmp.append(times[i][j + 1])
+	min_times_amp_bio.append(min_times_amp_bio_tmp)
+
+min_values_amp_bio = []
+for i in range(len(amp_indexes)):
+	min_values_amp_bio_tmp = []
+	for j in amp_indexes[i]:
+		min_values_amp_bio_tmp.append(values[i][j + 1])
+	min_values_amp_bio.append(min_values_amp_bio_tmp)
+
+neuron_amplitudes_sl_corr = []
+neuron_amp_indexes = []
+for sl in range(len(neuron_thresholds_sl)):
+	neuron_amplitudes_sl_corr_tmp = []
+	neuron_amp_indexes_tmp = []
+	for a in range(len(amplitudes[sl])):
+		if amplitudes[sl][a] > neuron_thresholds_sl[sl]:
+			neuron_amplitudes_sl_corr_tmp.append(amplitudes[sl][a])
+			neuron_amp_indexes_tmp.append(a)
+	neuron_amplitudes_sl_corr.append(neuron_amplitudes_sl_corr_tmp)
+	neuron_amp_indexes.append(neuron_amp_indexes_tmp)
+# print("neuron_amplitudes_sl_corr = ", neuron_amplitudes_sl_corr)
+# print("neuron_amp_indexes = ", neuron_amp_indexes)
+for sl in range(len(neuron_amplitudes_sl_corr)):
+	print(len(neuron_amplitudes_sl_corr[sl]), neuron_amplitudes_sl_corr[sl])
+	if len(neuron_amplitudes_sl_corr[sl]) == 0:
+		neuron_amplitudes_sl_corr[sl].append(neuron_max_amp_in_sl[sl])
+		neuron_amp_indexes[sl].append(neuron_max_indexes[sl])
+
+neuron_times = []
+neuron_values = []
+
+for sl in range(len(max_values_amp)):
+	neuron_times.append(max_times_amp[sl] + min_times_amp[sl])
+	neuron_values.append(max_values_amp[sl] + min_values_amp[sl])
+
+# print("neuron_times = ", neuron_times)
+# print("neuron_values = ", neuron_values)
+
+for sl in range(len(neuron_times)):
+	neuron_times[sl], neuron_values[sl] = (list(x) for x in zip(*sorted(zip(neuron_times[sl], neuron_values[sl]))))
+
+# print("neuron_times = ", neuron_times)
+# print("neuron_values = ", neuron_values)
+
+min_times_amp = []
+for i in range(len(neuron_amp_indexes)):
+	# print("i = ", i)
+	min_times_amp_tmp = []
+	for j in neuron_amp_indexes[i]:
+		try:
+			# print("j + 1 = ", j + 1)
+			min_times_amp_tmp.append(neuron_times[i][j + 1])
+		except IndexError:
+			continue
+	min_times_amp.append(min_times_amp_tmp)
+
+min_values_amp = []
+for i in range(len(neuron_amp_indexes)):
+	min_values_amp_tmp = []
+	for j in neuron_amp_indexes[i]:
+		try:
+			min_values_amp_tmp.append(neuron_values[i][j + 1])
+		except IndexError:
+			continue
+	min_values_amp.append(min_values_amp_tmp)
+
+# print("max_times_amp_bio = ", max_times_amp_bio)
+# print("max_values_amp_bio = ", max_values_amp_bio)
+color = ['blue', 'green', 'blue', 'green', 'blue', 'green', 'blue', 'green', 'blue', 'green', 'blue', 'green']
+# for c in color:
+	# print(type(c))
+yticks = []
+for index, sl in enumerate(bio_slices):
+	offset = index * 2
+	# plt.plot([s + offset for s in sl])
+	# yticks.append(sl[0] + offset)
+	# plt.plot(latencies_bio[index], sl[latencies_bio[index]] + offset, '.', color='k', markersize=12)
+	# plt.plot([m for m in max_times_amp_bio[index]], [m + offset for m in max_values_amp_bio[index]],
+	#          '.', color='red')
+	# plt.plot([m for m in min_times_amp_bio[index]], [m + offset for m in min_values_amp_bio[index]],
+	#          's', color=color[index], markersize=9)
+ticks = []
+labels = []
+for i in range(0, len(bio_slices[0]) + 1, 4):
+	ticks.append(i)
+	labels.append(i / 4)
+# plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
+# plt.yticks(yticks, range(1, len(bio_slices) + 1), fontsize=14)
+# plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+# plt.xlim(0, 100)
+# plt.show()
 
 for index, sl in enumerate(neuron_slices):
 	offset = index * 4
-	# print("sl = ", sl)
 	plt.plot([s + offset for s in sl])
+	yticks.append(sl[0] + offset)
 	plt.plot(latencies[index], neuron_list[0][latencies[index]] + offset, '.', color='k', markersize=12)
-	plt.plot([m for m in max_times_amp[index]], [m + offset for m in max_values_amp[index]], '.',
-	         color='red')
-	plt.plot([m for m in min_times_amp[index]], [m + offset for m in min_values_amp[index]], '.',
-	         color='blue')
+	# plt.plot([m for m in max_times_amp[index]], [m + offset for m in max_values_amp[index]], '.',
+	#          color='red')
+	plt.plot([m for m in min_times_amp[index]], [m + offset for m in min_values_amp[index]],
+	         's', color=color[index], markersize=9)
+ticks = []
+labels = []
+for i in range(0, len(neuron_slices[0]) + 1, 40):
+	ticks.append(i)
+	labels.append(i / 40)
+plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
+plt.yticks(yticks, range(1, len(neuron_slices) + 1), fontsize=14)
+plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+plt.xlim(0, 1000)
 plt.show()
 
 raise Exception
@@ -79,9 +292,9 @@ for run in neuron_list:
 		offset += 1000
 		neuron_slices_list.append(neuron_slices_tmp)
 	neuron_slices.append(neuron_slices_list)
-print("len(neuron_slices) = ", len(neuron_slices))
-print("len(neuron_slices[0) = ", len(neuron_slices[0]))
-print("len(neuron_slices[0][0]) = ", len(neuron_slices[0][0]))
+# print("len(neuron_slices) = ", len(neuron_slices))
+# print("len(neuron_slices[0) = ", len(neuron_slices[0]))
+# print("len(neuron_slices[0][0]) = ", len(neuron_slices[0][0]))
 neuron_means = np.sum(np.array([np.absolute(normalization(data, -1, 1)) for data in neuron_list]), axis=0)
 
 # calculating latencies and amplitudes of mean values
