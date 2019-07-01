@@ -364,7 +364,6 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 		merged_indexes:
 		merged_values:
 		allowed_diff:
-
 	Returns:
 
 	"""
@@ -479,7 +478,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			if mono_answer_end_index > ees_zone_time:
 				l_poly_border = mono_answer_end_index
 				break
-		# the left poly answer border can't be more than 10ms
 		if l_poly_border > int(10 / data_step):
 			l_poly_border = int(10 / data_step)
 		# set the right poly answer by the end of the slice
@@ -529,32 +527,21 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		"""[6] find a best searching borders for latencies by delta"""
 		# find extremuma for deltas of Q1 and Q3
-		e_delta_minima_indexes, e_delta_minima_values = find_extremuma(delta_smoothed_data[poly_area], np.less_equal)
-		e_delta_maxima_indexes, e_delta_maxima_values = find_extremuma(delta_smoothed_data[poly_area], np.greater_equal)
+		e_delta_minima_indexes, e_delta_minima_values = find_extremuma(delta_smoothed_data, np.less_equal)
+		e_delta_maxima_indexes, e_delta_maxima_values = find_extremuma(delta_smoothed_data, np.greater_equal)
 
-		merged_names, merged_indexes, merged_values
-		# prepare data for concatenating dots into one list (per parameter)
-		common_lenght = len(e_delta_minima_indexes) + len(e_delta_maxima_indexes)
-		merged_names = [None] * common_lenght
-		merged_indexes = [None] * common_lenght
-		merged_values = [None] * common_lenght
+		# get only poly area
+		e_delta_minima_values = e_delta_minima_values[e_delta_minima_indexes > l_poly_border]
+		e_delta_minima_indexes = e_delta_minima_indexes[e_delta_minima_indexes > l_poly_border]
 
-		# who located earlier -- max or min
-		min_starts = 0 if e_delta_minima_indexes[0] < e_delta_maxima_indexes[0] else 1
-		max_starts = 1 if e_delta_minima_indexes[0] < e_delta_maxima_indexes[0] else 0
+		e_delta_maxima_values = e_delta_maxima_values[e_delta_maxima_indexes > l_poly_border]
+		e_delta_maxima_indexes = e_delta_maxima_indexes[e_delta_maxima_indexes > l_poly_border]
 
-		# fill minima lists based on the precedence
-		merged_names[min_starts::2] = ['min'] * len(e_delta_minima_indexes)
-		merged_indexes[min_starts::2] = e_delta_minima_indexes
-		merged_values[min_starts::2] = e_delta_minima_values
-		# the same for the maxima
-		merged_names[max_starts::2] = ['max'] * len(e_delta_maxima_indexes)
-		merged_indexes[max_starts::2] = e_delta_maxima_indexes
-		merged_values[max_starts::2] = e_delta_maxima_values
-		# convert them to the array for usability
-		merged_names = np.array(merged_names)
-		merged_values = np.array(merged_values)
-		merged_indexes = np.array(merged_indexes)
+		# merge Q3 poly extremuma indexes
+		merged_names, merged_indexes, merged_values = merge_extremuma_arrays(e_delta_minima_indexes,
+		                                                                     e_delta_minima_values,
+		                                                                     e_delta_maxima_indexes,
+		                                                                     e_delta_maxima_values)
 
 		# get difference of merged indexes with step 1
 		differed_indexes = np.abs(np.diff(merged_indexes, n=1))
@@ -572,24 +559,28 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		e_delta_minima_indexes = merged_indexes[min_mask]
 		e_delta_maxima_indexes = merged_indexes[max_mask]
 
-		# find the best right border
-		merged_names = merged_names[merged_indexes > 0]
-		merged_values = merged_values[merged_indexes > 0]
-		merged_indexes = merged_indexes[merged_indexes > 0]
+		local_max = np.argmax(merged_values)
+		maximal_peak_index = merged_indexes[local_max]
 
-		maximal_peak_index = merged_indexes[np.argmax(merged_values)]
+		if len(merged_indexes[merged_indexes < maximal_peak_index]) < 1:
+			# find the next max from the current 'bad'
+			merged_names = merged_names[merged_indexes > maximal_peak_index]
+			merged_values = merged_values[merged_indexes > maximal_peak_index]
+			merged_indexes = merged_indexes[merged_indexes > maximal_peak_index]
+			local_max = np.argmax(merged_values[local_max:])
+			maximal_peak_index = merged_indexes[local_max]
 
 		minimal_local_index = np.argmin(merged_values[merged_indexes < maximal_peak_index])
 		minimal_peak_index = merged_indexes[minimal_local_index]
 
-		l_best_border = minimal_peak_index + l_poly_border
+		l_best_border = minimal_peak_index
 		r_best_border = int(25 / data_step)
 
 		# find the best right border (the maximal delta in poly answers)
 		i_max = minimal_local_index + 1
 		while i_max < len(merged_indexes):
 			if merged_names[i_max] == 'max' and abs(merged_values[i_max] - merged_values[minimal_local_index]) > allowed_diff_for_extremuma:
-				r_best_border = merged_indexes[i_max] + l_poly_border
+				r_best_border = merged_indexes[i_max]
 				break
 			i_max += 1
 
@@ -609,7 +600,16 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			best_latency = (0, 0)
 
 		# append found latency to the global list of the all latencies per slice
-		global_lat_indexes.append(best_latency[k_index])
+		latency_index = best_latency[k_index]
+
+		global_lat_indexes.append(latency_index)
+
+		"""[7] find amplitudes"""
+		e_ampQ1_after_latency = np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index])
+		e_ampQ3_after_latency = np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index])
+		amp_sum = np.sum(e_ampQ1_after_latency) + np.sum(e_ampQ3_after_latency)
+
+		global_amp_values.append(amp_sum)
 
 		# all debugging info
 		if debugging:
@@ -698,12 +698,12 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			# plot an area where we try to find a best latency
 			ax2.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
 			# plot not filtered extremuma
-			ax2.plot(merged_indexes + l_poly_border, merged_values + 0.01, '.', markersize=3, color='k')
+			ax2.plot(merged_indexes, merged_values + 0.01, '.', markersize=3, color='k')
 			# plot bars (delta of variance) and colorize extremuma
 			colors = ['#2B2B2B'] * len(delta_smoothed_data)
-			for i in e_delta_minima_indexes + l_poly_border:
+			for i in e_delta_minima_indexes:
 				colors[i] = 'b'
-			for i in e_delta_maxima_indexes + l_poly_border:
+			for i in e_delta_maxima_indexes:
 				colors[i] = 'r'
 			ax2.bar(range(len(delta_smoothed_data)), delta_smoothed_data, width=0.4, color=colors, zorder=3)
 			ax2.set_xticks(range(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)))
@@ -753,7 +753,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	# ToDo replace a temporary 'global_amp_values'
 	global_lat_indexes = np.array(global_lat_indexes) * data_step
 
-	return global_lat_indexes, range(len(global_lat_indexes))
+	return global_lat_indexes, global_amp_values
 
 
 def prepare_data(dataset):
@@ -780,9 +780,8 @@ def plot_pca(debugging=False):
 	"""
 	X = 0
 	Y = 1
-
 	# process bio dataset
-	dataset = read_data(f"{data_folder}/bio_15.hdf5", sign=-1)
+	dataset = read_data(f"{data_folder}/bio_15.hdf5", sign=1)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	bio_pack = (np.stack((amp_per_slice, lat_per_slice), axis=1), '#a6261d', 'bio')
 
