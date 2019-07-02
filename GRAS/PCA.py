@@ -29,9 +29,9 @@ max_color = "#ED1B24"
 percents = [25, 50, 75]
 
 
-def read_data(filepath, sign=1):
+def read_data(filepath):
 	with hdf5.File(filepath) as file:
-		data_by_test = [sign * test_values[:] for test_values in file.values()]
+		data_by_test = [test_values[:] for test_values in file.values()]
 	return data_by_test
 
 
@@ -392,7 +392,7 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
 
 
-def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
+def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -430,8 +430,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	IQR = Q3 - Q1
 	Q3_15 = Q3 + 1.5 * IQR
 
-	allowed_diff_for_extremuma = Q3
-	allowed_diff_for_variance_delta = Q3_15
+	allowed_diff_for_extremuma = median
+	allowed_diff_for_variance_delta = Q3
 
 	# compute latency per slice
 	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
@@ -552,37 +552,27 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		assert len(is_index_ok) == len(merged_indexes)
 		assert len(merged_names) == len(merged_indexes)
 
-		# create filters for indexes by name and filtering array 'is_index_ok'
-		min_mask = is_index_ok & (merged_names == "min")
-		max_mask = is_index_ok & (merged_names == "max")
-		# use filters
-		e_delta_minima_indexes = merged_indexes[min_mask]
-		e_delta_maxima_indexes = merged_indexes[max_mask]
+		e_delta_indexes = merged_indexes[is_index_ok]
+		e_delta_values = merged_values[is_index_ok]
 
-		local_max = np.argmax(merged_values)
-		maximal_peak_index = merged_indexes[local_max]
+		# ToDo replace
+		diff_border = 0.09
+		enough = False
+		while not enough and diff_border > 0.01:
+			diffs_mask = np.append(np.diff(e_delta_values, n=1) > diff_border, True)
+			tmp_delta_indexes = e_delta_indexes[diffs_mask]
+			tmp_delta_values = e_delta_values[diffs_mask]
 
-		if len(merged_indexes[merged_indexes < maximal_peak_index]) < 1:
-			# find the next max from the current 'bad'
-			merged_names = merged_names[merged_indexes > maximal_peak_index]
-			merged_values = merged_values[merged_indexes > maximal_peak_index]
-			merged_indexes = merged_indexes[merged_indexes > maximal_peak_index]
-			local_max = np.argmax(merged_values[local_max:])
-			maximal_peak_index = merged_indexes[local_max]
+			if len(tmp_delta_indexes) > 1:
+				enough = True
 
-		minimal_local_index = np.argmin(merged_values[merged_indexes < maximal_peak_index])
-		minimal_peak_index = merged_indexes[minimal_local_index]
+			diff_border -= 0.01
 
-		l_best_border = minimal_peak_index
-		r_best_border = int(25 / data_step)
+		e_delta_indexes = tmp_delta_indexes
 
-		# find the best right border (the maximal delta in poly answers)
-		i_max = minimal_local_index + 1
-		while i_max < len(merged_indexes):
-			if merged_names[i_max] == 'max' and abs(merged_values[i_max] - merged_values[minimal_local_index]) > allowed_diff_for_extremuma:
-				r_best_border = merged_indexes[i_max]
-				break
-			i_max += 1
+		l_best_border = e_delta_indexes[0]
+		tmp = merged_indexes[(merged_indexes > e_delta_indexes[0]) & (merged_indexes < e_delta_indexes[1])]
+		r_best_border = tmp[0]
 
 		"""[7] find the best latency in borders"""
 		best_latency = (None, -np.inf)
@@ -781,7 +771,7 @@ def plot_pca(debugging=False):
 	X = 0
 	Y = 1
 	# process bio dataset
-	dataset = read_data(f"{data_folder}/bio_15.hdf5", sign=1)
+	dataset = read_data(f"{data_folder}/bio_15.hdf5")
 	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	bio_pack = (np.stack((amp_per_slice, lat_per_slice), axis=1), '#a6261d', 'bio')
 
