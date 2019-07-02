@@ -7,6 +7,8 @@ from sklearn.linear_model import LinearRegression
 import statistics
 import copy
 from analysis.patterns_in_bio_data import bio_data_runs
+from analysis.cut_several_steps_files import select_slices
+from GRAS.PCA import get_lat_amp
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -331,15 +333,16 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		dots_per_slice = 100
 	if step == 0.025:
 		dots_per_slice = 1000
-	# for l in range(len(latencies)):
-	# 	latencies[l] *= step
-	# 	latencies[l] = int(latencies[l])
+	for l in range(len(latencies)):
+		latencies[l] /= step
+		latencies[l] = int(latencies[l])
 	# print("latencies = ", latencies)
 	max_times = datas[0]
 	max_values = datas[1]
 	min_times = datas[2]
 	min_values = datas[3]
 
+	# print("amp latencies = ", latencies)
 	# print("amp max_times = ", max_times)
 	# print("amp max_values = ", max_values)
 	# print("amp min_times = ", min_times)
@@ -422,15 +425,15 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	for sl in range(len(corrected_min_values_amp)):
 		peaks_number.append(len(corrected_min_values_amp[sl]) + len(corrected_max_values_amp[sl]))
 	amplitudes = []
-	print("corrected_min_values_amp = ", corrected_min_values_amp)
-	print("corrected_max_values_amp = ", corrected_max_values_amp)
+	# print("corrected_min_values_amp = ", corrected_min_values_amp)
+	# print("corrected_max_values_amp = ", corrected_max_values_amp)
 
 	for sl in range(len(corrected_max_values_amp)):
-		print("sl = ", sl)
+		# print("sl = ", sl)
 		amplitudes_sl = []
 		try:
 			for i in range(len(corrected_max_values_amp[sl]) - 1):
-				print("i = ", i)
+				# print("i = ", i)
 				amplitudes_sl.append(corrected_max_values_amp[sl][i] - corrected_min_values_amp[sl][i])
 				amplitudes_sl.append(corrected_max_values_amp[sl][i + 1] - corrected_min_values_amp[sl][i])
 		except IndexError:
@@ -438,8 +441,8 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 
 		amplitudes.append(amplitudes_sl)
 
-	# for l in range(len(latencies)):
-	# 	latencies[l] /= step
+	for l in range(len(latencies)):
+		latencies[l] *= step
 	return amplitudes, peaks_number, corrected_max_times_amp, corrected_max_values_amp, corrected_min_times_amp, \
 	       corrected_min_values_amp
 
@@ -571,12 +574,12 @@ def __process(latencies, voltages, stim_indexes, step, debugging, inhibition_zer
 
 	# if debugging:
 	# 	debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
-	print("amplitudes = ", amplitudes)
-	print("peaks_number = ", peaks_number)
-	print("max_times = ", max_times)
-	print("min_times = ", min_times)
-	print("max_values = ", max_values)
-	print("min_values = ", min_values)
+	# print("amplitudes = ", amplitudes)
+	# print("peaks_number = ", peaks_number)
+	# print("max_times = ", max_times)
+	# print("min_times = ", min_times)
+	# print("max_values = ", max_values)
+	# print("min_values = ", min_values)
 	return amplitudes, peaks_number, max_times, min_times, max_values, min_values
 
 
@@ -1051,3 +1054,132 @@ def absolute_sum(data_list, step):
 			volts.append(j)
 
 	return volts
+
+
+def changing_peaks(data, herz, step, max_amp_coef=-0.1, min_amp_coef=-0.1):
+	latencies = get_lat_amp(data, herz, step)[0]
+	proceed_data = sim_process(latencies, data[0], step, inhibition_zero=True, after_latencies=True)
+	amplitudes = proceed_data[1]
+	max_times_amp = proceed_data[3]
+	max_values_amp = proceed_data[4]
+	min_times_amp = proceed_data[5]
+	min_values_amp = proceed_data[6]
+
+	print("amplitudes = ", amplitudes)
+	print("max_times_amp = ", max_times_amp)
+	print("max_values_amp = ", max_values_amp)
+	print("min_times_amp = ", min_times_amp)
+	print("min_values_amp = ", min_values_amp)
+	max_amp_in_sl = []
+	min_amp_in_sl = []
+	max_indexes = []
+
+	for sl in amplitudes:
+		try:
+			max_amp_in_sl.append(max(sl))
+			min_amp_in_sl.append(min(sl))
+			max_indexes.append(sl.index(max(sl)))
+		except ValueError:
+			continue
+
+	max_amp = max(max_amp_in_sl)
+	min_amp = min(min_amp_in_sl)
+
+	threshold_max = max_amp * max_amp_coef
+	threshold_min = min_amp * min_amp_coef
+
+	print("threshold_min = ", threshold_min)
+	corr_ampls_max = []
+	indexes_max = []
+	for index, sl in enumerate(max_values_amp):
+		corr_ampls_max_sl = []
+		indexes_sl = []
+		for ind_dot, dot in enumerate(sl):
+			if dot > threshold_max:
+				corr_ampls_max_sl.append(dot)
+				indexes_sl.append(max_times_amp[index][ind_dot])
+		corr_ampls_max.append(corr_ampls_max_sl)
+		indexes_max.append(indexes_sl)
+
+	corr_ampls_min = []
+	indexes_min = []
+
+	for index, sl in enumerate(min_values_amp):
+		print("min values amp = ", sl)
+		corr_ampls_min_sl = []
+		indexes_sl = []
+		for ind_dot, dot in enumerate(sl):
+			if dot < threshold_min:
+				corr_ampls_min_sl.append(dot)
+				indexes_sl.append(min_times_amp[index][ind_dot])
+		corr_ampls_min.append(corr_ampls_min_sl)
+		indexes_min.append(indexes_sl)
+
+	starts_from = []
+	for sl in range(len(indexes_min)):
+		if indexes_max[sl][0] < indexes_min[sl][0]:
+			starts_from.append('max')
+		else:
+			starts_from.append('min')
+
+	for sl in range(len(indexes_min)):
+		if starts_from[sl] == 'min':
+			if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
+				del indexes_max[sl][1:]
+				del corr_ampls_max[sl][1:]
+			if len(indexes_max[sl]) == 1 and len(indexes_min[sl]) > 1:
+				del indexes_min[sl][1:]
+				del corr_ampls_min[sl][1:]
+			for i in range(len(indexes_min[sl])):
+				try:
+					if indexes_min[sl][i] > indexes_max[sl][i]:
+						del indexes_max[sl][i]
+						del corr_ampls_max[sl][i]
+				except IndexError:
+					continue
+
+			if len(indexes_min[sl]) > 1:
+				for i in range(len(indexes_min[sl]) - 1):
+					# print("len(indexes_max[{}]) - 1 = ".format(sl), len(indexes_max[sl]) - 1)
+					# print("i = ", i)
+					# print("indexes_min[{}][{}] = ".format(sl, i + 1), indexes_min[sl][i + 1])
+					# print("indexes_max[{}][{}] = ".format(sl, i), indexes_max[sl][i])
+					# print()
+					if indexes_min[sl][i + 1] < indexes_max[sl][i]:
+						del indexes_min[sl][i + 1]
+						del corr_ampls_min[sl][i + 1]
+			if len(indexes_max[sl]) > len(indexes_min[sl]):
+				del indexes_max[sl][len(indexes_min[sl]):]
+				del corr_ampls_max[sl][len(indexes_min[sl]):]
+
+		if starts_from[sl] == 'max':
+			if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
+				del indexes_max[sl][1:]
+				del corr_ampls_max[sl][1:]
+
+			print()
+			print("indexes_max = ", indexes_max)
+			print("indexes_min  ", indexes_min)
+			i = 0
+			if len(indexes_max[sl]) > 1:
+				while i < len(indexes_min[sl]) - 1:
+				# for i in range(len(indexes_min[sl])):
+					# print("len(indexes_max[{}]) - 1 = ".format(sl), len(indexes_max[sl]) - 1)
+					print("i = ", i)
+					print("indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
+					print("indexes_min[{}][{}] = ".format(sl, i), indexes_min[sl][i])
+					print()
+					if indexes_max[sl][i + 1] < indexes_min[sl][i]:
+						print(" del indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
+						del indexes_max[sl][i + 1]
+						del corr_ampls_max[sl][i + 1]
+						i -= 1
+					i += 1
+					print("plused")
+
+			if len(indexes_max[sl]) > len(indexes_min[sl]) and indexes_max[sl][-1] < indexes_min[sl][-1]:
+				del indexes_max[sl][-1]
+				del corr_ampls_max[sl][-1]
+	latencies = [int(l) for l in latencies]
+
+	return latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min
