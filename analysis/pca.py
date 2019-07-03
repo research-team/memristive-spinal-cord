@@ -50,7 +50,7 @@ for sl in range(int(len(neuron_run_zoomed) / 100)):
 	offset += 100
 	neuron_slices.append(neuron_slices_tmp)
 
-gras_list = np.array(select_slices('/home/anna/PycharmProjects/LAB/memristive-spinal-cord/GRAS/matrix_solution/bio_data/gras_15.hdf5', 10000, 22000))
+gras_list = np.array(select_slices('../GRAS/matrix_solution/bio_data/gras_15.hdf5', 10000, 22000))
 gras_list = prepare_data(gras_list)
 
 gras_list_zoomed = []
@@ -73,20 +73,8 @@ for sl in range(int(len(gras_run_zoomed) / 100)):
 	offset += 100
 	gras_slices.append(gras_slices_tmp)
 
-print("len(gras_slices) = ", len(gras_slices))
-print("len(gras_slices[0]) = ", len(gras_slices[0]))
-
-for index, sl in enumerate(neuron_slices):
-	offset = index
-	plt.plot([s + offset for s in sl])
-plt.show()
-
-for index, sl in enumerate(gras_slices):
-	offset = index
-	plt.plot([s + offset for s in sl])
-plt.show()
-
-latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = changing_peaks(neuron_list_zoomed, 40, bio_step)
+latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
+	changing_peaks(neuron_list_zoomed, 40, bio_step)
 yticks = []
 
 max_peaks = []
@@ -103,7 +91,7 @@ for i in range(len(min_peaks)):
 
 all_peaks_sum = sum(sum_peaks)
 latencies = [int(l / bio_step) for l in latencies]
-# print("latencies = ", latencies)
+
 for index, sl in enumerate(neuron_slices):
 	offset = index * 0.5
 	plt.plot([s + offset for s in sl])
@@ -123,7 +111,6 @@ for i in range(0, len(neuron_slices[0]) + 1, 4):
 	ticks.append(i)
 	labels.append(i / 4)
 plt.yticks(yticks, range(1, len(neuron_slices) + 1), fontsize=14)
-# print("yticks = ", yticks)
 plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
@@ -132,7 +119,9 @@ plt.title("Neuron Peaks sum = {}".format(all_peaks_sum))
 plt.show()
 
 latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min = \
-	changing_peaks(bio_data, 40, bio_step, max_amp_coef=0, min_amp_coef=-3)
+	changing_peaks(bio_data, 40, bio_step)
+
+print("bio_indexes_max = ", bio_indexes_max)
 max_peaks = []
 for ind in bio_indexes_max:
 	max_peaks.append(len(ind))
@@ -160,6 +149,8 @@ for index, sl in enumerate(bio_slices):
 	plt.plot(latencies_bio[index], sl[latencies_bio[index]] + offset, '.', color='k', markersize=24)
 	plt.text(latencies_bio[index], sl[latencies_bio[index]] + offset, round(latencies_bio[index] * bio_step,1),
 	         color='green', fontsize=16)
+for index, sl in enumerate(bio_indexes_max):
+	offset = index * 0.5
 	plt.plot([m for m in bio_indexes_max[index]], [m + offset for m in bio_corr_ampls_max[index]], 's', color='red',
 	         markersize=9)
 	plt.plot([m for m in bio_indexes_min[index]], [m + offset for m in bio_corr_ampls_min[index]], 's', color='blue',
@@ -181,6 +172,12 @@ plt.show()
 
 latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
 	changing_peaks(gras_list_zoomed, 40, bio_step)
+
+print("latencies = ", latencies)
+print("indexes_max = ", indexes_max)
+print("indexes_min = ", indexes_min)
+print("corr_ampls_max = ", corr_ampls_max)
+print("corr_ampls_min = ", corr_ampls_min)
 yticks = []
 
 max_peaks = []
@@ -199,17 +196,19 @@ all_peaks_sum = sum(sum_peaks)
 latencies = [int(l / bio_step) for l in latencies]
 # print("latencies = ", latencies)
 for index, sl in enumerate(gras_slices):
-	offset = index * 0.5
+	offset = index
 	plt.plot([s + offset for s in sl])
 	yticks.append(sl[0] + offset)
-	plt.plot(latencies[index], neuron_list[0][latencies[index]] + offset, '.', color='k', markersize=24)
-	plt.text(latencies[index], neuron_list[0][latencies[index]] + offset, round(latencies[index] * bio_step, 1),
+	plt.plot(latencies[index], sl[latencies[index]] + offset, '.', color='k', markersize=24)
+	plt.text(latencies[index], sl[latencies[index]] + offset, round(latencies[index] * bio_step, 1),
 	         color='green', fontsize=16)
+for index, sl in enumerate(indexes_max):
+	offset = index
 	plt.plot([m for m in indexes_max[index]], [m + offset for m in corr_ampls_max[index]], 's', color='red',
 	         markersize=9)
 	plt.plot([m for m in indexes_min[index]], [m + offset for m in corr_ampls_min[index]], 's', color='blue',
 	         markersize=9)
-	plt.text(sl[10], sl[0] + offset, sum_peaks[index], fontsize=16)
+	# plt.text(sl[5], sl[0] + offset, sum_peaks[index], fontsize=16)
 
 ticks = []
 labels = []
