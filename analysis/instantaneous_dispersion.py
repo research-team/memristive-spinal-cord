@@ -7,7 +7,7 @@ import numpy as np
 
 # importing the list of all runs of the bio  data from the function 'bio_data_runs'
 bio_runs = bio_data_runs()
-sim_runs = select_slices('../../neuron-data/mn_E25tests.hdf5', 0, 6000)
+sim_runs = select_slices('../../neuron-data/mn_E5HT.hdf5', 0, 12000)
 print("len(sim_runs) = ", len(sim_runs))
 print("len(sim_runs) = ", len(sim_runs[0]))
 for run in sim_runs:
@@ -193,8 +193,8 @@ print("der sim_last_slice = ", len(der_sim_last_slice), der_sim_last_slice)
 offset = 1000
 for i in range(4):
 	der_slice_tmp = []
-	for j in range(offset, offset + 1000):
-		der_slice_tmp.append(sim_derivatives[j])
+	# for j in range(offset, offset + 1000):
+		# der_slice_tmp.append(sim_derivatives[j])
 	print("der_slice_tmp = ", len(der_slice_tmp), der_slice_tmp)
 	offset += 1000
 	der_sim_slices.append(der_slice_tmp)
@@ -212,11 +212,11 @@ for index, sl in enumerate(der_sim_slices):
 	# plt.plot([s + offset for s in sl])
 # plt.show()
 
-latencies_sim = sim_process(volts_sim, sim_step, inhibition_zero=True)[0]
-print("latencies_sim = ", latencies_sim)
+# latencies_sim = sim_process(volts_sim, sim_step, inhibition_zero=True)[0]
+# print("latencies_sim = ", latencies_sim)
 # raise Exception
-latencies = sim_process(volts, step, inhibition_zero=True)[0]
-print("latencies = ", latencies)
+# latencies = sim_process(volts, step, inhibition_zero=True)[0]
+# print("latencies = ", latencies)
 
 yticks = []
 for index, sl in enumerate(all_bio_slices):
@@ -229,6 +229,23 @@ for index, sl in enumerate(all_bio_slices):
 		color_number += 1
 	yticks.append(sl[run][0] + offset)
 plt.yticks(yticks, range(1, len(all_bio_slices) + 1), fontsize=14)
+plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
+plt.xlim(0, 25)
+plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
+plt.title("bipedal control 15cm/s")
+plt.show()
+
+yticks = []
+for index, sl in enumerate(all_sim_slices):
+	color_number = 0
+	offset = index * 2
+	times = [time * sim_step for time in range(len(all_sim_slices[0][0]))]
+	for run in range(len(sl)):
+		plt.plot(times, [s + offset for s in sl[run]], color=colors[color_number], linewidth=1)
+	#  this think draws a lot of slices
+		color_number += 1
+	yticks.append(sl[run][0] + offset)
+plt.yticks(yticks, range(1, len(all_sim_slices) + 1), fontsize=14)
 plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
 plt.xlim(0, 25)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
