@@ -72,9 +72,11 @@ for sl in range(int(len(gras_run_zoomed) / 100)):
 	offset += 100
 	gras_slices.append(gras_slices_tmp)
 
-latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
+latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes = \
 	changing_peaks(neuron_list_zoomed, 40, bio_step)
 
+for a in amplitudes:
+	print("amplitudes = ", a)
 yticks = []
 
 max_peaks = []
@@ -125,16 +127,16 @@ for index, sl in enumerate(neuron_slices):
 	offset = index * 0.5
 	plt.plot([s + offset for s in sl])
 	yticks.append(sl[0] + offset)
-	plt.plot(latencies[index], neuron_list[0][latencies[index]] + offset, '.', color='k', markersize=24)
-	plt.text(latencies[index], neuron_list[0][latencies[index]] + offset, round(latencies[index] * bio_step, 1),
+	plt.plot(latencies[index], sl[latencies[index]] + offset, '.', color='k', markersize=24)
+	plt.text(latencies[index], sl[latencies[index]] + offset, round(latencies[index] * bio_step, 1),
 	         color='green', fontsize=16)
 	plt.plot([m for m in indexes_max[0][index]], [m + offset for m in corr_ampls_max[0][index]], 's', color='red',
 	         markersize=9)
 	plt.plot([m for m in indexes_min[0][index]], [m + offset for m in corr_ampls_min[0][index]], 's', color='blue',
 	         markersize=9)
-	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
-	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
-
+	plt.text(sl[10], sl[0] + offset, f'{sum_peaks_for_plot[0][index]} [{avg_sum_peaks_in_sl[index]}] '
+	                                 f'({amplitudes[index]:.2f})', fontsize=16)
+	print("amplitudes[{}] = ".format(index), amplitudes[index])
 ticks = []
 labels = []
 for i in range(0, len(neuron_slices[0]) + 1, 4):
@@ -145,10 +147,10 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * sim_step , 1)for l in latencies]
-plt.title("Neuron Peaks sum = {}".format(all_peaks_sum[0]))
+plt.title("Neuron Peaks sum = {} / {}".format(all_peaks_sum[0], sum_peaks))
 plt.show()
 
-latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min = \
+latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min, amplitudes = \
 	changing_peaks(bio_data, 40, bio_step)
 
 # print("bio_indexes_max = ", bio_indexes_max)
@@ -203,10 +205,8 @@ for index, sl in enumerate(bio_slices):
 	plt.plot([s + offset for s in sl])
 	yticks.append(sl[0] + offset)
 	plt.plot(latencies_bio[index], sl[latencies_bio[index]] + offset, '.', color='k', markersize=24)
-	plt.text(latencies_bio[index], sl[latencies_bio[index]] + offset, round(latencies_bio[index] * bio_step,1),
-	         color='green', fontsize=16)
-	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
-	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
+	plt.text(sl[10], sl[0] + offset, f'{sum_peaks_for_plot[0][index]} [{avg_sum_peaks_in_sl[index]}] '
+	                                 f'({amplitudes[index]:.2f})', fontsize=16)
 
 for index, sl in enumerate(bio_indexes_max[0]):
 	offset = index * 0.5
@@ -225,10 +225,10 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * bio_step , 1)for l in latencies_bio]
-plt.title("Bio Peaks sum = {}".format(all_peaks_sum[0]))
+plt.title("Bio Peaks sum = {} / {}".format(all_peaks_sum[0], sum_peaks))
 plt.show()
 
-latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
+latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes = \
 	changing_peaks(gras_list_zoomed, 40, bio_step)
 
 # print("latencies = ", latencies)
@@ -292,10 +292,8 @@ for index, sl in enumerate(gras_slices):
 	yticks.append(sl[0] + offset)
 	plt.plot(latencies[index],
 	         sl[latencies[index]] + offset, '.', color='k', markersize=24)
-	plt.text(latencies[index], sl[latencies[index]] + offset, round(latencies[index] * bio_step, 1),
-	         color='green', fontsize=16)
-	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
-	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
+	plt.text(sl[10], sl[0] + offset, f'{sum_peaks_for_plot[0][index]} [{avg_sum_peaks_in_sl[index]}] '
+	                                 f'({amplitudes[index]:.2f})', fontsize=16)
 
 for index, sl in enumerate(indexes_max[0]):
 	offset = index
@@ -315,7 +313,7 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * sim_step , 1)for l in latencies]
-plt.title("GRAS Peaks sum = {}".format(all_peaks_sum[0]))
+plt.title("GRAS Peaks sum = {} / {}".format(all_peaks_sum[0], sum_peaks))
 plt.show()
 
 raise Exception

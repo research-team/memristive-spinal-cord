@@ -1058,10 +1058,10 @@ def absolute_sum(data_list, step):
 from GRAS.PCA import smooth
 
 
-def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5):
-	latencies = get_lat_amp(data, herz, step)[0]
+def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):
+	latencies, amplitudes = get_lat_amp(data, herz, step)
+
 	proceed_data = []
-	amplitudes = []
 	max_times_amp = []
 	max_values_amp = []
 	min_times_amp = []
@@ -1070,220 +1070,217 @@ def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5):
 	for i in range(len(data)):
 		data[i] = smooth(data[i], 7)
 		proceed_data.append(sim_process(latencies, data[i], step, inhibition_zero=True, after_latencies=True))
-		amplitudes.append(proceed_data[i][1])
 		max_times_amp.append(proceed_data[i][3])
 		max_values_amp.append(proceed_data[i][4])
 		min_times_amp.append(proceed_data[i][5])
 		min_values_amp.append(proceed_data[i][6])
 
-	"""print("latencies = ", latencies)
-	print("amplitudes = ", amplitudes)
-	print("max_times_amp = ", max_times_amp)
-	print("max_values_amp = ", max_values_amp)
-	print("min_times_amp = ", min_times_amp)
-	print("min_values_amp = ", min_values_amp)
-	max_amp_in_sl = []
-	min_amp_in_sl = []
-	max_indexes = []
+	if filtering:
+		print("latencies = ", latencies)
+		print("amplitudes = ", amplitudes)
+		print("max_times_amp = ", max_times_amp)
+		print("max_values_amp = ", max_values_amp)
+		print("min_times_amp = ", min_times_amp)
+		print("min_values_amp = ", min_values_amp)
+		max_amp_in_sl = []
+		min_amp_in_sl = []
+		max_indexes = []
 
-	for sl in amplitudes:
-		try:
-			max_amp_in_sl.append(max(sl))
-			min_amp_in_sl.append(min(sl))
-			max_indexes.append(sl.index(max(sl)))
-		except ValueError:
-			continue
+		for sl in amplitudes:
+			try:
+				max_amp_in_sl.append(max(sl))
+				min_amp_in_sl.append(min(sl))
+				max_indexes.append(sl.index(max(sl)))
+			except ValueError:
+				continue
 
-	max_amp = max(max_amp_in_sl)
-	min_amp = min(min_amp_in_sl)
+		max_amp = max(max_amp_in_sl)
+		min_amp = min(min_amp_in_sl)
 
-	threshold_max = max_amp * max_amp_coef
-	threshold_min = min_amp * min_amp_coef
+		threshold_max = max_amp * max_amp_coef
+		threshold_min = min_amp * min_amp_coef
 
-	print("threshold_max = ", threshold_max)
-	corr_ampls_max = []
-	indexes_max = []
-	for index, sl in enumerate(max_values_amp):
-		print("max values amp = ", sl)
-		corr_ampls_max_sl = []
-		indexes_sl = []
-		for ind_dot, dot in enumerate(sl):
-			if dot > threshold_max:
-				corr_ampls_max_sl.append(dot)
-				indexes_sl.append(max_times_amp[index][ind_dot])
-		corr_ampls_max.append(corr_ampls_max_sl)
-		indexes_max.append(indexes_sl)
+		print("threshold_max = ", threshold_max)
+		corr_ampls_max = []
+		indexes_max = []
+		for index, sl in enumerate(max_values_amp):
+			print("max values amp = ", sl)
+			corr_ampls_max_sl = []
+			indexes_sl = []
+			for ind_dot, dot in enumerate(sl):
+				if dot > threshold_max:
+					corr_ampls_max_sl.append(dot)
+					indexes_sl.append(max_times_amp[index][ind_dot])
+			corr_ampls_max.append(corr_ampls_max_sl)
+			indexes_max.append(indexes_sl)
 
-	corr_ampls_min = []
-	indexes_min = []
+		corr_ampls_min = []
+		indexes_min = []
 
-	print()
-	print("threshold_min = ", threshold_min)
+		print()
+		print("threshold_min = ", threshold_min)
 
-	for index, sl in enumerate(min_values_amp):
-		print("min values amp = ", sl)
-		corr_ampls_min_sl = []
-		indexes_sl = []
-		for ind_dot, dot in enumerate(sl):
-			if dot < threshold_min:
-				corr_ampls_min_sl.append(dot)
-				indexes_sl.append(min_times_amp[index][ind_dot])
-		corr_ampls_min.append(corr_ampls_min_sl)
-		indexes_min.append(indexes_sl)
+		for index, sl in enumerate(min_values_amp):
+			print("min values amp = ", sl)
+			corr_ampls_min_sl = []
+			indexes_sl = []
+			for ind_dot, dot in enumerate(sl):
+				if dot < threshold_min:
+					corr_ampls_min_sl.append(dot)
+					indexes_sl.append(min_times_amp[index][ind_dot])
+			corr_ampls_min.append(corr_ampls_min_sl)
+			indexes_min.append(indexes_sl)
 
-	starts_from = []
-	for sl in range(len(indexes_min)):
-		try:
-			if indexes_max[sl][0] < indexes_min[sl][0]:
-				starts_from.append('max')
-			else:
-				starts_from.append('min')
-		except IndexError:
-			if len(indexes_max[sl]) == 0:
-				starts_from.append('min')
-			elif len(indexes_min[sl]) == 0:
-				starts_from.append('max')
+		starts_from = []
+		for sl in range(len(indexes_min)):
+			try:
+				if indexes_max[sl][0] < indexes_min[sl][0]:
+					starts_from.append('max')
+				else:
+					starts_from.append('min')
+			except IndexError:
+				if len(indexes_max[sl]) == 0:
+					starts_from.append('min')
+				elif len(indexes_min[sl]) == 0:
+					starts_from.append('max')
 
-	print("starts_from = ", starts_from)
-	print("indexes_max = ", indexes_max)
-	print("indexes_min = ", indexes_min)
+		print("starts_from = ", starts_from)
+		print("indexes_max = ", indexes_max)
+		print("indexes_min = ", indexes_min)
 
-	for sl in range(len(indexes_min)):
-		if starts_from[sl] == 'min':
-			to_delete = []
+		for sl in range(len(indexes_min)):
+			if starts_from[sl] == 'min':
+				to_delete = []
 
-			# print("sl = ", sl)
-			# print("len(indexes_max[{}]) = ".format(sl), len(indexes_max[sl]))
-			# print("len(indexes_min[{}]) = ".format(sl), len(indexes_min[sl]))
+				# print("sl = ", sl)
+				# print("len(indexes_max[{}]) = ".format(sl), len(indexes_max[sl]))
+				# print("len(indexes_min[{}]) = ".format(sl), len(indexes_min[sl]))
 
-			if len(indexes_max[sl]) > 0 and len(indexes_min[sl]) > 0:
-				for i in range(min((len(indexes_min[sl])), len(indexes_max[sl]))):
-					if indexes_max[sl][i] - indexes_min[sl][i] == 1:
-						to_delete.append(i)
+				if len(indexes_max[sl]) > 0 and len(indexes_min[sl]) > 0:
+					for i in range(min((len(indexes_min[sl])), len(indexes_max[sl]))):
+						if indexes_max[sl][i] - indexes_min[sl][i] == 1:
+							to_delete.append(i)
 
-			print("sl = ", sl)
-			print("to_delete = ", to_delete)
-			for i in to_delete:
-				del indexes_min[sl][i]
-				del corr_ampls_min[sl][i]
-				print("deleted indexes_max[{}][{}]".format(sl, i))
+				print("sl = ", sl)
+				print("to_delete = ", to_delete)
+				for i in to_delete:
+					del indexes_min[sl][i]
+					del corr_ampls_min[sl][i]
+					print("deleted indexes_max[{}][{}]".format(sl, i))
 
-			if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
-				del indexes_max[sl][1:]
-				del corr_ampls_max[sl][1:]
-			if len(indexes_max[sl]) == 1 and len(indexes_min[sl]) > 1:
-				del indexes_min[sl][1:]
-				del corr_ampls_min[sl][1:]
+				if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
+					del indexes_max[sl][1:]
+					del corr_ampls_max[sl][1:]
+				if len(indexes_max[sl]) == 1 and len(indexes_min[sl]) > 1:
+					del indexes_min[sl][1:]
+					del corr_ampls_min[sl][1:]
 
-			for i in range(len(indexes_min[sl])):
-				try:
-					if indexes_min[sl][i] > indexes_max[sl][i]:
-						del indexes_max[sl][i]
-						del corr_ampls_max[sl][i]
-				except IndexError:
-					continue
+				for i in range(len(indexes_min[sl])):
+					try:
+						if indexes_min[sl][i] > indexes_max[sl][i]:
+							del indexes_max[sl][i]
+							del corr_ampls_max[sl][i]
+					except IndexError:
+						continue
 
+				print("indexes_max = ", indexes_max)
+				print("indexes_min = ", indexes_min)
+
+				to_delete_sl = []
+				to_delete_dot = []
+				if len(indexes_min[sl]) > 1:
+					for i in range(min((len(indexes_min[sl]) - 1), len(indexes_max[sl]))):
+						# print("indexes_min[{}][{}] = ".format(sl, i + 1), indexes_min[sl][i + 1])
+						# print("indexes_max[{}][{}] = ".format(sl, i), indexes_max[sl][i])
+						# print()
+						if indexes_min[sl][i + 1] < indexes_max[sl][i]:
+							# print("del indexes_min[{}][{}] = ".format(sl, i + 1), indexes_min[sl][i + 1])
+							to_delete_sl.append(sl)
+							to_delete_dot.append(i + 1)
+
+				print("to_delete sl= ", to_delete_sl)
+				print("to_delete_dot = ", to_delete_dot)
+				for i in range(len(to_delete_sl)- 1, -1, -1):
+					del indexes_min[to_delete_sl[i]][to_delete_dot[i]]
+					del corr_ampls_min[to_delete_sl[i]][to_delete_dot[i]]
+
+				if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) > 0:
+					del indexes_max[sl][len(indexes_min[sl]):]
+					del corr_ampls_max[sl][len(indexes_min[sl]):]
+				else:
+					if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) == 0:
+						del indexes_max[sl][1:]
+						del corr_ampls_max[sl][1:]
+
+				if len(indexes_min[sl]) > len(indexes_max[sl]) and len(indexes_max[sl]) > 0 \
+						and indexes_min[sl][-1] < indexes_max[sl][-1]:
+					del indexes_min[sl][-1]
+					del corr_ampls_min[sl][-1]
+
+			print()
 			print("indexes_max = ", indexes_max)
 			print("indexes_min = ", indexes_min)
-
-			to_delete_sl = []
-			to_delete_dot = []
-			if len(indexes_min[sl]) > 1:
-				for i in range(min((len(indexes_min[sl]) - 1), len(indexes_max[sl]))):
-					# print("indexes_min[{}][{}] = ".format(sl, i + 1), indexes_min[sl][i + 1])
+		for sl in range(len(indexes_max)):
+			if starts_from[sl] == 'max':
+				if len(indexes_min[sl]) == 0:
+					del indexes_max[sl][1:]
+					del corr_ampls_max[sl][1:]
+				to_delete = []
+				for i in range(len(indexes_min[sl])):
+					# print("indexes_min[{}][{}] = ".format(sl, i), indexes_min[sl][i])
 					# print("indexes_max[{}][{}] = ".format(sl, i), indexes_max[sl][i])
-					# print()
-					if indexes_min[sl][i + 1] < indexes_max[sl][i]:
-						# print("del indexes_min[{}][{}] = ".format(sl, i + 1), indexes_min[sl][i + 1])
-						to_delete_sl.append(sl)
-						to_delete_dot.append(i + 1)
+					if indexes_min[sl][i] - indexes_max[sl][i] == 1:
+						to_delete.append(i)
 
-			print("to_delete sl= ", to_delete_sl)
-			print("to_delete_dot = ", to_delete_dot)
-			for i in range(len(to_delete_sl)- 1, -1, -1):
-				del indexes_min[to_delete_sl[i]][to_delete_dot[i]]
-				del corr_ampls_min[to_delete_sl[i]][to_delete_dot[i]]
-
-			if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) > 0:
-				del indexes_max[sl][len(indexes_min[sl]):]
-				del corr_ampls_max[sl][len(indexes_min[sl]):]
-			else:
-				if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) == 0:
+				for i in to_delete:
+					del indexes_min[sl][i]
+					del corr_ampls_min[sl][i]
+				if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
 					del indexes_max[sl][1:]
 					del corr_ampls_max[sl][1:]
 
-			if len(indexes_min[sl]) > len(indexes_max[sl]) and len(indexes_max[sl]) > 0 \
-					and indexes_min[sl][-1] < indexes_max[sl][-1]:
-				del indexes_min[sl][-1]
-				del corr_ampls_min[sl][-1]
+				print()
+				print("indexes_max = ", indexes_max)
+				print("indexes_min  ", indexes_min)
 
-		print()
-		print("indexes_max = ", indexes_max)
-		print("indexes_min = ", indexes_min)
-	for sl in range(len(indexes_max)):
-		if starts_from[sl] == 'max':
-			if len(indexes_min[sl]) == 0:
-				del indexes_max[sl][1:]
-				del corr_ampls_max[sl][1:]
-			to_delete = []
-			for i in range(len(indexes_min[sl])):
-				# print("indexes_min[{}][{}] = ".format(sl, i), indexes_min[sl][i])
-				# print("indexes_max[{}][{}] = ".format(sl, i), indexes_max[sl][i])
-				if indexes_min[sl][i] - indexes_max[sl][i] == 1:
-					to_delete.append(i)
+				to_delete_sl = []
+				to_delete_dot = []
 
-			for i in to_delete:
-				del indexes_min[sl][i]
-				del corr_ampls_min[sl][i]
-			if len(indexes_min[sl]) == 1 and len(indexes_max[sl]) > 1:
-				del indexes_max[sl][1:]
-				del corr_ampls_max[sl][1:]
+				if len(indexes_max[sl]) > 1:
+					for i in range(min((len(indexes_min[sl])), len(indexes_max[sl]))):
+						# print("indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
+						# print("indexes_min[{}][{}] = ".format(sl, i), indexes_min[sl][i])
+						# print()
+						if indexes_max[sl][i + 1] < indexes_min[sl][i]:
+							# print(" del indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
+							to_delete_sl.append(sl)
+							to_delete_dot.append(i + 1)
 
-			print()
-			print("indexes_max = ", indexes_max)
-			print("indexes_min  ", indexes_min)
+				for i in range(len(to_delete_sl)- 1, -1, -1):
+					del indexes_max[to_delete_sl[i]][to_delete_dot[i]]
+					del corr_ampls_max[to_delete_sl[i]][to_delete_dot[i]]
 
-			to_delete_sl = []
-			to_delete_dot = []
+				print()
+				print("indexes_max = ", indexes_max)
+				print("indexes_min  ", indexes_min)
+				print()
+				if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) > 0 \
+						and indexes_max[sl][-1] < indexes_min[sl][-1]:
+					del indexes_max[sl][-1]
+					del corr_ampls_max[sl][-1]
 
-			if len(indexes_max[sl]) > 1:
-				for i in range(min((len(indexes_min[sl])), len(indexes_max[sl]))):
-					# print("indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
-					# print("indexes_min[{}][{}] = ".format(sl, i), indexes_min[sl][i])
-					# print()
-					if indexes_max[sl][i + 1] < indexes_min[sl][i]:
-						# print(" del indexes_max[{}][{}] = ".format(sl, i + 1), indexes_max[sl][i + 1])
-						to_delete_sl.append(sl)
-						to_delete_dot.append(i + 1)
+				print("ya")
+				print("indexes_max = ", indexes_max)
+				print("indexes_min  ", indexes_min)
+				print()
 
-			for i in range(len(to_delete_sl)- 1, -1, -1):
-				del indexes_max[to_delete_sl[i]][to_delete_dot[i]]
-				del corr_ampls_max[to_delete_sl[i]][to_delete_dot[i]]
+				if len(indexes_max[sl]) > len(indexes_min[sl]) + 1 and len(indexes_min[sl]) > 0:
+					del indexes_max[sl][len(indexes_min[sl]) + 1:]
+					del corr_ampls_max[sl][len(indexes_min[sl]) + 1:]
 
-			print()
-			print("indexes_max = ", indexes_max)
-			print("indexes_min  ", indexes_min)
-			print()
-			if len(indexes_max[sl]) > len(indexes_min[sl]) and len(indexes_min[sl]) > 0 \
-					and indexes_max[sl][-1] < indexes_min[sl][-1]:
-				del indexes_max[sl][-1]
-				del corr_ampls_max[sl][-1]
+				print("sl = ", sl)
+				print("here")
+				print("indexes_max = ", indexes_max)
+				print("indexes_min  ", indexes_min)
 
-			print("ya")
-			print("indexes_max = ", indexes_max)
-			print("indexes_min  ", indexes_min)
-			print()
-
-			if len(indexes_max[sl]) > len(indexes_min[sl]) + 1 and len(indexes_min[sl]) > 0:
-				del indexes_max[sl][len(indexes_min[sl]) + 1:]
-				del corr_ampls_max[sl][len(indexes_min[sl]) + 1:]
-
-			print("sl = ", sl)
-			print("here")
-			print("indexes_max = ", indexes_max)
-			print("indexes_min  ", indexes_min)"""
-
-	latencies = [int(l) for l in latencies]
-
-	# return latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min
-	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp
+	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes
