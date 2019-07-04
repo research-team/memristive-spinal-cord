@@ -320,13 +320,14 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 	"""
 
 	Args:
-		minima_indexes:
-		minima_values:
-		maxima_indexes:
-		maxima_values:
-
+		minima_indexes (np.ndarray):
+		minima_values (np.ndarray):
+		maxima_indexes (np.ndarray):
+		maxima_values (np.ndarray):
 	Returns:
-
+		np.ndarray:
+		np.ndarray:
+		np.ndarray:
 	"""
 	# prepare data for concatenating dots into one list (per parameter)
 	common_lenght = len(minima_indexes) + len(maxima_indexes)
@@ -356,14 +357,16 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 
 def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	"""
-
+	Filtering extremuma by value (allowed_diff)
 	Args:
-		merged_names:
-		merged_indexes:
-		merged_values:
-		allowed_diff:
+		merged_names (np.ndarray): array of merged extremuma names
+		merged_indexes (np.ndarray): array of merged extremuma indexes (X)
+		merged_values (np.ndarray): array of merged extremuma values (Y)
+		allowed_diff (float): remove arrays value which lower than that diff
 	Returns:
-
+		np.ndarray: filtered names
+		np.ndarray: filtered indexes
+		np.ndarray: filtered values
 	"""
 	# find good extremuma from the end
 	filtered_mask_indexes = []
@@ -390,7 +393,7 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
 
 
-def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
+def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -402,7 +405,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		list: latencies indexes
 		list: amplitudes values
 	"""
-
 	global_lat_indexes = []
 	global_amp_values = []
 
@@ -425,14 +427,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 	delta_poly_diff = np.abs(np.diff(delta_poly, n=1))
 
 	Q1, median, Q3 = np.percentile(delta_poly_diff, percents)
-	IQR = Q3 - Q1
-	Q3_15 = Q3 + 1.5 * IQR
 
 	allowed_diff_for_extremuma = median
 	allowed_diff_for_variance_delta = Q3
-	allowed_diff_peak = Q3_15
-
-	#todo CALC BOXPLOTS FOR EXTREMUMA!!!!
 
 	# compute latency per slice
 	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
@@ -481,10 +478,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 				break
 		if l_poly_border > int(10 / data_step):
 			l_poly_border = int(10 / data_step)
-		# set the right poly answer by the end of the slice
-		r_poly_border = int(slice_in_ms / data_step)
-		# form poly area
-		poly_area = slice(l_poly_border, r_poly_border)
 
 		"""[5] find extremuma of the poly area"""
 		# get poly Q1 minima extremuma indexes and values
@@ -547,9 +540,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		# filter dots that are too close or have not enough differentiation in values
 		mask = []
 		for left, right in zip(range(len(merged_indexes)), range(len(merged_indexes))[1:]):
-			if abs(merged_indexes[left] - merged_indexes[right]) > 1 or abs(merged_values[left] - merged_values[right]) > allowed_diff_for_variance_delta:
+			is_index_ok = abs(merged_indexes[left] - merged_indexes[right]) > 1
+			is_value_ok = abs(merged_values[left] - merged_values[right]) > allowed_diff_for_variance_delta
+
+			if is_index_ok or is_value_ok:
 				mask += [left, right]
 		mask = [i in mask for i in range(len(merged_indexes))]
+
 		# use filter
 		e_merged_names = merged_names[mask]
 		e_merged_indexes = merged_indexes[mask]
@@ -558,7 +555,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 		# calc peak that we recognie as good poly answer, not noise
 		diff = np.abs(np.diff(merged_values, n=1))
 		allowed_diff_peak = np.mean(diff)
-
 
 		# the last filter for finding the best max min pair
 		index = 0
@@ -590,16 +586,47 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 
 		"""[7] find the best latency in borders"""
 		best_latency = (None, -np.inf)
-		# find the latency in Q1 and Q3 data (based on the maximal variance)
-		for lat_Q1 in filter(lambda dot: l_best_border <= dot <= r_best_border, min_deltas_Q1):
-			if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
-				best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
-		if best_latency[k_index] is None:
-			best_latency = (l_best_border, delta_smoothed_data[l_best_border])
+		# check on border length -- if small enough then find an max of extremuma delta dots
+		if (r_best_border - l_best_border) * data_step < 3:
+			# find the latency in Q1 and Q3 data (based on the maximal variance)
+			for lat_Q1 in filter(lambda dot: l_best_border <= dot <= r_best_border, min_deltas_Q1):
+				if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
+					best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
+			if best_latency[k_index] is None:
+				best_latency = (l_best_border, delta_smoothed_data[l_best_border])
+		# else use a dichotomy to split a big interval and find the best one
+		else:
+			# set an initial borders
+			left = l_best_border
+			right = r_best_border
+			borders_length = (right - left) // 2
+			# dichotomy loop
+			while borders_length > 5: # > 1.25 ms
+				# first part
+				a1 = left
+				a2 = left + borders_length
+				# second part
+				b1 = right - borders_length
+				b2 = right
+				# get the difference in this areas
+				diff_a = np.sum(np.abs(np.diff(delta_smoothed_data[a1:a2], n=1)))
+				diff_b = np.sum(np.abs(np.diff(delta_smoothed_data[b1:b2], n=1)))
+				# set the new border based on highest difference
+				left = b1 if diff_b > diff_a else a1
+				right = b2 if diff_b > diff_a else a2
+				# split on two parts
+				borders_length = (right - left) // 2
+
+			# find the inflection
+			ys = delta_smoothed_data[left:right]
+			gradient_y = np.gradient(ys)
+			max_index_gradient = np.argmax(gradient_y)
+			# set the latency
+			lat = left + max_index_gradient - 1
+			best_latency = (lat, delta_smoothed_data[lat])
 
 		# append found latency to the global list of the all latencies per slice
 		latency_index = best_latency[k_index]
-
 		global_lat_indexes.append(latency_index)
 
 		"""[7] find amplitudes"""
@@ -626,7 +653,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=True):
 			print(f" merged indexes Q3: {e_poly_Q3_indexes}")
 			print(f"found latencies Q3: {min_deltas_Q3}")
 			print("- " * 20)
-			print(f" poly answers area: [{l_poly_border * data_step}, {r_poly_border * data_step}]ms")
+			print(f" poly answers area: [{l_poly_border * data_step}, {slice_in_ms}]ms")
 			print(f"  hist indexes min: {e_delta_minima_indexes}")
 			print(f"  hist indexes max: {e_delta_maxima_indexes}")
 			print(f"      merged names: {merged_names}")
