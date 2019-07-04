@@ -2,14 +2,16 @@ import numpy as np
 from matplotlib import pylab as plt
 from analysis.functions import changing_peaks
 from analysis.cut_several_steps_files import select_slices
-from GRAS.PCA import prepare_data
+from GRAS.PCA import prepare_data, smooth
 import h5py as hdf5
 
 sim_step = 0.025
 bio_step = 0.25
 
 # bio_data = bio_data_runs()
-filepath = '../bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+filepath = '../bio-data/hdf5/bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
+smooth_value = 2
+
 def read_data(filepath, sign=1):
 	with hdf5.File(filepath) as file:
 		data_by_test = [sign * test_values[:] for test_values in file.values()]
@@ -17,7 +19,8 @@ def read_data(filepath, sign=1):
 
 bio_data = read_data(filepath, sign=1)
 bio_data = prepare_data(bio_data)
-
+for l in range(len(bio_data)):
+	bio_data[l] = smooth(bio_data[l], smooth_value)
 bio_slices = []
 offset = 0
 for i in range(int(len(bio_data[0]) / 100)):
@@ -27,19 +30,17 @@ for i in range(int(len(bio_data[0]) / 100)):
 	offset += 100
 	bio_slices.append(bio_slices_tmp)
 
-neuron_list = np.array(select_slices('../../neuron-data/mn_E15_speed25tests.hdf5', 0, 12000))
+neuron_list = np.array(select_slices('../../neuron-data/mn_E25tests.hdf5', 0, 6000))
 neuron_list = np.negative(neuron_list)
 neuron_list = prepare_data(neuron_list)
-
 neuron_list_zoomed = []
 for sl in neuron_list:
-	neuron_list_zoomed_tmp = []
-	for i in range(0, len(sl), 10):
-		neuron_list_zoomed_tmp.append(sl[i])
-	neuron_list_zoomed.append(neuron_list_zoomed_tmp)
-neuron_run_zoomed = []
-for i in range(0, len(neuron_list[0]), 10):
-	neuron_run_zoomed.append(neuron_list[0][i])
+	neuron_list_zoomed.append(sl[::10])
+
+for n in range(len(neuron_list_zoomed)):
+	neuron_list_zoomed[n] = smooth(neuron_list_zoomed[n], smooth_value)
+
+neuron_run_zoomed = neuron_list_zoomed[0]
 
 neuron_slices = []
 offset = 0
@@ -50,19 +51,17 @@ for sl in range(int(len(neuron_run_zoomed) / 100)):
 	offset += 100
 	neuron_slices.append(neuron_slices_tmp)
 
-gras_list = np.array(select_slices('../GRAS/matrix_solution/bio_data/gras_15.hdf5', 10000, 22000))
+gras_list = np.array(select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000))
 gras_list = prepare_data(gras_list)
-
 gras_list_zoomed = []
 for sl in gras_list:
-	gras_list_zoomed_tmp = []
-	for i in range(0, len(sl), 10):
-		gras_list_zoomed_tmp.append(sl[i])
-	gras_list_zoomed.append(gras_list_zoomed_tmp)
+	gras_list_zoomed.append(sl[::10])
 
-gras_run_zoomed = []
-for i in range(0, len(gras_list[0]), 10):
-	gras_run_zoomed.append(gras_list[0][i])
+for g in range(len(gras_list)):
+	gras_list_zoomed[g] = smooth(gras_list_zoomed[g], smooth_value)
+
+gras_run_zoomed = gras_list_zoomed[0]
+print(len(gras_run_zoomed))
 
 gras_slices = []
 offset = 0
@@ -75,23 +74,53 @@ for sl in range(int(len(gras_run_zoomed) / 100)):
 
 latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
 	changing_peaks(neuron_list_zoomed, 40, bio_step)
+
 yticks = []
 
 max_peaks = []
-for ind in indexes_max:
-	max_peaks.append(len(ind))
-
+for run in indexes_max:
+	# print("indexes max = ", run)
+	max_peaks_tmp = []
+	for ind in run:
+		max_peaks_tmp.append(len(ind))
+	max_peaks.append(max_peaks_tmp)
+# print("max_peaks = ", max_peaks)
 min_peaks = []
-for ind in indexes_min:
-	min_peaks.append(len(ind))
+for run in indexes_min:
+	min_peaks_tmp = []
+	for ind in run:
+		min_peaks_tmp.append(len(ind))
+	min_peaks.append(min_peaks_tmp)
+# print("min_peaks = ", min_peaks)
 
 sum_peaks = []
 for i in range(len(min_peaks)):
-	sum_peaks.append(max_peaks[i] + min_peaks[i])
+	for j in range(len(min_peaks[i])):
+		sum_peaks.append(max_peaks[i][j] + min_peaks[i][j])
+sum_peaks = sum(sum_peaks) / len(neuron_list)
+print("sum_peaks neuron = ", sum_peaks)
 
-all_peaks_sum = sum(sum_peaks)
+sum_peaks_for_plot = []
+for j in range(len(max_peaks)):
+	sum_peaks_for_plot_tmp = []
+	for i in range(len(max_peaks[j])):
+		sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
+	sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
+# print("sum_peaks_for_plot = ", len(sum_peaks_for_plot), sum_peaks_for_plot)
+
+
+avg_sum_peaks_in_sl  = list(map(sum, np.array(sum_peaks_for_plot).T))
+avg_sum_peaks_in_sl  = [a / len(neuron_list) for a in avg_sum_peaks_in_sl]
+# print("avg_sum_peaks_in_sl = ", avg_sum_peaks_in_sl)
+
+all_peaks_sum = []
+for i in range(len(sum_peaks_for_plot)):
+	all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 latencies = [int(l / bio_step) for l in latencies]
 
+smooth_peaks_value = 7
+for n in range(len(neuron_slices)):
+	neuron_slices[n] = smooth(neuron_slices[n], smooth_peaks_value)
 for index, sl in enumerate(neuron_slices):
 	offset = index * 0.5
 	plt.plot([s + offset for s in sl])
@@ -99,11 +128,12 @@ for index, sl in enumerate(neuron_slices):
 	plt.plot(latencies[index], neuron_list[0][latencies[index]] + offset, '.', color='k', markersize=24)
 	plt.text(latencies[index], neuron_list[0][latencies[index]] + offset, round(latencies[index] * bio_step, 1),
 	         color='green', fontsize=16)
-	plt.plot([m for m in indexes_max[index]], [m + offset for m in corr_ampls_max[index]], 's', color='red',
+	plt.plot([m for m in indexes_max[0][index]], [m + offset for m in corr_ampls_max[0][index]], 's', color='red',
 	         markersize=9)
-	plt.plot([m for m in indexes_min[index]], [m + offset for m in corr_ampls_min[index]], 's', color='blue',
+	plt.plot([m for m in indexes_min[0][index]], [m + offset for m in corr_ampls_min[0][index]], 's', color='blue',
 	         markersize=9)
-	plt.text(sl[10], sl[0] + offset, sum_peaks[index], fontsize=16)
+	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
+	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
 
 ticks = []
 labels = []
@@ -115,33 +145,59 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * sim_step , 1)for l in latencies]
-plt.title("Neuron Peaks sum = {}".format(all_peaks_sum))
+plt.title("Neuron Peaks sum = {}".format(all_peaks_sum[0]))
 plt.show()
 
 latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min = \
 	changing_peaks(bio_data, 40, bio_step)
 
-print("bio_indexes_max = ", bio_indexes_max)
+# print("bio_indexes_max = ", bio_indexes_max)
 max_peaks = []
-for ind in bio_indexes_max:
-	max_peaks.append(len(ind))
-print("max_peaks = ", max_peaks)
+for run in bio_indexes_max:
+	# print("indexes max = ", run)
+	max_peaks_tmp = []
+	for ind in run:
+		max_peaks_tmp.append(len(ind))
+	max_peaks.append(max_peaks_tmp)
+# print("max_peaks = ", max_peaks)
 
 min_peaks = []
-for ind in bio_indexes_min:
-	min_peaks.append(len(ind))
-print("min_peaks = ", min_peaks)
+for run in bio_indexes_min:
+	min_peaks_tmp = []
+	for ind in run:
+		min_peaks_tmp.append(len(ind))
+	min_peaks.append(min_peaks_tmp)
+# print("min_peaks = ", min_peaks)
 
 sum_peaks = []
 for i in range(len(min_peaks)):
-	sum_peaks.append(max_peaks[i] + min_peaks[i])
-print("sum_peaks = ", sum_peaks)
+	for j in range(len(min_peaks[i])):
+		sum_peaks.append(max_peaks[i][j] + min_peaks[i][j])
+sum_peaks = sum(sum_peaks) / len(bio_data)
+print("sum_peaks bio = ", sum_peaks)
 
-all_peaks_sum = sum(sum_peaks)
+sum_peaks_for_plot = []
+for j in range(len(max_peaks)):
+	sum_peaks_for_plot_tmp = []
+	for i in range(len(max_peaks[j])):
+		sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
+	sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
+# print("sum_peaks_for_plot = ", len(sum_peaks_for_plot), sum_peaks_for_plot)
+
+avg_sum_peaks_in_sl  = list(map(sum, np.array(sum_peaks_for_plot).T))
+avg_sum_peaks_in_sl  = [a / len(bio_data) for a in avg_sum_peaks_in_sl]
+# print("avg_sum_peaks_in_sl = ", avg_sum_peaks_in_sl)
+
+all_peaks_sum = []
+for i in range(len(sum_peaks_for_plot)):
+	all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
 yticks = []
 latencies_bio = [int(l / bio_step) for l in latencies_bio]
-print("latencies_bio = ", latencies_bio)
+# print("latencies_bio = ", latencies_bio)
+
+for b in range(len(bio_slices)):
+	bio_slices[b] = smooth(bio_slices[b], smooth_peaks_value )
 for index, sl in enumerate(bio_slices):
 	offset = index * 0.5
 	plt.plot([s + offset for s in sl])
@@ -149,13 +205,15 @@ for index, sl in enumerate(bio_slices):
 	plt.plot(latencies_bio[index], sl[latencies_bio[index]] + offset, '.', color='k', markersize=24)
 	plt.text(latencies_bio[index], sl[latencies_bio[index]] + offset, round(latencies_bio[index] * bio_step,1),
 	         color='green', fontsize=16)
-for index, sl in enumerate(bio_indexes_max):
+	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
+	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
+
+for index, sl in enumerate(bio_indexes_max[0]):
 	offset = index * 0.5
-	plt.plot([m for m in bio_indexes_max[index]], [m + offset for m in bio_corr_ampls_max[index]], 's', color='red',
-	         markersize=9)
-	plt.plot([m for m in bio_indexes_min[index]], [m + offset for m in bio_corr_ampls_min[index]], 's', color='blue',
-	         markersize=9)
-	plt.text(sl[0] + 2, sl[0] + offset, sum_peaks[index], fontsize=16)
+	plt.plot([m for m in bio_indexes_max[0][index]], [m + offset for m in bio_corr_ampls_max[0][index]], 's',
+	         color='red', markersize=9)
+	plt.plot([m for m in bio_indexes_min[0][index]], [m + offset for m in bio_corr_ampls_min[0][index]], 's',
+	         color='blue', markersize=9)
 
 ticks = []
 labels = []
@@ -167,48 +225,84 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * bio_step , 1)for l in latencies_bio]
-plt.title("Bio Peaks sum = {}".format(all_peaks_sum))
+plt.title("Bio Peaks sum = {}".format(all_peaks_sum[0]))
 plt.show()
 
 latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min = \
 	changing_peaks(gras_list_zoomed, 40, bio_step)
 
-print("latencies = ", latencies)
-print("indexes_max = ", indexes_max)
-print("indexes_min = ", indexes_min)
-print("corr_ampls_max = ", corr_ampls_max)
-print("corr_ampls_min = ", corr_ampls_min)
+# print("latencies = ", latencies)
+# print("indexes_max = ", indexes_max)
+# print("indexes_min = ", indexes_min)
+# print("corr_ampls_max = ", corr_ampls_max)
+# print("corr_ampls_min = ", corr_ampls_min)
 yticks = []
 
 max_peaks = []
-for ind in indexes_max:
-	max_peaks.append(len(ind))
-
+for run in indexes_max:
+	# print("indexes max = ", run)
+	max_peaks_tmp = []
+	for ind in run:
+		max_peaks_tmp.append(len(ind))
+	max_peaks.append(max_peaks_tmp)
+# print("max_peaks = ", max_peaks)
 min_peaks = []
-for ind in indexes_min:
-	min_peaks.append(len(ind))
+for run in indexes_min:
+	min_peaks_tmp = []
+	for ind in run:
+		min_peaks_tmp.append(len(ind))
+	min_peaks.append(min_peaks_tmp)
+# print("min_peaks = ", min_peaks)
 
 sum_peaks = []
 for i in range(len(min_peaks)):
-	sum_peaks.append(max_peaks[i] + min_peaks[i])
+	for j in range(len(min_peaks[i])):
+		sum_peaks.append(max_peaks[i][j] + min_peaks[i][j])
+sum_peaks = sum(sum_peaks) / len(gras_list)
+print("sum_peaks gras = ", sum_peaks)
 
-all_peaks_sum = sum(sum_peaks)
+sum_peaks_for_plot = []
+for j in range(len(max_peaks)):
+	sum_peaks_for_plot_tmp = []
+	for i in range(len(max_peaks[j])):
+		sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
+	sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
+# print("sum_peaks_for_plot = ", len(sum_peaks_for_plot), sum_peaks_for_plot)
+
+
+avg_sum_peaks_in_sl  = list(map(sum, np.array(sum_peaks_for_plot).T))
+avg_sum_peaks_in_sl  = [a / len(gras_list) for a in avg_sum_peaks_in_sl]
+for a in range(len(avg_sum_peaks_in_sl)):
+	avg_sum_peaks_in_sl[a] = round(avg_sum_peaks_in_sl[a], 1)
+# print("avg_sum_peaks_in_sl = ", avg_sum_peaks_in_sl)
+
+all_peaks_sum = []
+for i in range(len(sum_peaks_for_plot)):
+	all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
+
 latencies = [int(l / bio_step) for l in latencies]
 # print("latencies = ", latencies)
+# print(len(gras_slices))
+
+for g in range(len(gras_slices)):
+	gras_slices[g] = smooth(gras_slices[g], smooth_peaks_value)
 for index, sl in enumerate(gras_slices):
 	offset = index
 	plt.plot([s + offset for s in sl])
 	yticks.append(sl[0] + offset)
-	plt.plot(latencies[index], sl[latencies[index]] + offset, '.', color='k', markersize=24)
+	plt.plot(latencies[index],
+	         sl[latencies[index]] + offset, '.', color='k', markersize=24)
 	plt.text(latencies[index], sl[latencies[index]] + offset, round(latencies[index] * bio_step, 1),
 	         color='green', fontsize=16)
-for index, sl in enumerate(indexes_max):
+	plt.text(sl[10], sl[0] + offset, sum_peaks_for_plot[0][index], fontsize=16)
+	plt.text(sl[10] + 2, sl[0] + offset, '[{}]'.format(avg_sum_peaks_in_sl[index]), fontsize=16)
+
+for index, sl in enumerate(indexes_max[0]):
 	offset = index
-	plt.plot([m for m in indexes_max[index]], [m + offset for m in corr_ampls_max[index]], 's', color='red',
+	plt.plot([m for m in indexes_max[0][index]], [m + offset for m in corr_ampls_max[0][index]], 's', color='red',
 	         markersize=9)
-	plt.plot([m for m in indexes_min[index]], [m + offset for m in corr_ampls_min[index]], 's', color='blue',
+	plt.plot([m for m in indexes_min[0][index]], [m + offset for m in corr_ampls_min[0][index]], 's', color='blue',
 	         markersize=9)
-	# plt.text(sl[5], sl[0] + offset, sum_peaks[index], fontsize=16)
 
 ticks = []
 labels = []
@@ -221,7 +315,7 @@ plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 100)
 latencies = [round(l * sim_step , 1)for l in latencies]
-plt.title("GRAS Peaks sum = {}".format(all_peaks_sum))
+plt.title("GRAS Peaks sum = {}".format(all_peaks_sum[0]))
 plt.show()
 
 raise Exception

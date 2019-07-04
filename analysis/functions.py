@@ -336,7 +336,7 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	for l in range(len(latencies)):
 		latencies[l] /= step
 		latencies[l] = int(latencies[l])
-	print("latencies in ampls= ", latencies)
+	# print("latencies in ampls= ", latencies)
 	max_times = datas[0]
 	max_values = datas[1]
 	min_times = datas[2]
@@ -1055,17 +1055,28 @@ def absolute_sum(data_list, step):
 
 	return volts
 
+from GRAS.PCA import smooth
+
 
 def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5):
 	latencies = get_lat_amp(data, herz, step)[0]
-	proceed_data = sim_process(latencies, data[0], step, inhibition_zero=True, after_latencies=True)
-	amplitudes = proceed_data[1]
-	max_times_amp = proceed_data[3]
-	max_values_amp = proceed_data[4]
-	min_times_amp = proceed_data[5]
-	min_values_amp = proceed_data[6]
+	proceed_data = []
+	amplitudes = []
+	max_times_amp = []
+	max_values_amp = []
+	min_times_amp = []
+	min_values_amp = []
 
-	print("latencies = ", latencies)
+	for i in range(len(data)):
+		data[i] = smooth(data[i], 7)
+		proceed_data.append(sim_process(latencies, data[i], step, inhibition_zero=True, after_latencies=True))
+		amplitudes.append(proceed_data[i][1])
+		max_times_amp.append(proceed_data[i][3])
+		max_values_amp.append(proceed_data[i][4])
+		min_times_amp.append(proceed_data[i][5])
+		min_values_amp.append(proceed_data[i][6])
+
+	"""print("latencies = ", latencies)
 	print("amplitudes = ", amplitudes)
 	print("max_times_amp = ", max_times_amp)
 	print("max_values_amp = ", max_values_amp)
@@ -1270,8 +1281,9 @@ def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5):
 			print("sl = ", sl)
 			print("here")
 			print("indexes_max = ", indexes_max)
-			print("indexes_min  ", indexes_min)
+			print("indexes_min  ", indexes_min)"""
 
 	latencies = [int(l) for l in latencies]
 
-	return latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min
+	# return latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min
+	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp
