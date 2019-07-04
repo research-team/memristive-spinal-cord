@@ -134,8 +134,8 @@ for index, sl in enumerate(neuron_slices):
 	         markersize=9)
 	plt.plot([m for m in indexes_min[0][index]], [m + offset for m in corr_ampls_min[0][index]], 's', color='blue',
 	         markersize=9)
-	plt.text(sl[10], sl[0] + offset, f'{sum_peaks_for_plot[0][index]} [{avg_sum_peaks_in_sl[index]}] '
-	                                 f'({amplitudes[index]:.2f})', fontsize=16)
+	plt.text(sl[10], sl[0] + offset, f'pl={sum_peaks_for_plot[0][index]};pa={avg_sum_peaks_in_sl[index]}'
+	                                 f';a='f'{amplitudes[index]:.2f}', fontsize=16)
 	print("amplitudes[{}] = ".format(index), amplitudes[index])
 ticks = []
 labels = []
