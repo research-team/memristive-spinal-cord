@@ -494,7 +494,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		e_poly_Q3_maxima_values = e_all_Q3_maxima_values[e_all_Q3_maxima_indexes > l_poly_border]
 
 		if len(e_poly_Q3_minima_indexes) < 1 and len(e_poly_Q3_maxima_indexes) < 1:
-			global_lat_indexes.append(25)
+			global_lat_indexes.append(int(slice_in_ms / data_step))
 			global_amp_values.append(0)
 			break
 
@@ -584,7 +584,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		e_delta_indexes = e_merged_indexes[mask]
 
 		if len(e_delta_indexes[e_delta_names == 'max']) < 1:
-			global_lat_indexes.append(25)
+			global_lat_indexes.append(int(slice_in_ms / data_step))
 			global_amp_values.append(0)
 			break
 
@@ -814,7 +814,9 @@ def plot_pca(debugging=False):
 	dataset = read_data(f"{data_folder}/bio/bio_control_E_15cms_40Hz_i100_4pedal_no5ht_T_2017-09-05.hdf5")
 	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	bio_pack = (np.stack((amp_per_slice, lat_per_slice), axis=1), '#a6261d', 'bio')
-
+	print(lat_per_slice)
+	print(amp_per_slice)
+	raise Exception
 	# process GRAS dataset
 	dataset = select_slices(f"{data_folder}/gras_15.hdf5", 10000, 22000)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
