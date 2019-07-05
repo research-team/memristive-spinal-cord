@@ -75,6 +75,9 @@ struct SynapseMetadata {
 	unsigned int synapse_delay;  // [step] synaptic delay of the synapse (axonal delay is included to this delay)
 	float synapse_weight;        // [nS] synaptic weight. Interpreted as changing conductivity of neuron membrane
 	vector<float> synapse_weights_array; // array of synaptic weights
+    // to understand which spike was first
+	float t_of_spike_pre_neuron;
+	float t_of_spike_post_neuron;
 
 	SynapseMetadata(int pre_id, int post_id, float synapse_delay, float synapse_weight){
 		this->pre_id = pre_id;
@@ -639,23 +642,18 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(R_F, R_E, 2, -1);
 }
 
-
-void saveWeights(int test_index, SynapseMetadata metadata){
+// save synapse weights for each synapse on each step of simulation in file weights.dat
+void save_weights_in_file() {
     ofstream file;
-    string file_name = "/weights/" + to_string(test_index) + "_" + to_string(metadata.pre_id) + ".dat";
+    string file_name = "weights.dat";
     file.open(file_name);
-    // save weights in file
-    for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
-        file << metadata.synapse_weights_array[sim_iter] << " ";
-    file << endl;
-    file.close();
-}
-
-// save synapse weights for each synapse on each step of simulation
-void save_weights_in_file(int test_index) {
     for(SynapseMetadata metadata : all_synapses) {
-        saveWeights(test_index, metadata);
+        for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++){
+            file << metadata.synapse_weights_array[sim_iter] << " ";
+        }
+        file << endl;
     }
+    file.close();
 }
 
 void save(int test_index, GroupMetadata metadata, string folder){
@@ -755,6 +753,42 @@ void copy_data_to(GroupMetadata metadata, float* nrn_v_m,  float* nrn_g_exc, flo
 }
 
 __host__
+void HebbianFunction(SynapseMetadata metadata, int sim_iter) {
+    // delta Time (ms)
+    float dT = metadata.t_of_spike_post_neuron - metadata.t_of_spike_pre_neuron;
+    // if spike was first on pre-neuron dT will be positive else negative
+    float coef = (840 / dT) / 100; // Hebbian coefficient
+
+    // if spike was first on pre-neuron weight will increase else decrease
+    float new_weight = metadata.synapse_weight + metadata.synapse_weight * coef;
+
+    metadata.synapse_weights_array[sim_iter] = new_weight;
+    metadata.synapse_weight = new_weight;
+
+}
+
+__host__
+void Hebbian(float *array_of_weights,
+             float *weights,
+             int *pre_neurons,
+             int *post_neurons,
+             float *times_of_spikes_pre_neurons,
+             float *times_of_spikes_post_neurons,
+             int sim_iter){
+    // if spike was first on pre-neuron dT will be positive else negative
+
+    for(int i = 0; i < sizeof(pre_neurons); i++){
+        float dT = times_of_spikes_post_neurons[i] - times_of_spikes_pre_neurons[i];
+        if(dT != 0){
+            float coef = (840 / dT) / 100; // Hebbian coefficient
+            float new_weight = array_of_weights[sim_iter + i + SIM_TIME_IN_STEPS] + array_of_weights[SIM_TIME_IN_STEPS + i + sim_iter] * coef;
+            weights[i] = new_weight;
+            array_of_weights[sim_iter + i + SIM_TIME_IN_STEPS] = new_weight;
+        }
+    }
+}
+
+__host__
 void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_all) {
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
 
@@ -819,20 +853,16 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	int *synapses_delay_timer = (int *) malloc(datasize<int>(synapses_number));
 	init_array<int>(synapses_delay_timer, synapses_number, -1);
 
-	// vector<float> array_of_weights_for_each_synapse[] = new vector<float>[all_synapses.size()];
-	//float *array_of_weights_for_each_synapse[][] = new float[all_synapses.size()][SIM_TIME_IN_STEPS];
-
-
-    vector<vector<float>> array_of_weights_for_each_synapse;
-
+	// float[][] array_of_weights_for_each_synapse = new float[all_synapses.size()][SIM_TIME_IN_STEPS];
+	// vector for vectors of weights
+    // vector<vector<float>> array_of_weights_for_each_synapse;
 
 	// fill arrays of synapses
 	for(SynapseMetadata metadata : all_synapses) {
 		synapses_pre_nrn_id[syn_id] = metadata.pre_id;
 		synapses_post_nrn_id[syn_id] = metadata.post_id;
 		synapses_delay[syn_id] = metadata.synapse_delay;
-		synapses_weight[syn_id] = metadata.synapse_weight; // начальное значение
-		// array_of_weights_for_each_synapse[syn_id] = metadata.synapse_weights_array;
+		synapses_weight[syn_id] = metadata.synapse_weight;
 		syn_id++;
 	}
 	all_synapses.clear();
@@ -858,7 +888,16 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	int *gpu_begin_C_spiking;
 	int *gpu_end_C_spiking;
 
+	int size = synapses_number * SIM_TIME_IN_STEPS;
+
+    // array with weights for each synapse on each step of simulation
+    float *array_of_weights_for_each_synapse = (float *) malloc(datasize<float>(size));
+
+	float* gpu_array_of_weights_for_each_synapse;
+
 	// allocate memory in the GPU
+	cudaMalloc(&gpu_array_of_weights_for_each_synapse, datasize<float>(size));
+
 	cudaMalloc(&gpu_nrn_n, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_h, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_m, datasize<float>(neurons_number));
@@ -897,6 +936,17 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 
 	memcpyHtD<int>(gpu_begin_C_spiking, begin_C_spiking, 5);
 	memcpyHtD<int>(gpu_end_C_spiking, end_C_spiking, 5);
+
+	memcpyDtH<float>(gpu_array_of_weights_for_each_synapse, array_of_weights_for_each_synapse, size);
+
+	// заполняем массив начальными весами
+	// для каждого синапса будет одинаковых ячеек в количестве SIM_TIME_IN_STEPS
+	// потом они поменяются
+	for(int i = 0; i < all_synapses.size(); i++){
+	    for(int j = 0; j < SIM_TIME_IN_STEPS; j++){
+	        array_of_weights_for_each_synapse[i + j] = synapses_weight[i];
+	    }
+	}
 
 	// preparations for simulation
 	int threads_per_block = 32;
@@ -1025,10 +1075,61 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_delay_timer,
 		                                                       gpu_syn_weight,
 		                                                       synapses_number);
+        float *time_of_spikes_pre_neurons = (float *) malloc(datasize<float>(synapses_number));
+        float *time_of_spikes_post_neurons = (float *) malloc(datasize<float>(synapses_number));
+
+		Hebbian(gpu_array_of_weights_for_each_synapse,
+		        gpu_syn_weight,
+		        gpu_syn_pre_nrn_id,
+		        gpu_syn_post_nrn_id,
+		        time_of_spikes_pre_neurons,
+		        time_of_spikes_post_neurons,
+		        sim_iter);
+//		float t1 = 0; // spike of first neuron
+//		float t1_id = 0;
+//		float t2 = 0; // spike of second neuron
+//		float t2_id = 0;
+//		float dt = t1 - t2;
+//		SynapseMetadata synapse = null;
+//
+//        if(synapse == NULL){ // if no spike we finding it
+//            for(SynapseMetadata synapseMetadata : all_synapses){
+//                if(gpu_nrn_has_spike[synapseMetadata.pre_id]){
+//
+//                }
+//            }
+//        }
+//        else{
+//            HebbianFunction(gpu_nrn_has_spike, synapse, dt);
+//        }
+
+        // float[] array_for_time_of_spike = new float[];
+
+        for(SynapseMetadata synapseMetadata : all_synapses){
+            synapseMetadata.synapse_weights_array[sim_iter] = synapseMetadata.synapse_weight;
+            if(gpu_nrn_has_spike[synapseMetadata.pre_id]){
+                synapseMetadata.t_of_spike_pre_neuron = step_to_ms(sim_iter);
+            }
+            if(gpu_nrn_has_spike[synapseMetadata.post_id])
+                synapseMetadata.t_of_spike_post_neuron = step_to_ms(sim_iter);
+            if(synapseMetadata.t_of_spike_pre_neuron != 0 & synapseMetadata.t_of_spike_post_neuron != 0)
+                HebbianFunction(synapseMetadata, sim_iter);
+        }
+
+
+        for(int i = 0; i < sizeof(nrn_has_spike); i++){
+            for(int s = 0; s < synapses_number; s++){
+                if(nrn_has_spike[gpu_syn_pre_nrn_id[i]]){
+                    time_of_spikes_pre_neurons[s] = step_to_ms(sim_iter);
+                }
+                if(nrn_has_spike[gpu_syn_post_nrn_id[i]]){
+                    time_of_spikes_post_neurons[s] = step_to_ms(sim_iter);
+                }
+            }
+        }
+
 
 	} // end of the simulation iteration loop
-
-
 
 	simulation_t_end = chrono::system_clock::now();
 
@@ -1038,6 +1139,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	// save recorded data
 	save_result(itest, save_all);
 
+	save_weights_in_file();
 
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
 	printf("Elapsed %li ms (measured) | T_sim = %d ms\n", sim_time_diff, T_simulation);
@@ -1045,34 +1147,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	                   COLOR_GREEN "faster" COLOR_RESET: COLOR_RED "slower" COLOR_RESET,
 	                   (float)T_simulation / sim_time_diff);
 }
-
-
-__host__
-void HebbinFunc(bool *neuron_has_spike,
-            int *synapses_pre_nrn_id,
-            int *synapses_post_nrn_id,
-            float synapses_weight,
-            SynapseMetadata metadata,
-            int sim_iter,
-            float razn){
-
-    float coef;
-
-    if(neuron_has_spike[synapses_pre_nrn_id] && neuron_has_spike[synapses_post_nrn_id]){
-        float new_weight = synapses_weight * coef;
-        // if spike was first on pre-neuron, after on post-neuron
-        if(razn > 0){
-            metadata.synapse_weights_array[sim_iter] = new_weight;
-            metadata.synapse_weight = new_weight;
-        }
-        // if spike was first on post-neuron, after on pre-neuron
-        if(razn < 0){
-            metadata.synapse_weights_array[sim_iter] = new_weight;
-            metadata.synapse_weight = new_weight;
-        }
-    }
-}
-
 
 // runner
 int main(int argc, char* argv[]) {
