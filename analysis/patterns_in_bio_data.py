@@ -3,8 +3,8 @@ from analysis.real_data_slices import read_data, trim_myogram
 
 def bio_data_runs():
 	path = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/10_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
-	path2 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/5_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 	path3 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/4_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
+	path2 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/5_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 	path4 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/3_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 	path5 = '../bio-data/No Quipazine-Bipedal_SCI Rats_3 volts_40Hz/1_3 volts_NQBiSCI_Rat-1_12-06-2016_RMG&RTA_one_step.mat'
 	# path7 = '../bio-data/10cms/Week6/7_WEEK6_Rat 40_8-8-2018.mat'

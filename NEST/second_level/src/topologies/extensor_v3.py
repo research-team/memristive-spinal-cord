@@ -6,32 +6,6 @@ from NEST.second_level.src.tools.spike_detector import add_spike_detector
 from NEST.second_level.src.namespace import *
 
 
-HEBBIAN = {
-	'alpha': 1.0,  # Asymmetry parameter (scales depressing increments as  alpha*lambda)
-	'lambda': 0.1,  # Step size
-	'mu_plus': 0.0,  # Weight dependence exponent, potentiation
-	'mu_minus': 0.0  # Weight dependence exponent, depression
-}
-ANTI_HEBBIAN = {
-	'alpha': 1.0,
-	'lambda': -0.1,
-	'mu_plus': 0.0,
-	'mu_minus': 0.0
-}
-SOMBRERO = {
-	'alpha': -1.0,
-	'lambda': 0.1,
-	'mu_plus': 0.0,
-	'mu_minus': 0.0
-}
-ANTI_SOMBRERO = {
-	'alpha': -1.0,
-	'lambda': -0.1,
-	'mu_plus': 0.0,
-	'mu_minus': 0.0
-}
-
-
 class Topology:
 	def __init__(self, simulation_params, test_iteration=0):
 		self.iteration = test_iteration

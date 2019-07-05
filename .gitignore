@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+GRAS/matrix_solution/results/*
+GRAS/matrix_solution/done/*
+GRAS/object_solution/results/*
+GRAS/matrix_solution/dat/*
+NEST/second_level/results/*
 # C extensions
 *.so
 
@@ -109,33 +114,6 @@ ENV/
 *.adicht
 *.mat
 cmake-build-debug/
-/IzhikevichGPU/*CMakeFiles/*
-/IzhikevichGPU/*Debug/
-/IzhikevichGPU/ALL_BUILD.vcxproj
-/IzhikevichGPU/ALL_BUILD.vcxproj.filters
-/IzhikevichGPU/cmake_install.cmake
-/IzhikevichGPU/CMakeCache.txt
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/CL.command.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/CL.read.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/CL.write.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/custombuild.command.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/custombuild.read.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/custombuild.write.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/IzhikevichGPU.lastbuildstate
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/link.command.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/link.read.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/IzhikevichGPU.tlog/link.write.1.tlog
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/main.obj
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/Neuron.obj
-/IzhikevichGPU/IzhikevichGPU.dir/Debug/vc140.pdb
-/IzhikevichGPU/IzhikevichGPU.sln
-/IzhikevichGPU/IzhikevichGPU.VC.db
-/IzhikevichGPU/IzhikevichGPU.VC.VC.opendb
-/IzhikevichGPU/IzhikevichGPU.vcxproj
-/IzhikevichGPU/IzhikevichGPU.vcxproj.filters
-/IzhikevichGPU/Win32/Debug/ZERO_CHECK/ZERO_CHECK.tlog/custombuild.command.1.tlog
-/IzhikevichGPU/Win32/Debug/ZERO_CHECK/ZERO_CHECK.tlog/custombuild.read.1.tlog
-/IzhikevichGPU/Win32/Debug/ZERO_CHECK/ZERO_CHECK.tlog/custombuild.write.1.tlog
-/IzhikevichGPU/Win32/Debug/ZERO_CHECK/ZERO_CHECK.tlog/ZERO_CHECK.lastbuildstate
-/IzhikevichGPU/ZERO_CHECK.vcxproj
-/IzhikevichGPU/ZERO_CHECK.vcxproj.filters
+izhikevichGPU/matrix_solution/results
+izhikevichGPU/matrix_solution/results_to_compare
+izhikevichGPU/object_solution/results

@@ -41,7 +41,8 @@ int main(int argc, char **argv) {
 	// after our work is over we can reset the terminal input and output to the os instead of to and from the serial port
 	struct termios old_port_settings;
 
-	unsigned char data = 'D';
+//	unsigned char data = 0xFF;
+	unsigned short data = 0x0FFF;
 
 	// get the current options of the STDOUT_FILENO
 	tcgetattr(STDOUT_FILENO, &old_port_settings);
@@ -62,7 +63,7 @@ int main(int argc, char **argv) {
 	stdio.c_oflag = 0;
 	stdio.c_cflag = 0;
 	stdio.c_lflag = 0;
-	stdio.c_cc[VMIN] = 1;
+	stdio.c_cc[VMIN] = 0;
 	stdio.c_cc[VTIME] = 0;
 
 	// set the new options for the port
@@ -87,20 +88,33 @@ int main(int argc, char **argv) {
 	// time to wait for data (tenths of seconds) => 0 seconds read timeout
 	port_settings.c_cc[VTIME] = 0;
 
-	cfsetispeed(&port_settings, B115200);  // set read speed as 115 200 (bps)
-	cfsetospeed(&port_settings, B115200);  // set write speed as 115 200 (bps)
+	cfsetispeed(&port_settings, B9600);  // set read speed as 115 200 (bps)
+	cfsetospeed(&port_settings, B9600);  // set write speed as 115 200 (bps)
 
 	// set the new options for the serial port
 	tcsetattr(serial_port, TCSANOW, &port_settings);
 
 	// main body of sending data
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 100; i++) {
+		if (i % 2 == 0) {
+			data = 0xFFF;
+			write(serial_port, &data, 2);
+		} else {
+			data = 0x0;
+			write(serial_port, &data, 2);
+		}
 		// send data to the port
-		write(serial_port, &data, sizeof(data));
+
 		// wait
-		usleep(250000);
+		usleep(25000);
 		// read data from the port
-		write(STDOUT_FILENO, &data, sizeof(data));
+
+//		result = read(serial_port, kek, 1); // result = write(STDOUT_FILENO, data, sizeof(data));
+//		if (result > 0) {
+//			printf("Read\n");
+//		} else {
+//			printf("read ERROR\n");
+//		}
 	}
 
 	// close the serial port
@@ -111,3 +125,32 @@ int main(int argc, char **argv) {
 
 	return EXIT_SUCCESS;
 }
+	/*
+	 *
+	char rx_buf[5];
+	char tx_buf[5];
+
+
+
+	// main body of sending data
+		// send data to the port
+//		int n = write(serial_port, &data, 4);//sizeof(data));
+
+		sprintf(tx_buf, "%c",0xFC);
+		write(serial_port, tx_buf, 5);
+
+
+		// wait
+		usleep(250000);
+		// read data from the port
+
+		int n = read (serial_port, rx_buf, 5);
+		if (n > 0) {
+			for(int i=0; i<n; i++) {
+				printf("data i: %02X ", rx_buf[i]); //  "FC 05 50 AA 05"
+			}
+		} else {
+			printf("read ERROR?\n");
+		}
+//		write(STDOUT_FILENO, &data, 4); //sizeof(data));
+	 */

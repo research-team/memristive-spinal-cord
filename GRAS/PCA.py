@@ -493,6 +493,11 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		e_poly_Q3_maxima_indexes = e_all_Q3_maxima_indexes[e_all_Q3_maxima_indexes > l_poly_border]
 		e_poly_Q3_maxima_values = e_all_Q3_maxima_values[e_all_Q3_maxima_indexes > l_poly_border]
 
+		if len(e_poly_Q3_minima_indexes) < 1 and len(e_poly_Q3_maxima_indexes) < 1:
+			global_lat_indexes.append(25)
+			global_amp_values.append(0)
+			break
+
 		# merge Q1 poly extremuma indexes
 		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
 		                                                                              e_poly_Q1_minima_values,
@@ -577,6 +582,11 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# use filter
 		e_delta_names = e_merged_names[mask]
 		e_delta_indexes = e_merged_indexes[mask]
+
+		if len(e_delta_indexes[e_delta_names == 'max']) < 1:
+			global_lat_indexes.append(25)
+			global_amp_values.append(0)
+			break
 
 		# calc best poly right border
 		r_best_border = e_delta_indexes[e_delta_names == 'max'][0]
@@ -801,7 +811,7 @@ def plot_pca(debugging=False):
 	X = 0
 	Y = 1
 	# process bio dataset
-	dataset = read_data(f"{data_folder}/bio/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5")
+	dataset = read_data(f"{data_folder}/bio/bio_control_E_15cms_40Hz_i100_4pedal_no5ht_T_2017-09-05.hdf5")
 	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	bio_pack = (np.stack((amp_per_slice, lat_per_slice), axis=1), '#a6261d', 'bio')
 

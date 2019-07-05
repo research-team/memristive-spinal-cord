@@ -94,7 +94,7 @@ def testrunner():
 	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
 	save_folder = f"{script_place}/dat"
 
-	args = {tests_number: 5,
+	args = {tests_number: 3,
 	        cms: 21,
 	        ees: 40,
 	        inh: 100,
@@ -102,8 +102,8 @@ def testrunner():
 	        ht5: 0}
 
 	run_tests(script_place, args)
-	# convert_to_hdf5(save_folder)
-	# plot_results(save_folder, ees_hz=args[ees])
+	convert_to_hdf5(save_folder)
+	plot_results(save_folder, ees_hz=args[ees])
 
 
 if __name__ == "__main__":
