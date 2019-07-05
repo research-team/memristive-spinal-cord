@@ -7,8 +7,7 @@ from sklearn.linear_model import LinearRegression
 import statistics
 import copy
 from analysis.patterns_in_bio_data import bio_data_runs
-from analysis.cut_several_steps_files import select_slices
-from GRAS.PCA import get_lat_amp
+from analysis.PCA import get_lat_amp
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -1055,7 +1054,7 @@ def absolute_sum(data_list, step):
 
 	return volts
 
-from GRAS.PCA import smooth
+from analysis.PCA import smooth
 
 
 def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):
