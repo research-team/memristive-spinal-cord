@@ -22,7 +22,7 @@ logger = log.getLogger('Plotter')
 
 boldline = 1.5
 thickline = 0.8
-sim_step = 0.025
+sim_step = 0.1
 
 class Plotter:
 	def __init__(self, simulation_parameters):
@@ -58,7 +58,7 @@ class Plotter:
 		for test_name in test_names:
 			self.logger.info("Plot the figure {}".format(test_name))
 			#test_voltage_data, g_ex, g_in = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)
-			test_voltage_data = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)
+			test_voltage_data = self.miner.gather_mean_voltage(test_name, from_memory=from_memory)[0]
 			# split data for slices
 			for time in sorted(test_voltage_data.keys()):
 				slice_number = int(time // 25)
@@ -188,8 +188,8 @@ class Plotter:
 
 		# CURRENTS
 		pylab.subplot(2, 1, 2)
-		#pylab.plot(g_ex_data.keys(), g_ex_data.values(), color='r')
-		#pylab.plot(g_in_data.keys(), g_in_data.values(), color='b')
+		pylab.plot(g_ex_data.keys(), g_ex_data.values(), color='r')
+		pylab.plot(g_in_data.keys(), g_in_data.values(), color='b')
 		# plot the slice border
 		for i in np.arange(0, self.sim_time, 25):
 			pylab.axvline(x=i, linewidth=boldline, color='k')

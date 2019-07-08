@@ -4,7 +4,6 @@ from matplotlib import pylab as plt
 from analysis.histogram_lat_amp import sim_process
 from analysis.cut_several_steps_files import select_slices
 from analysis.functions import normalization, grahamscan
-from GRAS.PCA import length
 
 sim_step = 0.025
 bio_step = 0.25

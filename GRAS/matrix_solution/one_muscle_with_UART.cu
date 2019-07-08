@@ -14,7 +14,6 @@
 #include <termios.h>  // POSIX terminal control definitions
 #include <cstring>    // string function definitions
 
-
 #include <math.h>
 #include <fcntl.h>
 #include <stdio.h>
