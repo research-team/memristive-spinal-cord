@@ -390,7 +390,7 @@ void connect_fixed_outdegree(Group pre_neurons, Group post_neurons,
 
 void init_network(float inh_coef, int pedal, int has5ht) {
 	float quadru_coef = pedal? 0.5 : 1;
-	float sero_coef = has5ht? 1.5 : 1;
+	float sero_coef = has5ht? 5.3 : 1;
 
 	/// groups of neurons
 	Group EES = form_group("EES");
@@ -474,8 +474,8 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 1
 	connect_fixed_outdegree(E1, OM1_0, 1, 16, syn_outdegree, true);
 	// input from sensory
-	connect_one_to_all(CV1, OM1_0, 0.5, 10);
-	connect_one_to_all(CV2, OM1_0, 0.5, 10);
+	connect_one_to_all(CV1, OM1_0, 0.5, 10 * quadru_coef * sero_coef); // /2 /10 ?
+	connect_one_to_all(CV2, OM1_0, 0.5, 10 * quadru_coef * sero_coef); // /2 /10 ?
 	// [inhibition]
 	connect_one_to_all(CV3, OM1_3, 1, 80);
 	connect_one_to_all(CV4, OM1_3, 1, 80);
@@ -502,8 +502,8 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 2
 	connect_fixed_outdegree(E2, OM2_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV2, OM2_0, 0.5, 10.5);
-	connect_one_to_all(CV3, OM2_0, 0.5, 10.5);
+	connect_one_to_all(CV2, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
+	connect_one_to_all(CV3, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// [inhibition]
 	connect_one_to_all(CV4, OM2_3, 1, 80);
 	connect_one_to_all(CV5, OM2_3, 1, 80);
@@ -529,8 +529,8 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 3
 	connect_fixed_outdegree(E3, OM3_0, 1, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV3, OM3_0, 0.5, 10.5);
-	connect_one_to_all(CV4, OM3_0, 0.5, 10.5);
+	connect_one_to_all(CV3, OM3_0, 0.5, 10.5 * quadru_coef * sero_coef);
+	connect_one_to_all(CV4, OM3_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// [inhibition]
 	connect_one_to_all(CV5, OM3_3, 1, 80);
 	// input from sensory [CD]
@@ -556,8 +556,8 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 4
 	connect_fixed_outdegree(E4, OM4_0, 2, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV4, OM4_0, 0.5, 10.5);
-	connect_one_to_all(CV5, OM4_0, 0.5, 10.5);
+	connect_one_to_all(CV4, OM4_0, 0.5, 10.5 * quadru_coef * sero_coef);
+	connect_one_to_all(CV5, OM4_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM4_0, 1, 11);
 	connect_one_to_all(CD5, OM4_0, 1, 11);
@@ -582,7 +582,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 5
 	connect_fixed_outdegree(E5, OM5_0, 3, 8);
 	// input from sensory [CV]
-	connect_one_to_all(CV5, OM5_0, 0.5, 10.5);
+	connect_one_to_all(CV5, OM5_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// input from sensory [CD]
 	connect_one_to_all(CD5, OM5_0, 1, 11);
 	// inner connectomes
