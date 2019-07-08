@@ -522,7 +522,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM3
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 10, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 1, 10, neurons_in_ip);
 	connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 7, neurons_in_ip);
 
 	/// OM 3
@@ -549,7 +549,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * inh_coef);
 	// output to OM3
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 2, 9, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 1, 9, neurons_in_ip);
 	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// OM 4
@@ -575,7 +575,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * inh_coef);
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 9, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 1, 9, neurons_in_ip);
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 7, neurons_in_ip);
 
 	/// OM 5
@@ -598,7 +598,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 9, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 9, neurons_in_ip);
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// reflex arc
@@ -613,7 +613,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 2.5, 1.4, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
+	connect_fixed_outdegree(eIP_E, MN_E, 1, 1.5, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
@@ -637,7 +637,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(R_F, R_E, 2, -1);
 }
 
-void save(int test_index, GroupMetadata metadata, string folder){
+void save(int test_index, GroupMetadata &metadata, string folder){
 	ofstream file;
 	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 	file.open(folder + file_name);
@@ -657,7 +657,7 @@ void save(int test_index, GroupMetadata metadata, string folder){
 	file << endl;
 
 	// save spikes
-	for (float &value: metadata.spike_vector) {
+	for (float const& value: metadata.spike_vector) {
 		file << value << " ";
 	}
 	file.close();
@@ -669,7 +669,7 @@ void save_result(int test_index, int save_all) {
 	string current_path = getcwd(NULL, 0);
 	printf("[Test #%d] Save %s results to: %s \n", test_index, (save_all == 0)? "MOTO" : "ALL", current_path.c_str());
 
-	for(GroupMetadata metadata : all_groups) {
+	for(GroupMetadata &metadata : all_groups) {
 		if (save_all == 0) {
 			if(metadata.group.group_name == "MN_E")
 				save(test_index, metadata, current_path);
@@ -715,7 +715,7 @@ int get_skin_stim_time(int cms) {
 	return 125;
 }
 
-void copy_data_to(GroupMetadata metadata, float* nrn_v_m,  float* nrn_g_exc, float* nrn_g_inh, bool *nrn_has_spike, int sim_iter) {
+void copy_data_to(GroupMetadata &metadata, float* nrn_v_m,  float* nrn_g_exc, float* nrn_g_inh, bool *nrn_has_spike, int sim_iter) {
 	float nrn_mean_volt = 0;
 	float nrn_mean_g_exc = 0;
 	float nrn_mean_g_inh = 0;
@@ -975,7 +975,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		memcpyDtH<bool>(nrn_has_spike, gpu_nrn_has_spike, neurons_number);
 
 		// fill records arrays
-		for(GroupMetadata metadata : all_groups) {
+		for(GroupMetadata &metadata : all_groups) {
 			if (save_all == 0) {
 				if (metadata.group.group_name == "MN_E")
 					copy_data_to(metadata, nrn_v_m, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
