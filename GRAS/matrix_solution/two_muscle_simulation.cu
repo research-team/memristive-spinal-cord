@@ -348,7 +348,14 @@ void HebbianFunction(int *synapses_pre_nrn_id,
     if(tid < syn_number){
         if(time_of_spikes_pre_neurons[tid] != 0 & time_of_spikes_post_neurons[tid] != 0){
             dT = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
-            coef = 0.84 / dT;
+            if(dT < 0){
+                if(dT < -1 & dT > -10) coef = 0.84 / dT;
+                if(dT <= -10) coef = 8.4 / dT;
+            }
+            if(dT > 0){
+                if(dT > 1 & dT < 10) coef = 0.84 / dT;
+                if(dT >= 10) coef = 8.4 / dT;
+            }
             new_weight = synapses_weight[tid] + synapses_weight[tid] * coef;
             time_of_spikes_pre_neurons[tid] = 0;
             time_of_spikes_post_neurons[tid] = 0;
