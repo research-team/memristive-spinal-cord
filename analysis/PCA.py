@@ -687,8 +687,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			# plot original bio data per slice
 			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
 			# plot latencies for Q1 and Q3
-			ax1.plot(min_deltas_Q1, smoothed_Q1[:, min_deltas_Q1], '.', markersize=20, color='#227734', label="Q1 latencies")
-			ax1.plot(min_deltas_Q3, smoothed_Q3[:, min_deltas_Q3], '.', markersize=20, color="#FF6600", label="Q3 latencies")
+			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734', label="Q1 latencies")
+			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600", label="Q3 latencies")
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
