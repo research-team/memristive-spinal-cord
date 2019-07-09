@@ -350,6 +350,7 @@ void HebbianFunction(int *synapses_pre_nrn_id,
             if(dT <= 5 & dT >= -5){
                 coef = 0.8 / dT;
                 new_weight = synapses_weight[tid] + synapses_weight[tid] * coef;
+                synapses_weight[tid] = new_weight;
                 time_of_spikes_pre_neurons[tid] = 0;
                 time_of_spikes_post_neurons[tid] = 0;
                 if(tid == n){
@@ -1092,7 +1093,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
                                                          synapses_number,
 		                                                 sim_iter);
 
-		int n = 500000; // number of synapse for tests
+		int n = 0; // number of synapse for tests
 
 		HebbianFunction<<<syn_num_blocks, threads_per_block>>>(gpu_syn_pre_nrn_id,
 		                                                       gpu_syn_post_nrn_id,

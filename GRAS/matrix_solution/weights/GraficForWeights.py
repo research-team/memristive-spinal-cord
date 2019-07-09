@@ -19,6 +19,10 @@ for i in range(a):
 
 del(weight[a])
 
+# weight = weight[100:a]
+
+# time = time[100:a]
+
 fig = plt.figure()
 
 plt.title('0 synapse')
@@ -28,4 +32,4 @@ plt.ylabel('weight')
 
 plt.plot(time, weight)
 
-plt.savefig('0.png')
+plt.savefig('01.png')
