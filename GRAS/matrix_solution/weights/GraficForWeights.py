@@ -4,7 +4,7 @@ import csv
 n = 0
 a = 33000
 
-file = open('0.dat', "r")
+file = open('500000.dat', "r")
 rdr = csv.reader(file, delimiter = ' ')
 
 time = []
@@ -19,17 +19,13 @@ for i in range(a):
 
 del(weight[a])
 
-# weight = weight[100:a]
-
-# time = time[100:a]
-
 fig = plt.figure()
 
-plt.title('0 synapse')
+plt.title('500000 synapse')
 
 plt.xlabel('time (ms)')
 plt.ylabel('weight')
 
 plt.plot(time, weight)
 
-plt.savefig('01.png')
+plt.savefig('500000.png')
