@@ -5,6 +5,78 @@ from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
+from mpl_toolkits.mplot3d import Axes3D
+
+np.set_printoptions(suppress=True)
+
+def get_ellipse(P):
+	""" Find the minimum volume ellipsoid which holds all the points
+	Here, P is a numpy array of N dimensional points like this:
+	P = [[x,y,z], <-- one point per line
+		 . . .
+		 [x,y,z]]
+	Returns:
+		np.ndarray: center
+		np.ndarray: radiuses
+		np.ndarray: 2D array of rotation
+	"""
+	points_number, dimension = P.shape
+	# initializations
+	u = (1 / points_number) * np.ones(points_number)
+
+	# center of the ellipse
+	center = P.T @ u
+
+	# Compute the (multiplicative) inverse of a matrix.
+	# form the algebraic form of the ellipsoid
+	A = np.linalg.inv(P.T @ (np.diag(u) @ P) - np.outer(center, center)) / dimension
+	# Singular Value Decomposition of the matrix A
+	_, s, rotation = np.linalg.svd(A)
+	radiuses = 1 / np.sqrt(s)
+
+	return center, radiuses, rotation
+
+
+def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, frame_color='b', label=''):
+	"""Plot an ellipsoid"""
+	if not ax:
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+
+	u = np.linspace(0, 2 * np.pi, 100)
+	v = np.linspace(0, np.pi, 100)
+
+	# cartesian coordinates that correspond to the spherical angles
+	x = radii[0] * np.outer(np.cos(u), np.sin(v))
+	y = radii[1] * np.outer(np.sin(u), np.sin(v))
+	z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
+
+	# rotate accordingly
+	for i in range(len(x)):
+		for j in range(len(x)):
+			x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
+
+	if plot_axes:
+		# make some purdy axes
+		axes = np.array([[radii[0], 0.0, 0.0],
+		                 [0.0, radii[1], 0.0],
+		                 [0.0, 0.0, radii[2]]])
+		# rotate accordingly
+		for i in range(len(axes)):
+			axes[i] = np.dot(axes[i], rotation)
+		# plot axes
+		for p in axes:
+			X_axes = np.linspace(-p[0], p[0], 5) + center[0]
+			Y_axes = np.linspace(-p[1], p[1], 5) + center[1]
+			Z_axes = np.linspace(-p[2], p[2], 5) + center[2]
+			ax.plot(X_axes, Y_axes, Z_axes, color=frame_color)
+
+	# plot ellipsoid
+	ax.plot_wireframe(x, y, z, rstride=5, cstride=5, color=frame_color, alpha=0.1)
+	surf = ax.plot_surface(x, y, z, rstride=5, cstride=5, alpha=0.2, label=label, color=frame_color)
+	surf._facecolors2d = surf._facecolors3d
+	surf._edgecolors2d = surf._edgecolors3d
+
 
 data_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/"
 
@@ -609,7 +681,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			right = r_best_border
 			borders_length = (right - left) // 2
 			# dichotomy loop
-			while borders_length > 5: # > 1.25 ms
+			while borders_length > 5:  # > 1.25 ms
 				# first part
 				a1 = left
 				a2 = left + borders_length
@@ -687,15 +759,19 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			# plot original bio data per slice
 			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
 			# plot latencies for Q1 and Q3
-			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734', label="Q1 latencies")
-			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600", label="Q3 latencies")
+			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734',
+			         label="Q1 latencies")
+			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600",
+			         label="Q3 latencies")
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
 			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
-			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color, label="minima MONO extremuma")
-			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color, label="maxima MONO extremuma")
+			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
+			         label="minima MONO extremuma")
+			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
+			         label="maxima MONO extremuma")
 			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
 			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
 
@@ -714,7 +790,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.plot([best_lat_x] * 2, [best_lat_y - 2, best_lat_y], color="k", linewidth=0.5)
 			ax1.text(best_lat_x, best_lat_y - 2, best_lat_x * data_step)
 			ax1.set_xticks(range(0, 101, 4))
-			ax1.set_xticklabels((np.arange(0, int(slice_in_ms / data_step), int(1 / data_step)) * data_step).astype(int))
+			ax1.set_xticklabels(
+				(np.arange(0, int(slice_in_ms / data_step), int(1 / data_step)) * data_step).astype(int))
 			ax1.set_xlim(0, int(slice_in_ms / data_step))
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
@@ -735,7 +812,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax2.plot(merged_indexes, merged_values + 0.02, '.')
 			ax2.bar(range(len(delta_smoothed_data)), delta_smoothed_data, width=0.4, color=colors, zorder=3)
 			ax2.set_xticks(range(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)))
-			ax2.set_xticklabels((np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)) * data_step).astype(int))
+			ax2.set_xticklabels(
+				(np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)) * data_step).astype(int))
 			ax2.set_xlim(0, int(slice_in_ms / data_step))
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
@@ -760,8 +838,10 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		y_offset = 1
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
-			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3, label="flier")
-			plt.fill_between(shared_x, data[:, k_whiskers_high], data[:, k_whiskers_low], color='r', alpha=0.5, label="whisker")
+			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3,
+			                 label="flier")
+			plt.fill_between(shared_x, data[:, k_whiskers_high], data[:, k_whiskers_low], color='r', alpha=0.5,
+			                 label="whisker")
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
@@ -780,6 +860,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		plt.show()
 
 	global_lat_indexes = np.array(global_lat_indexes) * data_step
+	global_amp_values = np.array(global_amp_values)
 
 	return global_lat_indexes, global_amp_values
 
@@ -860,8 +941,9 @@ def get_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=
 	for i in range(len(sum_peaks_for_plot)):
 		all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
-	print("sum_peaks_for_plot = ", sum_peaks_for_plot)
-	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes, sum_peaks_for_plot,\
+	return latencies, max_times_amp, min_times_amp, \
+	       max_values_amp, min_values_amp, \
+	       amplitudes, sum_peaks_for_plot, \
 	       avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
 
 
@@ -881,8 +963,9 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes, sum_peaks_for_plot, \
-	avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks):
+def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes,
+               sum_peaks_for_plot, \
+               avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks):
 	yticks = []
 
 	latencies = [int(l / 0.25) for l in latencies]
@@ -921,7 +1004,37 @@ def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, cor
 	plt.show()
 
 
-def plot_pca(debugging=False):
+def get_pca_vec_top(x=None, y=None, z=None):
+	if z is None:
+		stack = np.stack((x, y), axis=1)
+	elif y is None:
+		stack = np.stack((x, z), axis=1)
+	elif x is None:
+		stack = np.stack((y, z), axis=1)
+	else:
+		raise Exception("WTF???")
+
+	pca = PCA(n_components=2)  # create PCA instance
+	pca.fit(stack)  # fit the model with coords
+	points = []
+	for eigenvalue, eigenvector in zip(pca.explained_variance_, pca.components_):
+		point = eigenvector * 3 * np.sqrt(eigenvalue)
+		if x is None:
+			points.append((0, point[0], point[1]))
+			points.append((0, -point[0], -point[1]))
+		elif y is None:
+			points.append((point[0], 0, point[1]))
+			points.append((-point[0], 0, -point[1]))
+		elif z is None:
+			points.append((point[0], point[1], 0))
+			points.append((-point[0], -point[1], 0))
+		else:
+			raise Exception("WTF???")
+
+	return points
+
+
+def plot_pca(debugging=False, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
@@ -929,95 +1042,214 @@ def plot_pca(debugging=False):
 	"""
 	X = 0
 	Y = 1
-	# process bio dataset
-	dataset = read_data('../bio-data/hdf5/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5')
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 
-	bio_pack_lat_peak = (np.stack((lat_per_slice, peaks), axis=1), '#a6261d', 'bio')
-	bio_pack_amp_peak = (np.stack((amp_per_slice, peaks), axis=1), '#a6261d', 'bio')
-	bio_pack_lat_amp = (np.stack((lat_per_slice, amp_per_slice), axis=1), '#a6261d', 'bio')
+	# process bio dataset
+	dataset = read_data(
+		'/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/bio/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5')
+	bio_lat_per_slice, bio_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	bio_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+
+	bio_pack_lat_peak = (np.stack((bio_lat_per_slice, bio_peaks_per_slice), axis=1), '#287a72', 'bio')
+	bio_pack_amp_peak = (np.stack((bio_amp_per_slice, bio_peaks_per_slice), axis=1), '#287a72', 'bio')
+	bio_pack_lat_amp = (np.stack((bio_lat_per_slice, bio_amp_per_slice), axis=1), '#287a72', 'bio')
 
 	# process GRAS dataset
-	dataset = select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000, 1)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks = get_peaks(prepare_data(dataset), 40, 0.25)[7]
-
-	gras_pack_lat_peak = (np.stack((lat_per_slice, peaks), axis=1), '#287a72', 'gras')
-	gras_pack_amp_peak = (np.stack((amp_per_slice, peaks), axis=1), '#287a72', 'gras')
-	gras_pack_lat_amp = (np.stack((lat_per_slice, amp_per_slice), axis=1), '#287a72', 'gras')
+	dataset = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/gras_15.hdf5',
+	                        10000, 22000, 1)
+	gras_lat_per_slice, gras_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	gras_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 
 	# process NEURON dataset
-	dataset = select_slices('../../neuron-data/mn_E15_speed25tests.hdf5', 0, 12000, -1)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	dataset = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/neuron_15.hdf5', 0,
+	                        12000, -1)
+	neuron_lat_per_slice, neuron_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	neuron_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 
-	neuron_pack_lat_peak = (np.stack((lat_per_slice, peaks), axis=1), '#f2aa2e', 'neuron', )
-	neuron_pack_amp_peak = (np.stack((amp_per_slice, peaks), axis=1), '#f2aa2e', 'neuron', )
-	neuron_pack_lat_amp = (np.stack((lat_per_slice, amp_per_slice), axis=1), '#f2aa2e', 'neuron')
+	if plot_3d:
 
-	lat_peak = [bio_pack_lat_peak, gras_pack_lat_peak, neuron_pack_lat_peak, ("Latencies", "Peaks")]
-	amp_peak = [bio_pack_amp_peak, gras_pack_amp_peak, neuron_pack_amp_peak, ("Amplitudes", "Peaks")]
-	lat_amp = [bio_pack_lat_amp, gras_pack_lat_amp, neuron_pack_lat_amp, ("Latencies", "Amplitudes")]
+		########################
+		######## B I O #########
+		########################
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
 
-	# plot per data pack
-	for *pack, labels in [lat_peak, amp_peak, lat_amp]:
-		# start plotting
-		fig, ax = plt.subplots()
+		X = np.array(bio_lat_per_slice)
+		Y = np.array(bio_amp_per_slice)
+		Z = np.array(bio_peaks_per_slice)
 
-		for coords, color, title in pack:
-			pca = PCA(n_components=2)  # create PCA instance
-			pca.fit(coords)  # fit the model with coords
-			center = np.array(pca.mean_)  # get the center (mean value)
+		pca = PCA(n_components=3)  # create PCA instance
+		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
+		center = np.array(pca.mean_)  # get the center (mean value)
 
-			# calc vectors
-			vectors = []
-			for v_length, vector in zip(pca.explained_variance_, pca.components_):
-				y = vector * 3 * np.sqrt(v_length)
-				vectors.append((center, center + y))
+		pca_vectors_top_coords = []
+		# lat_amp
+		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
+		# amp_peak
+		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
+		# peak_lat
+		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
 
-			# calc an angle between vector[first vector][top coords of vector] and vertical vector from the center
-			first_vector = np.array(vectors[0][1])
-			vertical = np.array([center[X], center[Y] + 10])
-			angle_degrees = angle_between(vertical - center, first_vector - center)
+		P = np.array(pca_vectors_top_coords)
 
-			# check on angle sign (vector[first vector][top coord of vector][x coord]) > point1[x coord]
-			sign = -1 if first_vector[X] > vertical[X] else 1
-			# calculate ellipse size
-			ellipse_width = length(vectors[1][1] - center) * 2
-			ellipse_height = length(vectors[0][1] - center) * 2
+		# for dot in P:
+		# 	ax.quiver(*center, *dot)
 
-			# plot vectors
-			for vector in vectors:
-				draw_vector(vector[0], vector[1], color=color)
-			# plot dots
-			ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
-			# plot ellipse
-			ellipse = Ellipse(xy=tuple(center), width=ellipse_width, height=ellipse_height, angle=sign * angle_degrees)
-			ellipse.set_edgecolor(hex2rgb(color))
-			ellipse.set_fill(False)
-			ax.add_artist(ellipse)
-			# fill convex figure
-			hull = ConvexHull(coords)
-			ax.fill(coords[hull.vertices, X], coords[hull.vertices, Y], color=color, alpha=0.3)
-			# calc an area of the poly figure
-			poly_area = poly_area_by_coords(coords[hull.vertices, X], coords[hull.vertices, Y])
+		P[:, 0] += center[0]
+		P[:, 1] += center[1]
+		P[:, 2] += center[2]
 
-			if debugging:
-				for index, x, y in zip(range(len(coords[:, X])), coords[:, X], coords[:, Y]):
-					ax.text(x, y, index + 1)
+		# plot points
+		# ax.scatter(*P.T, color='r', marker='*', s=100)
+		# ellipse_center, radii, rotation = ellipsoid_fit(P)
+		ellipse_center, radii, rotation = get_ellipse(P)
+		# plot ellipsoid
+		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='r', label='bio')
+		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='r')
 
-		# plot atributes
-		plt.xticks(fontsize=28)
-		plt.yticks(fontsize=28)
-		plt.xlabel(labels[0], fontsize=28)
-		plt.ylabel(labels[1], fontsize=28)
+		##########################
+		##########################
+		##########################
+
+		X = np.array(neuron_lat_per_slice)
+		Y = np.array(neuron_amp_per_slice)
+		Z = np.array(neuron_peaks_per_slice)
+
+		pca = PCA(n_components=3)  # create PCA instance
+		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
+		center = np.array(pca.mean_)  # get the center (mean value)
+
+		pca_vectors_top_coords = []
+		# lat_amp
+		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
+		# amp_peak
+		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
+		# peak_lat
+		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
+
+		P = np.array(pca_vectors_top_coords)
+
+		# for dot in P:
+		# 	ax.quiver(*center, *dot)
+
+		P[:, 0] += center[0]
+		P[:, 1] += center[1]
+		P[:, 2] += center[2]
+
+		# plot points
+		# ax.scatter(*P.T, color='r', marker='*', s=100)
+		# ellipse_center, radii, rotation = ellipsoid_fit(P)
+		ellipse_center, radii, rotation = get_ellipse(P)
+		# plot ellipsoid
+		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='orange', label='neuron')
+		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='orange')
+
+		####################################
+		####################################
+		####################################
+		X = np.array(gras_lat_per_slice)
+		Y = np.array(gras_amp_per_slice)
+		Z = np.array(gras_peaks_per_slice)
+
+		pca = PCA(n_components=3)  # create PCA instance
+		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
+		center = np.array(pca.mean_)  # get the center (mean value)
+
+		pca_vectors_top_coords = []
+		# lat_amp
+		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
+		# amp_peak
+		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
+		# peak_lat
+		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
+
+		P = np.array(pca_vectors_top_coords)
+
+		# for dot in P:
+		# 	ax.quiver(*center, *dot)
+
+		P[:, 0] += center[0]
+		P[:, 1] += center[1]
+		P[:, 2] += center[2]
+
+		# plot points
+		# ax.scatter(*P.T, color='r', marker='*', s=100)
+		# ellipse_center, radii, rotation = ellipsoid_fit(P)
+		ellipse_center, radii, rotation = get_ellipse(P)
+		# plot ellipsoid
+		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='g', label='gras')
+		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='g')
+		##########################
+		##########################
+		##########################
+
+		ax.set_xlabel('latencies')
+		ax.set_ylabel('amplitudes')
+		ax.set_zlabel('peaks')
 		plt.legend()
 		plt.show()
+		plt.close(fig)
+
+	else:
+		# plot per data pack
+		for *pack, labels in [lat_peak, amp_peak, lat_amp]:
+			# start plotting
+			fig, ax = plt.subplots()
+
+			for coords, color, title in pack:
+				pca = PCA(n_components=2)  # create PCA instance
+				pca.fit(coords)  # fit the model with coords
+				centers = np.array(pca.mean_)  # get the center (mean value)
+
+				# calc vectors
+				vectors = []
+				for v_length, vector in zip(pca.explained_variance_, pca.components_):
+					y = vector * 3 * np.sqrt(v_length)
+					vectors.append((centers, centers + y))
+
+				# calc an angle between vector[first vector][top coords of vector] and vertical vector from the center
+				first_vector = np.array(vectors[0][1])
+				vertical = np.array([centers[X], centers[Y] + 10])
+				angle_degrees = angle_between(vertical - centers, first_vector - centers)
+
+				# check on angle sign (vector[first vector][top coord of vector][x coord]) > point1[x coord]
+				sign = -1 if first_vector[X] > vertical[X] else 1
+				# calculate ellipse size
+				ellipse_width = length(vectors[1][1] - centers) * 2
+				ellipse_height = length(vectors[0][1] - centers) * 2
+
+				# plot vectors
+				for vector in vectors:
+					draw_vector(vector[0], vector[1], color=color)
+				# plot dots
+				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
+				# plot ellipse
+				ellipse = Ellipse(xy=tuple(centers), width=ellipse_width, height=ellipse_height,
+				                  angle=sign * angle_degrees)
+				ellipse.set_edgecolor(hex2rgb(color))
+				ellipse.set_fill(False)
+				ax.add_artist(ellipse)
+				# fill convex figure
+				hull = ConvexHull(coords)
+				ax.fill(coords[hull.vertices, X], coords[hull.vertices, Y], color=color, alpha=0.3)
+				# calc an area of the poly figure
+				poly_area = poly_area_by_coords(coords[hull.vertices, X], coords[hull.vertices, Y])
+
+				if debugging:
+					for index, x, y in zip(range(len(coords[:, X])), coords[:, X], coords[:, Y]):
+						ax.text(x, y, index + 1)
+
+			# plot atributes
+			plt.xticks(fontsize=28)
+			plt.yticks(fontsize=28)
+			plt.xlabel(labels[0], fontsize=28)
+			plt.ylabel(labels[1], fontsize=28)
+			plt.legend()
+			plt.show()
 
 
 def run():
 	plot_pca()
+
 
 if __name__ == "__main__":
 	run()
