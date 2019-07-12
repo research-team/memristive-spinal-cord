@@ -90,8 +90,8 @@ def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b',
 	if plot_axes:
 		# matrix of axes
 		axes = np.array([[radii[0], 0.0, 0.0],
-						 [0.0, radii[1], 0.0],
-						 [0.0, 0.0, radii[2]]])
+		                 [0.0, radii[1], 0.0],
+		                 [0.0, 0.0, radii[2]]])
 		# rotate accordingly
 		for i in range(len(axes)):
 			axes[i] = np.dot(axes[i], rotation)
@@ -332,7 +332,7 @@ def center_data_by_line(y_points, debugging=False):
 
 	# manually build the counter-clockwise rotation matrix
 	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-								[np.sin(arccos), np.cos(arccos)]])
+	                            [np.sin(arccos), np.cos(arccos)]])
 	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
 	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
 	# center the rotated point cloud at (0, 0)
@@ -580,27 +580,27 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		# merge Q1 poly extremuma indexes
 		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
-																					  e_poly_Q1_minima_values,
-																					  e_poly_Q1_maxima_indexes,
-																					  e_poly_Q1_maxima_values)
+		                                                                              e_poly_Q1_minima_values,
+		                                                                              e_poly_Q1_maxima_indexes,
+		                                                                              e_poly_Q1_maxima_values)
 		# filtering Q1 poly extremuma: remove micropeaks
 		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
-																				e_poly_Q1_indexes,
-																				e_poly_Q1_values,
-																				allowed_diff=allowed_diff_for_extremuma)
+		                                                                        e_poly_Q1_indexes,
+		                                                                        e_poly_Q1_values,
+		                                                                        allowed_diff=allowed_diff_for_extremuma)
 		# find minimal deltas between pairs of extremuma
 		min_deltas_Q1 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q1_indexes)
 
 		# merge Q3 poly extremuma indexes
 		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
-																					  e_poly_Q3_minima_values,
-																					  e_poly_Q3_maxima_indexes,
-																					  e_poly_Q3_maxima_values)
+		                                                                              e_poly_Q3_minima_values,
+		                                                                              e_poly_Q3_maxima_indexes,
+		                                                                              e_poly_Q3_maxima_values)
 		# filtering Q3 poly extremuma: remove micropeaks
 		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
-																				e_poly_Q3_indexes,
-																				e_poly_Q3_values,
-																				allowed_diff=allowed_diff_for_extremuma)
+		                                                                        e_poly_Q3_indexes,
+		                                                                        e_poly_Q3_values,
+		                                                                        allowed_diff=allowed_diff_for_extremuma)
 		# find minimal deltas between pairs of extremuma
 		min_deltas_Q3 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
 
@@ -618,9 +618,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		# merge Q3 poly extremuma indexes
 		merged_names, merged_indexes, merged_values = merge_extremuma_arrays(e_delta_minima_indexes,
-																			 e_delta_minima_values,
-																			 e_delta_maxima_indexes,
-																			 e_delta_maxima_values)
+		                                                                     e_delta_minima_values,
+		                                                                     e_delta_maxima_indexes,
+		                                                                     e_delta_maxima_values)
 
 		# filter dots that are too close or have not enough differentiation in values
 		mask = []
@@ -770,29 +770,29 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
 			# plot latencies for Q1 and Q3
 			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734',
-					 label="Q1 latencies")
+			         label="Q1 latencies")
 			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600",
-					 label="Q3 latencies")
+			         label="Q3 latencies")
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
 			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
 			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
-					 label="minima MONO extremuma")
+			         label="minima MONO extremuma")
 			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
-					 label="maxima MONO extremuma")
+			         label="maxima MONO extremuma")
 			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
 			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
 
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'], e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
-					 markersize=10, color=min_color, label="minima POLY extremuma")
+			         markersize=10, color=min_color, label="minima POLY extremuma")
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'], e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
-					 markersize=10, color=max_color, label="maxima POLY extremuma")
+			         markersize=10, color=max_color, label="maxima POLY extremuma")
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'min'], e_poly_Q3_values[e_poly_Q3_names == 'min'], '.',
-					 markersize=10, color=min_color)
+			         markersize=10, color=min_color)
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'], e_poly_Q3_values[e_poly_Q3_names == 'max'], '.',
-					 markersize=10, color=max_color)
+			         markersize=10, color=max_color)
 
 			# plot the best latency with guidline
 			best_lat_x = best_latency[0]
@@ -849,9 +849,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3,
-							 label="flier")
+			                 label="flier")
 			plt.fill_between(shared_x, data[:, k_whiskers_high], data[:, k_whiskers_low], color='r', alpha=0.5,
-							 label="whisker")
+			                 label="whisker")
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
@@ -860,7 +860,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		lat_x = [x * data_step for x in global_lat_indexes]
 		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
-				 in enumerate(global_lat_indexes)]
+		         in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
 
 		# plt.xticks(range(100), [x * bio_step for x in range(100) if x % 4 == 0])
@@ -886,7 +886,6 @@ def get_peaks(data, herz, step):
 	Returns:
 
 	"""
-	proceed_data = []
 	max_times_amp = []
 	max_values_amp = []
 	min_times_amp = []
@@ -921,8 +920,10 @@ def get_peaks(data, herz, step):
 
 	min_peaks = np.split(np.array(min_peaks), len(data))
 	max_peaks = np.split(np.array(max_peaks), len(data))
+
 	min_times_amp = np.split(np.array(min_times_amp), len(data))
 	min_values_amp = np.split(np.array(min_values_amp), len(data))
+
 	max_times_amp = np.split(np.array(max_times_amp), len(data))
 	max_values_amp = np.split(np.array(max_values_amp), len(data))
 
@@ -948,10 +949,8 @@ def get_peaks(data, herz, step):
 	for i in range(len(sum_peaks_for_plot)):
 		all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
-	return latencies, max_times_amp, min_times_amp, \
-		   max_values_amp, min_values_amp, \
-		   amplitudes, sum_peaks_for_plot, \
-		   avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
+	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes, \
+	       sum_peaks_for_plot, avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
 
 
 def prepare_data(dataset):
@@ -968,47 +967,6 @@ def prepare_data(dataset):
 		normalized_data = normalization(centered_data, save_centering=True)
 		prepared_data.append(normalized_data)
 	return prepared_data
-
-
-def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes,
-			   sum_peaks_for_plot, \
-			   avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks):
-	yticks = []
-
-	latencies = [int(l / 0.25) for l in latencies]
-	# print("latencies = ", latencies)
-	# print(len(gras_slices))
-
-	# for g in range(len(gras_slices)):
-	# 	gras_slices[g] = smooth(gras_slices[g], smooth_peaks_value)
-	sliced_data = np.split(dataset[0], 12)
-	for index, slice_data in enumerate(sliced_data):
-		offset = index
-		plt.plot(slice_data + offset)
-		yticks.append(slice_data[0] + offset)
-		plt.plot(latencies[index], slice_data[latencies[index]] + offset, '.', color='k', markersize=24)
-		plt.text(slice_data[10],
-				 slice_data[0] + offset,
-				 f'pl={sum_peaks_for_plot[0][index]};'
-				 f'pa={avg_sum_peaks_in_sl[index]}'
-				 f';a='f'{amplitudes[index]:.2f}', fontsize=16)
-
-	for index, max_indexes in enumerate(indexes_max[0]):
-		plt.plot(max_indexes, [m + index for m in sliced_data[index][max_indexes]], 's', color='r', markersize=9)
-	for index, min_indexes in enumerate(indexes_min[0]):
-		plt.plot(min_indexes, [m + index for m in sliced_data[index][min_indexes]], 's', color='b', markersize=9)
-
-	ticks = []
-	labels = []
-	for i in range(0, len(dataset[0]) + 1, 4):
-		ticks.append(i)
-		labels.append(i / 4)
-	plt.yticks(yticks, range(1, len(dataset) + 1), fontsize=14)
-	plt.xticks(ticks, [int(i) for i in labels], fontsize=14)
-	plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
-	plt.xlim(0, 100)
-	plt.title("GRAS Peaks sum = {} / {}".format(all_peaks_sum[0], sum_peaks))
-	plt.show()
 
 
 def plot_pca(debugging=False, plot_3d=False):
@@ -1056,7 +1014,7 @@ def plot_pca(debugging=False, plot_3d=False):
 			# find the center of the cloud of points
 			center = np.mean(coords, axis=0)
 			# get PCA vectors' head points (semi axis)
-			vec_points = np.array([3*np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)])
+			vec_points = np.array([3* np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)])
 			# form full axis points (original vectors + mirrored vectors)
 			axis_points = np.concatenate((vec_points, -vec_points), axis=0)
 			# centering vectors and axis points
@@ -1119,7 +1077,7 @@ def plot_pca(debugging=False, plot_3d=False):
 				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
 				# plot ellipse
 				ellipse = Ellipse(xy=tuple(centers), width=ellipse_width, height=ellipse_height,
-								  angle=sign * angle_degrees)
+				                  angle=sign * angle_degrees)
 				ellipse.set_edgecolor(hex2rgb(color))
 				ellipse.set_fill(False)
 				ax.add_artist(ellipse)
