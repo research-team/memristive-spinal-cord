@@ -11,78 +11,6 @@ from matplotlib.patches import FancyArrowPatch
 
 np.set_printoptions(suppress=True)
 
-def get_ellipse(P):
-	""" Find the minimum volume ellipsoid which holds all the points
-	Here, P is a numpy array of N dimensional points like this:
-	P = [[x,y,z], <-- one point per line
-		 . . .
-		 [x,y,z]]
-	Returns:
-		np.ndarray: center
-		np.ndarray: radiuses
-		np.ndarray: 2D array of rotation
-	"""
-	points_number, dimension = P.shape
-	# initializations
-	u = (1 / points_number) * np.ones(points_number)
-
-	# center of the ellipse
-	center = P.T @ u
-
-	# Compute the (multiplicative) inverse of a matrix.
-	# form the algebraic form of the ellipsoid
-	A = np.linalg.inv(P.T @ (np.diag(u) @ P) - np.outer(center, center)) / dimension
-	# Singular Value Decomposition of the matrix A
-	_, s, rotation = np.linalg.svd(A)
-	radiuses = 1 / np.sqrt(s)
-
-	return radiuses, rotation
-
-
-def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b', label='', alpha=0.2):
-	"""Plot an ellipsoid"""
-	if not ax:
-		fig = plt.figure()
-		ax = fig.add_subplot(111, projection='3d')
-
-	u = np.linspace(0, 2 * np.pi, 100)
-	v = np.linspace(0, np.pi, 100)
-
-	# cartesian coordinates that correspond to the spherical angles
-	x = radii[0] * np.outer(np.cos(u), np.sin(v))
-	y = radii[1] * np.outer(np.sin(u), np.sin(v))
-	z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
-
-	# rotate accordingly
-	for i in range(len(x)):
-		for j in range(len(x)):
-			x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
-
-	if plot_axes:
-		# make some purdy axes
-		axes = np.array([[radii[0], 0.0, 0.0],
-						 [0.0, radii[1], 0.0],
-						 [0.0, 0.0, radii[2]]])
-		# rotate accordingly
-		for i in range(len(axes)):
-			axes[i] = np.dot(axes[i], rotation)
-		# plot axes
-		for p in axes:
-			X_axes = np.linspace(-p[0], p[0], 5) + center[0]
-			Y_axes = np.linspace(-p[1], p[1], 5) + center[1]
-			Z_axes = np.linspace(-p[2], p[2], 5) + center[2]
-			ax.plot(X_axes, Y_axes, Z_axes, color='g')
-
-	# plot ellipsoid
-	stride = 5
-	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
-	surf = ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=alpha, label=label, color=color)
-	surf._facecolors2d = surf._facecolors3d
-	surf._edgecolors2d = surf._edgecolors3d
-
-
-data_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/"
-
 # keys
 k_index = 0
 k_value = 1
@@ -96,8 +24,87 @@ k_fliers_low = 6
 
 min_color = "#00FFFF"
 max_color = "#ED1B24"
-
 percents = [25, 50, 75]
+
+
+class Arrow3D(FancyArrowPatch):
+	def __init__(self, xs, ys, zs, *args, **kwargs):
+		FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+		self._verts3d = xs, ys, zs
+
+	def draw(self, renderer):
+		xs3d, ys3d, zs3d = self._verts3d
+		xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+		self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+		FancyArrowPatch.draw(self, renderer)
+
+
+def form_ellipse(P):
+	""" Form the ellipsoid based on all points
+	Here, P is a numpy array of points:
+	P = [[x1,y1,z1],
+		 . . .
+		 [xn,yn,zn]]
+	Returns:
+		np.ndarray: radii values
+		np.ndarray: rotation matrix
+	"""
+	# get P shape information
+	points_number, dimension = P.shape
+	# auxiliary matrix
+	u = (1 / points_number) * np.ones(points_number)
+	# center of the P points
+	center = P.T @ u
+	# form the algebraic form of the ellipsoid by computing the (multiplicative) inverse of a matrix . . .
+	A = np.linalg.inv(P.T @ (np.diag(u) @ P) - np.outer(center, center)) / dimension
+	# get singular value decomposition data of the matrix A
+	_, size, rotation = np.linalg.svd(A)
+	radiuses = 1 / np.sqrt(size)
+
+	return radiuses, rotation
+
+
+def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b', alpha=0.2):
+	"""
+	Plot an ellipsoid
+	Args:
+		center (np.ndarray): center of the ellipsoid
+		radii (np.ndarray): radius per axis
+		rotation (np.ndarray): rotation matrix
+		ax (axes): current axes of the figure
+		plot_axes (bool): plot the axis of ellipsoid if need
+		color (str): color in matlab forms (hex, name of color, first char of color)
+		alpha (float): opacity value
+	"""
+	u = np.linspace(0, 2 * np.pi, 100)
+	v = np.linspace(0, np.pi, 100)
+	# cartesian coordinates that correspond to the spherical angles
+	x = radii[0] * np.outer(np.cos(u), np.sin(v))
+	y = radii[1] * np.outer(np.sin(u), np.sin(v))
+	z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
+	# rotate accordingly
+	for i in range(len(x)):
+		for j in range(len(x)):
+			x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
+	# additional visualization for debugging
+	if plot_axes:
+		# matrix of axes
+		axes = np.array([[radii[0], 0.0, 0.0],
+						 [0.0, radii[1], 0.0],
+						 [0.0, 0.0, radii[2]]])
+		# rotate accordingly
+		for i in range(len(axes)):
+			axes[i] = np.dot(axes[i], rotation)
+		# plot axes
+		for point in axes:
+			X_axis = np.linspace(-point[0], point[0], 5) + center[0]
+			Y_axis = np.linspace(-point[1], point[1], 5) + center[1]
+			Z_axis = np.linspace(-point[2], point[2], 5) + center[2]
+			ax.plot(X_axis, Y_axis, Z_axis, color='g')
+	# plot ellipsoid
+	stride = 4
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=alpha, color=color)
 
 
 def read_data(filepath):
@@ -868,16 +875,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	return global_lat_indexes, global_amp_values
 
 
-def get_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):
+def get_peaks(data, herz, step):
 	"""
 
 	Args:
 		data:
 		herz:
 		step:
-		max_amp_coef:
-		min_amp_coef:
-		filtering:
 
 	Returns:
 
@@ -1007,150 +1011,67 @@ def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, cor
 	plt.show()
 
 
-
-class Arrow3D(FancyArrowPatch):
-	def __init__(self, xs, ys, zs, *args, **kwargs):
-		FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-		self._verts3d = xs, ys, zs
-
-	def draw(self, renderer):
-		xs3d, ys3d, zs3d = self._verts3d
-		xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-		self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-		FancyArrowPatch.draw(self, renderer)
-
-
-def get_pca_vec_top(x=None, y=None, z=None):
-	"""
-
-	Args:
-		x:
-		y:
-		z:
-
-	Returns:
-		list: 3D coordinates of vectors head
-	"""
-	if z is None:
-		stack = np.stack((x, y), axis=1)
-	elif y is None:
-		stack = np.stack((x, z), axis=1)
-	elif x is None:
-		stack = np.stack((y, z), axis=1)
-	else:
-		raise Exception("WTF???")
-
-	pca = PCA(n_components=2)  # create PCA instance
-	pca.fit(stack)  # fit the model with coords
-
-	points = []
-	for eigenvalue, eigenvector in zip(pca.explained_variance_, pca.components_):
-		point = eigenvector * 3 * np.sqrt(eigenvalue)
-		if x is None:
-			points.append((0, point[0], point[1]))      # original coordinate
-			# points.append((0, -point[0], -point[1]))    # mirrored coordinate
-		elif y is None:
-			points.append((point[0], 0, point[1]))
-			# points.append((-point[0], 0, -point[1]))
-		elif z is None:
-			points.append((point[0], point[1], 0))
-			# points.append((-point[0], -point[1], 0))
-		else:
-			raise Exception("WTF???")
-
-	return points
-
-
-def plot_pca(debugging=False, plot_3d=True):
+def plot_pca(debugging=False, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
 		debugging:
 		plot_3d:
 	"""
-	bio_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/bio/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/Downloads/Telegram Desktop/E_15cms_40Hz_100%_2pedal_no5ht.hdf5'
-	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E15_speed25tests.hdf5'
+	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
+	gras_path = '/home/alex/Downloads/E_15cms_40Hz_100%_2pedal_no5ht.hdf5'
+	neuron_path = '/home/alex/Downloads/mn_E15_speed25tests.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
-	bio_lat_per_slice, bio_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	bio_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 	# form data pack
-	bio_pack = [bio_lat_per_slice, bio_amp_per_slice, bio_peaks_per_slice, "#a6261d", "bio"]
+	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
 	dataset = select_slices(gras_path, 10000, 22000, sign=1)
-	gras_lat_per_slice, gras_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	gras_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 	# form data pack
-	gras_pack = [gras_lat_per_slice, gras_amp_per_slice, gras_peaks_per_slice, "#287a72", "gras"]
+	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
 
 	# process NEURON dataset
 	dataset = select_slices(neuron_path, 0, 12000, sign=-1)
-	neuron_lat_per_slice, neuron_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	neuron_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
+	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
 	# form data pack
-	neuron_pack = [neuron_lat_per_slice, neuron_amp_per_slice, neuron_peaks_per_slice, "#f2aa2e", "neuron"]
+	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
 
 	if plot_3d:
 		# init 3D projection figure
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
-		for *data_pack, color, label in [bio_pack, gras_pack, neuron_pack]:
-			# unpack by coordinates
-			X = np.array(data_pack[0])
-			Y = np.array(data_pack[1])
-			Z = np.array(data_pack[2])
-			P = np.stack((X, Y, Z), axis=1)
-
-			# # find the center of the cloud of points
-			center = np.mean(P, axis=0)
-			# # get coordinates of PCA vectors head
-			# pca_vectors_top_coords = []
-			# pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)  # lat amp
-			# pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)  # amp peak
-			# pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)  # lat peak
-			# # P - matrix of coordinates
-			#
-			# P = np.array(pca_vectors_top_coords)
-			#
-			# # move all coordinates to the center of the cloud
-			# P[:, 0] += center[0]
-			# P[:, 1] += center[1]
-			# P[:, 2] += center[2]
-			#
-			# print(P)
-
-			pca = PCA(n_components=3)  # create PCA instance
-			pca.fit(P)  # fit the model with coords
-
-			vec_heads = []
-			vec_heads_full = []
-
-			for eigenvalue, eigenvector in zip(pca.explained_variance_, pca.components_):
-				point = eigenvector * 3 * np.sqrt(eigenvalue)
-				vec_heads.append(point + center)  # original coordinate
-				vec_heads_full.append(point + center)  # original coordinate
-				vec_heads_full.append(-point + center)  # original coordinate
-
-			vec_heads_full = np.array(vec_heads_full)
-
-			for dot in vec_heads:
-				a = Arrow3D([center[0], dot[0]],
-				            [center[1], dot[1]],
-							[center[2], dot[2]], mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-				ax.add_artist(a)
-
-			# calculate radii and rotation matrix based on 3D points of the future ellipsoid
-			radii, rotation = get_ellipse(vec_heads_full)
+		for coords, color, label in [bio_pack, neuron_pack, gras_pack]:
+			# P is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+			# create PCA instance and fit the model with coords
+			pca = PCA(n_components=3)
+			pca.fit(coords)
+			# find the center of the cloud of points
+			center = np.mean(coords, axis=0)
+			# get PCA vectors' head points (semi axis)
+			vec_points = np.array([3*np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)])
+			# form full axis points (original vectors + mirrored vectors)
+			axis_points = np.concatenate((vec_points, -vec_points), axis=0)
+			# centering vectors and axis points
+			vec_points += center
+			axis_points += center
+			# plot PCA vectors
+			for point in vec_points:
+				arrow = Arrow3D(*zip(center.T, point.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(arrow)
+			# calculate radii and rotation matrix based on axis points
+			radii, rotation = form_ellipse(axis_points)
 			# plot cloud of points
-			ax.scatter(X, Y, Z, alpha=0.5, s=30, color=color)
+			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=debugging, color=color, label=label, alpha=0.2)
-			# plot debugging points and vectors
-
+			plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=debugging, color=color, alpha=0.1)
 		# figure properties
 		ax.set_xlabel('latencies [X]')
 		ax.set_ylabel('amplitudes [Y]')
@@ -1159,12 +1080,17 @@ def plot_pca(debugging=False, plot_3d=True):
 		plt.show()
 		plt.close(fig)
 	else:
-		# plot per data pack
-		for *pack, labels in [lat_peak, amp_peak, lat_amp]:
+		X = 0
+		Y = 1
+		labels = ["Latencies", "Amplitudes", "Peaks"]
+		# plot by combinations (lat, amp) (amp, peaks) (lat, peaks)
+		for comb_A, comb_B in (0, 1), (1, 2), (0, 2):
 			# start plotting
 			fig, ax = plt.subplots()
-
-			for coords, color, title in pack:
+			# plot per pack
+			for coords, color, title in bio_pack, gras_pack, neuron_pack:
+				# get only necessary coords
+				coords = coords[:, [comb_A, comb_B]]
 				pca = PCA(n_components=2)  # create PCA instance
 				pca.fit(coords)  # fit the model with coords
 				centers = np.array(pca.mean_)  # get the center (mean value)
@@ -1210,8 +1136,8 @@ def plot_pca(debugging=False, plot_3d=True):
 			# plot atributes
 			plt.xticks(fontsize=28)
 			plt.yticks(fontsize=28)
-			plt.xlabel(labels[0], fontsize=28)
-			plt.ylabel(labels[1], fontsize=28)
+			plt.xlabel(labels[comb_A], fontsize=28)
+			plt.ylabel(labels[comb_B], fontsize=28)
 			plt.legend()
 			plt.show()
 
