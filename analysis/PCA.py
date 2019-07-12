@@ -6,6 +6,8 @@ from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
+from matplotlib.patches import FancyArrowPatch
 
 np.set_printoptions(suppress=True)
 
@@ -34,10 +36,10 @@ def get_ellipse(P):
 	_, s, rotation = np.linalg.svd(A)
 	radiuses = 1 / np.sqrt(s)
 
-	return center, radiuses, rotation
+	return radiuses, rotation
 
 
-def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, frame_color='b', label=''):
+def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b', label='', alpha=0.2):
 	"""Plot an ellipsoid"""
 	if not ax:
 		fig = plt.figure()
@@ -59,8 +61,8 @@ def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, frame_colo
 	if plot_axes:
 		# make some purdy axes
 		axes = np.array([[radii[0], 0.0, 0.0],
-		                 [0.0, radii[1], 0.0],
-		                 [0.0, 0.0, radii[2]]])
+						 [0.0, radii[1], 0.0],
+						 [0.0, 0.0, radii[2]]])
 		# rotate accordingly
 		for i in range(len(axes)):
 			axes[i] = np.dot(axes[i], rotation)
@@ -69,11 +71,12 @@ def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, frame_colo
 			X_axes = np.linspace(-p[0], p[0], 5) + center[0]
 			Y_axes = np.linspace(-p[1], p[1], 5) + center[1]
 			Z_axes = np.linspace(-p[2], p[2], 5) + center[2]
-			ax.plot(X_axes, Y_axes, Z_axes, color=frame_color)
+			ax.plot(X_axes, Y_axes, Z_axes, color='g')
 
 	# plot ellipsoid
-	ax.plot_wireframe(x, y, z, rstride=5, cstride=5, color=frame_color, alpha=0.1)
-	surf = ax.plot_surface(x, y, z, rstride=5, cstride=5, alpha=0.2, label=label, color=frame_color)
+	stride = 5
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	surf = ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=alpha, label=label, color=color)
 	surf._facecolors2d = surf._facecolors3d
 	surf._edgecolors2d = surf._edgecolors3d
 
@@ -322,7 +325,7 @@ def center_data_by_line(y_points, debugging=False):
 
 	# manually build the counter-clockwise rotation matrix
 	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-	                            [np.sin(arccos), np.cos(arccos)]])
+								[np.sin(arccos), np.cos(arccos)]])
 	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
 	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
 	# center the rotated point cloud at (0, 0)
@@ -570,27 +573,27 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		# merge Q1 poly extremuma indexes
 		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
-		                                                                              e_poly_Q1_minima_values,
-		                                                                              e_poly_Q1_maxima_indexes,
-		                                                                              e_poly_Q1_maxima_values)
+																					  e_poly_Q1_minima_values,
+																					  e_poly_Q1_maxima_indexes,
+																					  e_poly_Q1_maxima_values)
 		# filtering Q1 poly extremuma: remove micropeaks
 		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
-		                                                                        e_poly_Q1_indexes,
-		                                                                        e_poly_Q1_values,
-		                                                                        allowed_diff=allowed_diff_for_extremuma)
+																				e_poly_Q1_indexes,
+																				e_poly_Q1_values,
+																				allowed_diff=allowed_diff_for_extremuma)
 		# find minimal deltas between pairs of extremuma
 		min_deltas_Q1 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q1_indexes)
 
 		# merge Q3 poly extremuma indexes
 		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
-		                                                                              e_poly_Q3_minima_values,
-		                                                                              e_poly_Q3_maxima_indexes,
-		                                                                              e_poly_Q3_maxima_values)
+																					  e_poly_Q3_minima_values,
+																					  e_poly_Q3_maxima_indexes,
+																					  e_poly_Q3_maxima_values)
 		# filtering Q3 poly extremuma: remove micropeaks
 		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
-		                                                                        e_poly_Q3_indexes,
-		                                                                        e_poly_Q3_values,
-		                                                                        allowed_diff=allowed_diff_for_extremuma)
+																				e_poly_Q3_indexes,
+																				e_poly_Q3_values,
+																				allowed_diff=allowed_diff_for_extremuma)
 		# find minimal deltas between pairs of extremuma
 		min_deltas_Q3 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
 
@@ -608,9 +611,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		# merge Q3 poly extremuma indexes
 		merged_names, merged_indexes, merged_values = merge_extremuma_arrays(e_delta_minima_indexes,
-		                                                                     e_delta_minima_values,
-		                                                                     e_delta_maxima_indexes,
-		                                                                     e_delta_maxima_values)
+																			 e_delta_minima_values,
+																			 e_delta_maxima_indexes,
+																			 e_delta_maxima_values)
 
 		# filter dots that are too close or have not enough differentiation in values
 		mask = []
@@ -760,29 +763,29 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
 			# plot latencies for Q1 and Q3
 			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734',
-			         label="Q1 latencies")
+					 label="Q1 latencies")
 			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600",
-			         label="Q3 latencies")
+					 label="Q3 latencies")
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
 			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
 			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
-			         label="minima MONO extremuma")
+					 label="minima MONO extremuma")
 			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
-			         label="maxima MONO extremuma")
+					 label="maxima MONO extremuma")
 			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
 			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
 
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'], e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
-			         markersize=10, color=min_color, label="minima POLY extremuma")
+					 markersize=10, color=min_color, label="minima POLY extremuma")
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'], e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
-			         markersize=10, color=max_color, label="maxima POLY extremuma")
+					 markersize=10, color=max_color, label="maxima POLY extremuma")
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'min'], e_poly_Q3_values[e_poly_Q3_names == 'min'], '.',
-			         markersize=10, color=min_color)
+					 markersize=10, color=min_color)
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'], e_poly_Q3_values[e_poly_Q3_names == 'max'], '.',
-			         markersize=10, color=max_color)
+					 markersize=10, color=max_color)
 
 			# plot the best latency with guidline
 			best_lat_x = best_latency[0]
@@ -839,9 +842,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3,
-			                 label="flier")
+							 label="flier")
 			plt.fill_between(shared_x, data[:, k_whiskers_high], data[:, k_whiskers_low], color='r', alpha=0.5,
-			                 label="whisker")
+							 label="whisker")
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
@@ -850,7 +853,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		lat_x = [x * data_step for x in global_lat_indexes]
 		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
-		         in enumerate(global_lat_indexes)]
+				 in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
 
 		# plt.xticks(range(100), [x * bio_step for x in range(100) if x % 4 == 0])
@@ -942,9 +945,9 @@ def get_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=
 		all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
 	return latencies, max_times_amp, min_times_amp, \
-	       max_values_amp, min_values_amp, \
-	       amplitudes, sum_peaks_for_plot, \
-	       avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
+		   max_values_amp, min_values_amp, \
+		   amplitudes, sum_peaks_for_plot, \
+		   avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
 
 
 def prepare_data(dataset):
@@ -964,8 +967,8 @@ def prepare_data(dataset):
 
 
 def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes,
-               sum_peaks_for_plot, \
-               avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks):
+			   sum_peaks_for_plot, \
+			   avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks):
 	yticks = []
 
 	latencies = [int(l / 0.25) for l in latencies]
@@ -981,10 +984,10 @@ def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, cor
 		yticks.append(slice_data[0] + offset)
 		plt.plot(latencies[index], slice_data[latencies[index]] + offset, '.', color='k', markersize=24)
 		plt.text(slice_data[10],
-		         slice_data[0] + offset,
-		         f'pl={sum_peaks_for_plot[0][index]};'
-		         f'pa={avg_sum_peaks_in_sl[index]}'
-		         f';a='f'{amplitudes[index]:.2f}', fontsize=16)
+				 slice_data[0] + offset,
+				 f'pl={sum_peaks_for_plot[0][index]};'
+				 f'pa={avg_sum_peaks_in_sl[index]}'
+				 f';a='f'{amplitudes[index]:.2f}', fontsize=16)
 
 	for index, max_indexes in enumerate(indexes_max[0]):
 		plt.plot(max_indexes, [m + index for m in sliced_data[index][max_indexes]], 's', color='r', markersize=9)
@@ -1004,7 +1007,30 @@ def plot_peaks(dataset, latencies, indexes_max, indexes_min, corr_ampls_max, cor
 	plt.show()
 
 
+
+class Arrow3D(FancyArrowPatch):
+	def __init__(self, xs, ys, zs, *args, **kwargs):
+		FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+		self._verts3d = xs, ys, zs
+
+	def draw(self, renderer):
+		xs3d, ys3d, zs3d = self._verts3d
+		xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+		self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+		FancyArrowPatch.draw(self, renderer)
+
+
 def get_pca_vec_top(x=None, y=None, z=None):
+	"""
+
+	Args:
+		x:
+		y:
+		z:
+
+	Returns:
+		list: 3D coordinates of vectors head
+	"""
 	if z is None:
 		stack = np.stack((x, y), axis=1)
 	elif y is None:
@@ -1016,179 +1042,122 @@ def get_pca_vec_top(x=None, y=None, z=None):
 
 	pca = PCA(n_components=2)  # create PCA instance
 	pca.fit(stack)  # fit the model with coords
+
 	points = []
 	for eigenvalue, eigenvector in zip(pca.explained_variance_, pca.components_):
 		point = eigenvector * 3 * np.sqrt(eigenvalue)
 		if x is None:
-			points.append((0, point[0], point[1]))
-			points.append((0, -point[0], -point[1]))
+			points.append((0, point[0], point[1]))      # original coordinate
+			# points.append((0, -point[0], -point[1]))    # mirrored coordinate
 		elif y is None:
 			points.append((point[0], 0, point[1]))
-			points.append((-point[0], 0, -point[1]))
+			# points.append((-point[0], 0, -point[1]))
 		elif z is None:
 			points.append((point[0], point[1], 0))
-			points.append((-point[0], -point[1], 0))
+			# points.append((-point[0], -point[1], 0))
 		else:
 			raise Exception("WTF???")
 
 	return points
 
 
-def plot_pca(debugging=False, plot_3d=False):
+def plot_pca(debugging=False, plot_3d=True):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
 		debugging:
+		plot_3d:
 	"""
-	X = 0
-	Y = 1
+	bio_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/bio/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
+	gras_path = '/home/alex/Downloads/Telegram Desktop/E_15cms_40Hz_100%_2pedal_no5ht.hdf5'
+	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E15_speed25tests.hdf5'
 
-	# process bio dataset
-	dataset = read_data(
-		'/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/bio/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5')
+	# process BIO dataset
+	dataset = read_data(bio_path)
 	bio_lat_per_slice, bio_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	bio_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
-
-	bio_pack_lat_peak = (np.stack((bio_lat_per_slice, bio_peaks_per_slice), axis=1), '#287a72', 'bio')
-	bio_pack_amp_peak = (np.stack((bio_amp_per_slice, bio_peaks_per_slice), axis=1), '#287a72', 'bio')
-	bio_pack_lat_amp = (np.stack((bio_lat_per_slice, bio_amp_per_slice), axis=1), '#287a72', 'bio')
+	# form data pack
+	bio_pack = [bio_lat_per_slice, bio_amp_per_slice, bio_peaks_per_slice, "#a6261d", "bio"]
 
 	# process GRAS dataset
-	dataset = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/gras_15.hdf5',
-	                        10000, 22000, 1)
+	dataset = select_slices(gras_path, 10000, 22000, sign=1)
 	gras_lat_per_slice, gras_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	gras_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	# form data pack
+	gras_pack = [gras_lat_per_slice, gras_amp_per_slice, gras_peaks_per_slice, "#287a72", "gras"]
 
 	# process NEURON dataset
-	dataset = select_slices('/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/bio_data/neuron_15.hdf5', 0,
-	                        12000, -1)
+	dataset = select_slices(neuron_path, 0, 12000, sign=-1)
 	neuron_lat_per_slice, neuron_amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
 	neuron_peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	# form data pack
+	neuron_pack = [neuron_lat_per_slice, neuron_amp_per_slice, neuron_peaks_per_slice, "#f2aa2e", "neuron"]
 
 	if plot_3d:
-
-		########################
-		######## B I O #########
-		########################
+		# init 3D projection figure
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
+		# plot each data pack
+		for *data_pack, color, label in [bio_pack, gras_pack, neuron_pack]:
+			# unpack by coordinates
+			X = np.array(data_pack[0])
+			Y = np.array(data_pack[1])
+			Z = np.array(data_pack[2])
+			P = np.stack((X, Y, Z), axis=1)
 
-		X = np.array(bio_lat_per_slice)
-		Y = np.array(bio_amp_per_slice)
-		Z = np.array(bio_peaks_per_slice)
+			# # find the center of the cloud of points
+			center = np.mean(P, axis=0)
+			# # get coordinates of PCA vectors head
+			# pca_vectors_top_coords = []
+			# pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)  # lat amp
+			# pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)  # amp peak
+			# pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)  # lat peak
+			# # P - matrix of coordinates
+			#
+			# P = np.array(pca_vectors_top_coords)
+			#
+			# # move all coordinates to the center of the cloud
+			# P[:, 0] += center[0]
+			# P[:, 1] += center[1]
+			# P[:, 2] += center[2]
+			#
+			# print(P)
 
-		pca = PCA(n_components=3)  # create PCA instance
-		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
-		center = np.array(pca.mean_)  # get the center (mean value)
+			pca = PCA(n_components=3)  # create PCA instance
+			pca.fit(P)  # fit the model with coords
 
-		pca_vectors_top_coords = []
-		# lat_amp
-		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
-		# amp_peak
-		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
-		# peak_lat
-		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
+			vec_heads = []
+			vec_heads_full = []
 
-		P = np.array(pca_vectors_top_coords)
+			for eigenvalue, eigenvector in zip(pca.explained_variance_, pca.components_):
+				point = eigenvector * 3 * np.sqrt(eigenvalue)
+				vec_heads.append(point + center)  # original coordinate
+				vec_heads_full.append(point + center)  # original coordinate
+				vec_heads_full.append(-point + center)  # original coordinate
 
-		# for dot in P:
-		# 	ax.quiver(*center, *dot)
+			vec_heads_full = np.array(vec_heads_full)
 
-		P[:, 0] += center[0]
-		P[:, 1] += center[1]
-		P[:, 2] += center[2]
+			for dot in vec_heads:
+				a = Arrow3D([center[0], dot[0]],
+				            [center[1], dot[1]],
+							[center[2], dot[2]], mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(a)
 
-		# plot points
-		# ax.scatter(*P.T, color='r', marker='*', s=100)
-		# ellipse_center, radii, rotation = ellipsoid_fit(P)
-		ellipse_center, radii, rotation = get_ellipse(P)
-		# plot ellipsoid
-		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='r', label='bio')
-		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='r')
+			# calculate radii and rotation matrix based on 3D points of the future ellipsoid
+			radii, rotation = get_ellipse(vec_heads_full)
+			# plot cloud of points
+			ax.scatter(X, Y, Z, alpha=0.5, s=30, color=color)
+			# plot ellipsoid
+			plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=debugging, color=color, label=label, alpha=0.2)
+			# plot debugging points and vectors
 
-		##########################
-		##########################
-		##########################
-
-		X = np.array(neuron_lat_per_slice)
-		Y = np.array(neuron_amp_per_slice)
-		Z = np.array(neuron_peaks_per_slice)
-
-		pca = PCA(n_components=3)  # create PCA instance
-		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
-		center = np.array(pca.mean_)  # get the center (mean value)
-
-		pca_vectors_top_coords = []
-		# lat_amp
-		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
-		# amp_peak
-		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
-		# peak_lat
-		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
-
-		P = np.array(pca_vectors_top_coords)
-
-		# for dot in P:
-		# 	ax.quiver(*center, *dot)
-
-		P[:, 0] += center[0]
-		P[:, 1] += center[1]
-		P[:, 2] += center[2]
-
-		# plot points
-		# ax.scatter(*P.T, color='r', marker='*', s=100)
-		# ellipse_center, radii, rotation = ellipsoid_fit(P)
-		ellipse_center, radii, rotation = get_ellipse(P)
-		# plot ellipsoid
-		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='orange', label='neuron')
-		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='orange')
-
-		####################################
-		####################################
-		####################################
-		X = np.array(gras_lat_per_slice)
-		Y = np.array(gras_amp_per_slice)
-		Z = np.array(gras_peaks_per_slice)
-
-		pca = PCA(n_components=3)  # create PCA instance
-		pca.fit(np.stack((X, Y, Z), axis=1))  # fit the model with coords
-		center = np.array(pca.mean_)  # get the center (mean value)
-
-		pca_vectors_top_coords = []
-		# lat_amp
-		pca_vectors_top_coords += get_pca_vec_top(x=X, y=Y)
-		# amp_peak
-		pca_vectors_top_coords += get_pca_vec_top(y=Y, z=Z)
-		# peak_lat
-		pca_vectors_top_coords += get_pca_vec_top(x=X, z=Z)
-
-		P = np.array(pca_vectors_top_coords)
-
-		# for dot in P:
-		# 	ax.quiver(*center, *dot)
-
-		P[:, 0] += center[0]
-		P[:, 1] += center[1]
-		P[:, 2] += center[2]
-
-		# plot points
-		# ax.scatter(*P.T, color='r', marker='*', s=100)
-		# ellipse_center, radii, rotation = ellipsoid_fit(P)
-		ellipse_center, radii, rotation = get_ellipse(P)
-		# plot ellipsoid
-		plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=False, frame_color='g', label='gras')
-		ax.scatter(X, Y, Z, alpha=0.5, s=30, label='values', color='g')
-		##########################
-		##########################
-		##########################
-
-		ax.set_xlabel('latencies')
-		ax.set_ylabel('amplitudes')
-		ax.set_zlabel('peaks')
+		# figure properties
+		ax.set_xlabel('latencies [X]')
+		ax.set_ylabel('amplitudes [Y]')
+		ax.set_zlabel('peaks [Z]')
 		plt.legend()
 		plt.show()
 		plt.close(fig)
-
 	else:
 		# plot per data pack
 		for *pack, labels in [lat_peak, amp_peak, lat_amp]:
@@ -1224,7 +1193,7 @@ def plot_pca(debugging=False, plot_3d=False):
 				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
 				# plot ellipse
 				ellipse = Ellipse(xy=tuple(centers), width=ellipse_width, height=ellipse_height,
-				                  angle=sign * angle_degrees)
+								  angle=sign * angle_degrees)
 				ellipse.set_edgecolor(hex2rgb(color))
 				ellipse.set_fill(False)
 				ax.add_artist(ellipse)
