@@ -10,7 +10,7 @@ GRAS/matrix_solution/dat/*
 NEST/second_level/results/*
 # C extensions
 *.so
-
+*.hdf5
 # Distribution / packaging
 .Python
 env/
