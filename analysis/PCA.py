@@ -64,7 +64,7 @@ def form_ellipse(P):
 	return radiuses, rotation
 
 
-def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b', alpha=0.2):
+def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.2):
 	"""
 	Plot an ellipsoid
 	Args:
@@ -76,6 +76,8 @@ def plot_ellipsoid(center, radii, rotation, ax=None, plot_axes=False, color='b',
 		color (str): color in matlab forms (hex, name of color, first char of color)
 		alpha (float): opacity value
 	"""
+	ax = plt.gca()
+
 	u = np.linspace(0, 2 * np.pi, 100)
 	v = np.linspace(0, np.pi, 100)
 	# cartesian coordinates that correspond to the spherical angles
@@ -122,8 +124,8 @@ def hex2rgb(hex_color):
 	return [int("".join(gr), 16) / 256 for gr in zip(*[iter(hex_color)] * 2)]
 
 
-def length(v):
-	return np.sqrt(v[0] ** 2 + v[1] ** 2)
+def length(p0, p1):
+	return np.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2)
 
 
 def unit_vector(vector):
@@ -278,7 +280,7 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	raise Exception("You didn't choose any condtinion!")
 
 
-def draw_vector(p0, p1, color=None):
+def draw_vector(p0, p1, color):
 	"""
 	Small function for drawing vector with arrow by two points
 	Args:
@@ -288,10 +290,7 @@ def draw_vector(p0, p1, color=None):
 	"""
 	ax = plt.gca()
 	# this plot is fixing the problem of hiding annotations because of their not markers origin
-	if color:
-		ax.plot(p1[0], p1[1], '.', color=color)
-	else:
-		ax.plot(p1[0], p1[1], '.')
+	ax.plot(p1[0], p1[1], '.', alpha=0)
 	ax.annotate('', p1, p0, arrowprops=dict(facecolor=color, linewidth=1.0))
 
 
@@ -1001,46 +1000,48 @@ def plot_pca(debugging=False, plot_3d=False):
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
 
+	axis_labels = ["Latencies", "Amplitudes", "Peaks"]
+
 	if plot_3d:
 		# init 3D projection figure
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
-		for coords, color, label in [bio_pack, neuron_pack, gras_pack]:
-			# P is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+		for coords, color, label in bio_pack, neuron_pack, gras_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
 			pca.fit(coords)
-			# find the center of the cloud of points
-			center = np.mean(coords, axis=0)
+			# get the center (mean value of points cloud)
+			center = pca.mean_
 			# get PCA vectors' head points (semi axis)
-			vec_points = np.array([3* np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)])
+			vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
+			vectors_points = np.array(vectors_points)
 			# form full axis points (original vectors + mirrored vectors)
-			axis_points = np.concatenate((vec_points, -vec_points), axis=0)
+			axis_points = np.concatenate((vectors_points, -vectors_points), axis=0)
 			# centering vectors and axis points
-			vec_points += center
+			vectors_points += center
 			axis_points += center
-			# plot PCA vectors
-			for point in vec_points:
-				arrow = Arrow3D(*zip(center.T, point.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-				ax.add_artist(arrow)
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation = form_ellipse(axis_points)
+			# plot PCA vectors
+			for point_head in vectors_points:
+				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(arrow)
 			# plot cloud of points
 			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, ax=ax, plot_axes=debugging, color=color, alpha=0.1)
+			plot_ellipsoid(center, radii, rotation, plot_axes=debugging, color=color, alpha=0.1)
 		# figure properties
-		ax.set_xlabel('latencies [X]')
-		ax.set_ylabel('amplitudes [Y]')
-		ax.set_zlabel('peaks [Z]')
+		ax.set_xlabel(axis_labels[0])
+		ax.set_ylabel(axis_labels[1])
+		ax.set_zlabel(axis_labels[2])
 		plt.legend()
 		plt.show()
 		plt.close(fig)
 	else:
 		X = 0
 		Y = 1
-		labels = ["Latencies", "Amplitudes", "Peaks"]
 		# plot by combinations (lat, amp) (amp, peaks) (lat, peaks)
 		for comb_A, comb_B in (0, 1), (1, 2), (0, 2):
 			# start plotting
@@ -1049,35 +1050,29 @@ def plot_pca(debugging=False, plot_3d=False):
 			for coords, color, title in bio_pack, gras_pack, neuron_pack:
 				# get only necessary coords
 				coords = coords[:, [comb_A, comb_B]]
-				pca = PCA(n_components=2)  # create PCA instance
-				pca.fit(coords)  # fit the model with coords
-				centers = np.array(pca.mean_)  # get the center (mean value)
-
-				# calc vectors
-				vectors = []
-				for v_length, vector in zip(pca.explained_variance_, pca.components_):
-					y = vector * 3 * np.sqrt(v_length)
-					vectors.append((centers, centers + y))
-
-				# calc an angle between vector[first vector][top coords of vector] and vertical vector from the center
-				first_vector = np.array(vectors[0][1])
-				vertical = np.array([centers[X], centers[Y] + 10])
-				angle_degrees = angle_between(vertical - centers, first_vector - centers)
-
-				# check on angle sign (vector[first vector][top coord of vector][x coord]) > point1[x coord]
-				sign = -1 if first_vector[X] > vertical[X] else 1
+				# create PCA instance and fit the model with coords
+				pca = PCA(n_components=2)
+				pca.fit(coords)
+				# get the center (mean value of points cloud)
+				center = pca.mean_
+				# get PCA vectors' head points (semi axis)
+				vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
+				vectors_points = np.array(vectors_points) + center
+				# calc an angle between first vector and vertical vector from the center
+				vertical = np.array([center[X], center[Y] + 10])
+				angle = angle_between(vertical - center, vectors_points[0] - center)
+				# check on angle sign
+				sign = -1 if vectors_points[0][X] > center[X] else 1
 				# calculate ellipse size
-				ellipse_width = length(vectors[1][1] - centers) * 2
-				ellipse_height = length(vectors[0][1] - centers) * 2
-
-				# plot vectors
-				for vector in vectors:
-					draw_vector(vector[0], vector[1], color=color)
+				e_height = length(center, vectors_points[0]) * 2
+				e_width = length(center, vectors_points[1]) * 2
+				# plot PCA vectors
+				for point_head in vectors_points:
+					draw_vector(center, point_head, color=color)
 				# plot dots
 				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
 				# plot ellipse
-				ellipse = Ellipse(xy=tuple(centers), width=ellipse_width, height=ellipse_height,
-				                  angle=sign * angle_degrees)
+				ellipse = Ellipse(xy=tuple(center), width=e_width, height=e_height, angle=sign * angle)
 				ellipse.set_edgecolor(hex2rgb(color))
 				ellipse.set_fill(False)
 				ax.add_artist(ellipse)
@@ -1094,8 +1089,8 @@ def plot_pca(debugging=False, plot_3d=False):
 			# plot atributes
 			plt.xticks(fontsize=28)
 			plt.yticks(fontsize=28)
-			plt.xlabel(labels[comb_A], fontsize=28)
-			plt.ylabel(labels[comb_B], fontsize=28)
+			plt.xlabel(axis_labels[comb_A], fontsize=28)
+			plt.ylabel(axis_labels[comb_B], fontsize=28)
 			plt.legend()
 			plt.show()
 

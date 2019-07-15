@@ -9,7 +9,7 @@ from GRAS.shadows_boxplot import plot_shadows_boxplot
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-tests_number, cms, ees, inh, ped, ht5 = range(6)
+tests_number, cms, ees, inh, ped, ht5, save_all = range(7)
 
 def run_tests(build_folder, args):
 	"""
@@ -30,7 +30,7 @@ def run_tests(build_folder, args):
 	for itest in range(args[tests_number]):
 		logger.info(f"running test #{itest}")
 		cmd_build = f"{nvcc} -o {build_folder}/{buildname} {build_folder}/{buildfile}"
-		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {itest} 0"
+		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {args[save_all]} {itest}"
 
 		for cmd in [cmd_build, cmd_run]:
 			logger.info(f"Execute: {cmd}")
@@ -94,15 +94,16 @@ def testrunner():
 	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
 	save_folder = f"{script_place}/dat"
 
-	args = {tests_number: 3,
+	args = {tests_number: 15,
 	        cms: 21,
 	        ees: 40,
 	        inh: 100,
 	        ped: 2,
-	        ht5: 0}
+	        ht5: 0,
+	        save_all: 0}
 
-	run_tests(script_place, args)
-	convert_to_hdf5(save_folder)
+	# run_tests(script_place, args)
+	# convert_to_hdf5(save_folder)
 	plot_results(save_folder, ees_hz=args[ees])
 
 

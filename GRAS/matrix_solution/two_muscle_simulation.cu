@@ -598,7 +598,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 9, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 7, neurons_in_ip);
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// reflex arc
@@ -613,7 +613,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 1, 1.5, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
+	connect_fixed_outdegree(eIP_E, MN_E, 2, 1.4, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
@@ -640,6 +640,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 void save(int test_index, GroupMetadata &metadata, string folder){
 	ofstream file;
 	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+
 	file.open(folder + file_name);
 	// save voltage
 	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
@@ -662,11 +663,12 @@ void save(int test_index, GroupMetadata &metadata, string folder){
 	}
 	file.close();
 
-	printf("saved %s \n", metadata.group.group_name.c_str());
+	cout << "Saved to: " << folder + file_name << endl;
 }
 
 void save_result(int test_index, int save_all) {
 	string current_path = getcwd(NULL, 0);
+
 	printf("[Test #%d] Save %s results to: %s \n", test_index, (save_all == 0)? "MOTO" : "ALL", current_path.c_str());
 
 	for(GroupMetadata &metadata : all_groups) {
@@ -734,7 +736,7 @@ void copy_data_to(GroupMetadata &metadata, float* nrn_v_m,  float* nrn_g_exc, fl
 }
 
 __host__
-void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_all) {
+void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int itest) {
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
 
 	const unsigned int skin_stim_time = get_skin_stim_time(cms);
@@ -1019,10 +1021,10 @@ int main(int argc, char* argv[]) {
 	int inh = atoi(argv[3]);
 	int ped = atoi(argv[4]);
 	int ht5 = atoi(argv[5]);
-	int itest = atoi(argv[6]);
-	int save_all = atoi(argv[7]);
+	int save_all = atoi(argv[6]);
+	int itest = atoi(argv[7]);
 
-	simulate(cms, ees, inh, ped, ht5, itest, save_all);
+	simulate(cms, ees, inh, ped, ht5, save_all, itest);
 
 	return 0;
 }
