@@ -21,11 +21,11 @@ del(weight[a])
 
 fig = plt.figure()
 
-plt.title('100 synapse')
+plt.title('500000 synapse')
 
 plt.xlabel('time (ms)')
 plt.ylabel('weight')
 
 plt.plot(time, weight)
 
-plt.savefig('100.png')
+plt.savefig('500000.png')
