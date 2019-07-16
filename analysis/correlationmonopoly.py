@@ -1,6 +1,6 @@
 import h5py as hdf5
-from Project.Correlation.PCA import prepare_data
-from Project.Correlation.cut_several_steps_files import select_slices
+from GRAS.PCA import prepare_data
+from analysis.cut_several_steps_files import select_slices
 import numpy as np
 from matplotlib import pylab as plt
 from scipy.stats import spearmanr
@@ -11,7 +11,7 @@ neuron_data_poly = []
 bio_data_mono = []
 bio_data_poly = []
 
-filepath = '/Applications/memristive-spinal-cord-master/bio-data/hdf5/6_bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+filepath = '../bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
 
 
 def read_data(filepath, sign=1):
@@ -25,7 +25,7 @@ bio_data = prepare_data(bio_data)
 bio_mean_data = list(map(lambda elements: np.mean(elements), zip(*bio_data)))
 
 neuron_list = np.array(
-    select_slices('/Applications/memristive-spinal-cord-master/bio-data/hdf5/6_mn_E15_speed25tests.hdf5', 0, 12000))
+    select_slices('../bio-data/hdf5/mn_E15_speed25tests.hdf5', 0, 12000))
 neuron_list = np.negative(neuron_list)
 neuron_list = prepare_data(neuron_list)
 neuron_mean = list(map(lambda elements: np.mean(elements), zip(*neuron_list)))
