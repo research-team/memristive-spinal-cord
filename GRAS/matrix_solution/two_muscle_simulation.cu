@@ -329,71 +329,6 @@ void synapses_kernel(bool *neuron_has_spike,     // array of bools -- is neuron 
 	}
 }
 
-//__global__
-//void HebbianFunction(bool *neuron_has_spike,
-//                     int *synapses_pre_nrn_id,
-//                     int *synapses_post_nrn_id,
-//                     float *synapses_weight,
-//                     float *time_of_spikes_pre_neurons,
-//                     float *time_of_spikes_post_neurons,
-//                     float *dynamic_weights, // array for save dynamic of weight for one synapse
-//                     int syn_number,
-//                     int sim_iter,
-//                     int n) { // number of synapse for tests
-//
-//    // get ID of the thread
-//    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-//    float new_weight, coef, dT;
-//
-//    if (tid < syn_number) {
-//
-//        if (neuron_has_spike[synapses_pre_nrn_id[tid]]) {
-//            time_of_spikes_pre_neurons[tid] = sim_iter * SIM_STEP;
-//        }
-//        if (neuron_has_spike[synapses_post_nrn_id[tid]]) {
-//            time_of_spikes_post_neurons[tid] = sim_iter * SIM_STEP;
-//        }
-//
-////        if(tid == n){
-////            if(time_of_spikes_pre_neurons[tid] != 0 & time_of_spikes_post_neurons[tid] != 0){
-////                dT = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
-////                dynamic_weights[sim_iter] = dT;
-////                time_of_spikes_pre_neurons[tid] = 0;
-////                time_of_spikes_post_neurons[tid] = 0;
-////            } else dynamic_weights[tid] = 0;
-////        }
-//
-//        float current_weight = synapses_weight[tid];
-//
-//        if (time_of_spikes_pre_neurons[tid] != 0 && time_of_spikes_post_neurons[tid] != 0) {
-//            dT = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
-//            if (dT <= 5 && dT >= -5) {
-//                coef = 0.008 / dT;
-//                if (current_weight > 0){
-//                    new_weight = current_weight + current_weight * coef;
-//                }
-//                if (current_weight < 0) {
-//                    new_weight = current_weight - current_weight * coef;
-//                }
-////                if(current_weight == 0){
-////                    new_weight = 100;
-////                }
-//                synapses_weight[tid] = new_weight;
-//                if (tid == n) {
-//                    dynamic_weights[sim_iter] = new_weight;
-//                }
-//            }
-//            time_of_spikes_pre_neurons[tid] = 0;
-//            time_of_spikes_post_neurons[tid] = 0;
-//        }
-//        else {
-//            if(tid == n){
-//                dynamic_weights[sim_iter] = current_weight;
-//            }
-//        }
-//    }
-//}
-
 __global__
 void HebbianFunction(bool *neuron_has_spike,
                      int *synapses_pre_nrn_id,
@@ -404,7 +339,7 @@ void HebbianFunction(bool *neuron_has_spike,
                      float *dynamic_weights, // array for save dynamic of weight for one synapse
                      int syn_number,
                      int sim_iter,
-                     int n, // number of synapse for tests
+                     int n,    // number of synapse for tests
                      int *id,
                      int *time_pre,
                      int *time_post){
@@ -438,18 +373,14 @@ void HebbianFunction(bool *neuron_has_spike,
                 if (synapses_weight[tid] < 0) {
                     synapses_weight[tid] -= synapses_weight[tid] * (0.008 / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]));
                 }
-//                if((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) > 0) {
-//                    time_of_spikes_post_neurons[tid] = 0;
-//                }
-//                if((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) < 0) {
-//                    time_of_spikes_pre_neurons[tid] = 0;
-//                }
+            }
+            if((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) > 0) {
+                time_of_spikes_pre_neurons[tid] = 0;
+            }
+            if((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) < 0) {
+                time_of_spikes_post_neurons[tid] = 0;
             }
         }
-//        else {
-//            time_of_spikes_pre_neurons[tid] = 0;
-//            time_of_spikes_post_neurons[tid] = 0;
-//        }
         if (tid == n) {
             dynamic_weights[sim_iter] = synapses_weight[tid];
         }
@@ -793,32 +724,28 @@ void save(int test_index, GroupMetadata &metadata, string folder){
 }
 
 void save_weights(float *weights, int *id, int *t_pre, int *t_post){
-    ofstream file;
-    string file_name = "weights.dat";
-    file.open(file_name);
+    ofstream weight;
+    file.open("weights.dat");
     for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
         file << weights[i] << " ";
     }
-    file.close();
+    weight.close();
 
-    ofstream file1;
-    string file1_name = "id.dat";
-    file1.open(file1_name);
+    ofstream id_neurons;
+    file1.open("id.dat");
     file1 << id[0] << " ";
     file1 << id[1] << endl;
-    file1.close();
+    id_neurons.close();
 
     ofstream spikes_pre;
-    string file_name_1 = "spikes_pre.dat";
-    spikes_pre.open(file_name_1);
+    spikes_pre.open("spikes_pre.dat");
     for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
         spikes_pre << t_pre[i] << " ";
     }
     spikes_pre.close();
 
     ofstream spikes_post;
-    string file_name_2 = "spikes_post.dat";
-    spikes_post.open(file_name_2);
+    spikes_post.open("spikes_post.dat");
     for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
         spikes_post << t_post[i] << " ";
     }
@@ -1200,9 +1127,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_delay_timer,
 		                                                       gpu_syn_weight,
 		                                                       synapses_number);
-		// int n = 328963; // number of synapse for tests
-
-		int n  = 328963;
+		int n = 328963; // number of synapse for tests
 
 		// STDP
 		HebbianFunction<<<syn_num_blocks, threads_per_block>>>(gpu_nrn_has_spike,
