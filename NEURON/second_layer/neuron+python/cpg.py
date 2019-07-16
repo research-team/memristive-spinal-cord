@@ -531,7 +531,6 @@ class CPG:
       nsyn: int
           numder of synapses
     '''
-    random_range = random.randint(5, 15)
     for i in post:
       if pc.gid_exists(i):
         for j in range(nsyn):
@@ -540,8 +539,8 @@ class CPG:
           syn = target.synlistex[j]
           nc = pc.gid_connect(srcgid, syn)
           self.exnclist.append(nc)
-          nc.delay = random.gauss(delay, delay/random_range)
-          nc.weight[0] = random.gauss(weight, weight/random_range)
+          nc.delay = random.gauss(delay, delay/8)
+          nc.weight[0] = random.gauss(weight, weight/10)
 
   def inhconnectcells(self, pre, post, weight, delay, nsyn):
     ''' Connects with inhibitory synapses 
@@ -560,7 +559,6 @@ class CPG:
       nsyn: int
           numder of synapses
     '''
-    random_range = random.randint(5, 15)
     for i in post:
       if pc.gid_exists(i):
         for j in range(nsyn):
@@ -569,8 +567,8 @@ class CPG:
           syn = target.synlistinh[j]
           nc = pc.gid_connect(srcgid, syn)
           self.inhnclist.append(nc)
-          nc.delay = random.gauss(delay, delay/random_range)
-          nc.weight[0] = random.gauss(weight, weight/random_range)
+          nc.delay = random.gauss(delay, delay/8)
+          nc.weight[0] = random.gauss(weight, weight/10)
 
   def genconnect(self, gen_gid, afferents_gids, weight, delay, nsyn):
     ''' Connects with generator 
