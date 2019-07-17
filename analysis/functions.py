@@ -7,7 +7,12 @@ from sklearn.linear_model import LinearRegression
 import statistics
 import copy
 from analysis.patterns_in_bio_data import bio_data_runs
-from analysis.PCA import get_lat_amp
+from analysis.PCA import get_lat_amp, smooth
+
+def read_data(filepath, sign=1):
+	with hdf5.File(filepath) as file:
+		data_by_test = [sign * test_values[:] for test_values in file.values()]
+	return data_by_test
 
 
 def normalization(data, a=0, b=1, zero_relative=False):
@@ -314,7 +319,7 @@ def find_ees_indexes(stim_indexes, datas, reverse_ees=False):
 	return ees_indexes
 
 
-def calc_amplitudes(datas, latencies, step, after_latencies=False):
+def calc_amplitudes(datas, latencies, step, ees_end, after_latencies=False):
 	"""
 	Function for calculating amplitudes
 	Args:
@@ -353,15 +358,16 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	max_values_amp = []
 	min_values_amp = []
 
+	# print("latencies in amp cycle = ", latencies)
 	for i in range(len(latencies)):
 		max_times_amp_tmp = []
 		for j in range(len(max_times[i])):
-			if max_times[i][j] > latencies[i]:
+			if max_times[i][j] < ees_end:   ## > latencies[i]
 				max_times_amp_tmp.append(max_times[i][j])
 		max_times_amp.append(max_times_amp_tmp)
 		min_times_amp_tmp = []
 		for j in range(len(min_times[i])):
-			if min_times[i][j] > latencies[i]:
+			if min_times[i][j] < ees_end:#: > latencies[i]
 				min_times_amp_tmp.append(min_times[i][j])
 		min_times_amp.append(min_times_amp_tmp)
 
@@ -430,6 +436,7 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 	for sl in range(len(corrected_max_values_amp)):
 		# print("sl = ", sl)
 		amplitudes_sl = []
+		amplitudes_sum = 0
 		try:
 			for i in range(len(corrected_max_values_amp[sl]) - 1):
 				# print("i = ", i)
@@ -438,10 +445,14 @@ def calc_amplitudes(datas, latencies, step, after_latencies=False):
 		except IndexError:
 			continue
 
-		amplitudes.append(amplitudes_sl)
+		for amp in amplitudes_sl:
+			amplitudes_sum += amp
+
+		amplitudes.append(amplitudes_sum)
 
 	for l in range(len(latencies)):
 		latencies[l] *= step
+
 	return amplitudes, peaks_number, corrected_max_times_amp, corrected_max_values_amp, corrected_min_times_amp, \
 	       corrected_min_values_amp
 
@@ -545,7 +556,7 @@ def debug(voltages, datas, stim_indexes, ees_indexes, latencies, amplitudes, ste
 	plt.close()
 
 
-def __process(latencies, voltages, stim_indexes, step, debugging, inhibition_zero=True, reverse_ees=False,
+def __process(latencies, voltages, stim_indexes, step, ees_end, debugging, inhibition_zero=True, reverse_ees=False,
               after_latencies=False, first_kink=False):
 	"""
 	Unified functionality for finding latencies and amplitudes
@@ -563,13 +574,13 @@ def __process(latencies, voltages, stim_indexes, step, debugging, inhibition_zer
 		list: amplitudes -- amplitude per slice
 	"""
 	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)   # check
-	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
+	# ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
 	norm_voltages = normalization(voltages, zero_relative=True)
-	mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
+	# mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
 	# latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
 	#                            inhibition_zero=inhibition_zero, first_kink=first_kink) # , thresholds
 	amplitudes, peaks_number, max_times, min_times, max_values, min_values = \
-		calc_amplitudes(mins_maxes, latencies, step, after_latencies)
+		calc_amplitudes(mins_maxes, latencies, step, ees_end, after_latencies)
 
 	# if debugging:
 	# 	debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
@@ -618,7 +629,7 @@ def bio_process(voltages_and_stim, slice_numbers, debugging=False, reversed_data
 	return bio_lat, bio_amp
 
 
-def sim_process(latencies, voltages, step, debugging=False, inhibition_zero=False, after_latencies=False,
+def sim_process(latencies, voltages, step, ees_end, debugging=False, inhibition_zero=False, after_latencies=False,
                 first_kink=False):
 	"""
 	Find latencies in EES mono-answer borders and amplitudes relative from zero
@@ -634,7 +645,7 @@ def sim_process(latencies, voltages, step, debugging=False, inhibition_zero=Fals
 	stim_indexes = list(range(0, len(voltages), int(25 / step)))
 	# calculate the latencies and amplitudes
 	amplitudes, peaks_number, max_times, min_times, max_values, min_values = \
-		__process(latencies, voltages, stim_indexes, step, debugging, inhibition_zero=inhibition_zero,
+		__process(latencies, voltages, stim_indexes, step, ees_end, debugging, inhibition_zero=inhibition_zero,
 		          after_latencies=after_latencies, first_kink=first_kink)
 	# change the step
 	return latencies, amplitudes, peaks_number, max_times, min_times, max_values, min_values
@@ -1054,12 +1065,12 @@ def absolute_sum(data_list, step):
 
 	return volts
 
-from analysis.PCA import smooth
 
-
-def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):
+def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):   # , ees_end,
+	# print("data = ", len(data), type(data))
+	ees_end= 36
 	latencies, amplitudes = get_lat_amp(data, herz, step)
-
+	print("amplitudes = ", amplitudes)
 	proceed_data = []
 	max_times_amp = []
 	max_values_amp = []
@@ -1068,7 +1079,7 @@ def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filte
 
 	for i in range(len(data)):
 		data[i] = smooth(data[i], 7)
-		proceed_data.append(sim_process(latencies, data[i], step, inhibition_zero=True, after_latencies=True))
+		proceed_data.append(sim_process(latencies, data[i], step, ees_end, inhibition_zero=True, after_latencies=True))
 		max_times_amp.append(proceed_data[i][3])
 		max_values_amp.append(proceed_data[i][4])
 		min_times_amp.append(proceed_data[i][5])
@@ -1282,4 +1293,36 @@ def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filte
 				print("indexes_max = ", indexes_max)
 				print("indexes_min  ", indexes_min)
 
-	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes
+	indexes_min = list(map(list, zip(*min_times_amp)))
+	indexes_max = list(map(list, zip(*max_times_amp)))
+
+	for j in range(len(indexes_min)):
+		for d in range(len(indexes_min[j])):
+			indexes_min[j][d] = [i * bio_step for i in indexes_min[j][d]]
+
+	for j in range(len(indexes_max)):
+		for d in range(len(indexes_max[j])):
+			indexes_max[j][d] = [i * bio_step for i in indexes_max[j][d]]
+
+	max_peaks = []
+	for run in indexes_max:
+		max_peaks_tmp = []
+		for ind in run:
+			max_peaks_tmp.append(len(ind))
+		max_peaks.append(max_peaks_tmp)
+
+	min_peaks = []
+	for run in indexes_min:
+		min_peaks_tmp = []
+		for ind in run:
+			min_peaks_tmp.append(len(ind))
+		min_peaks.append(min_peaks_tmp)
+
+	sum_peaks_for_plot = []
+	for j in range(len(max_peaks)):
+		sum_peaks_for_plot_tmp = []
+		for i in range(len(max_peaks[j])):
+			sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
+		sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
+
+	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes, sum_peaks_for_plot

@@ -9,7 +9,7 @@ for index, sl in enumerate(bio):
 	# plt.plot([s + offset for s in sl])
 # plt.show()
 
-neuron = select_slices('../../neuron-data/mn_E5tests_10.hdf5', 0, 11000)
+neuron = select_slices('../../neuron-data/mn_E15_speed25tests.hdf5', 11000, 17000)
 neuron_mean = list(map(lambda elements: np.mean(elements), zip(*neuron)))
 
 plt.plot(neuron_mean)

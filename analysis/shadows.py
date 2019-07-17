@@ -158,7 +158,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../neuron-data/mn_E15_speed25tests.hdf5'
+	path = '../../neuron-data/mn_E25tests_nr.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
