@@ -21,7 +21,7 @@ del(weight[a])
 
 fig = plt.figure()
 
-plt.title('500000 synapse')
+# plt.title('500000 synapse')
 
 plt.xlabel('time (ms)')
 plt.ylabel('weight')
