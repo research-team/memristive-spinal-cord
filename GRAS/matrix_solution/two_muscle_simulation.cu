@@ -725,16 +725,16 @@ void save(int test_index, GroupMetadata &metadata, string folder){
 
 void save_weights(float *weights, int *id, int *t_pre, int *t_post){
     ofstream weight;
-    file.open("weights.dat");
+    weight.open("weights.dat");
     for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
-        file << weights[i] << " ";
+        weight << weights[i] << " ";
     }
     weight.close();
 
     ofstream id_neurons;
-    file1.open("id.dat");
-    file1 << id[0] << " ";
-    file1 << id[1] << endl;
+    id_neurons.open("id.dat");
+    id_neurons << id[0] << " ";
+    id_neurons << id[1] << endl;
     id_neurons.close();
 
     ofstream spikes_pre;
@@ -1127,7 +1127,8 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_delay_timer,
 		                                                       gpu_syn_weight,
 		                                                       synapses_number);
-		int n = 328963; // number of synapse for tests
+		// int n = 328963; // number of synapse for tests
+		int n = 0;
 
 		// STDP
 		HebbianFunction<<<syn_num_blocks, threads_per_block>>>(gpu_nrn_has_spike,
