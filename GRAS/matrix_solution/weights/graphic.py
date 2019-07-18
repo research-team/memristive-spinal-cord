@@ -39,4 +39,4 @@ plt.text(17, 1.3, f'post_ID = {id_arr[1]}')
 fig.subplots_adjust(top=0.8)
 
 plt.savefig('graphic.png', dpi = 800)
-plt.show()
+# plt.show()

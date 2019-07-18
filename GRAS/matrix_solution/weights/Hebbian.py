@@ -8,3 +8,18 @@ with open('dT.dat') as file:
 with open('dW.dat') as file:
 	dW = np.array(list(map(float, file.read().split())))
 
+fig = plt.figure()
+
+plt.title('Hebbian')
+plt.xlabel("Δt (ms)")
+plt.ylabel("ΔW (%)")
+plt.xlim(-5, 5)
+plt.ylim(-10, 10)
+plt.axvline(0, linestyle="-", color="black")
+plt.axhline(0, linestyle="-", color="black")
+
+plt.scatter(dT[dW != 0], dW[dW != 0])
+
+plt.savefig('Hebbian.png')
+
+

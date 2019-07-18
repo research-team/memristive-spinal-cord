@@ -28,4 +28,4 @@ plt.ylabel('weight')
 
 plt.plot(time, weight)
 
-plt.savefig('500000.png')
+plt.savefig('weight.png')
