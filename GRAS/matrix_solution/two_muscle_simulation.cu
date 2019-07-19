@@ -344,12 +344,12 @@ void HebbianFunction(bool *neuron_has_spike,
                      int syn_number,
                      int sim_iter,
                      int n,    // number of synapse for tests
-                     int *id,
+                     int *id, // array with pre and post id
                      int *time_pre,
                      int *time_post,
                      float *dT,
                      float *dW,
-                     int *numbers_of_synapse){
+                     int *numbers_of_synapse) { // array with random synapses
 
     // get ID of the thread
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -388,6 +388,7 @@ void HebbianFunction(bool *neuron_has_spike,
                 if (synapses_weight[tid] < 0) {
                     synapses_weight[tid] -= synapses_weight[tid] * (coefficient / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]));
                 }
+
                 if(tid == n){
                     dT[sim_iter] = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
                 }
@@ -414,15 +415,6 @@ void HebbianFunction(bool *neuron_has_spike,
         if(tid == n) {
             dynamic_weights[sim_iter] = synapses_weight[tid];
         }
-
-//        if (tid == n) {
-//            dynamic_weights[sim_iter] = synapses_weight[tid];
-//            if(sim_iter != 0){
-//                if((dynamic_weights[sim_iter - 1] - dynamic_weights[sim_iter]) != 0){
-//                    dW[sim_iter * i] = ((dynamic_weights[sim_iter] - dynamic_weights[sim_iter - 1]) /  dynamic_weights[sim_iter - 1]) * 100;
-//                }
-//            }
-//        }
 
         for(int i = 0; i < N; i++) {
             if(tid == numbers_of_synapse[i]) {
