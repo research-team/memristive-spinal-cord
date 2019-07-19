@@ -434,7 +434,7 @@ void HebbianFunction(bool *neuron_has_spike,
             if(tid == numbers_of_synapse[i]) {
                 if(i != 0 && sim_iter != 0){
                     if((old_weight - new_weight) != 0) {
-                        dW[sim_iter + i * 33000] = ((new_weight - old_weight) /  old_weight) * 100;
+                        dW[sim_iter + i * 33000] = ((new_weight - old_weight) /  abs(old_weight)) * 100;
                     }
                 }
             }
