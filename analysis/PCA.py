@@ -548,7 +548,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		mono_answer_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
 
 		"""[4] find a poly area"""
-		l_poly_border = None
+		l_poly_border = ees_zone_time
 		# correct this border by the end of the mono answer peak
 		for e_index_Q1, e_index_Q3 in zip(e_all_Q1_maxima_indexes, e_all_Q3_maxima_indexes):
 			mono_answer_end_index = e_index_Q1 if e_index_Q1 > e_index_Q3 else e_index_Q3
@@ -572,8 +572,12 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		e_poly_Q3_maxima_indexes = e_all_Q3_maxima_indexes[e_all_Q3_maxima_indexes > l_poly_border]
 		e_poly_Q3_maxima_values = e_all_Q3_maxima_values[e_all_Q3_maxima_indexes > l_poly_border]
 
-		if len(e_poly_Q3_minima_indexes) < 1 and len(e_poly_Q3_maxima_indexes) < 1:
-			global_lat_indexes.append(int(slice_in_ms / data_step))
+
+		Q1_is_ok = len(e_poly_Q1_minima_indexes) and len(e_poly_Q1_maxima_indexes)
+		Q3_is_ok = len(e_poly_Q3_minima_indexes) and len(e_poly_Q3_maxima_indexes)
+
+		if not Q1_is_ok:
+			global_lat_indexes.append(int(slice_in_ms / data_step) - 1)
 			global_amp_values.append(0)
 			continue
 
@@ -590,18 +594,19 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# find minimal deltas between pairs of extremuma
 		min_deltas_Q1 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q1_indexes)
 
-		# merge Q3 poly extremuma indexes
-		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
-		                                                                              e_poly_Q3_minima_values,
-		                                                                              e_poly_Q3_maxima_indexes,
-		                                                                              e_poly_Q3_maxima_values)
-		# filtering Q3 poly extremuma: remove micropeaks
-		e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
-		                                                                        e_poly_Q3_indexes,
-		                                                                        e_poly_Q3_values,
-		                                                                        allowed_diff=allowed_diff_for_extremuma)
-		# find minimal deltas between pairs of extremuma
-		min_deltas_Q3 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
+		if Q3_is_ok:
+			# merge Q3 poly extremuma indexes
+			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
+			                                                                              e_poly_Q3_minima_values,
+			                                                                              e_poly_Q3_maxima_indexes,
+			                                                                              e_poly_Q3_maxima_values)
+			# filtering Q3 poly extremuma: remove micropeaks
+			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
+			                                                                        e_poly_Q3_indexes,
+			                                                                        e_poly_Q3_values,
+			                                                                        allowed_diff=allowed_diff_for_extremuma)
+			# find minimal deltas between pairs of extremuma
+			min_deltas_Q3 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
 
 		"""[6] find a best searching borders for latencies by delta"""
 		# find extremuma for deltas of Q1 and Q3
@@ -718,9 +723,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		latency_index = best_latency[k_index]
 		global_lat_indexes.append(latency_index)
 
-		"""[7] find amplitudes"""
+		"""[8] find amplitudes"""
 		e_ampQ1_after_latency = np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index])
-		e_ampQ3_after_latency = np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index])
+		e_ampQ3_after_latency = np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index]) if Q3_is_ok else 0
 		amp_sum = np.sum(e_ampQ1_after_latency) + np.sum(e_ampQ3_after_latency)
 
 		global_amp_values.append(amp_sum)
@@ -802,6 +807,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.set_xticklabels(
 				(np.arange(0, int(slice_in_ms / data_step), int(1 / data_step)) * data_step).astype(int))
 			ax1.set_xlim(0, int(slice_in_ms / data_step))
+			ax1.set_ylim(-1, 0.5)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
 
@@ -827,7 +833,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
 
-			plt.tight_layout()
+			plt.subplots_adjust(left=0.03, right=0.98, top=0.95, bottom=0.04, hspace=0.2)
 			plt.show()
 
 	if debugging:
@@ -976,27 +982,30 @@ def plot_pca(debugging=False, plot_3d=False):
 		plot_3d:
 	"""
 	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/Downloads/E_15cms_40Hz_100%_2pedal_no5ht.hdf5'
+	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
 	neuron_path = '/home/alex/Downloads/mn_E15_speed25tests.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	prepared_data = prepare_data(dataset)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
 	dataset = select_slices(gras_path, 10000, 22000, sign=1)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	prepared_data = prepare_data(dataset)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
 
 	# process NEURON dataset
 	dataset = select_slices(neuron_path, 0, 12000, sign=-1)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepare_data(dataset), ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepare_data(dataset), 40, 0.25)[7]
+	prepared_data = prepare_data(dataset)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
 
