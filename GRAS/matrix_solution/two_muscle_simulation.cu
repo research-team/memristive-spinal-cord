@@ -69,7 +69,7 @@ const float g_bar = 1500;            // [nS] the maximal possible conductivity
 
 // for STDP
 const float coefficient = 0.008;
-const int N = 100;
+const int N = 1000;
 
 // struct for human-readable initialization of connectomes
 struct SynapseMetadata {
@@ -354,7 +354,7 @@ void HebbianFunction(bool *neuron_has_spike,
     // get ID of the thread
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    float old_weight, new_weight = 0;
+    float old_weight = 0;
 
     if (tid < syn_number) {
 
@@ -389,10 +389,6 @@ void HebbianFunction(bool *neuron_has_spike,
                     synapses_weight[tid] -= synapses_weight[tid] * (coefficient / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]));
                 }
 
-                if(tid == n){
-                    dT[sim_iter] = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
-                }
-
                 for(int i = 0; i < N; i++) {
                     if(tid == numbers_of_synapse[i]) {
                         if(i != 0 && sim_iter != 0){
@@ -418,21 +414,17 @@ void HebbianFunction(bool *neuron_has_spike,
 
         for(int i = 0; i < N; i++) {
             if(tid == numbers_of_synapse[i]) {
-                new_weight = synapses_weight[tid];
-            }
-        }
-
-        for(int i = 0; i < N; i++) {
-            if(tid == numbers_of_synapse[i]) {
-                if(i != 0 && sim_iter != 0){
-                    if((old_weight - new_weight) != 0) {
-                        dW[sim_iter + i * 33000] = ((new_weight - old_weight) /  abs(old_weight)) * 100;
+                if(i != 0 && sim_iter != 0) {
+                    if((old_weight - synapses_weight[tid]) != 0) {
+                        dW[sim_iter + i * 33000] = ((synapses_weight[tid] - old_weight) /  abs(old_weight)) * 100;
                     }
                 }
             }
         }
     }
+
 }
+
 
 void connect_one_to_all(Group pre_neurons, Group post_neurons, float syn_delay, float weight) {
 	std::default_random_engine generator;
