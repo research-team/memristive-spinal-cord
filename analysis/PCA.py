@@ -1,6 +1,7 @@
 import numpy as np
 import pylab as plt
 import h5py as hdf5
+import logging as log
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
@@ -502,16 +503,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in data_test_runs.T])
 	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
 
-	delta_poly = np.abs(boxplots_per_iter[:, k_fliers_low] - boxplots_per_iter[:, k_fliers_high])[ees_zone_time:]
-	delta_poly_diff = np.abs(np.diff(delta_poly, n=1))
-
-	Q1, median, Q3 = np.percentile(delta_poly_diff, percents)
-
-	allowed_diff_for_extremuma = median
-	allowed_diff_for_variance_delta = Q3
-
 	# compute latency per slice
 	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
+		log.info(f"{slice_index + 1:=^20}")
 		"""[1] prepare data"""
 		# get data by keys
 		data_Q1 = slice_boxplot_data[:, k_fliers_low]
@@ -530,22 +524,28 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		smoothed_median[-2:] = median[-2:]
 		# get an absolute delta of smoothed data
 		delta_smoothed_data = np.abs(smoothed_Q1 - smoothed_Q3)
+		log.info(f"data length: {len(delta_smoothed_data)}")
 
 		"""[2] find all extremuma"""
 		# find all Q1 extremuma indexes and values
 		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extremuma(smoothed_Q1, np.less_equal)
 		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extremuma(smoothed_Q1, np.greater_equal)
+		log.info(f"all Q1 minima extrema: {e_all_Q1_minima_indexes}")
+		log.info(f"all Q1 maxima extrema: {e_all_Q1_maxima_indexes}")
 		# find all Q3 extremuma indexes and values
 		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
 		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
+		log.info(f"all Q3 minima extrema: {e_all_Q3_minima_indexes}")
+		log.info(f"all Q3 maxima extrema: {e_all_Q3_maxima_indexes}")
 
 		'''[3] find mono answer'''
 		# get the minima extremuma of mono answers (Q1 is lower than Q3, so take a Q1 data)
 		e_mono_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes < ees_zone_time]
 		# find an index of the biggest delta between first dot (median[0]) and mono extremuma
-		max_delta_Q1_index, _ = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))
+		max_delta_Q1_index = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))[0]
 		# get index of extremuma with the biggest delta
 		mono_answer_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
+		log.info(f"Mono answer: {mono_answer_index * data_step}ms")
 
 		"""[4] find a poly area"""
 		l_poly_border = ees_zone_time
@@ -557,42 +557,68 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 				break
 		if l_poly_border > int(10 / data_step):
 			l_poly_border = int(10 / data_step)
+		log.info(f"Poly area: {l_poly_border * data_step} - {slice_in_ms}")
 
-		"""[5] find extremuma of the poly area"""
+		"""[5] find a latency"""
+		delta_poly_diff = np.abs(np.diff(delta_smoothed_data[l_poly_border:], n=1))
+		diff_Q1, diff_median, diff_Q3 = np.percentile(delta_poly_diff, percents)
+		allowed_diff_for_extremuma = diff_median
+
+		delta_diff_gradient = np.gradient(delta_smoothed_data)
+		delta_diff_poly_gradient = delta_diff_gradient[l_poly_border:]
+
+		gradient_mean = np.mean(delta_diff_poly_gradient[delta_diff_poly_gradient > 0])
+
+		# fine the index of the cross between gradient and Q3
+		for index, diff in enumerate(delta_diff_gradient[l_poly_border:], l_poly_border):
+			if diff > gradient_mean:
+				latency_index = index
+				break
+		# if not found -- the last index
+		else:
+			latency_index = len(delta_diff_gradient) - 1
+		log.info(f"Latency: {latency_index * data_step}")
+
+		# append found latency to the global list of the all latencies per slice
+		global_lat_indexes.append(latency_index)
+
+
+		"""[6] find extremuma of the poly area"""
 		# get poly Q1 minima extremuma indexes and values
 		e_poly_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes > l_poly_border]
 		e_poly_Q1_minima_values = e_all_Q1_minima_values[e_all_Q1_minima_indexes > l_poly_border]
 		# get poly Q1 maxima extremuma indexes and values
 		e_poly_Q1_maxima_indexes = e_all_Q1_maxima_indexes[e_all_Q1_maxima_indexes > l_poly_border]
 		e_poly_Q1_maxima_values = e_all_Q1_maxima_values[e_all_Q1_maxima_indexes > l_poly_border]
+		log.info(f"poly Q1 minima extrema: {e_poly_Q1_minima_indexes}")
+		log.info(f"poly Q1 maxima extrema: {e_poly_Q1_maxima_indexes}")
 		# get poly Q3 minima extremuma indexes and values
 		e_poly_Q3_minima_indexes = e_all_Q3_minima_indexes[e_all_Q3_minima_indexes > l_poly_border]
 		e_poly_Q3_minima_values = e_all_Q3_minima_values[e_all_Q3_minima_indexes > l_poly_border]
 		# get poly Q3 maxima extremuma indexes and values
 		e_poly_Q3_maxima_indexes = e_all_Q3_maxima_indexes[e_all_Q3_maxima_indexes > l_poly_border]
 		e_poly_Q3_maxima_values = e_all_Q3_maxima_values[e_all_Q3_maxima_indexes > l_poly_border]
+		log.info(f"poly Q3 minima extrema: {e_poly_Q3_minima_indexes}")
+		log.info(f"poly Q3 maxima extrema: {e_poly_Q3_maxima_indexes}")
 
+		"""[7] find amplitudes"""
+		amp_sum = 0
 
 		Q1_is_ok = len(e_poly_Q1_minima_indexes) and len(e_poly_Q1_maxima_indexes)
 		Q3_is_ok = len(e_poly_Q3_minima_indexes) and len(e_poly_Q3_maxima_indexes)
 
-		if not Q1_is_ok:
-			global_lat_indexes.append(int(slice_in_ms / data_step) - 1)
-			global_amp_values.append(0)
-			continue
-
-		# merge Q1 poly extremuma indexes
-		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
-		                                                                              e_poly_Q1_minima_values,
-		                                                                              e_poly_Q1_maxima_indexes,
-		                                                                              e_poly_Q1_maxima_values)
-		# filtering Q1 poly extremuma: remove micropeaks
-		e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
-		                                                                        e_poly_Q1_indexes,
-		                                                                        e_poly_Q1_values,
-		                                                                        allowed_diff=allowed_diff_for_extremuma)
-		# find minimal deltas between pairs of extremuma
-		min_deltas_Q1 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q1_indexes)
+		if Q1_is_ok:
+			# merge Q1 poly extremuma indexes
+			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
+			                                                                              e_poly_Q1_minima_values,
+			                                                                              e_poly_Q1_maxima_indexes,
+			                                                                              e_poly_Q1_maxima_values)
+			# filtering Q1 poly extremuma: remove micropeaks
+			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
+			                                                                        e_poly_Q1_indexes,
+			                                                                        e_poly_Q1_values,
+			                                                                        allowed_diff=allowed_diff_for_extremuma)
+			amp_sum += sum(np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index]))
 
 		if Q3_is_ok:
 			# merge Q3 poly extremuma indexes
@@ -605,161 +631,22 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			                                                                        e_poly_Q3_indexes,
 			                                                                        e_poly_Q3_values,
 			                                                                        allowed_diff=allowed_diff_for_extremuma)
-			# find minimal deltas between pairs of extremuma
-			min_deltas_Q3 = find_min_deltas(delta_smoothed_data, extremuma=e_poly_Q3_indexes)
+			amp_sum += sum(np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index]))
 
-		"""[6] find a best searching borders for latencies by delta"""
-		# find extremuma for deltas of Q1 and Q3
-		e_delta_minima_indexes, e_delta_minima_values = find_extremuma(delta_smoothed_data, np.less_equal)
-		e_delta_maxima_indexes, e_delta_maxima_values = find_extremuma(delta_smoothed_data, np.greater_equal)
-
-		# get only poly area
-		e_delta_minima_values = e_delta_minima_values[e_delta_minima_indexes > l_poly_border]
-		e_delta_minima_indexes = e_delta_minima_indexes[e_delta_minima_indexes > l_poly_border]
-
-		e_delta_maxima_values = e_delta_maxima_values[e_delta_maxima_indexes > l_poly_border]
-		e_delta_maxima_indexes = e_delta_maxima_indexes[e_delta_maxima_indexes > l_poly_border]
-
-		# merge Q3 poly extremuma indexes
-		merged_names, merged_indexes, merged_values = merge_extremuma_arrays(e_delta_minima_indexes,
-		                                                                     e_delta_minima_values,
-		                                                                     e_delta_maxima_indexes,
-		                                                                     e_delta_maxima_values)
-
-		# filter dots that are too close or have not enough differentiation in values
-		mask = []
-		for left, right in zip(range(len(merged_indexes)), range(len(merged_indexes))[1:]):
-			is_index_ok = abs(merged_indexes[left] - merged_indexes[right]) > 1
-			is_value_ok = abs(merged_values[left] - merged_values[right]) > allowed_diff_for_variance_delta
-
-			if is_index_ok or is_value_ok:
-				mask += [left, right]
-		mask = [i in mask for i in range(len(merged_indexes))]
-
-		# use filter
-		e_merged_names = merged_names[mask]
-		e_merged_indexes = merged_indexes[mask]
-		e_merged_values = merged_values[mask]
-
-		# calc peak that we recognie as good poly answer, not noise
-		diff = np.abs(np.diff(merged_values, n=1))
-		allowed_diff_peak = np.mean(diff)
-
-		# the last filter for finding the best max min pair
-		index = 0
-		mask = []
-		while index < len(e_merged_indexes):
-			if e_merged_names[index] == 'min':
-				mask += [True]
-				index_right = index + 1
-				while index_right < len(e_merged_indexes):
-					if abs(e_merged_values[index] - e_merged_values[index_right]) > allowed_diff_peak:
-						mask += [True]
-						break
-					else:
-						mask += [False]
-					index_right += 1
-				index = index_right
-			else:
-				mask += [False]
-			index += 1
-		# use filter
-		e_delta_names = e_merged_names[mask]
-		e_delta_indexes = e_merged_indexes[mask]
-
-		if len(e_delta_indexes[e_delta_names == 'max']) < 1:
-			global_lat_indexes.append(int(slice_in_ms / data_step))
-			global_amp_values.append(0)
-			continue
-
-		# calc best poly right border
-		r_best_border = e_delta_indexes[e_delta_names == 'max'][0]
-		# calc best poly left border
-		min_indexes = e_merged_indexes[e_merged_names == 'min']
-		l_best_border = min_indexes[min_indexes < r_best_border][-1]
-
-		"""[7] find the best latency in borders"""
-		best_latency = (None, -np.inf)
-		# check on border length -- if small enough then find an max of extremuma delta dots
-		if (r_best_border - l_best_border) * data_step < 3:
-			# find the latency in Q1 and Q3 data (based on the maximal variance)
-			for lat_Q1 in filter(lambda dot: l_best_border <= dot <= r_best_border, min_deltas_Q1):
-				if delta_smoothed_data[lat_Q1] > best_latency[k_value]:
-					best_latency = (lat_Q1, delta_smoothed_data[lat_Q1])
-			if best_latency[k_index] is None:
-				best_latency = (l_best_border, delta_smoothed_data[l_best_border])
-		# else use a dichotomy to split a big interval and find the best one
-		else:
-			# set an initial borders
-			left = l_best_border
-			right = r_best_border
-			borders_length = (right - left) // 2
-			# dichotomy loop
-			while borders_length > 5:  # > 1.25 ms
-				# first part
-				a1 = left
-				a2 = left + borders_length
-				# second part
-				b1 = right - borders_length
-				b2 = right
-				# get the difference in this areas
-				diff_a = np.sum(np.abs(np.diff(delta_smoothed_data[a1:a2], n=1)))
-				diff_b = np.sum(np.abs(np.diff(delta_smoothed_data[b1:b2], n=1)))
-				# set the new border based on highest difference
-				left = b1 if diff_b > diff_a else a1
-				right = b2 if diff_b > diff_a else a2
-				# split on two parts
-				borders_length = (right - left) // 2
-
-			# find the inflection
-			ys = delta_smoothed_data[left:right]
-			gradient_y = np.gradient(ys)
-			max_index_gradient = np.argmax(gradient_y)
-			# set the latency
-			lat = left + max_index_gradient - 1
-			best_latency = (lat, delta_smoothed_data[lat])
-
-		# append found latency to the global list of the all latencies per slice
-		latency_index = best_latency[k_index]
-		global_lat_indexes.append(latency_index)
-
-		"""[8] find amplitudes"""
-		e_ampQ1_after_latency = np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index])
-		e_ampQ3_after_latency = np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index]) if Q3_is_ok else 0
-		amp_sum = np.sum(e_ampQ1_after_latency) + np.sum(e_ampQ3_after_latency)
-
+		log.info(f"Amplitude sum: {amp_sum}")
+		# append sum of amplitudes to the global list of the all amplitudes per slice
 		global_amp_values.append(amp_sum)
 
 		# all debugging info
 		if debugging:
-			print("\n")
-			print("- " * 20)
-			print("{:^40}".format(f"SLICE {slice_index + 1}"))
-			print("- " * 20)
-			print(f"  EES was found at: {mono_answer_index * data_step}ms (index {mono_answer_index})")
-			print(f" minima indexes Q1: {e_poly_Q1_minima_indexes}")
-			print(f" maxima indexes Q1: {e_poly_Q1_maxima_indexes}")
-			print(f" merged indexes Q1: {e_poly_Q1_indexes}")
-			print(f"found latencies Q1: {min_deltas_Q1}")
-			print("- " * 20)
-			print(f" minima indexes Q3: {e_poly_Q3_minima_indexes}")
-			print(f" maxima indexes Q3: {e_poly_Q3_maxima_indexes}")
-			print(f" merged indexes Q3: {e_poly_Q3_indexes}")
-			print(f"found latencies Q3: {min_deltas_Q3}")
-			print("- " * 20)
-			print(f" poly answers area: [{l_poly_border * data_step}, {slice_in_ms}]ms")
-			print(f"  hist indexes min: {e_delta_minima_indexes}")
-			print(f"  hist indexes max: {e_delta_maxima_indexes}")
-			print(f"      merged names: {merged_names}")
-			print(f"    merged indexes: {merged_indexes}")
-			print(f"     merged values: {merged_values}")
-			print(f" best area between: {l_best_border * data_step}ms and {r_best_border * data_step}ms")
-			print(f"        latency at: {best_latency[0] * data_step}ms")
-
 			plt.figure(figsize=(16, 9))
 			gridsize = (3, 1)
-			ax1 = plt.subplot2grid(shape=gridsize, loc=(0, 0), rowspan=2)
-			ax2 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
+			ax1 = plt.subplot2grid(shape=gridsize, loc=(0, 0), rowspan=1)
+			ax2 = plt.subplot2grid(shape=gridsize, loc=(1, 0), sharex=ax1)
+			ax3 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
+
+			xticks = np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step))
+			xticklabels = (xticks * data_step).astype(int)
 
 			ax1.title.set_text(f"Slice #{slice_index + 1}/{slices_number}")
 			# plot an area of EES
@@ -768,27 +655,19 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.axvline(x=mono_answer_index, color='orange', linewidth=3, label="EES")
 			# plot zero line
 			ax1.axhline(y=0, color='k', linewidth=1, linestyle='dotted')
-			# plot an area where we try to find a best latency
-			ax1.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
 			# plot original bio data per slice
 			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
-			# plot latencies for Q1 and Q3
-			ax1.plot(min_deltas_Q1, smoothed_Q1[min_deltas_Q1], '.', markersize=20, color='#227734',
-			         label="Q1 latencies")
-			ax1.plot(min_deltas_Q3, smoothed_Q3[min_deltas_Q3], '.', markersize=20, color="#FF6600",
-			         label="Q3 latencies")
 			# plot Q1 and Q3 areas, and median
 			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
 			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
 			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
 			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
-			         label="minima MONO extremuma")
+			         label="minima extremuma")
 			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
-			         label="maxima MONO extremuma")
+			         label="maxima extremuma")
 			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
 			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
-
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'], e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
 			         markersize=10, color=min_color, label="minima POLY extremuma")
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'], e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
@@ -797,41 +676,43 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			         markersize=10, color=min_color)
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'], e_poly_Q3_values[e_poly_Q3_names == 'max'], '.',
 			         markersize=10, color=max_color)
-
 			# plot the best latency with guidline
-			best_lat_x = best_latency[0]
-			best_lat_y = smoothed_Q1[best_lat_x]
-			ax1.plot([best_lat_x] * 2, [best_lat_y - 2, best_lat_y], color="k", linewidth=0.5)
-			ax1.text(best_lat_x, best_lat_y - 2, best_lat_x * data_step)
-			ax1.set_xticks(range(0, 101, 4))
-			ax1.set_xticklabels(
-				(np.arange(0, int(slice_in_ms / data_step), int(1 / data_step)) * data_step).astype(int))
+			ax1.axvline(x=latency_index, color='k')
+
+			ax1.set_xticks(xticks)
+			ax1.set_xticklabels(xticklabels)
 			ax1.set_xlim(0, int(slice_in_ms / data_step))
 			ax1.set_ylim(-1, 0.5)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
 
-			ax2.title.set_text(f"Delta of variance per iter (allowed peak : {allowed_diff_peak:.4f})")
+			ax2.title.set_text("Delta of variance per iter")
 			# plot an area of EES
+			ax2.axvline(x=latency_index, color='k')
 			ax2.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
-			# plot an area where we try to find a best latency
-			ax2.axvspan(xmin=l_best_border, xmax=r_best_border, color='#175B99', alpha=0.3, label="best latency area")
-			# plot bars (delta of variance) and colorize extremuma
-			colors = ['#2B2B2B'] * len(delta_smoothed_data)
-			print(e_delta_indexes)
-			print(e_delta_names)
-			for i in e_delta_indexes[e_delta_names == 'min']:
-				colors[i] = 'b'
-			for i in e_delta_indexes[e_delta_names == 'max']:
-				colors[i] = 'r'
-			ax2.plot(merged_indexes, merged_values + 0.02, '.')
-			ax2.bar(range(len(delta_smoothed_data)), delta_smoothed_data, width=0.4, color=colors, zorder=3)
-			ax2.set_xticks(range(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)))
-			ax2.set_xticklabels(
-				(np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step)) * data_step).astype(int))
+			ax2.bar(range(len(delta_smoothed_data)), delta_smoothed_data, width=0.4, zorder=3, color='k', label='delta')
+
+			ax2.set_xticks(xticks)
+			ax2.set_xticklabels(xticklabels)
 			ax2.set_xlim(0, int(slice_in_ms / data_step))
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
+
+			ax3.title.set_text("Gradient")
+			ax3.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
+			ax3.axhline(y=0, linestyle='--', color='k')
+			ax3.axvline(x=latency_index, color='k')
+			ax3.axhline(y=diff_Q3, color='r', label="diff Q3", linewidth=2)
+			ax3.axhline(y=gradient_mean, color='g', label="positive gradient mean", linewidth=2)
+			ax3.plot(delta_diff_gradient, label='delta gradient', linewidth=2)
+			ax3.plot(latency_index, delta_diff_gradient[latency_index], '.', markersize=15, label="latency", color='k')
+			ax3.scatter(range(len(delta_diff_gradient)), delta_diff_gradient, s=10)
+
+			ax3.set_xticks(xticks)
+			ax3.set_xticklabels(xticklabels)
+			ax3.set_xlim(0, int(slice_in_ms / data_step))
+			ax3.grid(axis='x', linestyle='--', zorder=0)
+			ax3.legend()
 
 			plt.subplots_adjust(left=0.03, right=0.98, top=0.95, bottom=0.04, hspace=0.2)
 			plt.show()
@@ -974,27 +855,31 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_pca(debugging=False, plot_3d=False):
+def plot_pca(debugging=True, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
 		debugging:
 		plot_3d:
 	"""
+	if debugging:
+		log.basicConfig(level=log.INFO)
+
+
 	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/mn_E15_speed25tests.hdf5'
+	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/21 cms 2pedal/MN_E.hdf5'
+	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests_nr.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
-	dataset = select_slices(gras_path, 10000, 22000, sign=1)
+	dataset = select_slices(gras_path, 5000, 11000, sign=1)
 	prepared_data = prepare_data(dataset)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
@@ -1002,9 +887,9 @@ def plot_pca(debugging=False, plot_3d=False):
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
 
 	# process NEURON dataset
-	dataset = select_slices(neuron_path, 0, 12000, sign=-1)
+	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
