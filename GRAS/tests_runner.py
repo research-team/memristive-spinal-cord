@@ -3,7 +3,7 @@ import logging
 import subprocess
 import numpy as np
 import h5py as hdf5
-from GRAS.shadows_boxplot import plot_shadows_boxplot
+from shadows_boxplot import plot_shadows_boxplot
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -24,7 +24,7 @@ def run_tests(build_folder, args):
 	assert 0 <= args[inh] <= 100
 	assert args[cms] in [21, 15, 6]
 
-	nvcc = "/usr/local/cuda-10.0/bin/nvcc"
+	nvcc = "/usr/local/cuda-10.1/bin/nvcc"
 	buildfile = "two_muscle_simulation.cu"
 
 	for itest in range(args[tests_number]):
@@ -91,10 +91,10 @@ def plot_results(save_folder, ees_hz=40, sim_step=0.025):
 
 
 def testrunner():
-	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
+	script_place = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/"
 	save_folder = f"{script_place}/dat"
 
-	args = {tests_number: 3,
+	args = {tests_number: 1,
 	        cms: 21,
 	        ees: 40,
 	        inh: 100,
