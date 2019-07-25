@@ -11,17 +11,17 @@ color_bio = '#7a1c15'
 color_neuron = '#e0930d'
 color_gras = '#287a71'
 
-bio = read_data('../bio-data/hdf5/bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5')
+bio = read_data('../bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12.hdf5')
 bio = prepare_data(bio)
 
-neuron = np.array(select_slices('../../neuron-data/mn_E25tests_10.hdf5', 11000, 17000))
+neuron = np.array(select_slices('../../neuron-data/mn_E_2pedal_15speed_5th_25tests_hdf.hdf5', 0, 12000))
 neuron = np.negative(neuron)
 neuron_zoomed = []
 for sl in neuron:
 	neuron_zoomed.append(sl[::10])
 neuron = prepare_data(neuron_zoomed)
 
-gras = np.array(select_slices('../../GRAS/E_21cms_40Hz_100%_2pedal_no5ht.hdf5', 5000, 11000))
+gras = np.array(select_slices('../../GRAS/MN_E _4pedal_21.hdf5', 5000, 11000))
 gras = np.negative(gras)
 gras_zoomed = []
 for sl in gras:
@@ -40,13 +40,13 @@ delta_amp_bio_neuron = []
 delta_amp_bio_gras = []
 for i in range(len(bio_amp)):
 	delta_amp_bio_neuron.append(abs(bio_amp[i] - neuron_amp[i]))
-	delta_amp_bio_gras.append(abs(bio_amp[i] - gras_amp[i]))
+	# delta_amp_bio_gras.append(abs(bio_amp[i] - gras_amp[i]))
 
 delta_peaks_bio_neuron = []
 delta_peaks_bio_gras = []
 for i in range(len(bio_amp)):
 	delta_peaks_bio_neuron.append(abs(bio_peaks[i] - neuron_peaks[i]))
-	delta_peaks_bio_gras.append(abs(bio_peaks[i] - gras_peaks[i]))
+	# delta_peaks_bio_gras.append(abs(bio_peaks[i] - gras_peaks[i]))
 
 slices_neuron = []
 for i in range(len(delta_amp_bio_neuron)):
@@ -57,28 +57,28 @@ df = pd.DataFrame({'Bio': bio_amp#, 'Neuron': neuron_amp#, 'Gras': gras_amp
 
 df_peaks = pd.DataFrame({'Bio': bio_peaks#, 'Neuron': neuron_peaks#, 'Gras': gras_peaks
                    })
-df_delta_peaks = pd.DataFrame({'Bio - neuron': delta_peaks_bio_neuron#, 'Bio - Gras': delta_peaks_bio_gras
+df_delta_peaks = pd.DataFrame({'Bio - Neuron': delta_peaks_bio_neuron   # 'Bio - neuron': delta_peaks_bio_neuron#,
                    })
-df_delta_amps = pd.DataFrame({'Bio - neuron': delta_amp_bio_neuron#, 'Bio - Gras': delta_peaks_bio_gras
+df_delta_amps = pd.DataFrame({'Bio - Neuron': delta_amp_bio_neuron    # 'Bio - neuron': delta_amp_bio_neuron#,
                    })
 
-colors = [color_neuron, color_gras]
+colors = [color_neuron, ]
 df_delta_amps.plot(kind='bar', color=colors)
 
 plt.xticks(range(len(bio_amp)), [i  + 1 if i % 1 == 0 else "" for i in range(len(bio_amp))],
            fontsize=56)
 plt.xlabel('Slices', fontsize=56)
-plt.yticks(fontsize=56)
-plt.ylabel('Amplitudes, mV', fontsize=56)
+plt.yticks(fontsize=45)
+# plt.ylabel('Amplitudes, mV', fontsize=56)
 
 plt.show()
-colors = [color_neuron, color_gras]
+colors = [color_neuron, ]
 df_delta_peaks.plot(kind='bar', color=colors)
 
 plt.xticks(range(len(bio_amp)), [i  + 1 if i % 1 == 0 else "" for i in range(len(bio_amp))],
            fontsize=56)
 plt.xlabel('Slices', fontsize=56)
-plt.yticks(fontsize=56)
-plt.ylabel('Peaks', fontsize=56)
+plt.yticks(fontsize=45)
+# plt.ylabel('Peaks', fontsize=56)
 
 plt.show()

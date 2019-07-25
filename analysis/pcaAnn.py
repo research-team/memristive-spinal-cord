@@ -2,14 +2,14 @@ import numpy as np
 from matplotlib import pylab as plt
 from analysis.functions import changing_peaks
 from analysis.cut_several_steps_files import select_slices
-from analysis.PCA import prepare_data, smooth
+from analysis.PCA import prepare_data
 import h5py as hdf5
 from analysis.PCA import calc_boxplots
 
 sim_step = 0.025
 bio_step = 0.25
 
-filepath = '../bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12.hdf5'
+filepath = '../bio-data/hdf5/bio_control_E_21cms_40Hz_i100_4pedal_no5ht_T_2017-09-05.hdf5'
 smooth_value = 2
 
 
@@ -32,7 +32,7 @@ for i in range(int(len(bio_data[0]) / 100)):
 	offset += 100
 	bio_slices.append(bio_slices_tmp)
 
-neuron_list = np.array(select_slices('../../neuron-data/mn_E25tests_10.hdf5', 11000, 17000))
+neuron_list = np.array(select_slices('../../neuron-data/mn_E_2pedal_15speed_5th_25tests_hdf.hdf5', 0, 12000))
 for index, sl in enumerate(neuron_list):
 	offset = index
 	# plt.plot([s + offset for s in sl])
@@ -89,12 +89,13 @@ for index, sl in enumerate(neuron_slices):
 	offset = index
 	# plt.plot([s + offset for s in sl])
 # plt.show()
-gras_list = np.array(select_slices('../../GRAS/E_15cms_40Hz_100%_2pedal_no5ht.hdf5', 10000, 22000))
+gras_list = np.array(select_slices('../../GRAS/MN_E _4pedal_21.hdf5', 5000, 11000))
 gras_list = prepare_data(gras_list)
 gras_list_zoomed = []
 for sl in gras_list:
 	gras_list_zoomed.append(sl[::10])
 
+print("gras_list_zoomed = ", gras_list_zoomed)
 all_gras_slices = []
 for k in range(len(gras_list_zoomed)):
 	gras_slices = []
@@ -124,6 +125,7 @@ for sl in range(int(len(gras_run_zoomed) / 100)):
 	gras_slices.append(gras_slices_tmp)
 
 ees_end = 9 * 4
+
 latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes, sum_peaks_for_plot = \
 	changing_peaks(neuron_list_zoomed, 40, bio_step)    # , ees_end
 
@@ -270,7 +272,8 @@ for l in range(len(latencies)):
 
 print("latencies = ", latencies)
 
-colors = ['#287a72', '#f2aa2e', '#472650', '#287a72', '#f2aa2e', '#472650']
+colors = ['#287a72', '#f2aa2e', '#472650', '#287a72', '#f2aa2e', '#472650',
+          '#287a72', '#f2aa2e', '#472650', '#287a72', '#f2aa2e', '#472650']
 color_max= '#a6261d'
 color_min = '#275b78'
 
@@ -314,20 +317,14 @@ for index, sl in enumerate(all_neuron_slices):
 		y_2_coors.append(y_coor[-1])
 plt.plot(x_2_coors, y_2_coors, linestyle='--', color='black', linewidth=4)
 
-ticks = []
-labels = []
-# for i in range(0, len(neuron_slices[0]) + 1, 4):
-# 	ticks.append(i)
-# 	labels.append(i / 4)
 plt.yticks(yticks, [i + 1 if i % 2 == 0 else "" for i in range(len(neuron_slices) + 1)], fontsize=56)
 plt.xticks(range(26), [i if i % 2 == 0 else "" for i in range(26)], fontsize=56)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 25)
 latencies = [round(l * sim_step , 1)for l in latencies]
-# plt.title("Neuron Peaks sum = {}".format(sum_peaks))
 plt.show()
 
-latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min, amplitudes = \
+"""latencies_bio, bio_indexes_max, bio_indexes_min, bio_corr_ampls_max, bio_corr_ampls_min, amplitudes = \
 	changing_peaks(bio_data, 40, bio_step)
 
 print("latencies_bio = ", latencies_bio)
@@ -492,14 +489,20 @@ plt.xlim(0, 25)
 latencies = [round(l * bio_step , 1)for l in latencies_bio]
 plt.title("Bio Peaks sum = {}".format(sum_peaks))
 plt.show()
-
-latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes = \
+"""
+latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes, sum_peaks_for_plot = \
 	changing_peaks(gras_list_zoomed, 40, bio_step)
+
+# latencies, indexes_max, indexes_min, corr_ampls_max, corr_ampls_min, amplitudes, sum_peaks_for_plot, \
+# avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks = get_peaks(gras_list_zoomed, 40, bio_step)
+
+print("latencies gras = ", latencies)
 indexes_min = list(map(list, zip(*indexes_min)))
 corr_ampls_min = list(map(list, zip(*corr_ampls_min)))
 indexes_max = list(map(list, zip(*indexes_max)))
 corr_ampls_max = list(map(list, zip(*corr_ampls_max)))
 
+print("indexes_max = ", indexes_max)
 for j in range(len(indexes_min)):
 	for d in range(len(indexes_min[j])):
 		indexes_min[j][d] = [i * bio_step for i in indexes_min[j][d]]
@@ -522,19 +525,11 @@ for sl in range(len(corr_ampls_min)):
 indexes_max_for_plot = []
 for sl in range(len(indexes_max)):
 	indexes_max_for_plot.append([item for sublist in indexes_max[sl] for item in sublist])
-
+print("indexes_max_for_plot = ", indexes_max_for_plot)
 corr_ampls_max_for_plot = []
 for sl in range(len(corr_ampls_max)):
 	corr_ampls_max_for_plot.append([item for sublist in corr_ampls_max[sl] for item in sublist])
 
-# indexes_max_for_plot, corr_ampls_max_for_plot = \
-# 	(list(x) for x in zip(*sorted(zip(indexes_max_for_plot, corr_ampls_max_for_plot))))
-
-# print("latencies = ", latencies)
-# print("indexes_max = ", indexes_max)
-# print("indexes_min = ", indexes_min)
-# print("corr_ampls_max = ", corr_ampls_max)
-# print("corr_ampls_min = ", corr_ampls_min)
 yticks = []
 
 max_peaks = []
@@ -574,9 +569,11 @@ for i in range(len(sum_peaks_for_plot)):
 	all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
 latencies = [int(l) for l in latencies]
+x_coor = []
+y_coor = []
+x_2_coors = []
+y_2_coors = []
 
-# for g in range(len(gras_slices)):
-# 	gras_slices[g] = smooth(gras_slices[g], smooth_peaks_value)
 for index, sl in enumerate(all_gras_slices):
 	mean_data = list(map(lambda elements: np.mean(elements), zip(*sl)))
 	offset = index
@@ -586,29 +583,32 @@ for index, sl in enumerate(all_gras_slices):
 	maximal_per_step = [max(a) for a in zip(*sl)]
 	plt.plot(times, means, linewidth=0.5, color='k')
 	plt.fill_between(times, [mini + offset for mini in minimal_per_step],
-	                 [maxi + offset for maxi in maximal_per_step], alpha=0.35)
+	                 [maxi + offset for maxi in maximal_per_step], alpha=0.7, color=colors[index])
 	yticks.append(means[0])
 	plt.plot(latencies[index], means[int(latencies[index] / bio_step)], '.', color='k', markersize=24)
-	plt.text(latencies[index], means[int(latencies[index] / bio_step)], round(latencies[index], 2),
-	         color='green', fontsize=16)
-	plt.plot(indexes_max_for_plot[index], [m + offset for m in corr_ampls_max_for_plot[index]], 's', color='red',
-	         markersize=9)
-	plt.plot(indexes_min_for_plot[index], [m + offset for m in corr_ampls_min_for_plot[index]], 's', color='blue',
-	         markersize=9)
-	plt.text(0, means[0], f'pa={avg_sum_peaks_in_sl[index]}'f';a='f'{amplitudes[index]:.2f}',
-	         fontsize=16)
+	# plt.text(latencies[index], means[int(latencies[index] / bio_step)], round(latencies[index], 2),
+	#          color='green', fontsize=16)
+	plt.plot(indexes_max_for_plot[index], [m + offset for m in corr_ampls_max_for_plot[index]], 's', color=color_max,
+	         markersize=9, alpha=0.6)
+	plt.plot(indexes_min_for_plot[index], [m + offset for m in corr_ampls_min_for_plot[index]], 's', color=color_min,
+	         markersize=9, alpha=0.6)
+	# plt.text(0, means[0], f'pa={avg_sum_peaks_in_sl[index]}'f';a='f'{amplitudes[index]:.2f}',
+	#          fontsize=16)
+	x_coor.append(latencies[index])
+	y_coor.append(means[int(latencies[index] / bio_step)])
+	if len(x_coor) > 1:
+		x_2_coors.append(x_coor[-2])
+		x_2_coors.append(x_coor[-1])
+		y_2_coors.append(y_coor[-2])
+		y_2_coors.append(y_coor[-1])
+plt.plot(x_2_coors, y_2_coors, linestyle='--', color='black', linewidth=4)
 
-ticks = []
-labels = []
-# for i in range(0, len(neuron_slices[0]) + 1, 4):
-# 	ticks.append(i)
-# 	labels.append(i / 4)
-plt.yticks(yticks, range(1, len(neuron_slices) + 1), fontsize=14)
-plt.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
+plt.yticks(yticks, [i + 1 if i % 2 == 0 else "" for i in range(len(gras_slices) + 1)], fontsize=56)
+plt.xticks(range(26), [i if i % 2 == 0 else "" for i in range(26)], fontsize=45)
 plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.xlim(0, 25)
 latencies = [round(l * sim_step , 1)for l in latencies]
-plt.title("GRAS Peaks sum = {}".format(sum_peaks))
+# plt.title("GRAS Peaks sum = {}".format(sum_peaks))
 plt.show()
 
 raise Exception

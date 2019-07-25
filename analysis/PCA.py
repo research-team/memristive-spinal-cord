@@ -974,16 +974,16 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_pca(debugging=False, plot_3d=False):
+def plot_pca(debugging=False, plot_3d=True, plain="LA"):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
 		debugging:
 		plot_3d:
 	"""
-	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/mn_E15_speed25tests.hdf5'
+	bio_path = '../bio-data/hdf5/bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
+	gras_path = '../../GRAS/MN_E _2pedal_21.hdf5'
+	neuron_path = '../../neuron-data/mn_E25tests_nr.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
@@ -994,15 +994,15 @@ def plot_pca(debugging=False, plot_3d=False):
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
-	dataset = select_slices(gras_path, 10000, 22000, sign=1)
+	dataset = select_slices(gras_path, 5000, 11000, sign=1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
 
 	# process NEURON dataset
-	dataset = select_slices(neuron_path, 0, 12000, sign=-1)
+	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
 	prepared_data = prepare_data(dataset)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
@@ -1042,9 +1042,21 @@ def plot_pca(debugging=False, plot_3d=False):
 			# plot ellipsoid
 			plot_ellipsoid(center, radii, rotation, plot_axes=debugging, color=color, alpha=0.1)
 		# figure properties
-		ax.set_xlabel(axis_labels[0])
-		ax.set_ylabel(axis_labels[1])
-		ax.set_zlabel(axis_labels[2])
+		if plain == "LP":
+			ax.set_yticklabels([])
+			ax.view_init(elev=0, azim=-90)
+		elif plain == "LA":
+			ax.set_zticklabels([])
+			ax.view_init(elev=88, azim=-90)
+		else: # AP
+			ax.set_xticklabels([])
+			ax.view_init(elev=0, azim=0)
+		for label in ax.get_xticklabels():
+			label.set_fontsize(30)
+		for label in ax.get_yticklabels():
+			label.set_fontsize(30)
+		for label in ax.get_zticklabels():
+			label.set_fontsize(30)
 		plt.legend()
 		plt.show()
 		plt.close(fig)
@@ -1105,7 +1117,9 @@ def plot_pca(debugging=False, plot_3d=False):
 
 
 def run():
-	plot_pca()
+	plot_pca(plain="AP")
+	plot_pca(plain="LP")
+	plot_pca(plain="LA")
 
 
 if __name__ == "__main__":

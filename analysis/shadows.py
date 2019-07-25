@@ -92,7 +92,7 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 	x_coor = []
 	y_coor = []
 	for slice_number, tests in slices.items():
-		offset = slice_number * 6
+		offset = slice_number * 96
 		# for k, v in tests.items():
 		# 	tests[k] = normalization(v, zero_relative=True)
 		mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
@@ -158,7 +158,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../neuron-data/mn_E25tests_nr.hdf5'
+	path = '../../GRAS/MN_E_4pedal_15.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
@@ -166,10 +166,10 @@ def debugging():
 	slices = restructure_data(data, sim_step=sim_step)
 	dictionary = deepcopy(slices)
 
-	# slices_1 = addFromTo(0, 12, dictionary)
+	slices_1 = addFromTo(10, 21, dictionary)
 	# slices_2 = addFromTo(18, 30, dictionary)
 
-	all_maxes, all_mins = plot(slices, sim_step, path, 0.2, 0.45, '#ed553b')
+	all_maxes, all_mins = plot(slices_1, sim_step, path, 0.2, 0.45, '#ed553b')
 	# all_maxes, all_mins = plot(slices_2, sim_step, path, 0.2, 0.45, '#079294')
 	# all_maxes, all_mins = plot(slices3, sim_step, path, 0.2, 0.45, '#fbad18')
 	pylab.show()
