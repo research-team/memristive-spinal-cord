@@ -68,7 +68,7 @@ const float V_adj = -63.0;           // adjusts threshold to around -50 mV
 const float g_bar = 1500;            // [nS] the maximal possible conductivity
 
 // for STDP
-const float coefficient = 0.008;
+const float coefficient = 0.000001;
 const int N = 1000;
 
 // struct for human-readable initialization of connectomes
@@ -354,11 +354,14 @@ void HebbianFunction(bool *neuron_has_spike,
     // get ID of the thread
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    float old_weight = 0;
+    // float old_weight = 0;
 
     if (tid < syn_number) {
-        if((tid > 540 && tid < 308316) || tid > 309396) {
-            // > 2700 ?
+        if((tid > 540 && tid < 2700) || (tid > 3680 && tid < 4220) || (tid > 4320 && tid < 19180)
+        || (tid > 19260 && tid < 34120) || (tid > 34180 && tid < 49060)
+        || (tid > 49100 && tid < 64000) || (tid > 64020 && tid < 308316)
+        || (tid > 309396)) {
+            // tid > 540 && tid < 308316) || tid > 309396
 
 //        for(int i = 0; i < N; i++) {
 //            if(tid == numbers_of_synapse[i]) {
@@ -381,14 +384,20 @@ void HebbianFunction(bool *neuron_has_spike,
 //                }
             }
 
-            if (time_of_spikes_pre_neurons[tid] != 0 && time_of_spikes_post_neurons[tid] != 0) {
+
+            if (time_of_spikes_pre_neurons[tid] != 0 && time_of_spikes_post_neurons[tid] != 0
+            && time_of_spikes_post_neurons[tid] != time_of_spikes_pre_neurons[tid]) {
                 if ((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) <= 5 &&
                     (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]) >= -5) {
-                    if (synapses_weight[tid] > 0) {
-                        synapses_weight[tid] += synapses_weight[tid] * (coefficient / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]));
+                    if (synapses_weight[tid] > 0 && synapses_weight[tid] < g_bar) {
+//                        if (sim_iter > 12000) {
+//                            printf("%f\n", (coefficient / ((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]))));
+//                        }
+                        synapses_weight[tid] += synapses_weight[tid] * (coefficient / ((time_of_spikes_post_neurons[tid] -
+                                                                         time_of_spikes_pre_neurons[tid])));
                     }
-                    if (synapses_weight[tid] < 0) {
-                        synapses_weight[tid] -= synapses_weight[tid] * (coefficient / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid]));
+                    if (synapses_weight[tid] < 0 && synapses_weight[tid] > -g_bar) {
+                        synapses_weight[tid] -= synapses_weight[tid] * (coefficient / ((time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid])*0.01));
                     }
 
 //                for(int i = 0; i < N; i++) {
@@ -562,23 +571,26 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(E2, E3, 1, 200, syn_outdegree, true);
 	connect_fixed_outdegree(E3, E4, 1, 200, syn_outdegree, true);
 	connect_fixed_outdegree(E4, E5, 1, 200, syn_outdegree, true);
-
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV1, iIP_E, 0.5, 50);
 	connect_one_to_all(CV2, iIP_E, 0.5, 50);
 	connect_one_to_all(CV3, iIP_E, 0.5, 50);
 	connect_one_to_all(CV4, iIP_E, 0.5, 50);
 	connect_one_to_all(CV5, iIP_E, 0.5, 50);
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 
 	/// OM 1
 	// input from EES group 1
 	connect_fixed_outdegree(E1, OM1_0, 1, 16, syn_outdegree, true);
 	// input from sensory
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV1, OM1_0, 0.5, 10 * quadru_coef * sero_coef); // /2 /10 ?
 	connect_one_to_all(CV2, OM1_0, 0.5, 10 * quadru_coef * sero_coef); // /2 /10 ?
 	// [inhibition]
 	connect_one_to_all(CV3, OM1_3, 1, 80);
 	connect_one_to_all(CV4, OM1_3, 1, 80);
 	connect_one_to_all(CV5, OM1_3, 1, 80);
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	// inner connectomes
 	connect_fixed_outdegree(OM1_0, OM1_1, 1, 50);
 	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 23.5);
@@ -601,11 +613,13 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 2
 	connect_fixed_outdegree(E2, OM2_0, 3, 8);
 	// input from sensory [CV]
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV2, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	connect_one_to_all(CV3, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// [inhibition]
 	connect_one_to_all(CV4, OM2_3, 1, 80);
 	connect_one_to_all(CV5, OM2_3, 1, 80);
+//    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0, OM2_1, 1, 50);
 	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 25);
@@ -628,10 +642,12 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 3
 	connect_fixed_outdegree(E3, OM3_0, 1, 8);
 	// input from sensory [CV]
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV3, OM3_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	connect_one_to_all(CV4, OM3_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// [inhibition]
 	connect_one_to_all(CV5, OM3_3, 1, 80);
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM3_0, 1, 11);
 	// inner connectomes
@@ -655,8 +671,10 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 4
 	connect_fixed_outdegree(E4, OM4_0, 2, 8);
 	// input from sensory [CV]
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV4, OM4_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	connect_one_to_all(CV5, OM4_0, 0.5, 10.5 * quadru_coef * sero_coef);
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	// input from sensory [CD]
 	connect_one_to_all(CD4, OM4_0, 1, 11);
 	connect_one_to_all(CD5, OM4_0, 1, 11);
@@ -681,7 +699,9 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// input from EES group 5
 	connect_fixed_outdegree(E5, OM5_0, 3, 8);
 	// input from sensory [CV]
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_one_to_all(CV5, OM5_0, 0.5, 10.5 * quadru_coef * sero_coef);
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	// input from sensory [CD]
 	connect_one_to_all(CD5, OM5_0, 1, 11);
 	// inner connectomes
@@ -708,10 +728,10 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -20, neurons_in_ip);
 	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -20, neurons_in_ip);
 	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -20, neurons_in_ip);
-
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
-
+    cout << "     !!!   " << static_cast<int>(all_synapses.size()) << endl;
 	connect_fixed_outdegree(eIP_E, MN_E, 1, 1.5, neurons_in_moto); // d1.2 / 1.5 2.0 - 11
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
@@ -738,8 +758,8 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 void save(int test_index, GroupMetadata &metadata, string folder){
 	ofstream file;
-	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
-	file.open(folder + file_name);
+	string file_name = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+	file.open(file_name);
 	// save voltage
 	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
 		file << metadata.voltage_array[sim_iter] << " ";
@@ -1216,12 +1236,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_delay_timer,
 		                                                       gpu_syn_weight,
 		                                                       synapses_number);
-		// int n = 328963; // number of synapse for tests
-		// int n = 80;
-
-		// int n = 308317 + 540 + 540;
-
-		int n = 2701;
+		int n = 328963; // number of synapse for tests
 
 		// STDP
 		HebbianFunction<<<syn_num_blocks, threads_per_block>>>(gpu_nrn_has_spike,

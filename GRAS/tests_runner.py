@@ -54,6 +54,7 @@ def convert_to_hdf5(result_folder):
 		logger.info(f"converting {muscle} dat files to hdf5")
 		is_datfile = lambda f: f.endswith(f"{muscle}.dat")
 		datfiles = filter(is_datfile, os.listdir(result_folder))
+
 		# prepare hdf5 file for writing data per test
 		with hdf5.File(f"{result_folder}/{muscle}.hdf5", 'w') as hdf5_file:
 			for test_index, filename in enumerate(datfiles):
@@ -66,6 +67,8 @@ def convert_to_hdf5(result_folder):
 					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
 		# check that hdf5 file was written properly
 		with hdf5.File(f"{result_folder}/{muscle}.hdf5") as hdf5_file:
+			print(f"{result_folder}/{muscle}.hdf5")
+			print(list(hdf5_file.values()))
 			assert all(map(len, hdf5_file.values()))
 
 
