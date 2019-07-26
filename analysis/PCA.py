@@ -582,7 +582,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# append found latency to the global list of the all latencies per slice
 		global_lat_indexes.append(latency_index)
 
-
 		"""[6] find extremuma of the poly area"""
 		# get poly Q1 minima extremuma indexes and values
 		e_poly_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes > l_poly_border]
@@ -702,7 +701,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax3.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
 			ax3.axhline(y=0, linestyle='--', color='k')
 			ax3.axvline(x=latency_index, color='k')
-			ax3.axhline(y=diff_Q3, color='r', label="diff Q3", linewidth=2)
 			ax3.axhline(y=gradient_mean, color='g', label="positive gradient mean", linewidth=2)
 			ax3.plot(delta_diff_gradient, label='delta gradient', linewidth=2)
 			ax3.plot(latency_index, delta_diff_gradient[latency_index], '.', markersize=15, label="latency", color='k')
@@ -855,7 +853,7 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_pca(debugging=True, plot_3d=False):
+def plot_pca(debugging=False, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
@@ -866,7 +864,7 @@ def plot_pca(debugging=True, plot_3d=False):
 		log.basicConfig(level=log.INFO)
 
 
-	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
+	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
 	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/21 cms 2pedal/MN_E.hdf5'
 	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests_nr.hdf5'
 

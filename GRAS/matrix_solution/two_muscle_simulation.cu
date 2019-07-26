@@ -523,7 +523,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM3
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 2.5, 4, neurons_in_ip); // 5
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 5
 	connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 7, neurons_in_ip);
 
 	/// OM 3
@@ -576,7 +576,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -70 * inh_coef);
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 2.5, 6, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 2.5, 7, neurons_in_ip);
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 4, 7, neurons_in_ip);
 
 	/// OM 5
@@ -599,7 +599,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2.5, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 2.5, 8, neurons_in_ip);
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
 
 	/// reflex arc
@@ -614,7 +614,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 4, 2.3, neurons_in_moto);
+	connect_fixed_outdegree(eIP_E, MN_E, 5, 2.2, neurons_in_moto);
 	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
@@ -640,7 +640,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 void save(int test_index, GroupMetadata &metadata, string folder){
 	ofstream file;
-	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+	string file_name = "/matrix_solution/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 
 	file.open(folder + file_name);
 	// save voltage
