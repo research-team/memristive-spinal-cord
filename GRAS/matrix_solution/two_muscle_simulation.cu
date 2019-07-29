@@ -36,11 +36,10 @@ using namespace std;
 
 References:
   [1] https://en.wikipedia.org/wiki/Hodgkin-Huxley_model
-
 **/
 
-int global_id = 0;
-int SIM_TIME_IN_STEPS;
+unsigned int global_id = 0;
+unsigned int SIM_TIME_IN_STEPS;
 const int LEG_STEPS = 3;             // [step] number of full cycle steps
 const float SIM_STEP = 0.025;        // [s] simulation step
 
@@ -133,17 +132,17 @@ void neurons_kernel(float *V_m,
                     float *g_exc,
                     float *g_inh,
                     bool *has_spike,
-                    int *nrn_ref_time,
+                    const int *nrn_ref_time,
                     int *nrn_ref_time_timer,
-                    int neurons_number,
+                    const int neurons_number,
                     int shifted_sim_iter,
-                    int activated_C_,
-                    int early_activated_C_,
-                    int sim_iter,
-                    int *begin_C_spiking,
-                    int *end_C_spiking,
-                    int decrease_lvl_Ia_spikes,
-                    int ees_spike_each_step){
+                    const int activated_C_,
+                    const int early_activated_C_,
+                    const int sim_iter,
+                    const int *begin_C_spiking,
+                    const int *end_C_spiking,
+                    const int decrease_lvl_Ia_spikes,
+                    const int ees_spike_each_step){
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -484,10 +483,10 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// inner connectomes
 	connect_fixed_outdegree(OM1_0, OM1_1, 1, 50);
 	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 22);
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 24);
+	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 27);
 	connect_fixed_outdegree(OM1_1, OM1_3, 1, 2);
 	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 22);
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 24);
+	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 27);
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 2);
 	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4);
 	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * inh_coef);
@@ -497,7 +496,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50);
 	// output to IP
 	connect_fixed_outdegree(OM1_2_E, eIP_E, 2.5, 20, neurons_in_ip);
-	connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 4, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
@@ -511,20 +510,20 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0, OM2_1, 1, 50);
 	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 24);
-	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 23);
+	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 35);
 	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 24);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 20);
+	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 35);
 	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_3, OM2_1, 1, -70 * inh_coef);
 	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -70 * inh_coef);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -5 * inh_coef); //-70
 	// output to OM3
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50);
 	// output to IP
 	connect_fixed_outdegree(OM2_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 5
-	connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_F, eIP_F, 5, 4, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
@@ -542,16 +541,16 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 30);
 	connect_fixed_outdegree(OM3_1, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 23);
-	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 20);
+	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 25);
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_3, OM3_1, 1, -70 * inh_coef);
 	connect_fixed_outdegree(OM3_3, OM3_2_E, 1, -70 * inh_coef);
-	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -70 * inh_coef);
+	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -5 * inh_coef);
 	// output to OM3
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50);
 	connect_fixed_outdegree(OM3_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 7 - 8
-	connect_fixed_outdegree(OM3_2_F, eIP_F, 5, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 4, neurons_in_ip);
 
 	/// OM 4
 	// input from EES group 4
@@ -577,7 +576,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50);
 	connect_fixed_outdegree(OM4_2_E, eIP_E, 2.5, 7, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2_F, eIP_F, 4, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_F, eIP_F, 5, 4, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
@@ -600,11 +599,11 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -20 * inh_coef);
 	// output to IP
 	connect_fixed_outdegree(OM5_2_E, eIP_E, 2.5, 8, neurons_in_ip);
-	connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_F, eIP_F, 5, 4, neurons_in_ip);
 
 	/// reflex arc
-	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -50, neurons_in_ip);
-	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -50, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -10, neurons_in_ip);
 
 	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -20, neurons_in_ip);
 	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -20, neurons_in_ip);
@@ -615,12 +614,12 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
 	connect_fixed_outdegree(eIP_E, MN_E, 5, 2.2, neurons_in_moto);
-	connect_fixed_outdegree(eIP_F, MN_F, 1, 11, neurons_in_moto);
+	connect_fixed_outdegree(eIP_F, MN_F, 5, 3, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
 
-	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -20, neurons_in_ip);
+	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -4, neurons_in_ip);
 	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip);
 	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
 	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip);
@@ -638,7 +637,10 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(R_F, R_E, 2, -1);
 }
 
-void save(int test_index, GroupMetadata &metadata, string folder){
+void save(int test_index, GroupMetadata &metadata, const string& folder){
+	/**
+	 *
+	 */
 	ofstream file;
 	string file_name = "/matrix_solution/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 
@@ -668,7 +670,7 @@ void save(int test_index, GroupMetadata &metadata, string folder){
 }
 
 void save_result(int test_index, int save_all) {
-	string current_path = getcwd(NULL, 0);
+	string current_path = getcwd(nullptr, 0);
 
 	printf("[Test #%d] Save %s results to: %s \n", test_index, (save_all == 0)? "MOTO" : "ALL", current_path.c_str());
 
@@ -718,7 +720,15 @@ int get_skin_stim_time(int cms) {
 	return 125;
 }
 
-void copy_data_to(GroupMetadata &metadata, float* nrn_v_m,  float* nrn_g_exc, float* nrn_g_inh, bool *nrn_has_spike, int sim_iter) {
+void copy_data_to(GroupMetadata &metadata,
+                  const float* nrn_v_m,
+                  const float* nrn_g_exc,
+                  const float* nrn_g_inh,
+                  const bool *nrn_has_spike,
+                  int sim_iter) {
+	/**
+	 *
+	 */
 	float nrn_mean_volt = 0;
 	float nrn_mean_g_exc = 0;
 	float nrn_mean_g_inh = 0;
@@ -738,6 +748,9 @@ void copy_data_to(GroupMetadata &metadata, float* nrn_v_m,  float* nrn_g_exc, fl
 
 __host__
 void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int itest) {
+	/**
+	 *
+	 */
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
 
 	const unsigned int skin_stim_time = get_skin_stim_time(cms);
@@ -746,14 +759,14 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	SIM_TIME_IN_STEPS = (unsigned int)(T_simulation / SIM_STEP);
 
 	// calculate spike frequency and C0/C1 activation time in steps
-	unsigned int ees_spike_each_step = (unsigned int)(1000 / ees / SIM_STEP);
-	unsigned int steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
-	unsigned int steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
+	auto ees_spike_each_step = (unsigned int)(1000 / ees / SIM_STEP);
+	auto steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
+	auto steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
 
 	// init neuron groups and connectomes
 	init_network((float) inh / 100, ped == 4, ht5 == 1);
 
-	const int neurons_number = global_id;
+	auto neurons_number = global_id;
 	const int synapses_number = static_cast<int>(all_synapses.size());
 
 	/// CPU variables
@@ -792,15 +805,15 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	// rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 5)
 
 	// synapse variables
-	unsigned int syn_id = 0;
-	int *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
-	int *synapses_post_nrn_id = (int *) malloc(datasize<int>(synapses_number));
-	float *synapses_weight = (float *) malloc(datasize<float>(synapses_number));
-	int *synapses_delay = (int *) malloc(datasize<int>(synapses_number));
-	int *synapses_delay_timer = (int *) malloc(datasize<int>(synapses_number));
+	auto *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
+	auto *synapses_post_nrn_id = (int *) malloc(datasize<int>(synapses_number));
+	auto *synapses_weight = (float *) malloc(datasize<float>(synapses_number));
+	auto *synapses_delay = (int *) malloc(datasize<int>(synapses_number));
+	auto *synapses_delay_timer = (int *) malloc(datasize<int>(synapses_number));
 	init_array<int>(synapses_delay_timer, synapses_number, -1);
 
 	// fill arrays of synapses
+	unsigned int syn_id = 0;
 	for(SynapseMetadata metadata : all_synapses) {
 		synapses_pre_nrn_id[syn_id] = metadata.pre_id;
 		synapses_post_nrn_id[syn_id] = metadata.post_id;
@@ -888,18 +901,17 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	       syn_num_blocks, threads_per_block, synapses_number);
 
 	// stuff variables for controlling C0/C1 activation
-	int activated_C_ = 0;
-	int shift_time_by_step = 0;
 	int local_iter = 0;
+	int activated_C_ = 1; // start from extensor
+	int early_activated_C_ = 1;
+	int shift_time_by_step = 0;
 	int decrease_lvl_Ia_spikes;
-	int early_activated_C_ = 0;
 
 	simulation_t_start = chrono::system_clock::now();
 
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++) {
 		decrease_lvl_Ia_spikes = 0;
-
 		// if flexor C0 activated, find the end of it and change to C1
 		if (activated_C_ == 0) {
 			if (local_iter != 0 && local_iter % steps_activation_C0 == 0) {
@@ -910,7 +922,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			if (local_iter != 0 && (local_iter + 400) % steps_activation_C0 == 0) {
 				early_activated_C_ = 1;
 			}
-			// if extensor C1 activated, find the end of it and change to C0
+		// if extensor C1 activated, find the end of it and change to C0
 		} else {
 			if (local_iter != 0 && local_iter % steps_activation_C1 == 0) {
 				activated_C_ = 0; // change to C0
