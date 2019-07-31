@@ -142,11 +142,7 @@ void neurons_kernel(const float *C_m,
                     const int ees_spike_each_step){
 	// get ID of the thread
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// Each thread gets same seed, a different sequence number, no offset
-	curandState localState;
-	curand_init(sim_iter, tid, 0, &localState);
-
+	
 	// Ia aff extensor/flexor IDs [965 ... 1204], control spike number of Ia afferent by resetting neuron current
 	if (965 <= tid && tid <= 1204) {
 		// rule for the 2nd level
@@ -175,29 +171,35 @@ void neurons_kernel(const float *C_m,
 		has_spike[tid] = false;
 
 		if (activated_C_ == 0 && early_activated_C_ == 0 && 2225 <= tid && tid <= 2420 && (sim_iter % 10 == 0)) {
+			curandState localState;
+			curand_init(sim_iter, tid, 0, &localState);
 			// normal distribution of choosing which tid's neuron will spike at each 10th step of simulation (0.25ms)
 			has_spike[2225 + static_cast<int>(196 * curand_uniform(&localState))] = true;
 		}
 		// Skin stimulations
 		if (activated_C_ == 1) {
+			// Each thread gets same seed, a different sequence number, no offset
+			curandState localState;
+			curand_init(sim_iter, tid, 0, &localState);
+
 			// CV1
-			if (tid == 120 && shifted_sim_iter > begin_C_spiking[0] && shifted_sim_iter < end_C_spiking[0] && curand_uniform(&localState) >= 0.5) {
+			if (tid == 120 && begin_C_spiking[0] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[0] && curand_uniform(&localState) >= 0.5) {
 				has_spike[tid] = true;
 			}
 			// CV2
-			if (tid == 121 && shifted_sim_iter > begin_C_spiking[1] && shifted_sim_iter < end_C_spiking[1] && curand_uniform(&localState) >= 0.5) {
+			if (tid == 121 && begin_C_spiking[1] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[1] && curand_uniform(&localState) >= 0.5) {
 				has_spike[tid] = true;
 			}
 			// CV3
-			if (tid == 122 && shifted_sim_iter > begin_C_spiking[2] && shifted_sim_iter < end_C_spiking[2] && curand_uniform(&localState) >= 0.5) {
+			if (tid == 122 && begin_C_spiking[2] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[2] && curand_uniform(&localState) >= 0.5) {
 				has_spike[tid] = true;
 			}
 			// CV4
-			if (tid == 123 && shifted_sim_iter > begin_C_spiking[3] && shifted_sim_iter < end_C_spiking[3] && curand_uniform(&localState) >= 0.5) {
+			if (tid == 123 && begin_C_spiking[3] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[3] && curand_uniform(&localState) >= 0.5) {
 				has_spike[tid] = true;
 			}
 			// CV5
-			if (tid == 124 && shifted_sim_iter > begin_C_spiking[4] && shifted_sim_iter < end_C_spiking[4] && curand_uniform(&localState) >= 0.5) {
+			if (tid == 124 && begin_C_spiking[4] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[4] && curand_uniform(&localState) >= 0.5) {
 				has_spike[tid] = true;
 			}
 		}
@@ -252,15 +254,12 @@ void neurons_kernel(const float *C_m,
 		float I_syn_exc = g_exc[tid] * (V_m[tid] - E_ex);
 		float I_syn_inh = g_inh[tid] * (V_m[tid] - E_in);
 
-		float dV;
 		// if neuron in the refractory state -- ignore synaptic inputs. Re-calculate membrane potential
 		if (nrn_ref_time_timer[tid] > 0) {
-			dV = -(I_L + I_K + I_NA) / C_m[tid] * SIM_STEP;
+			V_m[tid] += -(I_L + I_K + I_NA) / C_m[tid] * SIM_STEP;
 		} else {
-			dV = -(I_L + I_K + I_NA + I_syn_exc + 4 * I_syn_inh) / C_m[tid] * SIM_STEP;
+			V_m[tid] += -(I_L + I_K + I_NA + I_syn_exc + 4 * I_syn_inh) / C_m[tid] * SIM_STEP;
 		}
-
-		V_m[tid] += dV;
 
 		// re-calculate conductance
 		g_exc[tid] += -g_exc[tid] / tau_syn_exc * SIM_STEP;
@@ -272,7 +271,7 @@ void neurons_kernel(const float *C_m,
 			V_m[tid] = -100;
 
 		// (threshold && not in refractory period)
-		if (V_m[tid] >= ((1637 <= tid && tid <= 1832)? -60 : -50) && nrn_ref_time_timer[tid] == 0) {
+		if ((V_m[tid] >= ((1637 <= tid && tid <= 1832)? -60.f : -50.f)) && nrn_ref_time_timer[tid] == 0) {
 			has_spike[tid] = true;  // set spike state. It will be used in the "synapses_kernel"
 			nrn_ref_time_timer[tid] = nrn_ref_time[tid];  // set the refractory period
 		}
