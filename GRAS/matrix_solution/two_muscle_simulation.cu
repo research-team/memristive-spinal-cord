@@ -140,9 +140,12 @@ void neurons_kernel(const float *C_m,
                     const int *end_C_spiking,
                     const int decrease_lvl_Ia_spikes,
                     const int ees_spike_each_step){
+	/**
+	 *
+	 */
 	// get ID of the thread
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
 	// Ia aff extensor/flexor IDs [965 ... 1204], control spike number of Ia afferent by resetting neuron current
 	if (965 <= tid && tid <= 1204) {
 		// rule for the 2nd level
@@ -159,7 +162,7 @@ void neurons_kernel(const float *C_m,
 	}
 
 	// generating spikes for EES
-	if (0 <= tid && tid <= 19 && (sim_iter % ees_spike_each_step == 0)) {
+	if (tid <= 19 && (sim_iter % ees_spike_each_step == 0)) {
 		g_exc[tid] = g_bar;  // set spike state
 	}
 
@@ -284,17 +287,19 @@ void neurons_kernel(const float *C_m,
 
 __global__
 void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is neuron has spike or not
-                     float *neuron_g_exc,        // array of excitatory conductivity per neuron (changable)
-                     float *neuron_g_inh,        // array of inhibitory conductivity per neuron (changable)
+                     float *neuron_g_exc,              // array of excitatory conductivity per neuron (changable)
+                     float *neuron_g_inh,              // array of inhibitory conductivity per neuron (changable)
                      const int *synapses_pre_nrn_id,   // array of pre neurons ID per synapse
                      const int *synapses_post_nrn_id,  // array of post neurons ID per synapse
                      const int *synapses_delay,        // array of synaptic delay per synapse
-                     int *synapses_delay_timer,  // array as above but changable
+                     int *synapses_delay_timer,        // array as above but changable
                      const float *synapses_weight,     // array of synaptic weight per synapse
-                     const int syn_number){       // number of synapses
-
+                     const int syn_number){            // number of synapses
+	/**
+	 *
+	 */
 	// get ID of the thread
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// ignore threads which ID is greater than neurons number
 	if (tid < syn_number) {
@@ -321,7 +326,13 @@ void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is n
 	}
 }
 
-void connect_one_to_all(const Group& pre_neurons, const Group& post_neurons, float syn_delay, float weight) {
+void connect_one_to_all(const Group& pre_neurons,
+                        const Group& post_neurons,
+                        float syn_delay,
+                        float weight) {
+	/**
+	 *
+	 */
 	// Seed with a real random value, if available
 	random_device r;
 	default_random_engine generator(r());
@@ -339,8 +350,15 @@ void connect_one_to_all(const Group& pre_neurons, const Group& post_neurons, flo
 	       weight, syn_delay);
 }
 
-void connect_fixed_outdegree(const Group& pre_neurons, const Group& post_neurons,
-                             float syn_delay, float syn_weight, int outdegree= syn_outdegree, bool no_distr= false) {
+void connect_fixed_outdegree(const Group& pre_neurons,
+                             const Group& post_neurons,
+                             float syn_delay,
+                             float syn_weight,
+                             int outdegree=syn_outdegree,
+                             bool no_distr=false) {
+	/**
+	 *
+	 */
 	// connect neurons with uniform distribution and normal distributon for syn delay and syn_weight
 	random_device r;
 	default_random_engine generator(r());
@@ -370,6 +388,9 @@ void connect_fixed_outdegree(const Group& pre_neurons, const Group& post_neurons
 }
 
 void init_network(float inh_coef, int pedal, int has5ht) {
+	/**
+	 *
+	 */
 	float quadru_coef = pedal? 0.5 : 1;
 	float sero_coef = has5ht? 5.3 : 1;
 
@@ -650,6 +671,9 @@ void save(int test_index, GroupMetadata &metadata, const string& folder){
 }
 
 void save_result(int test_index, int save_all) {
+	/**
+	 *
+	 */
 	string current_path = getcwd(nullptr, 0);
 
 	printf("[Test #%d] Save %s results to: %s \n", test_index, (save_all == 0)? "MOTO" : "ALL", current_path.c_str());
@@ -686,19 +710,19 @@ unsigned int datasize(unsigned int size) {
 
 // fill array with current value
 template <typename type>
-void init_array(type *array, int size, type value) {
+void init_array(type *array, unsigned int size, type value) {
 	for(int i = 0; i < size; i++)
 		array[i] = value;
 }
 // fill array by normal distribution
 template <typename type>
-void rand_normal_init_array(type *array, int size, type mean, type stddev) {
+void rand_normal_init_array(type *array, unsigned int size, type mean, type stddev) {
 	random_device r;
 	default_random_engine generator(r());
 	normal_distribution<float> distr(mean, stddev);
 
 	for(int i = 0; i < size; i++)
-		array[i] = distr(generator);
+		array[i] = (type)distr(generator);
 }
 
 int get_skin_stim_time(int cms) {
@@ -783,16 +807,16 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	                        ms_to_step(6 * skin_stim_time - 0.1)};
 
 	// fill arrays by initial data
-	init_array<float>(nrn_n, neurons_number, 0);      // by default neurons have closed potassium channel
-	init_array<float>(nrn_h, neurons_number, 1);      // by default neurons have opened sodium channel activation
-	init_array<float>(nrn_m, neurons_number, 0);      // by default neurons have closed sodium channel inactivation
-	init_array<float>(nrn_v_m, neurons_number, E_L);  // by default neurons have E_L membrane state at start
-	init_array<float>(nrn_g_exc, neurons_number, 0);  // by default neurons have zero excitatory synaptic conductivity
-	init_array<float>(nrn_g_inh, neurons_number, 0);  // by default neurons have zero inhibitory synaptic conductivity
-	init_array<bool>(nrn_has_spike, neurons_number, false);         // by default neurons haven't spikes at start
-	init_array<int>(nrn_ref_time, neurons_number, ms_to_step(3.0)); // by default neurons have 3ms refractory period
-	init_array<int>(nrn_ref_time_timer, neurons_number, 0);         // by default neurons have ref_t timers as 0
-	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 5);
+	init_array<float>(nrn_n, neurons_number, 0);             // by default neurons have closed potassium channel
+	init_array<float>(nrn_h, neurons_number, 1);             // by default neurons have opened sodium channel activation
+	init_array<float>(nrn_m, neurons_number, 0);             // by default neurons have closed sodium channel inactivation
+	init_array<float>(nrn_v_m, neurons_number, E_L);               // by default neurons have E_L membrane state at start
+	init_array<float>(nrn_g_exc, neurons_number, 0);         // by default neurons have zero excitatory synaptic conductivity
+	init_array<float>(nrn_g_inh, neurons_number, 0);         // by default neurons have zero inhibitory synaptic conductivity
+	init_array<bool>(nrn_has_spike, neurons_number, false);  // by default neurons haven't spikes at start
+	init_array<int>(nrn_ref_time_timer, neurons_number, 0);  // by default neurons have ref_t timers as 0
+	rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.33 / SIM_STEP));  // normal distr of ref time, aprx interval is (2, 4)
+	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 5); // normal distr of C_m
 
 	// synapse variables
 	auto *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
