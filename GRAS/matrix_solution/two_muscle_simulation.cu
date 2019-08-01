@@ -340,16 +340,8 @@ void HebbianFunction(bool *neuron_has_spike,     // array of bools -- is neuron 
                      float *synapses_weight,     // array of synaptic weight per synapse
                      float *time_of_spikes_pre_neurons,  // array of times spikes pre neurons per synapse
                      float *time_of_spikes_post_neurons, // array of times spikes post neurons per synapse
-                     float *dynamic_weights,     // array for save dynamic of weight for one synapse
-                     int syn_number, // number of synapses
-                     int sim_iter,   // step pf simulation
-                     int number_of_synapse_for_tests,          // number of synapse for tests
-                     int *id,        // array with pre and post neurons id
-                     int *time_pre,  // array for times of spikes pre neurons of synapses for tests
-                     int *time_post, // array for times of spikes pre neurons of synapses for tests
-                     float *dT, // array for delta time of spikes for synapses for tests [time_of_spikes_post_neurons - time_of_spikes_pre_neurons]
-                     float *dW, // array for delta weights for synapses for tests
-                     int *numbers_of_synapse) { // array with random synapses for tests
+                     int syn_number,  // number of synapses
+                     int sim_iter) {  // step pf simulation
 
     // get ID of the thread
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -363,26 +355,12 @@ void HebbianFunction(bool *neuron_has_spike,     // array of bools -- is neuron 
         || (tid > 49100 && tid < 64000) || (tid > 64020 && tid < 308316)
         || (tid > 309396)) {
 
-//        for(int i = 0; i < number_synapses_for_test_STDP_implementation; i++) {
-//            if(tid == numbers_of_synapse[i]) {
-//                old_weight = synapses_weight[tid];
-//            }
-//        }
-
             // recording times of spike
             if (neuron_has_spike[synapses_pre_nrn_id[tid]]) {
                 time_of_spikes_pre_neurons[tid] = sim_iter * SIM_STEP;
-//                if(tid == number_of_synapse_for_tests) {
-//                    id[0] = synapses_pre_nrn_id[tid];
-//                    time_pre[sim_iter] = -1;
-//                }
             }
             if (neuron_has_spike[synapses_post_nrn_id[tid]]) {
                 time_of_spikes_post_neurons[tid] = sim_iter * SIM_STEP;
-//                if(tid == number_of_synapse_for_tests) {
-//                    id[1] = synapses_post_nrn_id[tid];
-//                    time_post[sim_iter] = 1;
-//                }
             }
 
             // if time of spike pre and post neurons both != 0 it means that
@@ -399,15 +377,6 @@ void HebbianFunction(bool *neuron_has_spike,     // array of bools -- is neuron 
                     if (synapses_weight[tid] < 0 && synapses_weight[tid] > -g_bar) {
                         synapses_weight[tid] *= (1 - (Hebbian_coefficient / (time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid])));
                     }
-
-//                for(int i = 0; i < number_synapses_for_test_STDP_implementation; i++) {
-//                    if(tid == numbers_of_synapse[i]) {
-//                        if(i != 0 && sim_iter != 0){
-//                            dT[sim_iter + i * 33000] = time_of_spikes_post_neurons[tid] - time_of_spikes_pre_neurons[tid];
-//                        }
-//                    }
-//                }
-
                 }
 
                 // make times of spikes a "free" for next spikes
@@ -420,21 +389,6 @@ void HebbianFunction(bool *neuron_has_spike,     // array of bools -- is neuron 
 
             }
         }
-
-        // recording dynamic of weight for synapses for tests
-//        if(tid == number_of_synapse_for_tests) {
-//            dynamic_weights[sim_iter] = synapses_weight[tid];
-//        }
-
-//        for(int i = 0; i < number_synapses_for_test_STDP_implementation; i++) {
-//            if(tid == numbers_of_synapse[i]) {
-//                if(i != 0 && sim_iter != 0) {
-//                    if((old_weight - synapses_weight[tid]) != 0) {
-//                        dW[sim_iter + i * 33000] = ((synapses_weight[tid] - old_weight) /  abs(old_weight)) * 100;
-//                    }
-//                }
-//            }
-//        }
     }
 }
 
@@ -773,52 +727,28 @@ void save(int test_index, GroupMetadata &metadata, string folder){
 	printf("saved %s \n", metadata.group.group_name.c_str());
 }
 
-void save_weights(float *weights, int *id, int *t_pre, int *t_post, float *dT, float *dW){
+//void save_weights(float *weights) {
+//    string folder = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/weights/";
+//
+//    ofstream weight;
+//    weight.open(folder + "weights.dat");
+//    for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
+//        weight << weights[i] << " ";
+//    }
+//    weight.close();
+//
+//    printf("weights saved\n");
+//}
+
+void save_w(float *weights, string s, int n) {
     string folder = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/weights/";
-
-    ofstream weight;
-    weight.open(folder + "weights.dat");
-    for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
-        weight << weights[i] << " ";
+    ofstream file;
+    file.open(folder + s + ".dat");
+    for(int i = 0; i < n; i++){
+        file << weights[i] << " ";
     }
-    weight.close();
-
-    printf("weights saved\n");
-
-//    ofstream id_neurons;
-//    id_neurons.open(folder + "id.dat");
-//    id_neurons << id[0] << " ";
-//    id_neurons << id[1] << endl;
-//    id_neurons.close();
-//
-//    ofstream spikes_pre;
-//    spikes_pre.open(folder + "spikes_pre.dat");
-//    for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
-//        spikes_pre << t_pre[i] << " ";
-//    }
-//    spikes_pre.close();
-//
-//    ofstream spikes_post;
-//    spikes_post.open(folder + "spikes_post.dat");
-//    for(int i = 0; i < SIM_TIME_IN_STEPS; i++){
-//        spikes_post << t_post[i] << " ";
-//    }
-//    spikes_post.close();
-//
-//    int n = SIM_TIME_IN_STEPS * N;
-//    ofstream d_T;
-//    d_T.open(folder + "dT.dat");
-//    for(int i = 0; i < n; i++){
-//        d_T << dT[i] << " ";
-//    }
-//    d_T.close();
-//
-//    ofstream d_W;
-//    d_W.open(folder + "dW.dat");
-//    for(int i = 0; i < n; i++){
-//        d_W << dW[i] << " ";
-//    }
-//    d_W.close();
+    file.close();
+    cout << "weight saved" << endl;
 }
 
 void save_result(int test_index, int save_all) {
@@ -894,7 +824,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
 
 	const unsigned int skin_stim_time = get_skin_stim_time(cms);
-	const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS;
+	const unsigned int T_simulation = 825;
 	// calculate how much steps in simulation time [steps]
 	SIM_TIME_IN_STEPS = (unsigned int)(T_simulation / SIM_STEP);
 
@@ -957,51 +887,20 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
     float *time_of_spikes_pre_neurons = (float *) malloc(datasize<float>(synapses_number));
     float *time_of_spikes_post_neurons = (float *) malloc(datasize<float>(synapses_number));
 
-    // arrays for testing STDP implementation
-    float *dynamic_weights_for_one_synapse = (float *) malloc(datasize<float>(SIM_TIME_IN_STEPS));
-    int *id = (int *) malloc(datasize<int>(2));
-    int *times_pre = (int *) malloc(datasize<int>(SIM_TIME_IN_STEPS));
-    int *times_post = (int *) malloc(datasize<int>(SIM_TIME_IN_STEPS));
-
-    int size = SIM_TIME_IN_STEPS * number_synapses_for_test_STDP_implementation;
-
-    float *dT = (float *) malloc(datasize<float>(size));
-    float *dW = (float *) malloc(datasize<float>(size));
-    int *numbers_of_synapse = (int *) malloc(datasize<int>(number_synapses_for_test_STDP_implementation));
-
     // fill arrays of synapses
 	for(SynapseMetadata metadata : all_synapses) {
 		synapses_pre_nrn_id[syn_id] = metadata.pre_id;
 		synapses_post_nrn_id[syn_id] = metadata.post_id;
 		synapses_delay[syn_id] = metadata.synapse_delay;
 		synapses_weight[syn_id] = metadata.synapse_weight;
-//		time_of_spikes_pre_neurons[syn_id] = 0;
-//		time_of_spikes_post_neurons[syn_id] = 0;
+		time_of_spikes_pre_neurons[syn_id] = 0;
+		time_of_spikes_post_neurons[syn_id] = 0;
 		syn_id++;
 	}
 
-//	for(int i = 0; i < SIM_TIME_IN_STEPS; i++) {
-//	    dynamic_weights_for_one_synapse[i] = 0;
-//	    times_pre[i] = 0;
-//	    times_post[i] = 0;
-//	}
-//
-//	for (int i = 0; i < size; i++) {
-//	    dT[i] = 0;
-//	    dW[i] = 0;
-//	}
-//
-//	for (int i = 0; i < N; i++) {
-//	    int n = rand();
-//	    if(n > synapses_number) {
-//            numbers_of_synapse[i] = n % synapses_number;
-//	    }
-//	    else {
-//	        numbers_of_synapse[i] = n;
-//	    }
-//	}
-
 	all_synapses.clear();
+
+	save_w(synapses_weight, "start_weights", synapses_number);
 
 	// neuron variables
 	float* gpu_nrn_n;
@@ -1028,15 +927,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	float *gpu_time_of_spikes_pre_neurons;
 	float *gpu_time_of_spikes_post_neurons;
 
-    // arrays for testing STDP implementation
-	float *gpu_dynamic_weights_for_one_synapse;
-	int *gpu_id;
-	int *gpu_times_pre;
-	int *gpu_times_post;
-	float *gpu_dT;
-	float *gpu_dW;
-	int *gpu_numbers_of_synapse;
-
 	// allocate memory in the GPU
 	cudaMalloc(&gpu_nrn_n, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_h, datasize<float>(neurons_number));
@@ -1060,14 +950,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
     cudaMalloc(&gpu_time_of_spikes_pre_neurons, datasize<int>(synapses_number));
     cudaMalloc(&gpu_time_of_spikes_post_neurons, datasize<int>(synapses_number));
 
-    cudaMalloc(&gpu_dynamic_weights_for_one_synapse, datasize<float>(SIM_TIME_IN_STEPS));
-    cudaMalloc(&gpu_id, datasize<int>(2));
-    cudaMalloc(&gpu_times_pre, datasize<int>(SIM_TIME_IN_STEPS));
-    cudaMalloc(&gpu_times_post, datasize<int>(SIM_TIME_IN_STEPS));
-    cudaMalloc(&gpu_dT, datasize<float>(size));
-    cudaMalloc(&gpu_dW, datasize<float>(size));
-    cudaMalloc(&gpu_numbers_of_synapse, datasize<int>(number_synapses_for_test_STDP_implementation));
-
 	// copy data from CPU to GPU
 	memcpyHtD<float>(gpu_nrn_n, nrn_n, neurons_number);
 	memcpyHtD<float>(gpu_nrn_h, nrn_h, neurons_number);
@@ -1090,14 +972,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 
     memcpyHtD<float>(gpu_time_of_spikes_pre_neurons, time_of_spikes_pre_neurons, synapses_number);
     memcpyHtD<float>(gpu_time_of_spikes_post_neurons, time_of_spikes_post_neurons, synapses_number);
-
-    memcpyHtD<float>(gpu_dynamic_weights_for_one_synapse, dynamic_weights_for_one_synapse, SIM_TIME_IN_STEPS);
-    memcpyDtH<int>(gpu_id, id, 2);
-    memcpyDtH<int>(gpu_times_pre, times_pre, SIM_TIME_IN_STEPS);
-    memcpyDtH<int>(gpu_times_post, times_post, SIM_TIME_IN_STEPS);
-    memcpyDtH<float>(gpu_dT, dT, size);
-    memcpyDtH<float>(gpu_dW, dW, size);
-    memcpyHtD<int>(gpu_numbers_of_synapse, numbers_of_synapse, number_synapses_for_test_STDP_implementation);
 
 	// preparations for simulation
 	int threads_per_block = 32;
@@ -1124,8 +998,16 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 
 	simulation_t_start = chrono::system_clock::now();
 
+	int percent = 0;
+	int n = SIM_TIME_IN_STEPS / 100;
+
 	// the main simulation loop
 	for (int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++) {
+	    if(sim_iter % n == 0) {
+	        printf("completed %d percent of simulation \n", percent);
+	        percent += 1;
+	    }
+
 		decrease_lvl_Ia_spikes = 0;
 
 		// if flexor C0 activated, find the end of it and change to C1
@@ -1226,7 +1108,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_delay_timer,
 		                                                       gpu_syn_weight,
 		                                                       synapses_number);
-		int n = 328963; // number of synapse for tests
 
 		// STDP
 		HebbianFunction<<<syn_num_blocks, threads_per_block>>>(gpu_nrn_has_spike,
@@ -1235,27 +1116,13 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 		                                                       gpu_syn_weight,
 		                                                       gpu_time_of_spikes_pre_neurons,
 		                                                       gpu_time_of_spikes_post_neurons,
-		                                                       gpu_dynamic_weights_for_one_synapse,
 		                                                       synapses_number,
-		                                                       sim_iter,
-		                                                       n,
-		                                                       gpu_id,
-		                                                       gpu_times_pre,
-		                                                       gpu_times_post,
-		                                                       gpu_dT,
-		                                                       gpu_dW,
-		                                                       gpu_numbers_of_synapse);
+		                                                       sim_iter);
 
 	} // end of the simulation iteration loop
 
     // copy data from GPU
-    // memcpyDtH<float>(dynamic_weights_for_one_synapse, gpu_dynamic_weights_for_one_synapse, SIM_TIME_IN_STEPS);
-
-//	memcpyDtH<int>(id, gpu_id, 2);
-//    memcpyDtH<int>(times_pre, gpu_times_pre, SIM_TIME_IN_STEPS);
-//    memcpyDtH<int>(times_post, gpu_times_post, SIM_TIME_IN_STEPS);
-//    memcpyDtH<float>(dT, gpu_dT, size);
-//    memcpyDtH<float>(dW, gpu_dW, size);
+    memcpyDtH<float>(synapses_weight, gpu_syn_weight, synapses_number);
 
 	simulation_t_end = chrono::system_clock::now();
 
@@ -1266,7 +1133,8 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int itest, int save_a
 	save_result(itest, save_all);
 
 	// save data for tests STDP implementation
-	// save_weights(dynamic_weights_for_one_synapse, id, times_pre, times_post, dT, dW);
+	// save_weights(dynamic_weights_for_one_synapse);
+    save_w(synapses_weight, "end_weights", synapses_number);
 
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
 	printf("Elapsed %li ms (measured) | T_sim = %d ms\n", sim_time_diff, T_simulation);
