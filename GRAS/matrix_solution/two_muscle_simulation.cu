@@ -128,6 +128,7 @@ void neurons_kernel(const float *C_m,
                     float *n,
                     float *g_exc,
                     float *g_inh,
+                    const float *nrn_threshold,
                     bool *has_spike,
                     const int *nrn_ref_time,
                     int *nrn_ref_time_timer,
@@ -274,7 +275,7 @@ void neurons_kernel(const float *C_m,
 			V_m[tid] = -100;
 
 		// (threshold && not in refractory period)
-		if ((V_m[tid] >= ((1637 <= tid && tid <= 1832)? -60.f : -50.f)) && nrn_ref_time_timer[tid] == 0) {
+		if ((V_m[tid] >= nrn_threshold[tid]) && (nrn_ref_time_timer[tid] == 0)) {
 			has_spike[tid] = true;  // set spike state. It will be used in the "synapses_kernel"
 			nrn_ref_time_timer[tid] = nrn_ref_time[tid];  // set the refractory period
 		}
@@ -496,7 +497,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM2
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 30);
 	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 2.5, 20, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 16, neurons_in_ip);
 	connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// OM 2
@@ -523,7 +524,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM3
 	connect_fixed_outdegree(OM2_2_F, OM3_2_F, 4, 30);
 	// output to IP
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 5
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 8, neurons_in_ip); // 5
 	connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// OM 3
@@ -550,6 +551,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -5 * inh_coef);
 	// output to OM3
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 4, 30);
+	// output to IP
 	connect_fixed_outdegree(OM3_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 7 - 8
 	connect_fixed_outdegree(OM3_2_F, eIP_F, 4, 5, neurons_in_ip);
 
@@ -576,6 +578,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -3 * inh_coef);
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 4, 30);
+	// output to IP
 	connect_fixed_outdegree(OM4_2_E, eIP_E, 2.5, 7, neurons_in_ip);
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 4, 5, neurons_in_ip);
 
@@ -599,7 +602,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -3 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2.5, 8, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 8, neurons_in_ip); // 2.5
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// reflex arc
@@ -614,7 +617,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 5, 2.2, neurons_in_moto);
+	connect_fixed_outdegree(eIP_E, MN_E, 2, 2.3, neurons_in_moto); // 2.2
 	connect_fixed_outdegree(eIP_F, MN_F, 5, 8, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
@@ -721,7 +724,7 @@ void rand_normal_init_array(type *array, unsigned int size, type mean, type stdd
 	default_random_engine generator(r());
 	normal_distribution<float> distr(mean, stddev);
 
-	for(int i = 0; i < size; i++)
+	for(unsigned int i = 0; i < size; i++)
 		array[i] = (type)distr(generator);
 }
 
@@ -791,6 +794,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	float nrn_c_m[neurons_number];           // [mV] neuron membrane potential
 	float nrn_g_exc[neurons_number];         // [nS] excitatory synapse exponential conductance
 	float nrn_g_inh[neurons_number];         // [nS] inhibitory synapse exponential conductance
+	float nrn_threshold[neurons_number];     // [mV] threshold levels
 	bool nrn_has_spike[neurons_number];      // neuron state - has spike or not
 	int nrn_ref_time[neurons_number];        // [step] neuron refractory time
 	int nrn_ref_time_timer[neurons_number];  // [step] neuron refractory time timer
@@ -811,12 +815,19 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	init_array<float>(nrn_h, neurons_number, 1);             // by default neurons have opened sodium channel activation
 	init_array<float>(nrn_m, neurons_number, 0);             // by default neurons have closed sodium channel inactivation
 	init_array<float>(nrn_v_m, neurons_number, E_L);               // by default neurons have E_L membrane state at start
-	init_array<float>(nrn_g_exc, neurons_number, 0);         // by default neurons have zero excitatory synaptic conductivity
 	init_array<float>(nrn_g_inh, neurons_number, 0);         // by default neurons have zero inhibitory synaptic conductivity
 	init_array<bool>(nrn_has_spike, neurons_number, false);  // by default neurons haven't spikes at start
 	init_array<int>(nrn_ref_time_timer, neurons_number, 0);  // by default neurons have ref_t timers as 0
-	rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.33 / SIM_STEP));  // normal distr of ref time, aprx interval is (2, 4)
-	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 5); // normal distr of C_m
+
+	rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.4 / SIM_STEP));  // neuron ref time, aprx interval is (1.8, 4.2)
+	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 6); // membrane capacity (185, 215)
+	rand_normal_init_array<float>(nrn_threshold, neurons_number, -50, 0.4); // neurons threshold (-51.2, -48.8)
+	rand_normal_init_array<float>(nrn_g_exc, neurons_number, 70, 20);
+
+	// moto neurons
+//	for (int i = 1637; i <= 1832; i++) {
+//		nrn_threshold[i] = -60;
+//	}
 
 	// synapse variables
 	auto *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
@@ -845,6 +856,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	float* gpu_nrn_v_m;
 	float* gpu_nrn_g_exc;
 	float* gpu_nrn_g_inh;
+	float* gpu_nrn_threshold;
 	bool* gpu_nrn_has_spike;
 	int* gpu_nrn_ref_time;
 	int* gpu_nrn_ref_time_timer;
@@ -867,6 +879,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	cudaMalloc(&gpu_nrn_c_m, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_g_exc, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_g_inh, datasize<float>(neurons_number));
+	cudaMalloc(&gpu_nrn_threshold, datasize<float>(neurons_number));
 	cudaMalloc(&gpu_nrn_has_spike, datasize<bool>(neurons_number));
 	cudaMalloc(&gpu_nrn_ref_time, datasize<int>(neurons_number));
 	cudaMalloc(&gpu_nrn_ref_time_timer, datasize<int>(neurons_number));
@@ -888,6 +901,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	memcpyHtD<float>(gpu_nrn_c_m, nrn_c_m, neurons_number);
 	memcpyHtD<float>(gpu_nrn_g_exc, nrn_g_exc, neurons_number);
 	memcpyHtD<float>(gpu_nrn_g_inh, nrn_g_inh, neurons_number);
+	memcpyHtD<float>(gpu_nrn_threshold, nrn_g_inh, neurons_number);
 	memcpyHtD<bool>(gpu_nrn_has_spike, nrn_has_spike, neurons_number);
 	memcpyHtD<int>(gpu_nrn_ref_time, nrn_ref_time, neurons_number);
 	memcpyHtD<int>(gpu_nrn_ref_time_timer, nrn_ref_time_timer, neurons_number);
@@ -988,6 +1002,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		                                                      gpu_nrn_n,
 		                                                      gpu_nrn_g_exc,
 		                                                      gpu_nrn_g_inh,
+		                                                      gpu_nrn_threshold,
 		                                                      gpu_nrn_has_spike,
 		                                                      gpu_nrn_ref_time,
 		                                                      gpu_nrn_ref_time_timer,
