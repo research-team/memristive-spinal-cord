@@ -34,8 +34,8 @@ def draw_slice_borders(sim_time, skin_stim_time):
 		a.append(a[i - 1] + (5 * skin_stim_time if i % 2 == 0 else 6 * skin_stim_time) )
 	for i in a:
 		plt.axvline(x=i, linewidth=3, color='k')
-	for i in range(0, sim_time, skin_stim_time):
-		plt.axvline(x=i, linewidth=1, color='k')
+	for i in range(0, sim_time, 25):
+		plt.axvline(x=i, linewidth=1.5, color='k')
 
 
 def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):

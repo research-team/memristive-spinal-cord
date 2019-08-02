@@ -68,7 +68,7 @@ def plot_shadows_boxplot(data_per_test, ees_hz, step, save_folder, filename, deb
 		ax.fill_between(shared_x, data[:, 6], data[:, 5], alpha=0.1, color='r')  # 6 f_low, 5 f_high
 		ax.fill_between(shared_x, data[:, 4], data[:, 3], alpha=0.3, color='r')  # 4 w_low, 3 w_high
 		ax.fill_between(shared_x, data[:, 2], data[:, 1], alpha=0.6, color='r')  # 2 b_low, 1 b_high
-		ax.plot(shared_x, data[:, 0], color=colors[len(colors) % n], linewidth=0.7)  # 0 med
+		ax.plot(shared_x, data[:, 0], color=(colors[n] if n < len(colors) else colors[n % len(colors)]), linewidth=0.7)  # 0 med
 		yticks.append(data[0, 0])
 		n += 1
 
