@@ -759,6 +759,61 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	return global_lat_indexes, global_amp_values
 
 
+def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step):
+	"""
+
+	Args:
+		extensor_data:
+		flexor_data:
+		latencies:
+		ees_hz:
+		data_step:
+	Returns:
+
+	"""
+	all_data = np.concatenate((np.array(extensor_data), np.array(flexor_data)), axis=1)
+	latencies = (np.array(latencies) / data_step).astype(int)
+
+	# additional properties
+	slice_in_ms = int(1000 / ees_hz)
+	# set ees area, before that time we don't try to find latencies
+	shared_x = np.arange(slice_in_ms / data_step) * data_step
+	slices_number = int(len(all_data[0]) / (slice_in_ms / data_step))
+
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in all_data.T])
+	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
+
+	yticks = []
+	xticks = range(slice_in_ms + 1)
+	slice_indexes = range(1, slices_number + 1)
+	colors = iter(['#68A29C', '#F6C36C', '#7E6784'] * slices_number)
+
+	plt.subplots(figsize=(16, 9))
+
+	for slice_index, data in enumerate(splitted_per_slice_boxplots):
+		data += slice_index
+		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors))
+		plt.plot(shared_x, data[:, k_median], color='k')
+		yticks.append(data[:, k_median][0])
+
+
+	lat_x = latencies * data_step
+	lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat in enumerate(latencies)]
+	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k')
+	plt.plot(lat_x, lat_y, '.', markersize=25, color='k')
+
+	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
+	yticklabels = [None] * slices_number
+	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+		yticklabels[i] = slice_indexes[i]
+
+	plt.xticks(xticks, xticklabels, fontsize=56)
+	plt.yticks(yticks, yticklabels, fontsize=56)
+	plt.xlim(0, slice_in_ms)
+	plt.grid(axis='x')
+	plt.show()
+
+
 def get_peaks(data, herz, step):
 	"""
 
@@ -853,6 +908,25 @@ def prepare_data(dataset):
 	return prepared_data
 
 
+def plot_3D_PCA_for_article():
+	pass
+
+
+def for_article():
+	path_extensor = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+	path_flexor = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_F_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+
+	e_dataset = read_data(path_extensor)
+	f_dataset = read_data(path_flexor)
+
+	e_prepared_data = prepare_data(e_dataset)
+	f_prepared_data = prepare_data(f_dataset)
+
+	lat_per_slice = get_lat_amp(e_prepared_data, ees_hz=40, data_step=0.25, debugging=False)[0]
+
+	plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice, ees_hz=40, data_step=0.25)
+
+
 def plot_pca(debugging=False, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
@@ -863,23 +937,22 @@ def plot_pca(debugging=False, plot_3d=False):
 	if debugging:
 		log.basicConfig(level=log.INFO)
 
-
-	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/21 cms 2pedal/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests_nr.hdf5'
+	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
+	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
-	dataset = select_slices(gras_path, 5000, 11000, sign=1)
+	dataset = select_slices(gras_path, 0, 6000, sign=1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
@@ -887,7 +960,7 @@ def plot_pca(debugging=False, plot_3d=False):
 	# process NEURON dataset
 	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
@@ -988,6 +1061,7 @@ def plot_pca(debugging=False, plot_3d=False):
 
 
 def run():
+	for_article()
 	plot_pca()
 
 
