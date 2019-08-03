@@ -113,6 +113,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 def read_data(filepath):
 	with hdf5.File(filepath, 'r') as file:
 		data_by_test = [test_values[:] for test_values in file.values()]
+		if not all(map(len, data_by_test)):
+			raise Exception("Has empty data")
 	return data_by_test
 
 
@@ -564,19 +566,23 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		diff_Q1, diff_median, diff_Q3 = np.percentile(delta_poly_diff, percents)
 		allowed_diff_for_extremuma = diff_median
 
-		delta_diff_gradient = np.gradient(delta_smoothed_data)
-		delta_diff_poly_gradient = delta_diff_gradient[l_poly_border:]
+		gradient = np.gradient(delta_smoothed_data)
+		poly_gradient = gradient[l_poly_border:]
 
-		gradient_mean = np.mean(delta_diff_poly_gradient[delta_diff_poly_gradient > 0])
+		poly_gradient_diff = np.abs(np.diff(poly_gradient, n=1))
+		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
+		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
+
+		gradient_Q1, gradient_med, gradient_Q3 = np.percentile(poly_gradient[poly_gradient_diff > Q3], percents)
 
 		# fine the index of the cross between gradient and Q3
-		for index, diff in enumerate(delta_diff_gradient[l_poly_border:], l_poly_border):
-			if diff > gradient_mean:
+		for index, diff in enumerate(gradient[l_poly_border:], l_poly_border):
+			if diff > gradient_Q3:
 				latency_index = index
 				break
 		# if not found -- the last index
 		else:
-			latency_index = len(delta_diff_gradient) - 1
+			latency_index = len(gradient) - 1
 		log.info(f"Latency: {latency_index * data_step}")
 
 		# append found latency to the global list of the all latencies per slice
@@ -681,7 +687,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.set_xticks(xticks)
 			ax1.set_xticklabels(xticklabels)
 			ax1.set_xlim(0, int(slice_in_ms / data_step))
-			ax1.set_ylim(-1, 0.5)
+			ax1.set_ylim(-1, 1)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
 
@@ -701,10 +707,10 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax3.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
 			ax3.axhline(y=0, linestyle='--', color='k')
 			ax3.axvline(x=latency_index, color='k')
-			ax3.axhline(y=gradient_mean, color='g', label="positive gradient mean", linewidth=2)
-			ax3.plot(delta_diff_gradient, label='delta gradient', linewidth=2)
-			ax3.plot(latency_index, delta_diff_gradient[latency_index], '.', markersize=15, label="latency", color='k')
-			ax3.scatter(range(len(delta_diff_gradient)), delta_diff_gradient, s=10)
+			ax3.axhline(y=gradient_Q3, color='g', label="positive gradient mean", linewidth=2)
+			ax3.plot(gradient, label='delta gradient', linewidth=2)
+			ax3.plot(latency_index, gradient[latency_index], '.', markersize=15, label="latency", color='k')
+			ax3.scatter(range(len(gradient)), gradient, s=10)
 
 			ax3.set_xticks(xticks)
 			ax3.set_xticklabels(xticklabels)
@@ -759,7 +765,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	return global_lat_indexes, global_amp_values
 
 
-def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step):
+def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step, folder, filename):
 	"""
 
 	Args:
@@ -786,13 +792,13 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	yticks = []
 	xticks = range(slice_in_ms + 1)
 	slice_indexes = range(1, slices_number + 1)
-	colors = iter(['#68A29C', '#F6C36C', '#7E6784'] * slices_number)
+	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
 
 	plt.subplots(figsize=(16, 9))
 
 	for slice_index, data in enumerate(splitted_per_slice_boxplots):
 		data += slice_index
-		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors))
+		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7)
 		plt.plot(shared_x, data[:, k_median], color='k')
 		yticks.append(data[:, k_median][0])
 
@@ -811,6 +817,9 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	plt.yticks(yticks, yticklabels, fontsize=56)
 	plt.xlim(0, slice_in_ms)
 	plt.grid(axis='x')
+
+	plt.tight_layout()
+	plt.savefig(f"{folder}/{filename}.pdf", dpi=250, format="pdf")
 	plt.show()
 
 
@@ -908,23 +917,135 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_3D_PCA_for_article():
-	pass
+def plot_3D_PCA_for_article(all_pack, folder):
+	"""
+		Preparing data and drawing PCA for them
+		Args:
+			debugging:
+			plot_3d:
+		"""
+	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
+		# init 3D projection figure
+		fig = plt.figure(figsize=(10,10))
+		ax = fig.add_subplot(111, projection='3d')
+		# plot each data pack
+		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+		for coords, color, label in all_pack:
+			# create PCA instance and fit the model with coords
+			pca = PCA(n_components=3)
+			pca.fit(coords)
+			# get the center (mean value of points cloud)
+			center = pca.mean_
+			# get PCA vectors' head points (semi axis)
+			vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
+			vectors_points = np.array(vectors_points)
+			# form full axis points (original vectors + mirrored vectors)
+			axis_points = np.concatenate((vectors_points, -vectors_points), axis=0)
+			# centering vectors and axis points
+			vectors_points += center
+			axis_points += center
+			# calculate radii and rotation matrix based on axis points
+			radii, rotation = form_ellipse(axis_points)
+			# plot PCA vectors
+			for point_head in vectors_points:
+				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(arrow)
+			# plot cloud of points
+			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
+			# plot ellipsoid
+			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
+		# figure properties
+		ax.set_xticklabels(ax.get_xticks().astype(int), fontsize=35)
+		ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=35)
+		ax.set_zticklabels(ax.get_zticks().astype(int), fontsize=35)
 
+		ax.xaxis._axinfo['tick']['inward_factor'] = 0
+		ax.yaxis._axinfo['tick']['inward_factor'] = 0
+		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+		if "Lat" not in title:
+			ax.set_xticks([])
+		if "Amp" not in title:
+			ax.set_yticks([])
+		if "Peak" not in title:
+			ax.set_zticks([])
+
+		plt.legend()
+		ax.view_init(elev=elev, azim=azim)
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+		plt.savefig(f"{folder}/{title}.pdf", dpi=250, format="pdf")
+
+		plt.close(fig)
 
 def for_article():
-	path_extensor = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
-	path_flexor = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_F_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+	"""
 
-	e_dataset = read_data(path_extensor)
-	f_dataset = read_data(path_flexor)
+	Returns:
 
-	e_prepared_data = prepare_data(e_dataset)
-	f_prepared_data = prepare_data(f_dataset)
+	"""
+	bio_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
+	bio_pack = [
+	    "bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05",
+	    "bio_control_E_21cms_40Hz_i100_4pedal_no5ht_T_2017-09-05",
+	    "bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12",
+	    "bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12",
+	    "bio_sci_E_15cms_40Hz_i100_4pedal_no5ht_T_2016-06-12"
+	]
 
-	lat_per_slice = get_lat_amp(e_prepared_data, ees_hz=40, data_step=0.25, debugging=False)[0]
+	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
+	neuron_pack = [
+	    "neuron_E_15cms_40Hz_i100_2pedal_5ht_T",
+	    "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	    "neuron_E_15cms_40Hz_i100_4pedal_no5ht_T",
+	    "neuron_E_21cms_40Hz_i100_2pedal_no5ht_T",
+	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
+	]
 
-	plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice, ees_hz=40, data_step=0.25)
+	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/data/gras"
+	gras_pack = [
+	    "gras_E_15cms_40Hz_i100_2pedal_5ht_T",
+	    "gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_15cms_40Hz_i100_4pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i100_4pedal_no5ht_T"
+	]
+
+	all_pack = []
+	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"])
+
+	pack = gras_pack
+	folder = gras_folder
+
+	for data_name in pack:
+		print(data_name)
+		path_extensor = f"{folder}/{data_name}.hdf5"
+		path_flexor = f"{folder}/{data_name.replace('_E_', '_F_')}.hdf5"
+
+		if "bio_" in data_name:
+			e_dataset = read_data(path_extensor)
+			f_dataset = read_data(path_flexor)
+		else:
+			extensor_begin = 0
+			extensor_end = 12000 if "15cms" in data_name else 6000
+
+			flexor_begin = extensor_end
+			flexor_end = extensor_end + (7000 if "4pedal" in data_name else 5000)
+
+			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
+			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
+
+		e_prepared_data = prepare_data(e_dataset)
+		f_prepared_data = prepare_data(f_dataset)
+
+		lat_per_slice, amp_per_slice = get_lat_amp(e_prepared_data, ees_hz=40, data_step=0.25, debugging=False)
+		peaks_per_slice = get_peaks(e_prepared_data, herz=40, step=0.25)[7]
+		# form data pack
+		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
+
+		plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
+		                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
+
+	plot_3D_PCA_for_article(all_pack, folder=folder)
 
 
 def plot_pca(debugging=False, plot_3d=False):
@@ -1062,7 +1183,6 @@ def plot_pca(debugging=False, plot_3d=False):
 
 def run():
 	for_article()
-	plot_pca()
 
 
 if __name__ == "__main__":
