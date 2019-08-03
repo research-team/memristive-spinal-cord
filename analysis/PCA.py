@@ -2,6 +2,7 @@ import numpy as np
 import pylab as plt
 import h5py as hdf5
 import logging as log
+import matplotlib.patches as mpatches
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
@@ -11,6 +12,8 @@ from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 
 np.set_printoptions(suppress=True)
+
+bar_width = 0.5
 
 # keys
 k_index = 0
@@ -488,6 +491,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		list: amplitudes values
 	"""
 	global_lat_indexes = []
+	global_mono_indexes = []
 	global_amp_values = []
 
 	data_test_runs = np.array(data_test_runs)
@@ -559,6 +563,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 				break
 		if l_poly_border > int(10 / data_step):
 			l_poly_border = int(10 / data_step)
+
+		global_mono_indexes.append(l_poly_border)
+
 		log.info(f"Poly area: {l_poly_border * data_step} - {slice_in_ms}")
 
 		"""[5] find a latency"""
@@ -761,8 +768,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 	global_lat_indexes = np.array(global_lat_indexes) * data_step
 	global_amp_values = np.array(global_amp_values)
+	global_mono_indexes = np.array(global_mono_indexes) * data_step
 
-	return global_lat_indexes, global_amp_values
+	return global_lat_indexes, global_amp_values, global_mono_indexes
 
 
 def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step, folder, filename):
@@ -844,7 +852,7 @@ def get_peaks(data, herz, step):
 	l_poly_border = int(10 / step)
 	slice_length = int(1000 / herz / step)
 	slices_number = len(data[0]) // slice_length
-	latencies, amplitudes = get_lat_amp(data, herz, step)
+	latencies, amplitudes, _ = get_lat_amp(data, herz, step)
 
 	for i, run_data in enumerate(data):
 		for sliced_data in np.split(smooth(run_data, 7), slices_number):
@@ -977,6 +985,134 @@ def plot_3D_PCA_for_article(all_pack, folder):
 
 		plt.close(fig)
 
+
+def recolor(boxplot_elements, color, fill_color):
+	"""
+	Add colors to bars (setup each element)
+	Args:
+		boxplot_elements (dict):
+			components of the boxplot
+		color (str):
+			HEX color of outside lines
+		fill_color (str):
+			HEX color of filling
+	"""
+	for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+		plt.setp(boxplot_elements[element], color=color)
+	plt.setp(boxplot_elements["fliers"], markeredgecolor=color)
+	for patch in boxplot_elements['boxes']:
+		patch.set(facecolor=fill_color)
+
+
+def plot_histograms_for_article(amp_per_slice, peaks_per_slice, all_data, mono_per_slice, folder, filename):
+	"""
+		Args:
+			latencies_per_test (list of list):
+				latencies per test data
+			amplitudes_per_test (list of list):
+				amplitudes per test data
+		"""
+	box_distance = 1.2
+	slices_number = len(amp_per_slice)
+	slice_indexes = range(slices_number)
+	# reshape to M dots per N slices instead of N dots in slices per M tests
+	color = "#472650"
+	fill_color = "#472650"
+
+	# histograms
+	for data, title in (amp_per_slice, "amplitudes"), (peaks_per_slice, "peaks"):
+		# create subplots
+		fig, ax = plt.subplots(figsize=(16, 9))
+		# property of bar fliers
+		fliers = dict(markerfacecolor='k', marker='*', markersize=3)
+		xticks = [x * box_distance for x in slice_indexes]
+
+		# plot latencies
+		plt.bar(xticks, data, width=bar_width, color=color, zorder=2)
+
+		xticks = [i * box_distance for i in slice_indexes]
+		xticklabels = [None] * len(slice_indexes)
+		human_read = [i + 1 for i in slice_indexes]
+		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+			xticklabels[i] = human_read[i]
+
+		yticks = ax.get_yticks()
+		human_read = list(yticks)
+		yticklabels = [None] * len(yticks)
+		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
+			if human_read[i] >= 10:
+				yticklabels[i] = int(human_read[i])
+			else:
+				yticklabels[i] = f"{human_read[i]:.1f}"
+
+		plt.xticks(xticks, xticklabels, fontsize=56)
+		plt.yticks(yticks, yticklabels, fontsize=56)
+		plt.grid(axis="y")
+		plt.xlim(-0.5, len(slice_indexes) * box_distance)
+
+		plt.tight_layout()
+		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
+
+	step = 0.25
+	# boxplots
+	mono_area = []
+	poly_area = []
+
+	for data_per_test in all_data:
+		mono_area.append([slice_data[:int(time / step)] for time, slice_data in
+		                  zip(mono_per_slice, np.split(np.array(data_per_test), slices_number))])
+		poly_area.append([slice_data[int(time / step):] for time, slice_data in
+		                  zip(mono_per_slice, np.split(np.array(data_per_test), slices_number))])
+
+	for data_test_runs, title in (mono_area, "mono"), (poly_area, "poly"):
+		data_test_runs = np.array(data)
+
+		boxplots_per_iter = np.array([calc_boxplots(dot) for dot in data_test_runs.T])
+		print(boxplots_per_iter)
+
+		raise Exception
+		# create subplots
+		fig, lat_axes = plt.subplots()
+
+		latencies = list(zip(*data))
+
+		# property of bar fliers
+		fliers = dict(markerfacecolor='k', marker='*', markersize=3)
+
+		# plot latencies
+		xticks = [x * box_distance for x in slice_indexes]
+		plt.xticks(fontsize=56)
+		plt.yticks(fontsize=56)
+		lat_plot = lat_axes.boxplot(latencies, positions=xticks, widths=bar_width, patch_artist=True, flierprops=fliers)
+		recolor(lat_plot, color, fill_color)
+
+		xticks = [i * box_distance for i in slice_indexes]
+		xticklabels = [None] * len(slice_indexes)
+		human_read = [i + 1 for i in slice_indexes]
+		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+			xticklabels[i] = human_read[i]
+
+		yticks = ax.get_yticks()
+		human_read = list(yticks)
+		yticklabels = [None] * len(yticks)
+		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
+			if human_read[i] >= 10:
+				yticklabels[i] = int(human_read[i])
+			else:
+				yticklabels[i] = f"{human_read[i]:.1f}"
+
+		plt.xticks(xticks, xticklabels, fontsize=56)
+		plt.yticks(yticks, yticklabels, fontsize=56)
+		plt.grid(axis="y")
+		plt.xlim(-0.5, len(slice_indexes) * box_distance)
+
+		plt.tight_layout()
+		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
+
+
+	raise Exception
+
+
 def for_article():
 	"""
 
@@ -1013,8 +1149,8 @@ def for_article():
 	all_pack = []
 	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"])
 
-	pack = gras_pack
-	folder = gras_folder
+	pack = neuron_pack
+	folder = neuron_folder
 
 	for data_name in pack:
 		print(data_name)
@@ -1037,15 +1173,17 @@ def for_article():
 		e_prepared_data = prepare_data(e_dataset)
 		f_prepared_data = prepare_data(f_dataset)
 
-		lat_per_slice, amp_per_slice = get_lat_amp(e_prepared_data, ees_hz=40, data_step=0.25, debugging=False)
+		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, ees_hz=40, data_step=0.25, debugging=False)
 		peaks_per_slice = get_peaks(e_prepared_data, herz=40, step=0.25)[7]
 		# form data pack
 		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
-
-		plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
-		                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
-
-	plot_3D_PCA_for_article(all_pack, folder=folder)
+		# plot histograms
+		plot_histograms_for_article(amp_per_slice, peaks_per_slice, e_prepared_data, mono_per_slice, folder=folder, filename=data_name)
+		# plot slices with pattern
+	# 	plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
+	# 	                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
+	#
+	# plot_3D_PCA_for_article(all_pack, folder=folder)
 
 
 def plot_pca(debugging=False, plot_3d=False):
