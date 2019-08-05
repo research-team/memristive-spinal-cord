@@ -44,7 +44,13 @@ def graph_spike_data_creator(nest, spike_det, neurons_groups):
 
 
 def plot_pics(all_neurons, multimeters, spike_detectors):
-    needed = ["OM1_0", "OM1_1", "OM1_2_E", "OM1_2_F", "OM1_3", "iIP_E", "E1"]
+    needed = [
+        # "OM1_0", "OM1_1", "OM1_2_E", "OM1_2_F", "OM1_3", "iIP_E", "E1",
+        # "OM2_0", "OM2_1", "OM2_2_E", "OM2_2_F", "OM2_3", "iIP_E", "E2",
+        # "OM3_0", "OM3_1", "OM3_2_E", "OM3_2_F", "OM3_3", "iIP_E", "E3",
+        # "OM4_0", "OM4_1", "OM4_2_E", "OM4_2_F", "OM4_3", "iIP_E", "E4",
+        "OM5_0", "OM5_1", "OM5_2_E", "OM5_2_F", "OM5_3", "iIP_E", "E5"
+    ]
     # needed = ["OM1_1"]
     for i in all_neurons:
         if i in needed:

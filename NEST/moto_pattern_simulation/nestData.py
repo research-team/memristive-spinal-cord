@@ -2,7 +2,7 @@ global_id = 0
 # SIM_TIME_IN_STEPS ????
 LEG_STEPS = 3             # [step] number of full cycle steps
 SIM_STEP = 0.025   # [s] simulation step
-SIM_TIME = 250
+SIM_TIME = 275
 CV_timing = 10000     # frequency that depends on CV stimulation period (1000 / 8 = 125 ms - CV stimulation period)
 
 # stuff variables
