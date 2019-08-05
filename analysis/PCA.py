@@ -1,7 +1,7 @@
+import logging
 import numpy as np
 import pylab as plt
 import h5py as hdf5
-import logging as log
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
@@ -11,6 +11,10 @@ from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 
 np.set_printoptions(suppress=True)
+logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
+log = logging.getLogger()
+
+bar_width = 0.9
 
 # keys
 k_index = 0
@@ -113,6 +117,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 def read_data(filepath):
 	with hdf5.File(filepath, 'r') as file:
 		data_by_test = [test_values[:] for test_values in file.values()]
+		if not all(map(len, data_by_test)):
+			raise Exception("Has empty data")
 	return data_by_test
 
 
@@ -486,6 +492,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		list: amplitudes values
 	"""
 	global_lat_indexes = []
+	global_mono_indexes = []
 	global_amp_values = []
 
 	data_test_runs = np.array(data_test_runs)
@@ -557,6 +564,9 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 				break
 		if l_poly_border > int(10 / data_step):
 			l_poly_border = int(10 / data_step)
+
+		global_mono_indexes.append(l_poly_border)
+
 		log.info(f"Poly area: {l_poly_border * data_step} - {slice_in_ms}")
 
 		"""[5] find a latency"""
@@ -564,24 +574,27 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		diff_Q1, diff_median, diff_Q3 = np.percentile(delta_poly_diff, percents)
 		allowed_diff_for_extremuma = diff_median
 
-		delta_diff_gradient = np.gradient(delta_smoothed_data)
-		delta_diff_poly_gradient = delta_diff_gradient[l_poly_border:]
+		gradient = np.gradient(delta_smoothed_data)
+		poly_gradient = gradient[l_poly_border:]
 
-		gradient_mean = np.mean(delta_diff_poly_gradient[delta_diff_poly_gradient > 0])
+		poly_gradient_diff = np.abs(np.diff(poly_gradient, n=1))
+		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
+		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
+
+		gradient_Q1, gradient_med, gradient_Q3 = np.percentile(poly_gradient[poly_gradient_diff > Q3], percents)
 
 		# fine the index of the cross between gradient and Q3
-		for index, diff in enumerate(delta_diff_gradient[l_poly_border:], l_poly_border):
-			if diff > gradient_mean:
+		for index, diff in enumerate(gradient[l_poly_border:], l_poly_border):
+			if diff > gradient_Q3:
 				latency_index = index
 				break
 		# if not found -- the last index
 		else:
-			latency_index = len(delta_diff_gradient) - 1
+			latency_index = len(gradient) - 1
 		log.info(f"Latency: {latency_index * data_step}")
 
 		# append found latency to the global list of the all latencies per slice
 		global_lat_indexes.append(latency_index)
-
 
 		"""[6] find extremuma of the poly area"""
 		# get poly Q1 minima extremuma indexes and values
@@ -682,7 +695,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax1.set_xticks(xticks)
 			ax1.set_xticklabels(xticklabels)
 			ax1.set_xlim(0, int(slice_in_ms / data_step))
-			ax1.set_ylim(-1, 0.5)
+			ax1.set_ylim(-1, 1)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
 
@@ -702,11 +715,10 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax3.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
 			ax3.axhline(y=0, linestyle='--', color='k')
 			ax3.axvline(x=latency_index, color='k')
-			ax3.axhline(y=diff_Q3, color='r', label="diff Q3", linewidth=2)
-			ax3.axhline(y=gradient_mean, color='g', label="positive gradient mean", linewidth=2)
-			ax3.plot(delta_diff_gradient, label='delta gradient', linewidth=2)
-			ax3.plot(latency_index, delta_diff_gradient[latency_index], '.', markersize=15, label="latency", color='k')
-			ax3.scatter(range(len(delta_diff_gradient)), delta_diff_gradient, s=10)
+			ax3.axhline(y=gradient_Q3, color='g', label="positive gradient mean", linewidth=2)
+			ax3.plot(gradient, label='delta gradient', linewidth=2)
+			ax3.plot(latency_index, gradient[latency_index], '.', markersize=15, label="latency", color='k')
+			ax3.scatter(range(len(gradient)), gradient, s=10)
 
 			ax3.set_xticks(xticks)
 			ax3.set_xticklabels(xticklabels)
@@ -757,18 +769,75 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 	global_lat_indexes = np.array(global_lat_indexes) * data_step
 	global_amp_values = np.array(global_amp_values)
+	global_mono_indexes = np.array(global_mono_indexes) * data_step
 
-	return global_lat_indexes, global_amp_values
+	return global_lat_indexes, global_amp_values, global_mono_indexes
+
+
+def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step, folder, filename):
+	"""
+	TODO: add docstring
+	Args:
+		extensor_data (list): values of extensor motoneurons membrane potential
+		flexor_data (list): values of flexor motoneurons membrane potential
+		latencies (list): latencies of poly answers per slice
+		ees_hz (int): EES stimulation frequency
+		data_step (float): data step
+		folder (str): save folder path
+		filename (str): name of the future path
+	"""
+	all_data = np.concatenate((np.array(extensor_data), np.array(flexor_data)), axis=1)
+	latencies = (np.array(latencies) / data_step).astype(int)
+
+	# additional properties
+	slice_in_ms = int(1000 / ees_hz)
+	# set ees area, before that time we don't try to find latencies
+	shared_x = np.arange(slice_in_ms / data_step) * data_step
+	slices_number = int(len(all_data[0]) / (slice_in_ms / data_step))
+
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in all_data.T])
+	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
+
+	yticks = []
+	xticks = range(slice_in_ms + 1)
+	slice_indexes = range(1, slices_number + 1)
+	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
+
+	plt.subplots(figsize=(16, 9))
+
+	for slice_index, data in enumerate(splitted_per_slice_boxplots):
+		data += slice_index
+		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7)
+		plt.plot(shared_x, data[:, k_median], color='k')
+		yticks.append(data[:, k_median][0])
+
+	lat_x = latencies * data_step
+	lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat in enumerate(latencies)]
+	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k')
+	plt.plot(lat_x, lat_y, '.', markersize=25, color='k')
+
+	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
+	yticklabels = [None] * slices_number
+	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+		yticklabels[i] = slice_indexes[i]
+
+	plt.xticks(xticks, xticklabels, fontsize=56)
+	plt.yticks(yticks, yticklabels, fontsize=56)
+	plt.xlim(0, slice_in_ms)
+	plt.grid(axis='x')
+
+	plt.tight_layout()
+	plt.savefig(f"{folder}/{filename}.pdf", dpi=250, format="pdf")
+	plt.close()
 
 
 def get_peaks(data, herz, step):
 	"""
-
+	TODO: add docstring
 	Args:
 		data:
 		herz:
 		step:
-
 	Returns:
 
 	"""
@@ -782,7 +851,7 @@ def get_peaks(data, herz, step):
 	l_poly_border = int(10 / step)
 	slice_length = int(1000 / herz / step)
 	slices_number = len(data[0]) // slice_length
-	latencies, amplitudes = get_lat_amp(data, herz, step)
+	latencies, amplitudes, _ = get_lat_amp(data, herz, step)
 
 	for i, run_data in enumerate(data):
 		for sliced_data in np.split(smooth(run_data, 7), slices_number):
@@ -855,7 +924,277 @@ def prepare_data(dataset):
 	return prepared_data
 
 
-def plot_pca(debugging=True, plot_3d=False):
+def plot_3D_PCA_for_article(all_pack, folder):
+	"""
+	TODO: add docstring
+	Args:
+		all_pack (list of list): special structure to easily work with (coords, color and label)
+		folder (str): save folder path
+	"""
+	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
+		# init 3D projection figure
+		fig = plt.figure(figsize=(10,10))
+		ax = fig.add_subplot(111, projection='3d')
+		# plot each data pack
+		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+		for coords, color, label in all_pack:
+			# create PCA instance and fit the model with coords
+			pca = PCA(n_components=3)
+			pca.fit(coords)
+			# get the center (mean value of points cloud)
+			center = pca.mean_
+			# get PCA vectors' head points (semi axis)
+			vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
+			vectors_points = np.array(vectors_points)
+			# form full axis points (original vectors + mirrored vectors)
+			axis_points = np.concatenate((vectors_points, -vectors_points), axis=0)
+			# centering vectors and axis points
+			vectors_points += center
+			axis_points += center
+			# calculate radii and rotation matrix based on axis points
+			radii, rotation = form_ellipse(axis_points)
+			# plot PCA vectors
+			for point_head in vectors_points:
+				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(arrow)
+			# plot cloud of points
+			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
+			# plot ellipsoid
+			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
+		# figure properties
+		ax.set_xticklabels(ax.get_xticks().astype(int), fontsize=35)
+		ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=35)
+		ax.set_zticklabels(ax.get_zticks().astype(int), fontsize=35)
+
+		ax.xaxis._axinfo['tick']['inward_factor'] = 0
+		ax.yaxis._axinfo['tick']['inward_factor'] = 0
+		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+		if "Lat" not in title:
+			ax.set_xticks([])
+		if "Amp" not in title:
+			ax.set_yticks([])
+		if "Peak" not in title:
+			ax.set_zticks([])
+
+		plt.legend()
+		ax.view_init(elev=elev, azim=azim)
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+		title = str(title).lower().replace(" ", "_")
+		plt.savefig(f"{folder}/{title}.pdf", dpi=250, format="pdf")
+
+		plt.close(fig)
+
+
+def recolor(boxplot_elements, color, fill_color):
+	"""
+	Add colors to bars (setup each element)
+	Args:
+		boxplot_elements (dict):
+			components of the boxplot
+		color (str):
+			HEX color of outside lines
+		fill_color (str):
+			HEX color of filling
+	"""
+	for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+		plt.setp(boxplot_elements[element], color=color, linewidth=3)
+	plt.setp(boxplot_elements["fliers"], markeredgecolor=color)
+	for patch in boxplot_elements['boxes']:
+		patch.set(facecolor=fill_color)
+
+
+def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mono_per_slice, folder, filename):
+	"""
+	TODO: add docstring
+	Args:
+		amp_per_slice (list): amplitudes per slice
+		peaks_per_slice (list): number of peaks per slice
+		lat_per_slice (list): latencies per slice
+		all_data (list of list): data per test run
+		mono_per_slice (list): end of mono area per slice
+		folder (str): folder path
+		filename 9str): filename of the future file
+	"""
+	step = 0.25
+	box_distance = 1.2
+	color = "#472650"
+	fill_color = "#9D8DA3"
+	slices_number = len(amp_per_slice)
+	slice_indexes = np.array(range(slices_number))
+	# calc boxplots per iter
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in np.array(all_data).T])
+
+	# plot histograms
+	for data, title in (amp_per_slice, "amplitudes"), (peaks_per_slice, "peaks"):
+		# create subplots
+		fig, ax = plt.subplots(figsize=(16, 9))
+		# property of bar fliers
+		xticks = [x * box_distance for x in slice_indexes]
+		# plot amplitudes or peaks
+		plt.bar(xticks, data, width=bar_width, color=color, zorder=2)
+		# set labels
+		xticklabels = [None] * len(slice_indexes)
+		human_read = [i + 1 for i in slice_indexes]
+		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+			xticklabels[i] = human_read[i]
+		# set Y ticks
+		yticks = ax.get_yticks()
+		human_read = list(yticks)
+		yticklabels = [None] * len(yticks)
+		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
+			yticklabels[i] = int(human_read[i]) if human_read[i] >= 10 else f"{human_read[i]:.1f}"
+		# plot properties
+		plt.grid(axis="y")
+		plt.xticks(xticks, xticklabels, fontsize=56)
+		plt.yticks(yticks, yticklabels, fontsize=56)
+		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
+		plt.tight_layout()
+		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
+		plt.close()
+
+		log.info(f"Plotted {title} for {filename}")
+
+	# form areas
+	mono_area = [slice_data[:int(time / step)] for time, slice_data in
+	             zip(mono_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
+	poly_area = [slice_data[int(time / step):] for time, slice_data in
+		         zip(lat_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
+
+	# plot per area
+	for data_test_runs, title in (mono_area, "mono"), (poly_area, "poly"):
+		area_data = []
+		data_test_runs = np.array(data_test_runs)
+		# calc diff per slice
+		for slice_data in data_test_runs:
+			area_data.append(abs(slice_data[:, k_fliers_high] - slice_data[:, k_fliers_low]))
+
+		fig, ax = plt.subplots(figsize=(16, 9))
+
+		fliers = dict(markerfacecolor='k', marker='*', markersize=3)
+		# plot latencies
+		xticks = [x * box_distance for x in slice_indexes]
+		plt.xticks(fontsize=56)
+		plt.yticks(fontsize=56)
+
+		lat_plot = ax.boxplot(area_data, positions=xticks, widths=bar_width, patch_artist=True, flierprops=fliers)
+		recolor(lat_plot, color, fill_color)
+
+		xticks = [i * box_distance for i in slice_indexes]
+		xticklabels = [None] * len(slice_indexes)
+		human_read = [i + 1 for i in slice_indexes]
+		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
+			xticklabels[i] = human_read[i]
+
+		yticks = np.array(ax.get_yticks())
+		yticks = yticks[yticks >= 0]
+		human_read = list(yticks)
+		yticklabels = [None] * len(yticks)
+		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
+			if human_read[i] >= 10:
+				yticklabels[i] = int(human_read[i])
+			else:
+				yticklabels[i] = f"{human_read[i]:.1f}"
+		# plot properties
+		plt.xticks(xticks, xticklabels, fontsize=56)
+		plt.yticks(yticks, yticklabels, fontsize=56)
+		plt.grid(axis="y")
+		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
+		plt.ylim(0, ax.get_yticks()[-1])
+		plt.tight_layout()
+		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
+		plt.close()
+
+		log.info(f"Plotted {title} for {filename}")
+
+
+def for_article():
+	"""
+	TODO: add docstring
+	"""
+	# stuff variables
+	all_pack = []
+	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"])
+
+	# list of filenames for easily reading data
+	bio_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
+	bio_pack = [
+	    "bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05",
+	    "bio_control_E_21cms_40Hz_i100_4pedal_no5ht_T_2017-09-05",
+	    "bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12",
+	    "bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12",
+	    "bio_sci_E_15cms_40Hz_i100_4pedal_no5ht_T_2016-06-12"
+	]
+
+	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
+	neuron_pack = [
+	    "neuron_E_15cms_40Hz_i100_2pedal_5ht_T",
+	    "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	    "neuron_E_15cms_40Hz_i100_4pedal_no5ht_T",
+	    "neuron_E_21cms_40Hz_i100_2pedal_no5ht_T",
+	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
+	]
+
+	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/data/gras"
+	gras_pack = [
+	    "gras_E_15cms_40Hz_i100_2pedal_5ht_T",
+	    "gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_15cms_40Hz_i100_4pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i100_4pedal_no5ht_T"
+	]
+
+	# control
+	pack = bio_pack
+	folder = bio_folder
+	plot_pca_flag = True
+	plot_slices_flag = True
+	plot_histogram_flag = True
+
+	# prepare data per file
+	for data_name in pack:
+		log.info(f"prepare {data_name}")
+		path_extensor = f"{folder}/{data_name}.hdf5"
+		path_flexor = f"{folder}/{data_name.replace('_E_', '_F_')}.hdf5"
+		# check if it is a bio data -- use another function
+		if "bio_" in data_name:
+			e_dataset = read_data(path_extensor)
+			f_dataset = read_data(path_flexor)
+		# simulation data computes by the common function
+		else:
+			# calculate extensor borders
+			extensor_begin = 0
+			extensor_end = 12000 if "15cms" in data_name else 6000
+			# calculate flexor borders
+			flexor_begin = extensor_end
+			flexor_end = extensor_end + (7000 if "4pedal" in data_name else 5000)
+			# use native funcion for get needful data
+			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
+			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
+		# prepare each data (stepping, centering, normalization)
+		e_prepared_data = prepare_data(e_dataset)
+		f_prepared_data = prepare_data(f_dataset)
+		# get latencies, amplitudes and begining of poly answers
+		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data,
+		                                                           ees_hz=40, data_step=0.25, debugging=False)
+		# get number of peaks per slice
+		peaks_per_slice = get_peaks(e_prepared_data, herz=40, step=0.25)[7]
+		# form data pack
+		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
+		# plot histograms of amplitudes and number of peaks
+		if plot_histogram_flag:
+			plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, e_prepared_data, mono_per_slice,
+			                            folder=folder, filename=data_name)
+		# plot all slices with pattern
+		if plot_slices_flag:
+			plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
+			                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
+	# plot 3D PCA for each plane
+	if plot_pca_flag:
+		plot_3D_PCA_for_article(all_pack, folder=folder)
+
+
+def plot_pca(debugging=False, plot_3d=False):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
@@ -865,23 +1204,22 @@ def plot_pca(debugging=True, plot_3d=False):
 	if debugging:
 		log.basicConfig(level=log.INFO)
 
-
-	bio_path = '/home/alex/Downloads/bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/21 cms 2pedal/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests_nr.hdf5'
+	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
+	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
+	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests.hdf5'
 
 	# process BIO dataset
 	dataset = read_data(bio_path)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
 	# process GRAS dataset
-	dataset = select_slices(gras_path, 5000, 11000, sign=1)
+	dataset = select_slices(gras_path, 0, 6000, sign=1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
@@ -889,7 +1227,7 @@ def plot_pca(debugging=True, plot_3d=False):
 	# process NEURON dataset
 	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
 	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25, debugging=True)
+	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
 	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
@@ -990,7 +1328,7 @@ def plot_pca(debugging=True, plot_3d=False):
 
 
 def run():
-	plot_pca()
+	for_article()
 
 
 if __name__ == "__main__":

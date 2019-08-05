@@ -27,16 +27,23 @@ def read_data(path):
 
 	return names, voltage, g_exc, g_inh, spikes
 
+import numpy as np
 
-def draw_slice_borders(sim_time, skin_stim_time):
-	a = [5 * skin_stim_time] # flexor timing
-	for i in range(1, 20):
-		a.append(a[i - 1] + (5 * skin_stim_time if i % 2 == 0 else 6 * skin_stim_time) )
-	for i in a:
-		plt.axvline(x=i, linewidth=3, color='k')
+def draw_slice_borders(sim_time, skin_stim_time, extensor_first=True):
+	step_cycle = 11 * skin_stim_time
+
+	if extensor_first:
+		step_pack = np.array([6 * skin_stim_time, step_cycle])
+	else:
+		step_pack = np.array([5 * skin_stim_time, step_cycle])
+
+	for _ in range(int(sim_time / step_cycle)):
+		plt.axvline(x=step_pack[0], linewidth=3, color='k')
+		plt.axvline(x=step_pack[1], linewidth=3, color='k')
+		step_pack += step_cycle
+
 	for i in range(0, sim_time, skin_stim_time):
 		plt.axvline(x=i, linewidth=1, color='k')
-
 
 def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, plot_only=None):
 	for name, voltage, g_e, g_i, s in zip(names, voltages, g_exc, g_inh, spikes):
@@ -112,10 +119,8 @@ def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, p
 
 		plt.ylabel("Spikes, n")
 		plt.ylim(bottom=0)
-		plt.xticks(range(0, sim_time + 1, 5 if sim_time <= 275 else 25),
-		           ["{}\n{}".format(global_time - 25 * (global_time // 25), global_time)
-		            for global_time in range(0, sim_time + 1, 5 if sim_time <= 275 else 25)],
-		           fontsize=8)
+		ticks = range(0, sim_time + 1, 5 if sim_time <= 275 else 25)
+		plt.xticks(ticks, ticks, fontsize=8)
 
 		plt.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.05, hspace=0.08)
 
