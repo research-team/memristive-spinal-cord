@@ -110,8 +110,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
-	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=alpha, color=color)
+	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
 
 
 def read_data(filepath):
@@ -933,7 +933,7 @@ def plot_3D_PCA_for_article(all_pack, folder):
 	"""
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		# init 3D projection figure
-		fig = plt.figure(figsize=(10,10))
+		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
@@ -1114,7 +1114,7 @@ def for_article():
 	"""
 	# stuff variables
 	all_pack = []
-	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"])
+	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"])
 
 	# list of filenames for easily reading data
 	bio_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
@@ -1123,7 +1123,9 @@ def for_article():
 	    "bio_control_E_21cms_40Hz_i100_4pedal_no5ht_T_2017-09-05",
 	    "bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12",
 	    "bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12",
-	    "bio_sci_E_15cms_40Hz_i100_4pedal_no5ht_T_2016-06-12"
+	    "bio_sci_E_15cms_40Hz_i100_4pedal_no5ht_T_2016-06-12",
+		"bio_control_E_15cms_40Hz_i100_2pedal_no5ht_T_2017-09-05",
+		"bio_control_E_15cms_40Hz_i100_4pedal_no5ht_T_2017-09-05"
 	]
 
 	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
@@ -1148,8 +1150,8 @@ def for_article():
 	pack = bio_pack
 	folder = bio_folder
 	plot_pca_flag = True
-	plot_slices_flag = True
-	plot_histogram_flag = True
+	plot_slices_flag = False
+	plot_histogram_flag = False
 
 	# prepare data per file
 	for data_name in pack:

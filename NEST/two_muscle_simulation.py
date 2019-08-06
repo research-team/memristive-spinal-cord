@@ -1,30 +1,51 @@
+import os
 import nest
+from time import time
+from multiprocessing import cpu_count
+
 from NEST.functions import Functions
+from NEST.functions import Parameters
 
 
 class V3(Functions):
-	def __init__(self, multitest):
-		super().__init__(multitest)
+	def __init__(self, parameters, iteration):
+		"""
+		ToDo add info
+		Args:
+			parameters (Parameters):
+			iteration (int):
+		"""
 		nest.ResetKernel()
-		nest.SetKernelStatus({"overwrite_files": True,
-		                      "data_path": "",
-		                      "data_prefix": f"{0}_"})
+		nest.SetKernelStatus({'data_path': "",
+		                      'print_time': True,
+		                      'resolution': 0.025,
+		                      'overwrite_files': True,
+		                      'data_prefix': f"{iteration}_",
+		                      'total_num_virtual_procs': cpu_count(),
+		                      'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
 
-	def network(self, params):
+		super().__init__(parameters)
+		self.P = parameters
+
+		# self.init_network()
+		# self.simulate()
+		self.save()
+
+	def init_network(self):
 		"""
 		TODO add info
 		Args:
-			params:
+			P (Parameters):
 		"""
 		inh_coef = 1
-		quadru_coef = 0.5 if params['pedal'] else 1
-		sero_coef = 5.3 if params['has5ht'] else 1
+		quadru_coef = 0.5 if self.P.ped == 4 else 1
+		sero_coef = 5.3 if self.P.ht5 == 1 else 1
 
 		syn_outdegree = 27          # synapse number outgoing from one neuron
 		neurons_in_ip = 196         # number of neurons in interneuronal pool
-		neurons_in_aff_ip = 196     # number of neurons in interneuronal pool
 		neurons_in_moto = 169       # motoneurons number
 		neurons_in_group = 20       # number of neurons in a group
+		neurons_in_aff_ip = 196     # number of neurons in interneuronal pool
 		neurons_in_afferent = 120   # number of neurons in afferent
 
 		# groups of neurons
@@ -67,7 +88,6 @@ class V3(Functions):
 		OM4_2_F = self.form_group("OM4_2_F")
 		OM4_3 = self.form_group("OM4_3")
 
-
 		OM5_0 = self.form_group("OM5_0")
 		OM5_1 = self.form_group("OM5_1")
 		OM5_2_E = self.form_group("OM5_2_E")
@@ -91,6 +111,13 @@ class V3(Functions):
 
 		iIP_E = self.form_group("iIP_E", neurons_in_ip)
 		iIP_F = self.form_group("iIP_F", neurons_in_ip)
+
+		self.connect_spike_generator(EES, rate=self.P.EES)
+		self.connect_noise_generator(CV1, rate=200, t_end=self.P.skin_stim)
+		self.connect_noise_generator(CV2, rate=200, t_start=self.P.skin_stim, t_end=2 * self.P.skin_stim)
+		self.connect_noise_generator(CV3, rate=200, t_start=2 * self.P.skin_stim, t_end=3 * self. P.skin_stim)
+		self.connect_noise_generator(CV4, rate=200, t_start=3 * self.P.skin_stim, t_end=5 * self. P.skin_stim)
+		self.connect_noise_generator(CV5, rate=200, t_start=5 * self.P.skin_stim, t_end=6 * self. P.skin_stim)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 500, no_distr=True)
@@ -272,3 +299,18 @@ class V3(Functions):
 
 		self.connect_fixed_outdegree(R_F, MN_F, 2, -0.5, neurons_in_moto)
 		self.connect_fixed_outdegree(R_F, R_E, 2, -1)
+
+
+if __name__ == "__main__":
+	parameters = Parameters()
+	parameters.tests = 1
+	parameters.steps = 3
+	parameters.cms = 21
+	parameters.EES = 40
+	parameters.inh = 100
+	parameters.ped = 2
+	parameters.ht5 = 0
+	parameters.save_all = 0
+
+	for i in range(parameters.tests):
+		V3(parameters, iteration=i)
