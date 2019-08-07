@@ -20,7 +20,7 @@ class Parameters:
 		self.ped: int
 		self.ht5: int
 		self.save_all: int
-		self.step_cycle: int
+		self.step_cycle: float
 		self.resolution: float
 		self.T_sim: float
 		self.skin_stim: float
@@ -47,6 +47,9 @@ class Functions:
 		P.T_sim = float(P.step_cycle * P.steps)
 
 		self.P = P
+		self.cv_generators = []
+		self.multimeters = []
+		self.spikedetectors = []
 
 
 	def __build_params(self):
@@ -74,16 +77,7 @@ class Functions:
 		return neuron_params
 
 
-	def save(self):
-		folder = nest.GetKernelStatus()['data_path']
-		if not folder:
-			folder = os.getcwd()
-		prefix = nest.GetKernelStatus()['data_prefix']
-
-		raise NotImplemented
-
-
-	def add_multimeter(self, name, record_from):
+	def create_multimeter(self, name, record_from):
 		"""
 		Function for creating NEST multimeter node
 		Args:
@@ -97,18 +91,19 @@ class Functions:
 		if record_from not in ['Extracellular', 'V_m']:
 			raise NotImplemented(f"The '{record_from}' parameter is not implemented "
 			                     "for membrane potential recording")
+
 		mm_params = {'label': name,
 		             'record_from': [record_from, "g_ex", "g_in"],
 		             'withgid': True,
 		             'withtime': True,
-		             'interval': nest.GetKernelStatus()['resolution'],
+		             'interval': nest.GetKernelStatus('resolution'),
 		             'to_file': True,
 		             'to_memory': False}
 
 		return nest.Create(model='multimeter', n=1, params=mm_params)
 
 
-	def add_spike_detector(self, name):
+	def create_spikedetector(self, name):
 		"""
 		ToDo add info
 		Args:
@@ -134,16 +129,20 @@ class Functions:
 			list: global IDs of created neurons
 		"""
 		neuron_model = 'hh_cond_exp_traub'
-		gids = [nest.Create(model=neuron_model, n=1, params=self.__build_params())[0] for _ in range(nrn_number)]
+		r_params = self.__build_params
+		gids = [nest.Create(model=neuron_model, n=1, params=r_params())[0] for _ in range(nrn_number)]
 
 		if self.P.tests > 1 and name not in ["MN_E", "MN_F"]:
 			return gids
 
-		multimeter_id = self.add_multimeter(name, record_from="V_m")
-		spikedetector_id = self.add_spike_detector(name)
+		mm_device = self.create_multimeter(name, record_from="V_m")
+		sd_device = self.create_spikedetector(name)
 
-		nest.Connect(pre=multimeter_id, post=gids)
-		nest.Connect(pre=gids, post=spikedetector_id)
+		self.multimeters.append(mm_device)
+		self.spikedetectors.append(sd_device)
+
+		nest.Connect(pre=mm_device, post=gids)
+		nest.Connect(pre=gids, post=sd_device)
 
 		return gids
 
@@ -227,6 +226,8 @@ class Functions:
 		# connect the spike generator with node
 		nest.Connect(pre=spike_generator, post=node, syn_spec=syn_spec, conn_spec=conn_spec)
 
+		self.cv_generators.append(spike_generator)
+
 
 	def __connect(self, pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr):
 		delay_distr = {"distribution": "normal",
@@ -255,8 +256,8 @@ class Functions:
 			no_distr (bool): disable distribution or no
 		"""
 		conn_spec = {'rule': 'all_to_all',  # fixed outgoing synapse number
-		             'multapses': True,  # allow recurring connections
-		             'autapses': False}  # allow self-connection
+		             'multapses': True,     # allow recurring connections
+		             'autapses': False}     # allow self-connection
 		self.__connect(pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr)
 
 
@@ -272,13 +273,91 @@ class Functions:
 			no_distr (bool): disable distribution or no
 		"""
 		# initialize connection specification
-		conn_spec = {'rule': 'fixed_outdegree',  # fixed outgoing synapse number
+		conn_spec = {'rule': 'fixed_outdegree',    # fixed outgoing synapse number
 		             'outdegree': int(outdegree),  # number of synapses outgoing from PRE neuron
-		             'multapses': True,  # allow recurring connections
-		             'autapses': False}  # allow self-connection
+		             'multapses': True,            # allow recurring connections
+		             'autapses': False}            # allow self-connection
 		self.__connect(pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr)
 
 
 	def simulate(self):
-		# simulate the topology
-		nest.Simulate(self.P.T_sim)
+		# simulate the topology by step cycle
+		for step_index in range(self.P.steps):
+			# update CV generators time
+			for gen_device in self.cv_generators:
+				new_start = nest.GetStatus(gen_device, 'start')[0] + step_index * self.P.step_cycle
+				new_stop = nest.GetStatus(gen_device, 'stop')[0] + step_index * self.P.step_cycle
+				nest.SetStatus(gen_device, {'start': new_start, 'stop': new_stop})
+			# simulate one step cycle
+			nest.Simulate(self.P.step_cycle)
+
+
+	def save(self):
+		k_times = 0
+		k_volts = 1
+		k_g_exc = 2
+		k_g_inh = 3
+
+		folder = nest.GetKernelStatus()['data_path']
+		if not folder:
+			folder = os.getcwd()
+		prefix = nest.GetKernelStatus()['data_prefix']
+
+		volt_parent_files = defaultdict(list)
+		spikes_parent_files = defaultdict(list)
+
+		# voltages
+		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.dat'), os.listdir(folder)):
+			parent_name = filename.split("-")[0]
+			volt_parent_files[parent_name].append(filename)
+
+		# spikes
+		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.gdf'), os.listdir(folder)):
+			parent_name = filename.split("-")[0]
+			spikes_parent_files[parent_name].append(filename)
+
+		for name in volt_parent_files:
+			volt_data = None
+
+			filenames_dat = volt_parent_files[name]
+			filenames_gdf = spikes_parent_files[name]
+
+			for filename in filenames_dat:
+				with open(f"{folder}/{filename}") as file:
+					filedata = np.array([line.split()[1:] for line in file.readlines()]).astype(float)
+					if volt_data is None:
+						volt_data = filedata
+					else:
+						volt_data = np.concatenate((volt_data, filedata), axis=0)
+
+					print(filename, volt_data)
+
+			volt_data = volt_data[volt_data[:, k_times].argsort()]
+			time_parts = len(np.unique(volt_data[:, k_times]))
+
+			volts = np.mean(np.split(volt_data[:, k_volts], time_parts), axis=1)
+			g_exc = np.mean(np.split(volt_data[:, k_g_exc], time_parts), axis=1)
+			g_inh = np.mean(np.split(volt_data[:, k_g_inh], time_parts), axis=1)
+			del volt_data
+
+			spikes = []
+			for filename in filenames_gdf:
+				with open(f"{folder}/{filename}") as file:
+					spikes += [float(line.split()[1]) for line in file.readlines()]
+
+			spikes = sorted(spikes)
+
+			for filename in filenames_dat:
+				os.remove(f"{folder}/{filename}")
+			for filename in filenames_gdf:
+				os.remove(f"{folder}/{filename}")
+
+			with open(f"{folder}/{name}.dat", 'w') as file:
+				file.write(" ".join(map(str, volts)))
+				file.write("\n")
+				file.write(" ".join(map(str, g_exc)))
+				file.write("\n")
+				file.write(" ".join(map(str, g_inh)))
+				file.write("\n")
+				file.write(" ".join(map(str, spikes)))
+
