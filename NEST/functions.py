@@ -93,8 +93,10 @@ class Functions:
 			                     "for membrane potential recording")
 
 		mm_params = {'label': name,
+		             'start': 0.,
+		             'file_extension': 'mm',
 		             'record_from': [record_from, "g_ex", "g_in"],
-		             'withgid': True,
+		             'withgid': False,
 		             'withtime': True,
 		             'interval': nest.GetKernelStatus('resolution'),
 		             'to_file': True,
@@ -112,7 +114,8 @@ class Functions:
 			list: list of spikedetector GID
 	    """
 		detector_params = {'label': name,
-		                   'withgid': True,
+		                   'withgid': False,
+		                   'file_extension': 'sd',
 		                   'to_file': True,
 		                   'to_memory': False}
 
@@ -132,17 +135,15 @@ class Functions:
 		r_params = self.__build_params
 		gids = [nest.Create(model=neuron_model, n=1, params=r_params())[0] for _ in range(nrn_number)]
 
-		if self.P.tests > 1 and name not in ["MN_E", "MN_F"]:
-			return gids
+		if self.P.save_all or name in ["MN_E", "MN_F", "CV1", "CV4"]:
+			mm_device = self.create_multimeter(name, record_from="V_m")
+			sd_device = self.create_spikedetector(name)
 
-		mm_device = self.create_multimeter(name, record_from="V_m")
-		sd_device = self.create_spikedetector(name)
+			self.multimeters.append(mm_device)
+			self.spikedetectors.append(sd_device)
 
-		self.multimeters.append(mm_device)
-		self.spikedetectors.append(sd_device)
-
-		nest.Connect(pre=mm_device, post=gids)
-		nest.Connect(pre=gids, post=sd_device)
+			nest.Connect(pre=mm_device, post=gids)
+			nest.Connect(pre=gids, post=sd_device)
 
 		return gids
 
@@ -208,14 +209,12 @@ class Functions:
 			t_end = self.P.T_sim
 
 		# parameters
-		spike_gen_params = {'rate': float(rate),
+		spike_gen_params = {'rate': 20000.0,
 		                    'start': float(t_start),
 		                    'stop': float(t_end)}
 
 		syn_spec = {'model': 'static_synapse',
-		            'weight': {"distribution": "normal",
-		                       "mu": float(50),
-		                       "sigma": float(50) / 10},
+		            'weight': 500.0,
 		            'delay': 0.1}
 
 		conn_spec = {'rule': 'all_to_all',
@@ -292,7 +291,12 @@ class Functions:
 			nest.Simulate(self.P.step_cycle)
 
 
-	def save(self):
+	def check(self, data):
+		for d in data:
+			if len(d) == 4:
+				yield d
+
+	def resave(self):
 		k_times = 0
 		k_volts = 1
 		k_g_exc = 2
@@ -307,12 +311,12 @@ class Functions:
 		spikes_parent_files = defaultdict(list)
 
 		# voltages
-		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.dat'), os.listdir(folder)):
+		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.mm'), os.listdir(folder)):
 			parent_name = filename.split("-")[0]
 			volt_parent_files[parent_name].append(filename)
 
 		# spikes
-		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.gdf'), os.listdir(folder)):
+		for filename in filter(lambda f: f.startswith(prefix) and f.endswith('.sd'), os.listdir(folder)):
 			parent_name = filename.split("-")[0]
 			spikes_parent_files[parent_name].append(filename)
 
@@ -322,28 +326,35 @@ class Functions:
 			filenames_dat = volt_parent_files[name]
 			filenames_gdf = spikes_parent_files[name]
 
-			for filename in filenames_dat:
-				with open(f"{folder}/{filename}") as file:
-					filedata = np.array([line.split()[1:] for line in file.readlines()]).astype(float)
-					if volt_data is None:
-						volt_data = filedata
-					else:
-						volt_data = np.concatenate((volt_data, filedata), axis=0)
+			if len(filenames_dat) == 1:
+				continue
 
-					print(filename, volt_data)
+			for filename in filenames_dat:
+				print(filename)
+				with open(f"{folder}/{filename}") as file:
+					filedata = self.check((line.split("\t")[:-1] for line in file.readlines()))
+					filedata = np.array(list(filedata)).astype(float)
+					if len(filedata) > 0:
+						if volt_data is None:
+							volt_data = filedata
+						else:
+							volt_data = np.concatenate((volt_data, filedata), axis=0)
 
 			volt_data = volt_data[volt_data[:, k_times].argsort()]
 			time_parts = len(np.unique(volt_data[:, k_times]))
+			print(time_parts)
+			print(len(volt_data[:, k_volts]))
 
 			volts = np.mean(np.split(volt_data[:, k_volts], time_parts), axis=1)
 			g_exc = np.mean(np.split(volt_data[:, k_g_exc], time_parts), axis=1)
 			g_inh = np.mean(np.split(volt_data[:, k_g_inh], time_parts), axis=1)
+
 			del volt_data
 
 			spikes = []
 			for filename in filenames_gdf:
 				with open(f"{folder}/{filename}") as file:
-					spikes += [float(line.split()[1]) for line in file.readlines()]
+					spikes += list(map(float, file.readlines()))
 
 			spikes = sorted(spikes)
 

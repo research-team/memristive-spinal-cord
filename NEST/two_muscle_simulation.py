@@ -16,7 +16,7 @@ class V3(Functions):
 			iteration (int):
 		"""
 		nest.ResetKernel()
-		nest.SetKernelStatus({'data_path': "",
+		nest.SetKernelStatus({'data_path': "dat",
 		                      'print_time': True,
 		                      'resolution': 0.025,
 		                      'overwrite_files': True,
@@ -27,19 +27,17 @@ class V3(Functions):
 		super().__init__(parameters)
 		self.P = parameters
 
-		# self.init_network()
-		# self.simulate()
-		self.save()
+		self.init_network()
+		self.simulate()
+		self.resave()
 
 	def init_network(self):
 		"""
 		TODO add info
-		Args:
-			P (Parameters):
 		"""
 		inh_coef = 1
 		quadru_coef = 0.5 if self.P.ped == 4 else 1
-		sero_coef = 5.3 if self.P.ht5 == 1 else 1
+		sero_coef = 5.3 if self.P.ht5 else 1
 
 		syn_outdegree = 27          # synapse number outgoing from one neuron
 		neurons_in_ip = 196         # number of neurons in interneuronal pool
@@ -56,13 +54,13 @@ class V3(Functions):
 		E4 = self.form_group("E4")
 		E5 = self.form_group("E5")
 
-		CV1 = self.form_group("CV1", 1)
-		CV2 = self.form_group("CV2", 1)
-		CV3 = self.form_group("CV3", 1)
-		CV4 = self.form_group("CV4", 1)
-		CV5 = self.form_group("CV5", 1)
-		CD4 = self.form_group("CD4", 1)
-		CD5 = self.form_group("CD5", 1)
+		CV1 = self.form_group("CV1", 20)
+		CV2 = self.form_group("CV2", 20)
+		CV3 = self.form_group("CV3", 20)
+		CV4 = self.form_group("CV4", 20)
+		CV5 = self.form_group("CV5", 20)
+		CD4 = self.form_group("CD4", 20)
+		CD5 = self.form_group("CD5", 20)
 
 		OM1_0 = self.form_group("OM1_0")
 		OM1_1 = self.form_group("OM1_1")
@@ -113,11 +111,12 @@ class V3(Functions):
 		iIP_F = self.form_group("iIP_F", neurons_in_ip)
 
 		self.connect_spike_generator(EES, rate=self.P.EES)
-		self.connect_noise_generator(CV1, rate=200, t_end=self.P.skin_stim)
-		self.connect_noise_generator(CV2, rate=200, t_start=self.P.skin_stim, t_end=2 * self.P.skin_stim)
-		self.connect_noise_generator(CV3, rate=200, t_start=2 * self.P.skin_stim, t_end=3 * self. P.skin_stim)
-		self.connect_noise_generator(CV4, rate=200, t_start=3 * self.P.skin_stim, t_end=5 * self. P.skin_stim)
-		self.connect_noise_generator(CV5, rate=200, t_start=5 * self.P.skin_stim, t_end=6 * self. P.skin_stim)
+		self.connect_noise_generator(CV1, rate=2000, t_end=self.P.skin_stim)
+		self.connect_noise_generator(CV2, rate=2000, t_start=self.P.skin_stim, t_end=2 * self.P.skin_stim)
+		self.connect_noise_generator(CV3, rate=2000, t_start=2 * self.P.skin_stim, t_end=3 * self. P.skin_stim)
+		self.connect_noise_generator(CV4, rate=2000, t_start=3 * self.P.skin_stim, t_end=5 * self. P.skin_stim)
+		self.connect_noise_generator(CV5, rate=2000, t_start=5 * self.P.skin_stim, t_end=6 * self. P.skin_stim)
+		self.connect_noise_generator(iIP_F, rate=2000, t_start=5 * self.P.skin_stim, t_end=6 * self. P.skin_stim)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 500, no_distr=True)
@@ -304,13 +303,13 @@ class V3(Functions):
 if __name__ == "__main__":
 	parameters = Parameters()
 	parameters.tests = 1
-	parameters.steps = 3
+	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
 	parameters.inh = 100
 	parameters.ped = 2
-	parameters.ht5 = 0
-	parameters.save_all = 0
+	parameters.ht5 = False
+	parameters.save_all = False
 
 	for i in range(parameters.tests):
 		V3(parameters, iteration=i)
