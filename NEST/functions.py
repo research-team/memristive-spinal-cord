@@ -135,7 +135,7 @@ class Functions:
 		r_params = self.__build_params
 		gids = [nest.Create(model=neuron_model, n=1, params=r_params())[0] for _ in range(nrn_number)]
 
-		if self.P.save_all or name in ["MN_E", "MN_F", "CV1", "CV4"]:
+		if self.P.save_all or name in ["MN_E", "MN_F", "CV1", "CV4", "iIP_F"]:
 			mm_device = self.create_multimeter(name, record_from="V_m")
 			sd_device = self.create_spikedetector(name)
 
@@ -209,7 +209,7 @@ class Functions:
 			t_end = self.P.T_sim
 
 		# parameters
-		spike_gen_params = {'rate': 20000.0,
+		spike_gen_params = {'rate': float(rate),
 		                    'start': float(t_start),
 		                    'stop': float(t_end)}
 
@@ -255,7 +255,7 @@ class Functions:
 			no_distr (bool): disable distribution or no
 		"""
 		conn_spec = {'rule': 'all_to_all',  # fixed outgoing synapse number
-		             'multapses': True,     # allow recurring connections
+		             'multapses': False,    # allow recurring connections
 		             'autapses': False}     # allow self-connection
 		self.__connect(pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr)
 
