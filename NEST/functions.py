@@ -1,6 +1,8 @@
 import os
 import nest
 import numpy as np
+import pylab as plt
+from scipy.stats import norm
 from random import normalvariate
 from collections import defaultdict
 
@@ -60,7 +62,7 @@ class Functions:
 		# V_adj = -63.0;           // adjusts threshold to around -50 mV
 		# g_bar = 1500;            // [nS] the maximal possible conductivity
 
-		neuron_params = {'t_ref': normalvariate(3.0, 0.4),  # [ms] refractory period
+		neuron_params = {'t_ref': normalvariate(3, 0.4),  # [ms] refractory period
 		                 'V_m': -70.0,      # [mV] starting value of membrane potential
 		                 'E_L': -72.0,      # [mV] Reversal potential for the leak current
 		                 'g_Na': 20000.0,   # [nS] Maximal conductance of the Sodium current
@@ -72,7 +74,7 @@ class Functions:
 		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
 		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)
 		                 'tau_syn_in': 2.0, # [ms] Decay time of inhibitory synaptic current (ms)
-		                 'C_m': normalvariate(200.0, 6)}  # [pF]
+		                 'C_m': normalvariate(200, 6)}  # [pF]
 
 		return neuron_params
 
@@ -135,7 +137,7 @@ class Functions:
 		r_params = self.__build_params
 		gids = [nest.Create(model=neuron_model, n=1, params=r_params())[0] for _ in range(nrn_number)]
 
-		if self.P.save_all or name in ["MN_E", "MN_F", "CV1", "CV4", "iIP_F"]:
+		if self.P.save_all or name in ["MN_E", "MN_F"]:
 			mm_device = self.create_multimeter(name, record_from="V_m")
 			sd_device = self.create_spikedetector(name)
 
@@ -163,14 +165,15 @@ class Functions:
 			offset (int or float):
 				time offset
 		"""
+		resolution = nest.GetKernelStatus()['resolution']
 		if not t_start:
-			t_start = nest.GetKernelStatus()['resolution']
+			t_start = resolution
 		if not t_end:
 			t_end = self.P.T_sim
 
 		# total possible number of spikes without t_start and t_end at current rate
 		num_spikes = self.P.T_sim // (1000 / rate)
-		spike_times = np.arange(num_spikes) * round(1000 / rate, 2) + offset
+		spike_times = np.arange(num_spikes) * round(1000 / rate, 2) + offset + resolution
 		spike_times = spike_times[(t_start <= spike_times) & (spike_times < t_end)]
 
 		# parameters
@@ -194,13 +197,13 @@ class Functions:
 		"""
 		TODO add info
 		Args:
-			node (tuple or list):
+			node (list):
 				GIDs of the neurons
-			t_start (int):
+			t_start (float):
 				start stimulation time
-			t_end (int):
+			t_end (float):
 				end stimulation time
-			rate (int):
+			rate (float):
 				frequency rate
 		"""
 		if not t_start:
@@ -214,7 +217,7 @@ class Functions:
 		                    'stop': float(t_end)}
 
 		syn_spec = {'model': 'static_synapse',
-		            'weight': 500.0,
+		            'weight': 300.0,
 		            'delay': 0.1}
 
 		conn_spec = {'rule': 'all_to_all',
@@ -242,6 +245,41 @@ class Functions:
 
 		# NEST connection
 		nest.Connect(pre=pre_ids, post=post_ids, syn_spec=syn_spec, conn_spec=conn_spec)
+
+		if False:
+			y_nest_delay = [nest.GetStatus([conn])[0]['delay'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
+			y_nest_weight = [nest.GetStatus([conn])[0]['weight'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
+
+			y_orig_delay = np.random.normal(syn_delay, syn_delay / 5, len(y_nest_delay))
+			y_orig_weight = np.random.normal(syn_weight, syn_weight / 10, len(y_nest_weight))
+
+			clr_nest = 'orange'
+			clr_orig = 'b'
+
+			plt.figure()
+			plt.subplot(121)
+			plt.title("Delay")
+			plt.plot(range(len(y_nest_delay)), sorted(y_nest_delay), label="NEST", color=clr_nest)
+			plt.plot(range(len(y_orig_delay)), sorted(y_orig_delay), label="orig", color=clr_orig)
+			plt.axhline(y=syn_delay)
+			plt.axhline(y=max(y_orig_delay), color=clr_orig)
+			plt.axhline(y=max(y_nest_delay), color=clr_nest)
+			plt.axhline(y=min(y_orig_delay), color=clr_orig)
+			plt.axhline(y=min(y_nest_delay), color=clr_nest)
+
+			plt.subplot(122)
+			plt.title("Weight")
+			plt.plot(range(len(y_nest_weight)), sorted(y_nest_weight), label="NEST", color='orange')
+			plt.plot(range(len(y_orig_weight)), sorted(y_orig_weight), label="orig", color='b')
+			plt.axhline(y=syn_weight)
+			plt.axhline(y=max(y_orig_weight), color=clr_orig)
+			plt.axhline(y=max(y_nest_weight), color=clr_nest)
+			plt.axhline(y=min(y_orig_weight), color=clr_orig)
+			plt.axhline(y=min(y_nest_weight), color=clr_nest)
+
+			plt.legend()
+			plt.show()
+			plt.close()
 
 
 	def connect_one_to_all(self, pre_ids, post_ids, syn_delay, syn_weight, no_distr=False):
@@ -342,8 +380,6 @@ class Functions:
 
 			volt_data = volt_data[volt_data[:, k_times].argsort()]
 			time_parts = len(np.unique(volt_data[:, k_times]))
-			print(time_parts)
-			print(len(volt_data[:, k_volts]))
 
 			volts = np.mean(np.split(volt_data[:, k_volts], time_parts), axis=1)
 			g_exc = np.mean(np.split(volt_data[:, k_g_exc], time_parts), axis=1)
@@ -371,4 +407,3 @@ class Functions:
 				file.write(" ".join(map(str, g_inh)))
 				file.write("\n")
 				file.write(" ".join(map(str, spikes)))
-

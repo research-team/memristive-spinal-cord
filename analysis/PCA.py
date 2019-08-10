@@ -149,6 +149,22 @@ def poly_area_by_coords(x, y):
 	return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
+def split_by_slices(data, slice_length):
+	"""
+	TODO: add docstring
+	Args:
+		data (np.ndarray): data array
+		slice_length (int): slice length in steps
+	Returns:
+		np.ndarray: sliced data
+	"""
+	slices_begin_indexes = range(0, len(data) + 1, slice_length)
+	splitted_per_slice = [data[beg:beg + slice_length] for beg in slices_begin_indexes]
+	# remove tails
+	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
+		del splitted_per_slice[-1]
+
+
 def calc_boxplots(dots):
 	"""
 	Function for calculating boxplots from array of dots
@@ -501,14 +517,17 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	slice_in_ms = int(1000 / ees_hz)
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / data_step)
-	shared_x = np.arange(slice_in_ms / data_step) * data_step
+	slice_in_steps = int(slice_in_ms / data_step)
+	shared_x = np.arange(slice_in_steps) * data_step
 	# get number of slices based on length of the bio data
 	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
-	# split original data only for visualization
-	splitted_per_slice_original = np.split(data_test_runs.T, slices_number)
-	# calc boxplot per step and split it by number of slices
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in data_test_runs.T])
-	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
+
+	original_data = data_test_runs.T
+	# calc boxplot per dot
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
+	# split data by slices
+	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
+	splitted_per_slice_original = split_by_slices(original_data, slice_in_steps)
 
 	# compute latency per slice
 	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
@@ -549,6 +568,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# get the minima extremuma of mono answers (Q1 is lower than Q3, so take a Q1 data)
 		e_mono_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes < ees_zone_time]
 		# find an index of the biggest delta between first dot (median[0]) and mono extremuma
+
+		if len(e_mono_Q1_minima_indexes) == 0:
+			global_amp_values.append(0)
+			global_lat_indexes.append(24.5)
+			global_mono_indexes.append(3)
+			continue
+
 		max_delta_Q1_index = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))[0]
 		# get index of extremuma with the biggest delta
 		mono_answer_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
@@ -791,22 +817,22 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 
 	# additional properties
 	slice_in_ms = int(1000 / ees_hz)
-	# set ees area, before that time we don't try to find latencies
-	shared_x = np.arange(slice_in_ms / data_step) * data_step
 	slices_number = int(len(all_data[0]) / (slice_in_ms / data_step))
-
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in all_data.T])
-	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
+	slice_in_steps = int(1000 / ees_hz / data_step)
 
 	yticks = []
-	xticks = range(slice_in_ms + 1)
-	slice_indexes = range(1, slices_number + 1)
 	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
 
+	# calc boxplot per dot
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in all_data.T])
+
 	plt.subplots(figsize=(16, 9))
+	# split by slices
+	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
 
 	for slice_index, data in enumerate(splitted_per_slice_boxplots):
 		data += slice_index
+		shared_x = np.arange(len(data[:, k_fliers_high])) * data_step
 		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7)
 		plt.plot(shared_x, data[:, k_median], color='k')
 		yticks.append(data[:, k_median][0])
@@ -816,8 +842,10 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k')
 	plt.plot(lat_x, lat_y, '.', markersize=25, color='k')
 
+	xticks = range(slice_in_ms + 1)
 	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
 	yticklabels = [None] * slices_number
+	slice_indexes = range(1, slices_number + 1)
 	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
 		yticklabels[i] = slice_indexes[i]
 
@@ -854,9 +882,14 @@ def get_peaks(data, herz, step):
 	latencies, amplitudes, _ = get_lat_amp(data, herz, step)
 
 	for i, run_data in enumerate(data):
-		for sliced_data in np.split(smooth(run_data, 7), slices_number):
-			e_all_minima_indexes, e_all_minima_values = find_extremuma(sliced_data, np.less_equal)
-			e_all_maxima_indexes, e_all_maxima_values = find_extremuma(sliced_data, np.greater_equal)
+		# smooth data to remove micro-peaks
+		smoothed_data = smooth(run_data, 7)
+		# split data by slice based on EES (slice length)
+		splitted_per_slice = split_by_slices(smoothed_data, slice_length)
+		# calc extrema per slice data
+		for slice_data in splitted_per_slice:
+			e_all_minima_indexes, e_all_minima_values = find_extremuma(slice_data, np.less_equal)
+			e_all_maxima_indexes, e_all_maxima_values = find_extremuma(slice_data, np.greater_equal)
 
 			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > l_poly_border]
 			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > l_poly_border]
@@ -1004,7 +1037,7 @@ def recolor(boxplot_elements, color, fill_color):
 		patch.set(facecolor=fill_color)
 
 
-def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mono_per_slice, folder, filename):
+def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mono_per_slice, folder, filename, ees_hz):
 	"""
 	TODO: add docstring
 	Args:
@@ -1021,7 +1054,9 @@ def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, a
 	color = "#472650"
 	fill_color = "#9D8DA3"
 	slices_number = len(amp_per_slice)
+	slice_length = int(1000 / ees_hz / step)
 	slice_indexes = np.array(range(slices_number))
+
 	# calc boxplots per iter
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in np.array(all_data).T])
 
@@ -1056,10 +1091,9 @@ def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, a
 		log.info(f"Plotted {title} for {filename}")
 
 	# form areas
-	mono_area = [slice_data[:int(time / step)] for time, slice_data in
-	             zip(mono_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
-	poly_area = [slice_data[int(time / step):] for time, slice_data in
-		         zip(lat_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
+	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_length)
+	mono_area = [slice_data[:int(time / step)] for time, slice_data in zip(mono_per_slice, splitted_per_slice_boxplots)]
+	poly_area = [slice_data[int(time / step):] for time, slice_data in zip(lat_per_slice, splitted_per_slice_boxplots)]
 
 	# plot per area
 	for data_test_runs, title in (mono_area, "mono"), (poly_area, "poly"):
@@ -1114,7 +1148,8 @@ def for_article():
 	"""
 	# stuff variables
 	all_pack = []
-	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"])
+	data_step = 0.25
+	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"] * 10)
 
 	# list of filenames for easily reading data
 	bio_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
@@ -1137,24 +1172,21 @@ def for_article():
 	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
 	]
 
-	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/data/gras"
-	gras_pack = [
-	    "gras_E_15cms_40Hz_i100_2pedal_5ht_T",
-	    "gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
-	    "gras_E_15cms_40Hz_i100_4pedal_no5ht_T",
-	    "gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	    "gras_E_21cms_40Hz_i100_4pedal_no5ht_T"
-	]
+	gras_folder = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/dat"
+	gras_pack = [f"gras_E_21cms_{ees}Hz_i100_2pedal_no5ht_T" for ees in list(range(10, 101, 10))]
 
 	# control
-	pack = bio_pack
-	folder = bio_folder
-	plot_pca_flag = True
-	plot_slices_flag = False
-	plot_histogram_flag = False
+	pack = gras_pack
+	folder = gras_folder
+	plot_pca_flag = False
+	plot_slices_flag = True
+	plot_histogram_flag = True
 
 	# prepare data per file
 	for data_name in pack:
+		ees = int(data_name[:data_name.find("Hz")].split("_")[-1])
+		speed = data_name[:data_name.find("cms")].split("_")[-1]
+
 		log.info(f"prepare {data_name}")
 		path_extensor = f"{folder}/{data_name}.hdf5"
 		path_flexor = f"{folder}/{data_name.replace('_E_', '_F_')}.hdf5"
@@ -1174,23 +1206,22 @@ def for_article():
 			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
 			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
 		# prepare each data (stepping, centering, normalization)
-		e_prepared_data = prepare_data(e_dataset)
-		f_prepared_data = prepare_data(f_dataset)
+		e_data = prepare_data(e_dataset)
+		f_data = prepare_data(f_dataset)
 		# get latencies, amplitudes and begining of poly answers
-		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data,
-		                                                           ees_hz=40, data_step=0.25, debugging=False)
+		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_data, ees_hz=ees, data_step=data_step)
 		# get number of peaks per slice
-		peaks_per_slice = get_peaks(e_prepared_data, herz=40, step=0.25)[7]
+		peaks_per_slice = get_peaks(e_data, herz=ees, step=data_step)[7]
 		# form data pack
 		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
 		# plot histograms of amplitudes and number of peaks
 		if plot_histogram_flag:
-			plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, e_prepared_data, mono_per_slice,
-			                            folder=folder, filename=data_name)
+			plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, e_data, mono_per_slice,
+			                            folder=folder, filename=data_name, ees_hz=ees)
 		# plot all slices with pattern
 		if plot_slices_flag:
-			plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
-			                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
+			plot_slices_for_article(e_data, f_data, lat_per_slice,
+			                        ees_hz=ees, data_step=data_step, folder=folder, filename=data_name)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
 		plot_3D_PCA_for_article(all_pack, folder=folder)
@@ -1203,8 +1234,6 @@ def plot_pca(debugging=False, plot_3d=False):
 		debugging:
 		plot_3d:
 	"""
-	if debugging:
-		log.basicConfig(level=log.INFO)
 
 	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
 	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
@@ -1330,6 +1359,9 @@ def plot_pca(debugging=False, plot_3d=False):
 
 
 def run():
+	if True:
+		log.basicConfig(level=log.INFO)
+
 	for_article()
 
 

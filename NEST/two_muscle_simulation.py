@@ -111,12 +111,12 @@ class V3(Functions):
 		iIP_F = self.form_group("iIP_F", neurons_in_ip)
 
 		self.connect_spike_generator(EES, rate=self.P.EES)
-		self.connect_noise_generator(CV1, rate=3000, t_end=self.P.skin_stim)
-		self.connect_noise_generator(CV2, rate=3000, t_start=self.P.skin_stim, t_end=2 * self.P.skin_stim - 2)
-		self.connect_noise_generator(CV3, rate=3000, t_start=2 * self.P.skin_stim, t_end=3 * self.P.skin_stim - 2)
-		self.connect_noise_generator(CV4, rate=3000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
-		self.connect_noise_generator(CV5, rate=3000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
-		self.connect_noise_generator(iIP_F, rate=3000, t_start=5 * self.P.skin_stim, t_end=11 * self. P.skin_stim - 5)
+		self.connect_noise_generator(CV1, rate=5000, t_end=self.P.skin_stim - 2)
+		self.connect_noise_generator(CV2, rate=5000, t_start=self.P.skin_stim, t_end=2 * self.P.skin_stim - 2)
+		self.connect_noise_generator(CV3, rate=5000, t_start=2 * self.P.skin_stim, t_end=3 * self.P.skin_stim - 2)
+		self.connect_noise_generator(CV4, rate=5000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
+		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
+		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim, t_end=11 * self. P.skin_stim - 5)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 500, no_distr=True)
@@ -309,7 +309,7 @@ if __name__ == "__main__":
 	parameters.inh = 100
 	parameters.ped = 2
 	parameters.ht5 = False
-	parameters.save_all = False
+	parameters.save_all = True
 
 	for i in range(parameters.tests):
 		V3(parameters, iteration=i)
