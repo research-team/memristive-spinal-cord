@@ -163,6 +163,7 @@ def split_by_slices(data, slice_length):
 	# remove tails
 	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
 		del splitted_per_slice[-1]
+	return splitted_per_slice
 
 
 def calc_boxplots(dots):
@@ -265,7 +266,7 @@ def max_at(array):
 	return index, value
 
 
-def find_extremuma(array, condition):
+def find_extrema(array, condition):
 	"""
 	Wrapper of numpy.argrelextrema for siplifying code
 	Args:
@@ -554,13 +555,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		"""[2] find all extremuma"""
 		# find all Q1 extremuma indexes and values
-		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extremuma(smoothed_Q1, np.less_equal)
-		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extremuma(smoothed_Q1, np.greater_equal)
+		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extrema(smoothed_Q1, np.less_equal)
+		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extrema(smoothed_Q1, np.greater_equal)
 		log.info(f"all Q1 minima extrema: {e_all_Q1_minima_indexes}")
 		log.info(f"all Q1 maxima extrema: {e_all_Q1_maxima_indexes}")
 		# find all Q3 extremuma indexes and values
-		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
-		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
+		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extrema(smoothed_Q3, np.less_equal)
+		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extrema(smoothed_Q3, np.greater_equal)
 		log.info(f"all Q3 minima extrema: {e_all_Q3_minima_indexes}")
 		log.info(f"all Q3 maxima extrema: {e_all_Q3_maxima_indexes}")
 
@@ -597,6 +598,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		"""[5] find a latency"""
 		delta_poly_diff = np.abs(np.diff(delta_smoothed_data[l_poly_border:], n=1))
+
+		if not len(delta_poly_diff):
+			global_amp_values.append(0)
+			global_lat_indexes.append(24.5)
+			global_mono_indexes.append(mono_answer_index)
+			continue
+
 		diff_Q1, diff_median, diff_Q3 = np.percentile(delta_poly_diff, percents)
 		allowed_diff_for_extremuma = diff_median
 
@@ -606,6 +614,12 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		poly_gradient_diff = np.abs(np.diff(poly_gradient, n=1))
 		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
 		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
+
+		if not len(poly_gradient[poly_gradient_diff > Q3]):
+			global_amp_values.append(0)
+			global_lat_indexes.append(24.5)
+			global_mono_indexes.append(mono_answer_index)
+			continue
 
 		gradient_Q1, gradient_med, gradient_Q3 = np.percentile(poly_gradient[poly_gradient_diff > Q3], percents)
 
@@ -859,15 +873,15 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	plt.close()
 
 
-def get_peaks(data, herz, step):
+def get_peaks(data_runs, herz, step):
 	"""
 	TODO: add docstring
 	Args:
-		data:
+		data_runs:
 		herz:
 		step:
 	Returns:
-
+		list: number of peaks per slice
 	"""
 	max_times_amp = []
 	max_values_amp = []
@@ -876,26 +890,26 @@ def get_peaks(data, herz, step):
 	max_peaks = []
 	min_peaks = []
 
-	l_poly_border = int(10 / step)
+	data_step = 0.25
 	slice_length = int(1000 / herz / step)
-	slices_number = len(data[0]) // slice_length
-	latencies, amplitudes, _ = get_lat_amp(data, herz, step)
+	latencies, amplitudes, poly_borders = get_lat_amp(data_runs, herz, step)
 
-	for i, run_data in enumerate(data):
+	for data in data_runs:
 		# smooth data to remove micro-peaks
-		smoothed_data = smooth(run_data, 7)
+		smoothed_data = smooth(data, 7)
 		# split data by slice based on EES (slice length)
 		splitted_per_slice = split_by_slices(smoothed_data, slice_length)
 		# calc extrema per slice data
-		for slice_data in splitted_per_slice:
-			e_all_minima_indexes, e_all_minima_values = find_extremuma(slice_data, np.less_equal)
-			e_all_maxima_indexes, e_all_maxima_values = find_extremuma(slice_data, np.greater_equal)
+		for poly_border, slice_data in zip(poly_borders, splitted_per_slice):
+			poly_border = int(poly_border / data_step)
+			e_all_minima_indexes, e_all_minima_values = find_extrema(slice_data, np.less_equal)
+			e_all_maxima_indexes, e_all_maxima_values = find_extrema(slice_data, np.greater_equal)
 
-			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > l_poly_border]
-			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > l_poly_border]
+			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > poly_border]
+			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > poly_border]
 
-			e_poly_maxima_indexes = e_all_maxima_indexes[e_all_maxima_indexes > l_poly_border]
-			e_poly_maxima_values = e_all_maxima_values[e_all_maxima_indexes > l_poly_border]
+			e_poly_maxima_indexes = e_all_maxima_indexes[e_all_maxima_indexes > poly_border]
+			e_poly_maxima_values = e_all_maxima_values[e_all_maxima_indexes > poly_border]
 
 			min_peaks.append(len(e_poly_minima_indexes))
 			max_peaks.append(len(e_poly_maxima_indexes))
@@ -906,20 +920,20 @@ def get_peaks(data, herz, step):
 			max_times_amp.append(e_poly_maxima_indexes)
 			max_values_amp.append(e_poly_maxima_values)
 
-	min_peaks = np.split(np.array(min_peaks), len(data))
-	max_peaks = np.split(np.array(max_peaks), len(data))
+	min_peaks = np.split(np.array(min_peaks), len(data_runs))
+	max_peaks = np.split(np.array(max_peaks), len(data_runs))
 
-	min_times_amp = np.split(np.array(min_times_amp), len(data))
-	min_values_amp = np.split(np.array(min_values_amp), len(data))
+	min_times_amp = np.split(np.array(min_times_amp), len(data_runs))
+	min_values_amp = np.split(np.array(min_values_amp), len(data_runs))
 
-	max_times_amp = np.split(np.array(max_times_amp), len(data))
-	max_values_amp = np.split(np.array(max_values_amp), len(data))
+	max_times_amp = np.split(np.array(max_times_amp), len(data_runs))
+	max_values_amp = np.split(np.array(max_values_amp), len(data_runs))
 
 	sum_peaks = []
 	for i in range(len(min_peaks)):
 		for j in range(len(min_peaks[i])):
 			sum_peaks.append(max_peaks[i][j] + min_peaks[i][j])
-	sum_peaks = sum(sum_peaks) / len(data)
+	sum_peaks = sum(sum_peaks) / len(data_runs)
 
 	sum_peaks_for_plot = []
 	for j in range(len(max_peaks)):
@@ -928,17 +942,16 @@ def get_peaks(data, herz, step):
 			sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
 		sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
 
-	avg_sum_peaks_in_sl = list(map(sum, np.array(sum_peaks_for_plot).T))
-	avg_sum_peaks_in_sl = [a / len(data) for a in avg_sum_peaks_in_sl]
-	for a in range(len(avg_sum_peaks_in_sl)):
-		avg_sum_peaks_in_sl[a] = round(avg_sum_peaks_in_sl[a], 1)
+	avg_sum_peaks_per_slice = list(map(sum, np.array(sum_peaks_for_plot).T))
+	avg_sum_peaks_per_slice = [a / len(data_runs) for a in avg_sum_peaks_per_slice]
+	for a in range(len(avg_sum_peaks_per_slice)):
+		avg_sum_peaks_per_slice[a] = round(avg_sum_peaks_per_slice[a], 1)
 
 	all_peaks_sum = []
 	for i in range(len(sum_peaks_for_plot)):
 		all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
-	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes, \
-	       sum_peaks_for_plot, avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
+	return avg_sum_peaks_per_slice
 
 
 def prepare_data(dataset):
@@ -1172,8 +1185,8 @@ def for_article():
 	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
 	]
 
-	gras_folder = "/home/yuliya/Desktop/STDP/GRAS/matrix_solution/dat"
-	gras_pack = [f"gras_E_21cms_{ees}Hz_i100_2pedal_no5ht_T" for ees in list(range(10, 101, 10))]
+	gras_folder = "/home/alex/ne"
+	gras_pack = [f"neuron_E_21cms_{ees}Hz_i100_2pedal_no5ht_T" for ees in [5,10,20,60,70,80,90,100]]
 
 	# control
 	pack = gras_pack
@@ -1203,15 +1216,15 @@ def for_article():
 			flexor_begin = extensor_end
 			flexor_end = extensor_end + (7000 if "4pedal" in data_name else 5000)
 			# use native funcion for get needful data
-			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
-			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
+			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end, sign=-1)
+			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, sign=-1)
 		# prepare each data (stepping, centering, normalization)
 		e_data = prepare_data(e_dataset)
 		f_data = prepare_data(f_dataset)
 		# get latencies, amplitudes and begining of poly answers
 		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_data, ees_hz=ees, data_step=data_step)
 		# get number of peaks per slice
-		peaks_per_slice = get_peaks(e_data, herz=ees, step=data_step)[7]
+		peaks_per_slice = get_peaks(e_data, herz=ees, step=data_step)
 		# form data pack
 		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
 		# plot histograms of amplitudes and number of peaks
@@ -1243,7 +1256,7 @@ def plot_pca(debugging=False, plot_3d=False):
 	dataset = read_data(bio_path)
 	prepared_data = prepare_data(dataset)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
 	# form data pack
 	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
 
@@ -1251,7 +1264,7 @@ def plot_pca(debugging=False, plot_3d=False):
 	dataset = select_slices(gras_path, 0, 6000, sign=1)
 	prepared_data = prepare_data(dataset)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
 	# form data pack
 	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
 
@@ -1259,7 +1272,7 @@ def plot_pca(debugging=False, plot_3d=False):
 	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
 	prepared_data = prepare_data(dataset)
 	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
+	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
 	# form data pack
 	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
 
@@ -1359,8 +1372,7 @@ def plot_pca(debugging=False, plot_3d=False):
 
 
 def run():
-	if True:
-		log.basicConfig(level=log.INFO)
+
 
 	for_article()
 
