@@ -2,7 +2,6 @@ import os
 import nest
 import numpy as np
 import pylab as plt
-from scipy.stats import norm
 from random import normalvariate
 from collections import defaultdict
 
@@ -49,19 +48,17 @@ class Functions:
 		P.T_sim = float(P.step_cycle * P.steps)
 
 		self.P = P
-		self.cv_generators = []
 		self.multimeters = []
+		self.cv_generators = []
 		self.spikedetectors = []
 
 
 	def __build_params(self):
 		"""
+		ToDo add info
 		Returns:
-			dict:
+			dict: formed neuron's params with randomization
 		"""
-		# V_adj = -63.0;           // adjusts threshold to around -50 mV
-		# g_bar = 1500;            // [nS] the maximal possible conductivity
-
 		neuron_params = {'t_ref': normalvariate(3, 0.4),  # [ms] refractory period
 		                 'V_m': -70.0,      # [mV] starting value of membrane potential
 		                 'E_L': -72.0,      # [mV] Reversal potential for the leak current
@@ -74,7 +71,7 @@ class Functions:
 		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
 		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)
 		                 'tau_syn_in': 2.0, # [ms] Decay time of inhibitory synaptic current (ms)
-		                 'C_m': normalvariate(200, 6)}  # [pF]
+		                 'C_m': normalvariate(200, 6)}  # [pF] capacity of membrane
 
 		return neuron_params
 
@@ -246,7 +243,7 @@ class Functions:
 		# NEST connection
 		nest.Connect(pre=pre_ids, post=post_ids, syn_spec=syn_spec, conn_spec=conn_spec)
 
-		if False:
+		if True:
 			y_nest_delay = [nest.GetStatus([conn])[0]['delay'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
 			y_nest_weight = [nest.GetStatus([conn])[0]['weight'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
 
@@ -318,6 +315,9 @@ class Functions:
 
 
 	def simulate(self):
+		"""
+		ToDo add info
+		"""
 		# simulate the topology by step cycle
 		for step_index in range(self.P.steps):
 			# update CV generators time
@@ -334,7 +334,11 @@ class Functions:
 			if len(d) == 4:
 				yield d
 
+
 	def resave(self):
+		"""
+		ToDo add info
+		"""
 		k_times = 0
 		k_volts = 1
 		k_g_exc = 2

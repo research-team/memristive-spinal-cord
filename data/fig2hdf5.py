@@ -3,7 +3,7 @@ import pylab as plt
 from scipy.io import loadmat
 
 
-def plot_fig(filename):
+def plot_fig(filename, title, rat, begin, end):
 	d = loadmat(filename, squeeze_me=True, struct_as_record=False)
 	ax1 = d['hgS_070000'].children
 
@@ -12,33 +12,28 @@ def plot_fig(filename):
 
 	plt.figure(figsize=(16, 9))
 
-	for line in ax1.children:
-		if line.type == 'graph2d.lineseries':
-			mark = '.'
-			linestyle = '-'
-			r, g, b = 0, 0, 1
-			marker_size = 1
+	yticks = []
+	plt.suptitle(f"{title} [{begin} : {end}] \n {rat}")
 
-			if hasattr(line.properties, 'Marker'):
-				mark = str(line.properties.Marker)[0]
-			if hasattr(line.properties, 'LineStyle'):
-				linestyle = str(line.properties.LineStyle)
-			if hasattr(line.properties, 'Color'):
-				r, g, b = line.properties.Color
-			if hasattr(line.properties, 'MarkerSize'):
-				marker_size = line.properties.MarkerSize
+	for i, line in enumerate(ax1.children, 1):
+		if line.type == 'graph2d.lineseries':
+			if begin <= i <= end:
+				color = 'r'
+			else:
+				color = 'gray'
 
 			x = line.properties.XData
 			y = line.properties.YData
+			yticks.append(y[0])
 
-			plt.plot(x, y, marker=mark, linestyle=linestyle, color=(r, g, b), markersize=marker_size)
-
+			plt.plot(x, y, color=color)
+		if line.type == 'text':
+			break
 
 	plt.xlim(ax1.properties.XLim)
+	plt.yticks(yticks, range(1, len(yticks) + 1))
 
-	plt.show()
-
-
-path = '/home/alex/GitHub/data/spinal/QPZ/extensor/13.5cms/sliced/7/#7_112309_QUIP_BIPEDAL_burst7_Ton_21.fig'
-plot_fig(path)
-
+	folder = "/home/alex/r"
+	title_for_file = '_'.join(title.split())
+	plt.savefig(f"{folder}/{title_for_file}_{rat.replace('.fig', '')}.png", format="png", dpi=200)
+	plt.close()
