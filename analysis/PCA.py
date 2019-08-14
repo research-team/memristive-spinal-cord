@@ -515,13 +515,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	data_test_runs = np.array(data_test_runs)
 
 	# additional properties
-	slice_in_ms = int(1000 / ees_hz)
+	slice_in_ms = 1000 / ees_hz
+	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
+	slice_in_steps = int(slice_in_ms / data_step)
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / data_step)
-	slice_in_steps = int(slice_in_ms / data_step)
 	shared_x = np.arange(slice_in_steps) * data_step
 	# get number of slices based on length of the bio data
-	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
 
 	original_data = data_test_runs.T
 	# calc boxplot per dot
@@ -830,9 +830,9 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	latencies = (np.array(latencies) / data_step).astype(int)
 
 	# additional properties
-	slice_in_ms = int(1000 / ees_hz)
+	slice_in_ms = 1000 / ees_hz
 	slices_number = int(len(all_data[0]) / (slice_in_ms / data_step))
-	slice_in_steps = int(1000 / ees_hz / data_step)
+	slice_in_steps = int(slice_in_ms / data_step)
 
 	yticks = []
 	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
@@ -842,6 +842,7 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 
 	plt.subplots(figsize=(16, 9))
 	# split by slices
+	plt.suptitle(f"Hz {ees_hz} / slice_length {slice_in_steps}")
 	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
 
 	for slice_index, data in enumerate(splitted_per_slice_boxplots):
@@ -856,7 +857,7 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k')
 	plt.plot(lat_x, lat_y, '.', markersize=25, color='k')
 
-	xticks = range(slice_in_ms + 1)
+	xticks = range(int(slice_in_ms) + 1)
 	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
 	yticklabels = [None] * slices_number
 	slice_indexes = range(1, slices_number + 1)
@@ -873,12 +874,12 @@ def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_
 	plt.close()
 
 
-def get_peaks(data_runs, herz, step):
+def get_peaks(data_runs, ees_hz, step):
 	"""
 	TODO: add docstring
 	Args:
 		data_runs:
-		herz:
+		ees_hz:
 		step:
 	Returns:
 		list: number of peaks per slice
@@ -891,14 +892,17 @@ def get_peaks(data_runs, herz, step):
 	min_peaks = []
 
 	data_step = 0.25
-	slice_length = int(1000 / herz / step)
-	latencies, amplitudes, poly_borders = get_lat_amp(data_runs, herz, step)
+
+	slice_in_ms = 1000 / ees_hz
+	slice_in_steps = int(slice_in_ms / data_step)
+
+	latencies, amplitudes, poly_borders = get_lat_amp(data_runs, ees_hz, step)
 
 	for data in data_runs:
 		# smooth data to remove micro-peaks
 		smoothed_data = smooth(data, 7)
 		# split data by slice based on EES (slice length)
-		splitted_per_slice = split_by_slices(smoothed_data, slice_length)
+		splitted_per_slice = split_by_slices(smoothed_data, slice_in_steps)
 		# calc extrema per slice data
 		for poly_border, slice_data in zip(poly_borders, splitted_per_slice):
 			poly_border = int(poly_border / data_step)
@@ -1185,8 +1189,18 @@ def for_article():
 	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
 	]
 
-	gras_folder = "/home/alex/ne"
-	gras_pack = [f"neuron_E_21cms_{ees}Hz_i100_2pedal_no5ht_T" for ees in [5,10,20,60,70,80,90,100]]
+	gras_folder = "/home/alex/GitHub/data/cms_and_inh"
+	gras_pack = [
+		"gras_E_6cms_40Hz_i0_2pedal_no5ht_T",
+	    "gras_E_6cms_40Hz_i50_2pedal_no5ht_T",
+	    "gras_E_6cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_15cms_40Hz_i0_2pedal_no5ht_T",
+	    "gras_E_15cms_40Hz_i50_2pedal_no5ht_T",
+	    "gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i0_2pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i50_2pedal_no5ht_T",
+	    "gras_E_21cms_40Hz_i100_2pedal_no5ht_T"
+	]
 
 	# control
 	pack = gras_pack
@@ -1195,11 +1209,12 @@ def for_article():
 	plot_slices_flag = True
 	plot_histogram_flag = True
 
+	e_during_steps = {"6": 30000, "15": 12000, "21": 6000}
+
 	# prepare data per file
 	for data_name in pack:
 		ees = int(data_name[:data_name.find("Hz")].split("_")[-1])
 		speed = data_name[:data_name.find("cms")].split("_")[-1]
-
 		log.info(f"prepare {data_name}")
 		path_extensor = f"{folder}/{data_name}.hdf5"
 		path_flexor = f"{folder}/{data_name.replace('_E_', '_F_')}.hdf5"
@@ -1211,20 +1226,20 @@ def for_article():
 		else:
 			# calculate extensor borders
 			extensor_begin = 0
-			extensor_end = 12000 if "15cms" in data_name else 6000
+			extensor_end = e_during_steps[speed]
 			# calculate flexor borders
 			flexor_begin = extensor_end
 			flexor_end = extensor_end + (7000 if "4pedal" in data_name else 5000)
 			# use native funcion for get needful data
-			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end, sign=-1)
-			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, sign=-1)
+			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
+			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
 		# prepare each data (stepping, centering, normalization)
 		e_data = prepare_data(e_dataset)
 		f_data = prepare_data(f_dataset)
 		# get latencies, amplitudes and begining of poly answers
 		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_data, ees_hz=ees, data_step=data_step)
 		# get number of peaks per slice
-		peaks_per_slice = get_peaks(e_data, herz=ees, step=data_step)
+		peaks_per_slice = get_peaks(e_data, ees_hz=ees, step=data_step)
 		# form data pack
 		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
 		# plot histograms of amplitudes and number of peaks
