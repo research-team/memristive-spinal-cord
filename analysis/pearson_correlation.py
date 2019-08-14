@@ -44,10 +44,5 @@ def calc_correlation(array_a, array_b):
 	# calculate correlations
 	mono_corr = np.abs(__corr_coef_2D(array_b_mono, array_a_mono).flatten())
 	poly_corr = np.abs(__corr_coef_2D(array_b_poly, array_a_poly).flatten())
-	# plot boxplots
-	plt.boxplot([mono_corr, poly_corr], showfliers=False, whis=[5, 95])
 
-	for i, data, label in (1, mono_corr, 'mono'), (2, poly_corr, 'poly'):
-		plt.plot([i] * len(data), data, '.', label=label)
-	plt.legend()
-	plt.show()
+	return mono_corr, poly_corr
