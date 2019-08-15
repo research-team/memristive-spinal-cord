@@ -15,35 +15,30 @@ def fig2png(filename, title, rat, begin, end):
 	plt.figure(figsize=(16, 9))
 
 	yticks = []
-	# plt.suptitle(f"{title} [{begin} : {end}] \n {rat}")
+	plt.suptitle(f"{title} [{begin} : {end}] \n {rat}")
 
 	for i, line in enumerate(ax1.children, 1):
 		if line.type == 'graph2d.lineseries':
-			if begin <= i <= end:
-				color = 'r'
-			else:
-				color = 'gray'
-
 			x = line.properties.XData
-			y = line.properties.YData
+			y = line.properties.YData - i * 2
 			yticks.append(y[0])
 
-			plt.plot(x, y, color=color)
+			if begin <= i <= end:
+				plt.plot(x, y)
+			else:
+				plt.plot(x, y, color='gray', linestyle='--')
+
 		if line.type == 'text':
 			break
 
 	plt.xlim(ax1.properties.XLim)
 	plt.yticks(yticks, range(1, len(yticks) + 1))
 
-	folder = "/home/alex/r"
+	folder = "/home/alex/bio_data_png"
 	title_for_file = '_'.join(title.split())
-	# plt.savefig(f"{folder}/{title_for_file}_{rat.replace('.fig', '')}.png", format="png", dpi=200)
-	plt.show()
+	plt.tight_layout()
+	plt.savefig(f"{folder}/{title_for_file}_{rat.replace('.fig', '')}.png", format="png", dpi=200)
 	plt.close()
-
-# if __name__ == "__main__":
-# 	filename =
-# 	fig2png(filename, None, None, 1, 99)
 
 
 def fig2hdf5(filename, title, rat, begin, end):
@@ -54,6 +49,8 @@ def fig2hdf5(filename, title, rat, begin, end):
 		ax1 = ax1[0]
 
 	y_data = []
+
+	print(f"rat: {rat} \t title: {title}")
 
 	proper_index = 0
 	for i, line in enumerate(ax1.children, 1):
@@ -67,7 +64,6 @@ def fig2hdf5(filename, title, rat, begin, end):
 			break
 
 	title = title.lower()
-	print(title)
 	*mode, muscle, speed, _ = title.split()
 
 	mode = "_".join(mode)
@@ -77,7 +73,7 @@ def fig2hdf5(filename, title, rat, begin, end):
 
 	new_filename = f"bio_{muscle}_{speed}_40Hz_i100_2pedal_{qpz}5ht_T.hdf5"
 
-	folder = f"/home/alex/bio_new/{mode}"
+	folder = f"/home/alex/bio_data_hdf/{mode}"
 
 	if not os.path.exists(folder):
 		os.makedirs(folder)

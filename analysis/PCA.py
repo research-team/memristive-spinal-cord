@@ -117,13 +117,26 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 def read_data(filepath):
 	with hdf5.File(filepath, 'r') as file:
 		data_by_test = [test_values[:] for test_values in file.values()]
+		names = list(file.keys())
+		i = 0
+		for k, v in zip(names, data_by_test):
+			print(len(v), k)
+		# 	plt.plot(v + i * 3, label=k)
+		# 	i += 1
+		# 	plt.legend()
+		# plt.show()
+
 		if not all(map(len, data_by_test)):
 			raise Exception("Has empty data")
 	return data_by_test
 
 
-def select_slices(path, begin, end, sign=1):
-	return [sign * data[begin:end][::10] for data in read_data(path)]
+def select_slices(path, begin, end, data_step_from=None, data_step_to=None):
+	if data_step_from != 0.1:
+		shrink_step = int(data_step_to / data_step_from)
+		return [data[begin:end][::shrink_step] for data in read_data(path)]
+	else:
+		return [data[begin:end] for data in read_data(path)]
 
 
 def hex2rgb(hex_color):
@@ -572,7 +585,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		if len(e_mono_Q1_minima_indexes) == 0:
 			global_amp_values.append(0)
-			global_lat_indexes.append(24.5)
+			global_lat_indexes.append(len(data_Q1) - 1)
 			global_mono_indexes.append(3)
 			continue
 
@@ -601,7 +614,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		if not len(delta_poly_diff):
 			global_amp_values.append(0)
-			global_lat_indexes.append(24.5)
+			global_lat_indexes.append(len(data_Q1) - 1)
 			global_mono_indexes.append(mono_answer_index)
 			continue
 
@@ -615,9 +628,29 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
 		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
 
+		# plt.suptitle(slice_index + 1)
+		# plt.subplot(311)
+		# plt.plot(smoothed_Q3[l_poly_border:])
+		# plt.plot(smoothed_Q1[l_poly_border:])
+		# plt.ylim([-1, 1])
+		#
+		# plt.subplot(312)
+		# plt.bar(x=range(len(poly_gradient)), height=poly_gradient)
+		#
+		# plt.subplot(313)
+		# plt.bar(x=range(len(poly_gradient_diff)), height=poly_gradient_diff)
+		#
+		# plt.show()
+
+		if all(delta_poly_diff < 0.012):
+			global_amp_values.append(0)
+			global_lat_indexes.append(len(data_Q1) - 1)
+			global_mono_indexes.append(mono_answer_index)
+			continue
+
 		if not len(poly_gradient[poly_gradient_diff > Q3]):
 			global_amp_values.append(0)
-			global_lat_indexes.append(24.5)
+			global_lat_indexes.append(len(data_Q1) - 1)
 			global_mono_indexes.append(mono_answer_index)
 			continue
 

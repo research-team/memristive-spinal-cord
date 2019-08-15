@@ -1,6 +1,7 @@
 path = "/home/alex/Downloads/Bio files map - Sheet1.tsv"
 
 from data.fig2hdf5 import fig2hdf5
+from data.fig2hdf5 import fig2png
 
 with open(path) as file:
 	file.readline()
@@ -56,4 +57,5 @@ with open(path) as file:
 
 		begin = int(b)
 		end = int(e)
+		# fig2png(filename, title, rat, begin, end)
 		fig2hdf5(filename, title, rat, begin, end)
