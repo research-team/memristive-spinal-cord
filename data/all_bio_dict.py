@@ -1,6 +1,6 @@
 path = "/home/alex/Downloads/Bio files map - Sheet1.tsv"
 
-from fig2hdf5 import plot_fig
+from data.fig2hdf5 import fig2hdf5
 
 with open(path) as file:
 	file.readline()
@@ -28,6 +28,7 @@ with open(path) as file:
 			curr_mu = f"{'flexor' if mu == 'FL' else 'extensor'}"
 		if ra:
 			curr_ra = ra
+
 		folders.append("sliced")
 		types.append(curr_ty)
 		speeds.append(curr_sp)
@@ -50,19 +51,9 @@ with open(path) as file:
 		rat = fi
 
 		if "(" in b:
-			for char in ["(", ")"]:
-				b = b.replace(char, "")
-				e = e.replace(char, "")
-
-			begin = int(b.split()[0])
-			end = int(e.split()[0])
-
-			plot_fig(filename, title, rat, begin, end)
-
-			b = b.split()[1]
-			e = e.split()[1]
-			title = f"{title} [+1]"
+			b = b.split("(")[0]
+			e = e.split("(")[0]
 
 		begin = int(b)
 		end = int(e)
-		plot_fig(filename, title, rat, begin, end)
+		fig2hdf5(filename, title, rat, begin, end)
