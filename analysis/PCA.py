@@ -446,14 +446,33 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 		np.ndarray:
 	"""
 	# prepare data for concatenating dots into one list (per parameter)
-	common_lenght = len(minima_indexes) + len(maxima_indexes)
-	merged_names = [None] * common_lenght
-	merged_indexes = [None] * common_lenght
-	merged_values = [None] * common_lenght
 
 	# who located earlier -- max or min
 	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
 	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
+
+	common_length = len(minima_indexes) + len(maxima_indexes)
+
+	merged_names = [None] * common_length
+	merged_indexes = [None] * common_length
+	merged_values = [None] * common_length
+
+	# be sure that place in [min_starts::2] be enought for filling
+	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
+		minima_indexes = minima_indexes[:-1]
+		minima_values = minima_values[:-1]
+
+	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
+		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
+		minima_values = np.append(minima_values, minima_values[-1])
+
+	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
+		maxima_indexes = maxima_indexes[:-1]
+		maxima_values = maxima_values[:-1]
+
+	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
+		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
+		maxima_values = np.append(maxima_values, maxima_values[-1])
 
 	# fill minima lists based on the precedence
 	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
@@ -463,7 +482,7 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
 	merged_indexes[max_starts::2] = maxima_indexes
 	merged_values[max_starts::2] = maxima_values
-	# convert them to the array for usability
+
 	merged_names = np.array(merged_names)
 	merged_values = np.array(merged_values)
 	merged_indexes = np.array(merged_indexes).astype(int)
@@ -627,20 +646,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		poly_gradient_diff = np.abs(np.diff(poly_gradient, n=1))
 		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
 		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
-
-		# plt.suptitle(slice_index + 1)
-		# plt.subplot(311)
-		# plt.plot(smoothed_Q3[l_poly_border:])
-		# plt.plot(smoothed_Q1[l_poly_border:])
-		# plt.ylim([-1, 1])
-		#
-		# plt.subplot(312)
-		# plt.bar(x=range(len(poly_gradient)), height=poly_gradient)
-		#
-		# plt.subplot(313)
-		# plt.bar(x=range(len(poly_gradient_diff)), height=poly_gradient_diff)
-		#
-		# plt.show()
 
 		if all(delta_poly_diff < 0.012):
 			global_amp_values.append(0)

@@ -30,7 +30,7 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, data_step, folder
 	Args:
 		extensor_data (list): values of extensor motoneurons membrane potential
 		flexor_data (list): values of flexor motoneurons membrane potential
-		latencies (list): latencies of poly answers per slice
+		latencies (list or np.ndarray): latencies of poly answers per slice
 		ees_hz (int): EES stimulation frequency
 		data_step (float): data step
 		folder (str): save folder path
@@ -332,7 +332,7 @@ def for_article():
 	    # "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
 	]
 
-	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/reduce 40Hz/5"
+	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/reduce 40Hz/1"
 	gras_filenames = [
 		"gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
 	]
@@ -355,13 +355,11 @@ def for_article():
 		                                                 data_step_to=data_step_to)
 		# get latencies, amplitudes and begining of poly answers
 		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_data, ees_hz=ees_hz, data_step=data_step_to)
-		# lat_per_slice += get_lat_amp(f_data, ees_hz=ees_hz, data_step=data_step_to)[0]
+		f_lat_per_slice = get_lat_amp(f_data, ees_hz=ees_hz, data_step=data_step_to)[0]
+		all_lat_per_slice = np.append(lat_per_slice, f_lat_per_slice)
 		# get number of peaks per slice
 		peaks_per_slice = get_peaks(e_data, ees_hz=ees_hz, step=data_step_to)
 		# form data pack
-		print(lat_per_slice)
-		print(amp_per_slice)
-		print(peaks_per_slice)
 		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), filename])
 		# plot histograms of amplitudes and number of peaks
 		if plot_histogram_flag:
@@ -369,7 +367,7 @@ def for_article():
 			                folder=folder, filename=filename, ees_hz=ees_hz)
 		# plot all slices with pattern
 		if plot_slices_flag:
-			plot_slices(e_data, f_data, lat_per_slice, ees_hz=ees_hz, data_step=data_step_to, folder=folder, filename=filename)
+			plot_slices(e_data, f_data, all_lat_per_slice, ees_hz=ees_hz, data_step=data_step_to, folder=folder, filename=filename)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
 		plot_3D_PCA(all_pack, folder=folder)
