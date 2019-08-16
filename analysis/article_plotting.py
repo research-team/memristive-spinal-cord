@@ -69,7 +69,6 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, data_step, folder
 
 	lat_x = latencies * data_step
 	lat_y = [all_splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat in enumerate(latencies)]
-	print(lat_y)
 	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k', zorder=3)
 	plt.plot(lat_x, lat_y, '.', markersize=25, color='k', zorder=3)
 
@@ -278,8 +277,6 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mon
 def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
 	e_slices_number = {"6": 30, "15": 12, "21": 6}
 	slice_in_steps = int(25 / original_data_step)
-	print(filename)
-
 	ees_hz = int(filename[:filename.find("Hz")].split("_")[-1])
 	speed = filename[:filename.find("cms")].split("_")[-1]
 	log.info(f"prepare {filename}")
@@ -308,44 +305,18 @@ def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
 	return e_data, f_data, ees_hz
 
 
-def for_article():
+def __process_dataset(folder, filenames_pack, original_data_step, data_step_to,
+                      plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False):
 	"""
-	TODO: add docstring
+	ToDo add info
+	Args:
+		folder:
+		filenames_pack:
+		original_data_step:
+		data_step_to:
 	"""
-	# stuff variables
 	all_pack = []
 	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"] * 10)
-
-	# list of filenames for easily reading data
-	bio_folder = "/home/alex/bio_data_hdf/toe"
-	bio_filenames = [
-		"bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T",
-		"bio_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	]
-
-	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
-	neuron_filenames = [
-	    # "neuron_E_15cms_40Hz_i100_2pedal_5ht_T",
-	    "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T",
-	    # "neuron_E_15cms_40Hz_i100_4pedal_no5ht_T",
-	    # "neuron_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	    # "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
-	]
-
-	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/reduce 40Hz/1"
-	gras_filenames = [
-		"gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	]
-
-	# control
-	folder = gras_folder
-	filenames_pack = gras_filenames
-	plot_pca_flag = False
-	plot_slices_flag = True
-	plot_histogram_flag = True
-
-	data_step_to = 0.25
-	original_data_step = 0.025
 
 	# prepare data per file
 	for filename in filenames_pack:
@@ -367,13 +338,14 @@ def for_article():
 			                folder=folder, filename=filename, ees_hz=ees_hz)
 		# plot all slices with pattern
 		if plot_slices_flag:
-			plot_slices(e_data, f_data, all_lat_per_slice, ees_hz=ees_hz, data_step=data_step_to, folder=folder, filename=filename)
+			plot_slices(e_data, f_data, all_lat_per_slice, ees_hz=ees_hz, data_step=data_step_to, folder=folder,
+			            filename=filename)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
 		plot_3D_PCA(all_pack, folder=folder)
 
 
-def plot_correlation():
+def plot_correlation(original_data_step, data_step_to):
 	# FixMe: don't forget to change!
 	save_to = "/home/alex/testfolder"
 
@@ -384,8 +356,10 @@ def plot_correlation():
 	data_b_filename = "gras_E_15cms_40Hz_i100_2pedal_5ht_T"
 
 	# get extensor from data
-	extensor_data_a = extract_extensor_flexor(data_a_folder, data_a_filename)[0]
-	extensor_data_b = extract_extensor_flexor(data_b_folder, data_b_filename)[0]
+	extensor_data_a = extract_extensor_flexor(data_a_folder, data_a_filename,
+	                                          original_data_step=original_data_step, data_step_to=data_step_to)[0]
+	extensor_data_b = extract_extensor_flexor(data_b_folder, data_b_filename,
+	                                          original_data_step=original_data_step, data_step_to=data_step_to)[0]
 
 	mono_corr, poly_corr = calc_correlation(extensor_data_a, extensor_data_b)
 
@@ -418,6 +392,45 @@ def plot_correlation():
 	plt.tight_layout()
 	plt.savefig(f"{save_to}/{title}.pdf", format="pdf")
 
+
+def for_article():
+	"""
+	TODO: add docstring
+	"""
+	# list of filenames for easily reading data
+	bio_folder = "/home/alex/bio_data_hdf/toe"
+	bio_filenames = [
+		"bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T",
+		"bio_E_21cms_40Hz_i100_2pedal_no5ht_T",
+	]
+
+	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
+	neuron_filenames = [
+		# "neuron_E_15cms_40Hz_i100_2pedal_5ht_T",
+		"neuron_E_15cms_40Hz_i100_2pedal_no5ht_T",
+		# "neuron_E_15cms_40Hz_i100_4pedal_no5ht_T",
+		# "neuron_E_21cms_40Hz_i100_2pedal_no5ht_T",
+		# "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
+	]
+
+	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/TOE"
+	gras_filenames = [
+		"gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
+		"gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
+	]
+
+	# control
+	folder = gras_folder
+	filenames_pack = gras_filenames
+	plot_pca_flag = False
+	plot_slices_flag = True
+	plot_histogram_flag = True
+
+	data_step_to = 0.25
+	original_data_step = 0.025
+
+	__process_dataset(folder, filenames_pack, original_data_step, data_step_to,
+	                  plot_histogram_flag, plot_slices_flag, plot_pca_flag)
 
 def run():
 	for_article()

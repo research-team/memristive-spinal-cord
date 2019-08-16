@@ -117,15 +117,6 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 def read_data(filepath):
 	with hdf5.File(filepath, 'r') as file:
 		data_by_test = [test_values[:] for test_values in file.values()]
-		names = list(file.keys())
-		i = 0
-		for k, v in zip(names, data_by_test):
-			print(len(v), k)
-		# 	plt.plot(v + i * 3, label=k)
-		# 	i += 1
-		# 	plt.legend()
-		# plt.show()
-
 		if not all(map(len, data_by_test)):
 			raise Exception("Has empty data")
 	return data_by_test
@@ -457,7 +448,7 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 	merged_indexes = [None] * common_length
 	merged_values = [None] * common_length
 
-	# be sure that place in [min_starts::2] be enought for filling
+	# be sure that size of [min_starts::2] be enough for filling
 	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
 		minima_indexes = minima_indexes[:-1]
 		minima_values = minima_values[:-1]
