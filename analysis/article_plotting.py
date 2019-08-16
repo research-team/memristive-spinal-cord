@@ -275,7 +275,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mon
 
 
 def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
-	e_slices_number = {"6": 30, "15": 12, "21": 6}
+	e_slices_number = {"6": 30, "15": 12, "13.5": 12, "21": 6}
 	slice_in_steps = int(25 / original_data_step)
 	ees_hz = int(filename[:filename.find("Hz")].split("_")[-1])
 	speed = filename[:filename.find("cms")].split("_")[-1]
@@ -398,10 +398,9 @@ def for_article():
 	TODO: add docstring
 	"""
 	# list of filenames for easily reading data
-	bio_folder = "/home/alex/bio_data_hdf/toe"
+	bio_folder = "/home/alex/bio_data_hdf/foot"
 	bio_filenames = [
 		"bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T",
-		"bio_E_21cms_40Hz_i100_2pedal_no5ht_T",
 	]
 
 	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
@@ -420,14 +419,14 @@ def for_article():
 	]
 
 	# control
-	folder = gras_folder
-	filenames_pack = gras_filenames
+	folder = bio_folder
+	filenames_pack = bio_filenames
 	plot_pca_flag = False
 	plot_slices_flag = True
 	plot_histogram_flag = True
 
-	data_step_to = 0.25
-	original_data_step = 0.025
+	data_step_to = 0.1
+	original_data_step = 0.1
 
 	__process_dataset(folder, filenames_pack, original_data_step, data_step_to,
 	                  plot_histogram_flag, plot_slices_flag, plot_pca_flag)
