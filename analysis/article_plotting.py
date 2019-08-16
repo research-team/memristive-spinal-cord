@@ -274,7 +274,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mon
 		log.info(f"Plotted {title} for {filename}")
 
 
-def extract_extensor_flexor(folder, filename, original_data_step, data_step_to, without_flexor=False):
+def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
 	e_slices_number = {"6": 30, "15": 12, "13.5": 12, "21": 6}
 	slice_in_steps = int(25 / original_data_step)
 	ees_hz = int(filename[:filename.find("Hz")].split("_")[-1])
@@ -285,32 +285,24 @@ def extract_extensor_flexor(folder, filename, original_data_step, data_step_to, 
 	# check if it is a bio data -- use another function
 	if "bio_" in filename:
 		e_dataset = read_data(path_extensor)
-		if not without_flexor:
-			f_dataset = read_data(path_flexor)
+		f_dataset = read_data(path_flexor)
 	# simulation data computes by the common function
 	else:
 		# calculate extensor borders
 		extensor_begin = 0
 		extensor_end = e_slices_number[speed] * slice_in_steps
 		# calculate flexor borders
-		if not without_flexor:
-			flexor_begin = extensor_end
-			flexor_end = extensor_end + (7 if "4pedal" in filename else 5) * slice_in_steps
+		flexor_begin = extensor_end
+		flexor_end = extensor_end + (7 if "4pedal" in filename else 5) * slice_in_steps
 		# use native funcion for get needful data
 		e_dataset = select_slices(path_extensor, extensor_begin, extensor_end, original_data_step, data_step_to)
-		if not without_flexor:
-			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, original_data_step, data_step_to)
+		f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, original_data_step, data_step_to)
 
 	# prepare each data (stepping, centering, normalization)
 	e_data = prepare_data(e_dataset)
-	if not without_flexor:
-		f_data = prepare_data(f_dataset)
+	f_data = prepare_data(f_dataset)
 
-	if not without_flexor:
-		return e_data, f_data, ees_hz
-	else:
-		return e_data, ees_hz
-
+	return e_data, f_data, ees_hz
 
 
 def __process_dataset(folder, filenames_pack, original_data_step, data_step_to,
@@ -357,7 +349,6 @@ def plot_correlation():
 	# FixMe: don't forget to change!
 	save_to = "/home/alex/test"
 
-
 	data_a_folder = "/home/alex/test"
 	data_a_filename = "bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T"
 
@@ -365,40 +356,45 @@ def plot_correlation():
 	data_b_filename = "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T"
 
 	# get extensor from data
-	extensor_data_a = extract_extensor_flexor(data_a_folder, data_a_filename,
-	                                          original_data_step=0.1, data_step_to=0.1, without_flexor=True)[0]
-	extensor_data_b = extract_extensor_flexor(data_b_folder, data_b_filename,
-	                                          original_data_step=0.025, data_step_to=0.1, without_flexor=True)[0]
-	mono_corr, poly_corr = calc_correlation(extensor_data_a, extensor_data_b)
+	e_data_a, f_data_a, _ = extract_extensor_flexor(data_a_folder, data_a_filename, original_data_step=0.1, data_step_to=0.1)
+	e_data_b, f_data_b, _ = extract_extensor_flexor(data_b_folder, data_b_filename, original_data_step=0.025, data_step_to=0.1)
 
-	plt.figure(figsize=(16, 9))
+	e_mono_corr, e_poly_corr = calc_correlation(e_data_a, e_data_b)
+	f_mono_corr, f_poly_corr = calc_correlation(f_data_a, f_data_b)
 
-	title = f"{data_a_filename.split('_')[0]}_{data_b_filename}"
-	box_colors = iter(["#275b78", "#287a72"])
-	# plot boxplots
-	for i, data in enumerate([poly_corr, mono_corr]):
-		color = next(box_colors)
-		box = plt.boxplot(data, positions=[i], vert=False, whis=[5, 95], widths=0.7, patch_artist=True)
-		# change colors for all elements
-		for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-			for patch in box[element]:
-				if element == "fliers":
-					patch.set_markersize(10)
-					patch.set_markerfacecolor(color)
-					patch.set_markeredgecolor(None)
-				patch.set_color(color)
-				patch.set_linewidth(3)
-		for patch in box['boxes']:
-			patch.set(facecolor=f"{color}55")
 
-	yticks = [0, 1]
-	ylabels = ["poly", "mono"]
-	plt.yticks(yticks, ylabels)
+	def __plot_corr(mono_corr, poly_corr, muscle):
+		plt.figure(figsize=(16, 9))
 
-	plt.xticks(fontsize=56)
-	plt.yticks(fontsize=56)
-	plt.tight_layout()
-	plt.savefig(f"{save_to}/{title}.pdf", format="pdf")
+		title = f"{data_a_filename.split('_')[0]}_{data_b_filename}"
+		box_colors = iter(["#275b78", "#287a72"])
+		# plot boxplots
+		for i, data in enumerate([poly_corr, mono_corr]):
+			color = next(box_colors)
+			box = plt.boxplot(data, positions=[i], vert=False, whis=[5, 95], widths=0.7, patch_artist=True)
+			# change colors for all elements
+			for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+				for patch in box[element]:
+					if element == "fliers":
+						patch.set_markersize(10)
+						patch.set_markerfacecolor(color)
+						patch.set_markeredgecolor(None)
+					patch.set_color(color)
+					patch.set_linewidth(3)
+			for patch in box['boxes']:
+				patch.set(facecolor=f"{color}55")
+
+		yticks = [0, 1]
+		ylabels = ["poly", "mono"]
+		plt.yticks(yticks, ylabels)
+
+		plt.xticks(fontsize=56)
+		plt.yticks(fontsize=56)
+		plt.tight_layout()
+		plt.savefig(f"{save_to}/{muscle}_{title}.pdf", format="pdf")
+
+	__plot_corr(e_mono_corr, e_poly_corr, "extensort")
+	__plot_corr(f_mono_corr, f_poly_corr, "flexor")
 
 
 def for_article():
@@ -406,9 +402,9 @@ def for_article():
 	TODO: add docstring
 	"""
 	# list of filenames for easily reading data
-	bio_folder = "/home/alex/bio_data_hdf/foot"
+	bio_folder = "/home/alex/bio_data_hdf/toe"
 	bio_filenames = [
-		"bio_E_21cms_40Hz_i100_2pedal_no5ht_T",
+		"bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T",
 	]
 
 	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
@@ -440,8 +436,8 @@ def for_article():
 	                  plot_histogram_flag, plot_slices_flag, plot_pca_flag)
 
 def run():
-	for_article()
-	# plot_correlation()
+	# for_article()
+	plot_correlation()
 
 
 if __name__ == "__main__":

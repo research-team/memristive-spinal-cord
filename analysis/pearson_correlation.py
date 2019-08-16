@@ -1,5 +1,4 @@
 import numpy as np
-import pylab as plt
 
 
 def __corr_coef_2D(A, B):
