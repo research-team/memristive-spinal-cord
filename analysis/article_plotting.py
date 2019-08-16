@@ -185,7 +185,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mon
 	box_distance = 1.2
 	color = "#472650"
 	fill_color = "#9D8DA3"
-	slices_number = len(amp_per_slice)
+	slices_number = len(lat_per_slice)
 	slice_length = int(1000 / ees_hz / step)
 	slice_indexes = np.array(range(slices_number))
 
@@ -274,7 +274,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mon
 		log.info(f"Plotted {title} for {filename}")
 
 
-def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
+def extract_extensor_flexor(folder, filename, original_data_step, data_step_to, without_flexor=False):
 	e_slices_number = {"6": 30, "15": 12, "13.5": 12, "21": 6}
 	slice_in_steps = int(25 / original_data_step)
 	ees_hz = int(filename[:filename.find("Hz")].split("_")[-1])
@@ -285,24 +285,32 @@ def extract_extensor_flexor(folder, filename, original_data_step, data_step_to):
 	# check if it is a bio data -- use another function
 	if "bio_" in filename:
 		e_dataset = read_data(path_extensor)
-		f_dataset = read_data(path_flexor)
+		if not without_flexor:
+			f_dataset = read_data(path_flexor)
 	# simulation data computes by the common function
 	else:
 		# calculate extensor borders
 		extensor_begin = 0
 		extensor_end = e_slices_number[speed] * slice_in_steps
 		# calculate flexor borders
-		flexor_begin = extensor_end
-		flexor_end = extensor_end + (7 if "4pedal" in filename else 5) * slice_in_steps
+		if not without_flexor:
+			flexor_begin = extensor_end
+			flexor_end = extensor_end + (7 if "4pedal" in filename else 5) * slice_in_steps
 		# use native funcion for get needful data
 		e_dataset = select_slices(path_extensor, extensor_begin, extensor_end, original_data_step, data_step_to)
-		f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, original_data_step, data_step_to)
+		if not without_flexor:
+			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end, original_data_step, data_step_to)
 
 	# prepare each data (stepping, centering, normalization)
 	e_data = prepare_data(e_dataset)
-	f_data = prepare_data(f_dataset)
+	if not without_flexor:
+		f_data = prepare_data(f_dataset)
 
-	return e_data, f_data, ees_hz
+	if not without_flexor:
+		return e_data, f_data, ees_hz
+	else:
+		return e_data, ees_hz
+
 
 
 def __process_dataset(folder, filenames_pack, original_data_step, data_step_to,
@@ -345,22 +353,22 @@ def __process_dataset(folder, filenames_pack, original_data_step, data_step_to,
 		plot_3D_PCA(all_pack, folder=folder)
 
 
-def plot_correlation(original_data_step, data_step_to):
+def plot_correlation():
 	# FixMe: don't forget to change!
-	save_to = "/home/alex/testfolder"
+	save_to = "/home/alex/test"
 
-	data_a_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
-	data_a_filename = "bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12"
 
-	data_b_folder = "/home/alex/GitHub/memristive-spinal-cord/data/gras"
-	data_b_filename = "gras_E_15cms_40Hz_i100_2pedal_5ht_T"
+	data_a_folder = "/home/alex/test"
+	data_a_filename = "bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T"
+
+	data_b_folder = "/home/alex/test"
+	data_b_filename = "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T"
 
 	# get extensor from data
 	extensor_data_a = extract_extensor_flexor(data_a_folder, data_a_filename,
-	                                          original_data_step=original_data_step, data_step_to=data_step_to)[0]
+	                                          original_data_step=0.1, data_step_to=0.1, without_flexor=True)[0]
 	extensor_data_b = extract_extensor_flexor(data_b_folder, data_b_filename,
-	                                          original_data_step=original_data_step, data_step_to=data_step_to)[0]
-
+	                                          original_data_step=0.025, data_step_to=0.1, without_flexor=True)[0]
 	mono_corr, poly_corr = calc_correlation(extensor_data_a, extensor_data_b)
 
 	plt.figure(figsize=(16, 9))
@@ -400,7 +408,7 @@ def for_article():
 	# list of filenames for easily reading data
 	bio_folder = "/home/alex/bio_data_hdf/foot"
 	bio_filenames = [
-		"bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T",
+		"bio_E_21cms_40Hz_i100_2pedal_no5ht_T",
 	]
 
 	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"

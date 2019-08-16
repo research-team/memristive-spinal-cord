@@ -164,6 +164,7 @@ def split_by_slices(data, slice_length):
 	"""
 	slices_begin_indexes = range(0, len(data) + 1, slice_length)
 	splitted_per_slice = [data[beg:beg + slice_length] for beg in slices_begin_indexes]
+	print(len(splitted_per_slice))
 	# remove tails
 	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
 		del splitted_per_slice[-1]
@@ -535,8 +536,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	global_mono_indexes = []
 	global_amp_values = []
 
-	data_test_runs = np.array(data_test_runs)
-
+	data_test_runs = np.array(data_test_runs, dtype=float)
 	# additional properties
 	slice_in_ms = 1000 / ees_hz
 	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
@@ -544,8 +544,6 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / data_step)
 	shared_x = np.arange(slice_in_steps) * data_step
-	# get number of slices based on length of the bio data
-
 	original_data = data_test_runs.T
 	# calc boxplot per dot
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
