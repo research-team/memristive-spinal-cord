@@ -6,6 +6,8 @@ from multiprocessing import cpu_count
 from functions import Functions
 from functions import Parameters
 
+import plot_results
+
 
 class V3(Functions):
     def __init__(self, parameters, iteration):
@@ -131,142 +133,156 @@ class V3(Functions):
         self.connect_one_to_all(CV4, iIP_E, 0.5, 20)
         self.connect_one_to_all(CV5, iIP_E, 0.5, 20)
 
+        #########################################################################
+        #########################################################################
+        #
+        # THE BEST PART
+        self.connect_fixed_outdegree(OM1_2_E, eIP_E, 2, 13, neurons_in_ip)
+        self.connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 6.3, neurons_in_ip)
+        self.connect_fixed_outdegree(OM3_2_E, eIP_E, 0.5, 7, neurons_in_ip)
+        self.connect_fixed_outdegree(OM4_2_E, eIP_E, 1, 7.5, neurons_in_ip)
+        self.connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 6, neurons_in_ip)
+        #
+        self.connect_fixed_outdegree(eIP_E, MN_E, 2.5, 7, neurons_in_moto)
+        #
+        self.connect_fixed_outdegree(MN_E, R_E, 0.7, 4)
+        self.connect_fixed_outdegree(R_E, MN_E, 0.7, -15, neurons_in_moto)
+        #
+        #
+        #########################################################################
+        #########################################################################
+
         # OM 1
         # input from EES group 1
         self.connect_fixed_outdegree(E1, OM1_0, 1, 20)
         # input from sensory
-        self.connect_one_to_all(CV1, OM1_0, 0.5, 4 * quadru_coef * sero_coef)
-        self.connect_one_to_all(CV2, OM1_0, 0.5, 4 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV1, OM1_0, 0.5, 2 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV2, OM1_0, 0.5, 2 * quadru_coef * sero_coef)
         # [inhibition]
         self.connect_one_to_all(CV3, OM1_3, 1, 80)
         self.connect_one_to_all(CV4, OM1_3, 1, 80)
         self.connect_one_to_all(CV5, OM1_3, 1, 80)
         # inner connectomes
         self.connect_fixed_outdegree(OM1_0, OM1_1, 1, 30)
-        self.connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 20)
-        self.connect_fixed_outdegree(OM1_1, OM1_2_F, 0.1, 20)
+        self.connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 24)
+        self.connect_fixed_outdegree(OM1_1, OM1_2_F, 0.4, 20)
         self.connect_fixed_outdegree(OM1_1, OM1_3, 3.5, 4)
-        self.connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 18.3)
+        self.connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 20)
         self.connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 16)
         self.connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 2)
-        self.connect_fixed_outdegree(OM1_2_F, OM1_3, 0.3, 15.5)
+        self.connect_fixed_outdegree(OM1_2_F, OM1_3, 0.4, 15.5)
         self.connect_fixed_outdegree(OM1_3, OM1_1, 1.5, -3 * inh_coef)
-        self.connect_fixed_outdegree(OM1_3, OM1_2_E, 0.3, -60 * inh_coef)
+        self.connect_fixed_outdegree(OM1_3, OM1_2_E, 0.4, -60 * inh_coef)
         self.connect_fixed_outdegree(OM1_3, OM1_2_F, 1, -1 * inh_coef)
         # output to OM2
         self.connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1, 50)
-        # output to IP
-        self.connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 45, neurons_in_ip)  # 16
+        # # output to IP
         self.connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 30, neurons_in_ip)
-
+        #
         # OM 2
         # input from EES group 2
-        self.connect_fixed_outdegree(E2, OM2_0, 1, 12)
+        self.connect_fixed_outdegree(E2, OM2_0, 1, 7)
         # input from sensory [CV]
-        self.connect_one_to_all(CV2, OM2_0, 0.5, 5 * quadru_coef * sero_coef)
-        self.connect_one_to_all(CV3, OM2_0, 0.5, 5 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV2, OM2_0, 0.5, 2 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV3, OM2_0, 0.5, 2 * quadru_coef * sero_coef)
         # [inhibition]
         self.connect_one_to_all(CV4, OM2_3, 1, 80)
         self.connect_one_to_all(CV5, OM2_3, 1, 80)
-        # inner connectomes
-        self.connect_fixed_outdegree(OM2_0, OM2_1, 1, 27)
-        self.connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 21.5)
-        self.connect_fixed_outdegree(OM2_1, OM2_2_F, 0.1, 15.5)
+        # # inner connectomes
+        self.connect_fixed_outdegree(OM2_0, OM2_1, 1, 30)
+        self.connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 24)
+        self.connect_fixed_outdegree(OM2_1, OM2_2_F, 0.4, 20)
         self.connect_fixed_outdegree(OM2_1, OM2_3, 3.5, 4)
-        self.connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 17.5)
+        self.connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 20)
         self.connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 16)
         self.connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 2)
-        self.connect_fixed_outdegree(OM2_2_F, OM2_3, 0.3, 12)
+        self.connect_fixed_outdegree(OM2_2_F, OM2_3, 0.4, 15.5)
         self.connect_fixed_outdegree(OM2_3, OM2_1, 1.5, -3 * inh_coef)
-        self.connect_fixed_outdegree(OM2_3, OM2_2_E, 0.3, -20 * inh_coef)
-        self.connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -1 * inh_coef)  # -70
+        self.connect_fixed_outdegree(OM2_3, OM2_2_E, 0.4, -60 * inh_coef)
+        self.connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -1 * inh_coef)
         # output to OM3
         self.connect_fixed_outdegree(OM2_2_F, OM3_2_F, 1, 50)
         # output to IP
-        self.connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 30, neurons_in_ip)  # 5
         self.connect_fixed_outdegree(OM2_2_F, eIP_F, 2, 30, neurons_in_ip)
 
         # OM 3
         # input from EES group 3
-        self.connect_fixed_outdegree(E3, OM3_0, 1, 12)
+        self.connect_fixed_outdegree(E3, OM3_0, 1, 7)
         # input from sensory [CV]
-        self.connect_one_to_all(CV3, OM3_0, 0.5, 5 * quadru_coef * sero_coef)
-        self.connect_one_to_all(CV4, OM3_0, 0.5, 5 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV3, OM3_0, 0.5, 2 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV4, OM3_0, 0.5, 2 * quadru_coef * sero_coef)
         # [inhibition]
         self.connect_one_to_all(CV5, OM3_3, 1, 80)
         # input from sensory [CD]
         self.connect_one_to_all(CD4, OM3_0, 1, 11)
         # inner connectomes
-        self.connect_fixed_outdegree(OM3_0, OM3_1, 1, 35)
-        self.connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 21.4)
-        self.connect_fixed_outdegree(OM3_1, OM3_2_F, 0.1, 15.5)
-        self.connect_fixed_outdegree(OM3_1, OM3_3, 3.5, 3)
-        self.connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 17)
+        self.connect_fixed_outdegree(OM3_0, OM3_1, 1, 30)
+        self.connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 24)
+        self.connect_fixed_outdegree(OM3_1, OM3_2_F, 0.4, 20)
+        self.connect_fixed_outdegree(OM3_1, OM3_3, 3.5, 4)
+        self.connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 20)
         self.connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 16)
         self.connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 2)
-        self.connect_fixed_outdegree(OM3_2_F, OM3_3, 0.3, 12)
+        self.connect_fixed_outdegree(OM3_2_F, OM3_3, 0.4, 15.5)
         self.connect_fixed_outdegree(OM3_3, OM3_1, 1.5, -3 * inh_coef)
-        self.connect_fixed_outdegree(OM3_3, OM3_2_E, 0.3, -24 * inh_coef)
-        self.connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -2 * inh_coef)
+        self.connect_fixed_outdegree(OM3_3, OM3_2_E, 0.4, -60 * inh_coef)
+        self.connect_fixed_outdegree(OM3_3, OM3_2_F, 1, -1 * inh_coef)
         # output to OM3
         self.connect_fixed_outdegree(OM3_2_F, OM4_2_F, 1, 50)
         # output to IP
-        self.connect_fixed_outdegree(OM3_2_E, eIP_E, 2, 28, neurons_in_ip)
         self.connect_fixed_outdegree(OM3_2_F, eIP_F, 3, 30, neurons_in_ip)
 
         # OM 4
         # input from EES group 4
-        self.connect_fixed_outdegree(E4, OM4_0, 2, 12)
+        self.connect_fixed_outdegree(E4, OM4_0, 1, 7)
         # input from sensory [CV]
-        self.connect_one_to_all(CV4, OM4_0, 0.5, 5 * quadru_coef * sero_coef)
-        self.connect_one_to_all(CV5, OM4_0, 0.5, 5 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV4, OM4_0, 0.5, 2 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV5, OM4_0, 0.5, 2 * quadru_coef * sero_coef)
         # input from sensory [CD]
         self.connect_one_to_all(CD4, OM4_0, 1, 11)
         self.connect_one_to_all(CD5, OM4_0, 1, 11)
         # inner connectomes
         self.connect_fixed_outdegree(OM4_0, OM4_1, 1, 30)
-        self.connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 21.5)
-        self.connect_fixed_outdegree(OM4_1, OM4_2_F, 0.1, 13)
+        self.connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 23)
+        self.connect_fixed_outdegree(OM4_1, OM4_2_F, 0.4, 20)
         self.connect_fixed_outdegree(OM4_1, OM4_3, 3.5, 4)
-        self.connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 18.3)
+        self.connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 18)
         self.connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 16)
         self.connect_fixed_outdegree(OM4_2_E, OM4_3, 1, 2)
-        self.connect_fixed_outdegree(OM4_2_F, OM4_3, 0.3, 12)
+        self.connect_fixed_outdegree(OM4_2_F, OM4_3, 0.4, 15.5)
         self.connect_fixed_outdegree(OM4_3, OM4_1, 1.5, -3 * inh_coef)
-        self.connect_fixed_outdegree(OM4_3, OM4_2_E, 0.3, -23 * inh_coef)
-        self.connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -2 * inh_coef)
+        self.connect_fixed_outdegree(OM4_3, OM4_2_E, 0.4, -60 * inh_coef)
+        self.connect_fixed_outdegree(OM4_3, OM4_2_F, 1, -1 * inh_coef)
         # output to OM4
         self.connect_fixed_outdegree(OM4_2_F, OM5_2_F, 1, 50)
         # output to IP
-        self.connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 35, neurons_in_ip)
         self.connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 30, neurons_in_ip)
 
         # OM 5
         # input from EES group 5
-        self.connect_fixed_outdegree(E5, OM5_0, 3, 12)
+        self.connect_fixed_outdegree(E5, OM5_0, 1, 7)
         # input from sensory [CV]
-        self.connect_one_to_all(CV5, OM5_0, 0.5, 5 * quadru_coef * sero_coef)
+        self.connect_one_to_all(CV5, OM5_0, 0.5, 2 * quadru_coef * sero_coef)
         # input from sensory [CD]
         self.connect_one_to_all(CD5, OM5_0, 1, 11)
         # inner connectomes
         self.connect_fixed_outdegree(OM5_0, OM5_1, 1, 30)
-        self.connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 20.5)
-        self.connect_fixed_outdegree(OM5_1, OM5_2_F, 0.1, 15.5)
+        self.connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 24)
+        self.connect_fixed_outdegree(OM5_1, OM5_2_F, 0.4, 20)
         self.connect_fixed_outdegree(OM5_1, OM5_3, 3.5, 4)
-        self.connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 17.5)
+        self.connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 20)
         self.connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 16)
         self.connect_fixed_outdegree(OM5_2_E, OM5_3, 1, 2)
-        self.connect_fixed_outdegree(OM5_2_F, OM5_3, 0.3, 15)
-        self.connect_fixed_outdegree(OM5_3, OM5_1, 1.5, -3 * inh_coef)
-        self.connect_fixed_outdegree(OM5_3, OM5_2_E, 0.3, -20 * inh_coef)
-        self.connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -2 * inh_coef)
+        self.connect_fixed_outdegree(OM5_2_F, OM5_3, 0.4, 15.5)
+        self.connect_fixed_outdegree(OM5_3, OM5_1, 1.5, -2 * inh_coef)
+        self.connect_fixed_outdegree(OM5_3, OM5_2_E, 0.4, -40 * inh_coef)
+        self.connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -1 * inh_coef)
         # output to IP
-        self.connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 30, neurons_in_ip)
         self.connect_fixed_outdegree(OM5_2_F, eIP_F, 3, 30, neurons_in_ip)
 
         # reflex arc
-        self.connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -50, neurons_in_ip)
-        self.connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -50, neurons_in_ip)
+        self.connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -40, neurons_in_ip)
+        self.connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -40, neurons_in_ip)
 
         self.connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -500, neurons_in_ip)
         self.connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -100, neurons_in_ip)
@@ -276,7 +292,6 @@ class V3(Functions):
         self.connect_fixed_outdegree(EES, Ia_E_aff, 1, 500)
         self.connect_fixed_outdegree(EES, Ia_F_aff, 1, 500)
 
-        self.connect_fixed_outdegree(eIP_E, MN_E, 2.5, 400, neurons_in_moto)
         self.connect_fixed_outdegree(eIP_F, MN_F, 1, 200, neurons_in_moto)
 
         self.connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 30, neurons_in_ip)
@@ -284,16 +299,14 @@ class V3(Functions):
 
         self.connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -150, neurons_in_ip)
         self.connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip)
-        self.connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -50, neurons_in_ip)
+        self.connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -10, neurons_in_ip)
         self.connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip)
 
         self.connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 30, neurons_in_moto)
         self.connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 22, neurons_in_moto)
 
-        self.connect_fixed_outdegree(MN_E, R_E, 2, 4)
         self.connect_fixed_outdegree(MN_F, R_F, 0.5, 6)
 
-        self.connect_fixed_outdegree(R_E, MN_E, 2, -10, neurons_in_moto)
         self.connect_fixed_outdegree(R_E, R_F, 2, -1)
 
         self.connect_fixed_outdegree(R_F, MN_F, 2, -50, neurons_in_moto)
@@ -302,14 +315,19 @@ class V3(Functions):
 
 if __name__ == "__main__":
     parameters = Parameters()
-    parameters.tests = 1
+    parameters.tests = 25
     parameters.steps = 1
     parameters.cms = 21
     parameters.EES = 40
     parameters.inh = 100
     parameters.ped = 2
     parameters.ht5 = False
-    parameters.save_all = True
+    parameters.save_all = False
 
     for i in range(parameters.tests):
-        V3(parameters, iteration=i)
+        try:
+            V3(parameters, iteration=i)
+        except Exception:
+            continue
+
+    plot_results.run()
