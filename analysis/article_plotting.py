@@ -50,7 +50,7 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, step_size, folder
 	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
 
 	e_slices_number = int(len(extensor_data[0]) / (slice_in_ms / step_size))
-	plt.subplots(figsize=(16, 9))
+	fig, ax = plt.subplots(figsize=(16, 9))
 
 	for slice_index, data in enumerate(all_splitted_per_slice_boxplots):
 		data += slice_index + (0 if slice_index < e_slices_number else 1)
@@ -74,7 +74,10 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, step_size, folder
 	plt.xticks(xticks, xticklabels, fontsize=56)
 	plt.yticks(yticks, yticklabels, fontsize=56)
 	plt.xlim(0, slice_in_ms)
-	plt.grid(axis='x', alpha=0.5)
+
+	# Hide the right and top spines
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
 
 	plt.tight_layout()
 	plt.savefig(f"{folder}/{filename}.pdf", dpi=250, format="pdf")
