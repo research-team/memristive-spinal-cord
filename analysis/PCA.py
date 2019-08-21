@@ -1,16 +1,12 @@
 import logging
 import numpy as np
 import pylab as plt
-import h5py as hdf5
-from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
-from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
 
-np.set_printoptions(suppress=True)
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
 
@@ -110,24 +106,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
-
-
-def read_data(filepath):
-	with hdf5.File(filepath, 'r') as file:
-		data_by_test = [test_values[:] for test_values in file.values()]
-		if not all(map(len, data_by_test)):
-			raise Exception("Has empty data")
-	return data_by_test
-
-
-def select_slices(path, begin, end, data_step_from=None, data_step_to=None):
-	if data_step_from != 0.1:
-		shrink_step = int(data_step_to / data_step_from)
-		return [data[begin:end][::shrink_step] for data in read_data(path)]
-	else:
-		return [data[begin:end] for data in read_data(path)]
 
 
 def hex2rgb(hex_color):
@@ -147,10 +127,6 @@ def angle_between(v1, v2):
 	v1_u = unit_vector(v1)
 	v2_u = unit_vector(v2)
 	return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
-
-
-def poly_area_by_coords(x, y):
-	return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
 def split_by_slices(data, slice_length):
@@ -202,32 +178,6 @@ def calc_boxplots(dots):
 			low_flier = dot
 
 	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
-
-
-def normalization(data, a=0, b=1, save_centering=False):
-	"""
-	Normalization in [a, b] interval or with saving centering
-	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
-	Args:
-		data (np.ndarray): data for normalization
-		a (float): left interval
-		b (float): right interval
-		save_centering (bool): if True -- will save data centering and just normalize by lowest data
-	Returns:
-		np.ndarray: normalized data
-	"""
-	# checking on errors
-	if a >= b:
-		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
-	if save_centering:
-		minimal = abs(min(data))
-		return [volt / minimal for volt in data]
-	else:
-		min_x = min(data)
-		max_x = max(data)
-		const = (b - a) / (max_x - min_x)
-
-		return [(x - min_x) * const + a for x in data]
 
 
 def smooth(data, box_pts):
@@ -307,93 +257,6 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	if greater_than is not None:
 		return np.compress(indexes > greater_than, indexes).astype(int)
 	raise Exception("You didn't choose any condtinion!")
-
-
-def draw_vector(p0, p1, color):
-	"""
-	Small function for drawing vector with arrow by two points
-	Args:
-		p0 (np.ndarray): begin of the vector
-		p1 (np.ndarray): end of the vector
-		color (str): the color of vector
-	"""
-	ax = plt.gca()
-	# this plot is fixing the problem of hiding annotations because of their not markers origin
-	ax.plot(p1[0], p1[1], '.', alpha=0)
-	ax.annotate('', p1, p0, arrowprops=dict(facecolor=color, linewidth=1.0))
-
-
-def center_data_by_line(y_points, debugging=False):
-	"""
-	Straight the data and center the rotated points cloud at (0, 0)
-	Args:
-		y_points (list or np.ndarray): list of Y points value
-		debugging (bool): True -- will print debugging info and plot figures
-	Returns:
-		np.ndarray: new straighten Y data
-	"""
-	X = 0
-	Y = 1
-	# prepare original data (convert to 2D ndarray)
-	dots_2D = np.stack((range(len(y_points)), y_points), axis=1)
-	# calc PCA for dots cloud
-	pca = PCA(n_components=2)
-	pca.fit(dots_2D)
-	# get PCA components for finding an rotation angle
-	cos_theta = pca.components_[0, 0]
-	sin_theta = pca.components_[0, 1]
-	# one possible value of Theta that lies in [0, pi]
-	arccos = np.arccos(cos_theta)
-
-	# if arccos is in Q1 (quadrant), rotate CLOCKwise by arccos
-	if cos_theta > 0 and sin_theta > 0:
-		arccos *= -1
-	# elif arccos is in Q2, rotate COUNTERclockwise by the complement of theta
-	elif cos_theta < 0 and sin_theta > 0:
-		arccos = np.pi - arccos
-	# elif arccos is in Q3, rotate CLOCKwise by the complement of theta
-	elif cos_theta < 0 and sin_theta < 0:
-		arccos = -(np.pi - arccos)
-	# if arccos is in Q4, rotate COUNTERclockwise by theta, i.e. do nothing
-	elif cos_theta > 0 and sin_theta < 0:
-		pass
-
-	# manually build the counter-clockwise rotation matrix
-	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-	                            [np.sin(arccos), np.cos(arccos)]])
-	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
-	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
-	# center the rotated point cloud at (0, 0)
-	rotated_dots_2D -= rotated_dots_2D.mean(axis=0)
-
-	# plot debugging figures
-	if debugging:
-		plt.figure(figsize=(16, 9))
-		plt.suptitle("PCA")
-		# plot all dots and connect them
-		plt.scatter(dots_2D[:, X], dots_2D[:, Y], alpha=0.2)
-		plt.plot(dots_2D[:, X], dots_2D[:, Y])
-		# plot vectors
-		for v_length, vector in zip(pca.explained_variance_, pca.components_):
-			v = vector * 3 * np.sqrt(v_length)
-			draw_vector(pca.mean_, pca.mean_ + v)
-		# figure properties
-		plt.tight_layout()
-		plt.show()
-		plt.close()
-
-		plt.figure(figsize=(16, 9))
-		plt.suptitle("Centered data")
-		# plot ogignal data on centered
-		plt.plot(range(len(dots_2D)), dots_2D[:, Y], label='original')
-		plt.plot(range(len(rotated_dots_2D)), rotated_dots_2D[:, Y], label='centered')
-		plt.axhline(y=0, color='g', linestyle='--')
-		# figure properties
-		plt.tight_layout()
-		plt.legend()
-		plt.show()
-
-	return rotated_dots_2D[:, 1]
 
 
 def find_min_deltas(array, extremuma):
@@ -520,13 +383,13 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
 
 
-def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
+def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
 		data_test_runs (list or np.ndarry): arrays of data
 		ees_hz (int): EES value
-		data_step (float): data step
+		step_size (float): data step
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		list: latencies indexes
@@ -539,11 +402,11 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	data_test_runs = np.array(data_test_runs, dtype=float)
 	# additional properties
 	slice_in_ms = 1000 / ees_hz
-	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
-	slice_in_steps = int(slice_in_ms / data_step)
+	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / step_size))
+	slice_in_steps = int(slice_in_ms / step_size)
 	# set ees area, before that time we don't try to find latencies
-	ees_zone_time = int(7 / data_step)
-	shared_x = np.arange(slice_in_steps) * data_step
+	ees_zone_time = int(7 / step_size)
+	shared_x = np.arange(slice_in_steps) * step_size
 	original_data = data_test_runs.T
 	# calc boxplot per dot
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
@@ -600,7 +463,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		max_delta_Q1_index = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))[0]
 		# get index of extremuma with the biggest delta
 		mono_answer_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
-		log.info(f"Mono answer: {mono_answer_index * data_step}ms")
+		log.info(f"Mono answer: {mono_answer_index * step_size}ms")
 
 		"""[4] find a poly area"""
 		l_poly_border = ees_zone_time
@@ -610,12 +473,12 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			if mono_answer_end_index > ees_zone_time:
 				l_poly_border = mono_answer_end_index
 				break
-		if l_poly_border > int(10 / data_step):
-			l_poly_border = int(10 / data_step)
+		if l_poly_border > int(10 / step_size):
+			l_poly_border = int(10 / step_size)
 
 		global_mono_indexes.append(l_poly_border)
 
-		log.info(f"Poly area: {l_poly_border * data_step} - {slice_in_ms}")
+		log.info(f"Poly area: {l_poly_border * step_size} - {slice_in_ms}")
 
 		"""[5] find a latency"""
 		delta_poly_diff = np.abs(np.diff(delta_smoothed_data[l_poly_border:], n=1))
@@ -658,7 +521,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# if not found -- the last index
 		else:
 			latency_index = len(gradient) - 1
-		log.info(f"Latency: {latency_index * data_step}")
+		log.info(f"Latency: {latency_index * step_size}")
 
 		# append found latency to the global list of the all latencies per slice
 		global_lat_indexes.append(latency_index)
@@ -725,8 +588,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax2 = plt.subplot2grid(shape=gridsize, loc=(1, 0), sharex=ax1)
 			ax3 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
 
-			xticks = np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step))
-			xticklabels = (xticks * data_step).astype(int)
+			xticks = np.arange(0, int(slice_in_ms / step_size) + 1, int(1 / step_size))
+			xticklabels = (xticks * step_size).astype(int)
 
 			ax1.title.set_text(f"Slice #{slice_index + 1}/{slices_number}")
 			# plot an area of EES
@@ -761,7 +624,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax1.set_xticks(xticks)
 			ax1.set_xticklabels(xticklabels)
-			ax1.set_xlim(0, int(slice_in_ms / data_step))
+			ax1.set_xlim(0, int(slice_in_ms / step_size))
 			ax1.set_ylim(-1, 1)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
@@ -774,7 +637,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax2.set_xticks(xticks)
 			ax2.set_xticklabels(xticklabels)
-			ax2.set_xlim(0, int(slice_in_ms / data_step))
+			ax2.set_xlim(0, int(slice_in_ms / step_size))
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
 
@@ -789,7 +652,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax3.set_xticks(xticks)
 			ax3.set_xticklabels(xticklabels)
-			ax3.set_xlim(0, int(slice_in_ms / data_step))
+			ax3.set_xlim(0, int(slice_in_ms / step_size))
 			ax3.grid(axis='x', linestyle='--', zorder=0)
 			ax3.legend()
 
@@ -801,7 +664,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		plt.subplots(figsize=(16, 9))
 		for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_original):
 			y_offset = slice_index * 1
-			plt.plot(np.arange(len(slice_boxplot_data)) * data_step, slice_boxplot_data + y_offset)
+			plt.plot(np.arange(len(slice_boxplot_data)) * step_size, slice_boxplot_data + y_offset)
 		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
 		plt.grid(axis='x')
 		plt.xlim(0, slice_in_ms)
@@ -823,7 +686,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		plt.xticks(range(slice_in_ms + 1), range(slice_in_ms + 1))
 		plt.grid(axis='x')
 
-		lat_x = [x * data_step for x in global_lat_indexes]
+		lat_x = [x * step_size for x in global_lat_indexes]
 		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
 		         in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
@@ -834,20 +697,21 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		plt.show()
 
-	global_lat_indexes = np.array(global_lat_indexes) * data_step
+	global_lat_indexes = np.array(global_lat_indexes) * step_size
 	global_amp_values = np.array(global_amp_values)
-	global_mono_indexes = np.array(global_mono_indexes) * data_step
+	global_mono_indexes = np.array(global_mono_indexes) * step_size
 
 	return global_lat_indexes, global_amp_values, global_mono_indexes
 
 
-def get_peaks(data_runs, ees_hz, step):
+def get_peaks(data_runs, latencies, ees_hz, step_size):
 	"""
 	TODO: add docstring
 	Args:
 		data_runs:
+		latencies:
 		ees_hz:
-		step:
+		step_size:
 	Returns:
 		list: number of peaks per slice
 	"""
@@ -858,21 +722,18 @@ def get_peaks(data_runs, ees_hz, step):
 	max_peaks = []
 	min_peaks = []
 
-	data_step = 0.25
-
 	slice_in_ms = 1000 / ees_hz
-	slice_in_steps = int(slice_in_ms / data_step)
+	slice_in_steps = int(slice_in_ms / step_size)
 
-	latencies, amplitudes, poly_borders = get_lat_amp(data_runs, ees_hz, step)
-
+	#
 	for data in data_runs:
 		# smooth data to remove micro-peaks
 		smoothed_data = smooth(data, 7)
 		# split data by slice based on EES (slice length)
 		splitted_per_slice = split_by_slices(smoothed_data, slice_in_steps)
 		# calc extrema per slice data
-		for poly_border, slice_data in zip(poly_borders, splitted_per_slice):
-			poly_border = int(poly_border / data_step)
+		for poly_border, slice_data in zip(latencies, splitted_per_slice):
+			poly_border = int(poly_border / step_size)
 			e_all_minima_indexes, e_all_minima_values = find_extrema(slice_data, np.less_equal)
 			e_all_maxima_indexes, e_all_maxima_values = find_extrema(slice_data, np.greater_equal)
 
@@ -925,67 +786,20 @@ def get_peaks(data_runs, ees_hz, step):
 	return avg_sum_peaks_per_slice
 
 
-def prepare_data(dataset):
+def plot_3D_PCA(data_pack, save_to):
 	"""
-	Centering -> Normalizing -> returning
+	TODO: add docstring
 	Args:
-		dataset (list or np.ndarray): original dataset
-	Returns:
-		list: prepared dataset per test
+		data_pack (list of tuple): special structure to easily work with (coords, color and label)
+		save_to (str): save folder path
 	"""
-	prepared_data = []
-	for data_per_test in dataset:
-		centered_data = center_data_by_line(data_per_test)
-		normalized_data = normalization(centered_data, save_centering=True)
-		prepared_data.append(normalized_data)
-	return prepared_data
-
-
-def plot_pca(debugging=False, plot_3d=False):
-	"""
-	Preparing data and drawing PCA for them
-	Args:
-		debugging:
-		plot_3d:
-	"""
-
-	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests.hdf5'
-
-	# process BIO dataset
-	dataset = read_data(bio_path)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
-	# form data pack
-	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
-
-	# process GRAS dataset
-	dataset = select_slices(gras_path, 0, 6000, sign=1)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
-	# form data pack
-	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
-
-	# process NEURON dataset
-	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)
-	# form data pack
-	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
-
-	axis_labels = ["Latencies", "Amplitudes", "Peaks"]
-
-	if plot_3d:
+	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		# init 3D projection figure
-		fig = plt.figure()
+		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
-		for coords, color, label in bio_pack, neuron_pack, gras_pack:
+		for coords, color, label in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
 			pca.fit(coords)
@@ -1001,6 +815,7 @@ def plot_pca(debugging=False, plot_3d=False):
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation = form_ellipse(axis_points)
+
 			# plot PCA vectors
 			for point_head in vectors_points:
 				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
@@ -1008,65 +823,38 @@ def plot_pca(debugging=False, plot_3d=False):
 			# plot cloud of points
 			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, plot_axes=debugging, color=color, alpha=0.1)
+			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
+
+			# # plot by combinations (lat, peaks) (amp, peaks) (lat, amp)
+			# for comb_A, comb_B in (0, 2), (1, 2), (0, 1):
+			# 	p0 = vectors_points[comb_A][[comb_A, comb_B]]
+			# 	p1 = vectors_points[comb_B][[comb_A, comb_B]]
+			# 	c = center[[comb_A, comb_B]]
+			# 	a = length(p0, c)
+			# 	b = length(p1, c)
+			# 	area = a * b * np.pi
+			# 	angle = angle_between(p0 - c, p1 - c)
+			# 	dataset_meta[label].append((f"{labels[comb_A]}/{labels[comb_B]}", area, angle, c))
+
 		# figure properties
-		ax.set_xlabel(axis_labels[0])
-		ax.set_ylabel(axis_labels[1])
-		ax.set_zlabel(axis_labels[2])
+		ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+		ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
+		ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+
+		ax.xaxis._axinfo['tick']['inward_factor'] = 0
+		ax.yaxis._axinfo['tick']['inward_factor'] = 0
+		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+		if "Lat" not in title:
+			ax.set_xticks([])
+		if "Amp" not in title:
+			ax.set_yticks([])
+		if "Peak" not in title:
+			ax.set_zticks([])
+
 		plt.legend()
-		plt.show()
+		ax.view_init(elev=elev, azim=azim)
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+		title = str(title).lower().replace(" ", "_")
+		plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
 		plt.close(fig)
-	else:
-		X = 0
-		Y = 1
-		# plot by combinations (lat, amp) (amp, peaks) (lat, peaks)
-		for comb_A, comb_B in (0, 1), (1, 2), (0, 2):
-			# start plotting
-			fig, ax = plt.subplots()
-			# plot per pack
-			for coords, color, title in bio_pack, gras_pack, neuron_pack:
-				# get only necessary coords
-				coords = coords[:, [comb_A, comb_B]]
-				# create PCA instance and fit the model with coords
-				pca = PCA(n_components=2)
-				pca.fit(coords)
-				# get the center (mean value of points cloud)
-				center = pca.mean_
-				# get PCA vectors' head points (semi axis)
-				vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
-				vectors_points = np.array(vectors_points) + center
-				# calc an angle between first vector and vertical vector from the center
-				vertical = np.array([center[X], center[Y] + 10])
-				angle = angle_between(vertical - center, vectors_points[0] - center)
-				# check on angle sign
-				sign = -1 if vectors_points[0][X] > center[X] else 1
-				# calculate ellipse size
-				e_height = length(center, vectors_points[0]) * 2
-				e_width = length(center, vectors_points[1]) * 2
-				# plot PCA vectors
-				for point_head in vectors_points:
-					draw_vector(center, point_head, color=color)
-				# plot dots
-				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
-				# plot ellipse
-				ellipse = Ellipse(xy=tuple(center), width=e_width, height=e_height, angle=sign * angle)
-				ellipse.set_edgecolor(hex2rgb(color))
-				ellipse.set_fill(False)
-				ax.add_artist(ellipse)
-				# fill convex figure
-				hull = ConvexHull(coords)
-				ax.fill(coords[hull.vertices, X], coords[hull.vertices, Y], color=color, alpha=0.3)
-				# calc an area of the poly figure
-				poly_area = poly_area_by_coords(coords[hull.vertices, X], coords[hull.vertices, Y])
-
-				if debugging:
-					for index, x, y in zip(range(len(coords[:, X])), coords[:, X], coords[:, Y]):
-						ax.text(x, y, index + 1)
-
-			# plot atributes
-			plt.xticks(fontsize=28)
-			plt.yticks(fontsize=28)
-			plt.xlabel(axis_labels[comb_A], fontsize=28)
-			plt.ylabel(axis_labels[comb_B], fontsize=28)
-			plt.legend()
-			plt.show()

@@ -44,10 +44,13 @@ with open(path) as file:
 	root = "/home/alex/GitHub/data/spinal"
 
 	for t, m, s, f, r, fi, b, e in zip(types, muslces, speeds, folders, rats, filenames, begins, ends):
+		filename = f"{root}/{t}/{m}/{s}/{f}/{r}/{fi}"
 		if b == "-" or e == "-":
+			t = f"rejected_{t}"
+			b = "0"
+			e = "0"
 			continue
 
-		filename = f"{root}/{t}/{m}/{s}/{f}/{r}/{fi}"
 		title = f"{t} {m} {s} {f}"
 		rat = fi
 
