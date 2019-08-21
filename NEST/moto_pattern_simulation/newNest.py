@@ -8,7 +8,6 @@ class NeurGroupsContainer:
         setattr(self, group_name, value)
 
 
-# all_neurons = NeurGroupsContainer()
 all_neurons = {}
 all_generators = {}
 
@@ -23,7 +22,6 @@ def form_group(group_name, nrns_in_group):
              'tau_syn_in': 2.0,
              'C_m': 200.0}
     neurs = nest.Create(neur_type, nrns_in_group, ndict)
-    # all_neurons.add_groups(group_name, neurs)
     all_neurons[group_name] = neurs
     return neurs
 
@@ -62,13 +60,14 @@ def connect_one_to_all(group1, group2, delay, weight):
     pass
 
 
-def create_network(inh_coef):
+def create_network():
     spike_generator_creator('EES', 40, 1.0)
     poisson_generator_creator('CV1', 1)
     poisson_generator_creator('CV2', 26)
     poisson_generator_creator('CV3', 51)
     poisson_generator_creator('CV4', 76, 51)
     poisson_generator_creator('CV5', 126)
+    poisson_generator_creator('iIP_F', 151, 126)
 
     much_groups_creater(['E1', 'E2', 'E3', 'E4', 'E5'], nestData.neurons_in_group)
     much_groups_creater(['CD4', 'CD5'], 1)
@@ -90,19 +89,13 @@ def create_network(inh_coef):
     connect_fixed_outdegree(all_neurons['E3'], all_neurons['E4'], 1, 80, nestData.syn_outdegree)
     connect_fixed_outdegree(all_neurons['E4'], all_neurons['E5'], 1, 80, nestData.syn_outdegree)
 
-    connect_one_to_all(all_generators['CV1'], all_neurons['iIP_E'], 0.5, 12)
-    connect_one_to_all(all_generators['CV2'], all_neurons['iIP_E'], 0.5, 12)
-    connect_one_to_all(all_generators['CV3'], all_neurons['iIP_E'], 0.5, 12)
-    connect_one_to_all(all_generators['CV4'], all_neurons['iIP_E'], 0.5, 12)
-    connect_one_to_all(all_generators['CV5'], all_neurons['iIP_E'], 0.5, 12)
+    connect_one_to_all(all_generators['CV1'], all_neurons['iIP_E'], 0.5, 20)
+    connect_one_to_all(all_generators['CV2'], all_neurons['iIP_E'], 0.5, 20)
+    connect_one_to_all(all_generators['CV3'], all_neurons['iIP_E'], 0.5, 20)
+    connect_one_to_all(all_generators['CV4'], all_neurons['iIP_E'], 0.5, 20)
+    connect_one_to_all(all_generators['CV5'], all_neurons['iIP_E'], 0.5, 20)
 
     connect_fixed_outdegree(all_neurons['E1'], all_neurons['OM1_0'], 1, 20, nestData.syn_outdegree)
-
-    # connect_one_to_all(all_generators['CV1'], all_neurons['CV1'], 0.5, 1)
-    # connect_one_to_all(all_generators['CV2'], all_neurons['CV2'], 13, 1)
-    # connect_one_to_all(all_generators['CV3'], all_neurons['CV3'], 25.5, 1)
-    # connect_one_to_all(all_generators['CV4'], all_neurons['CV4'], 38, 1)
-    # connect_one_to_all(all_generators['CV5'], all_neurons['CV5'], 50.5, 1)
 
     connect_one_to_all(all_generators['CV1'], all_neurons['OM1_0'], 0.5, 4)
     connect_one_to_all(all_generators['CV2'], all_neurons['OM1_0'], 0.5, 4)
@@ -112,7 +105,7 @@ def create_network(inh_coef):
     connect_one_to_all(all_generators['CV5'], all_neurons['OM1_3'], 1, 80)
 
     connect_fixed_outdegree(all_neurons['OM1_0'], all_neurons['OM1_1'], 1, 30)
-    connect_fixed_outdegree(all_neurons['OM1_1'], all_neurons['OM1_2_E'], 1, 21)
+    connect_fixed_outdegree(all_neurons['OM1_1'], all_neurons['OM1_2_E'], 1, 20)
     connect_fixed_outdegree(all_neurons['OM1_1'], all_neurons['OM1_2_F'], 0.1, 20)
     connect_fixed_outdegree(all_neurons['OM1_1'], all_neurons['OM1_3'], 3.5, 4)
     connect_fixed_outdegree(all_neurons['OM1_2_E'], all_neurons['OM1_1'], 2.5, 18.3)
@@ -125,137 +118,139 @@ def create_network(inh_coef):
 
     connect_fixed_outdegree(all_neurons['OM1_2_F'], all_neurons['OM2_2_F'], 1, 50)
 
-    connect_fixed_outdegree(all_neurons['OM1_2_E'], all_neurons['eIP_E'], 1, 14, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['OM1_2_F'], all_neurons['eIP_F'], 1, 7, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM1_2_E'], all_neurons['eIP_E'], 1, 45, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM1_2_F'], all_neurons['eIP_F'], 1, 30, nestData.neurons_in_ip)
 
-    connect_fixed_outdegree(all_neurons['E2'], all_neurons['OM2_0'], 3, 8)
+    connect_fixed_outdegree(all_neurons['E2'], all_neurons['OM2_0'], 1, 12)
 
-    connect_one_to_all(all_generators['CV2'], all_neurons['OM2_0'], 0.5, 7)  # Настроить
-    connect_one_to_all(all_generators['CV2'], all_neurons['OM2_0'], 0.5, 7)
+    connect_one_to_all(all_generators['CV2'], all_neurons['OM2_0'], 0.5, 5)
+    connect_one_to_all(all_generators['CV3'], all_neurons['OM2_0'], 0.5, 5)
 
-    connect_one_to_all(all_generators['CV2'], all_neurons['OM2_0'], 1, 80)
-    connect_one_to_all(all_generators['CV2'], all_neurons['OM2_0'], 1, 80)
+    connect_one_to_all(all_generators['CV4'], all_neurons['OM2_3'], 1, 80)
+    connect_one_to_all(all_generators['CV5'], all_neurons['OM2_3'], 1, 80)
 
-    connect_fixed_outdegree(all_neurons['OM2_0'], all_neurons['OM2_1'], 1, 50)
-    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_2_E'], 1, 25)
-    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_2_F'], 1, 23)
-    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['OM2_1'], 2.5, 25)
-    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['OM2_1'], 2.5, 20)
-    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['OM2_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['OM2_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_1'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_2_E'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_2_F'], 1, -70 * inh_coef)
+    connect_fixed_outdegree(all_neurons['OM2_0'], all_neurons['OM2_1'], 1, 27)
+    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_2_E'], 1, 21.5)
+    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_2_F'], 0.1, 15.5)
+    connect_fixed_outdegree(all_neurons['OM2_1'], all_neurons['OM2_3'], 3.5, 4)
+    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['OM2_1'], 2.5, 17.5)
+    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['OM2_1'], 2.5, 16)
+    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['OM2_3'], 1, 2)
+    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['OM2_3'], 0.3, 12)
+    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_1'], 1.5, -3)
+    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_2_E'], 0.3, -20)
+    connect_fixed_outdegree(all_neurons['OM2_3'], all_neurons['OM2_2_F'], 1, -1)
 
     connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['OM3_2_F'], 1, 50)
 
-    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['eIP_E'], 3, 10, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['eIP_F'], 2, 7, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM2_2_E'], all_neurons['eIP_E'], 3, 30, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM2_2_F'], all_neurons['eIP_F'], 2, 30, nestData.neurons_in_ip)
 
-    connect_fixed_outdegree(all_neurons['E3'], all_neurons['OM3_0'], 1, 8)
+    connect_fixed_outdegree(all_neurons['E3'], all_neurons['OM3_0'], 1, 12)
 
-    connect_one_to_all(all_generators['CV3'], all_neurons['OM3_0'], 0.5, 10.5)
-    connect_one_to_all(all_generators['CV4'], all_neurons['OM3_0'], 0.5, 10.5)
+    connect_one_to_all(all_generators['CV3'], all_neurons['OM3_0'], 0.5, 5)
+    connect_one_to_all(all_generators['CV4'], all_neurons['OM3_0'], 0.5, 5)
 
     connect_one_to_all(all_generators['CV5'], all_neurons['OM3_3'], 1, 80)
 
     connect_one_to_all(all_neurons['CD4'], all_neurons['OM3_0'], 1, 11)
 
-    connect_fixed_outdegree(all_neurons['OM3_0'], all_neurons['OM3_1'], 1, 50)
-    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_2_E'], 1, 25)
-    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_2_F'], 1, 30)
-    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['OM3_1'], 2.5, 25)
-    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['OM3_1'], 2.5, 20)
-    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['OM3_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['OM3_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_1'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_2_E'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_2_F'], 1, -70 * inh_coef)
+    connect_fixed_outdegree(all_neurons['OM3_0'], all_neurons['OM3_1'], 1, 35)
+    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_2_E'], 1, 21.4)
+    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_2_F'], 0.1, 15.5)
+    connect_fixed_outdegree(all_neurons['OM3_1'], all_neurons['OM3_3'], 3.5, 3)
+    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['OM3_1'], 2.5, 17)
+    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['OM3_1'], 2.5, 16)
+    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['OM3_3'], 1, 2)
+    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['OM3_3'], 0.3, 12)
+    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_1'], 1.5, -3)
+    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_2_E'], 0.3, -24)
+    connect_fixed_outdegree(all_neurons['OM3_3'], all_neurons['OM3_2_F'], 1, -2)
 
     connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['OM4_2_F'], 1, 50)
-    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['eIP_E'], 2, 9, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['eIP_F'], 3, 7, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM3_2_E'], all_neurons['eIP_E'], 2, 28, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM3_2_F'], all_neurons['eIP_F'], 3, 30, nestData.neurons_in_ip)
 
-    connect_fixed_outdegree(all_neurons['E4'], all_neurons['OM4_0'], 2, 8)
+    connect_fixed_outdegree(all_neurons['E4'], all_neurons['OM4_0'], 2, 12)
 
-    connect_one_to_all(all_generators['CV4'], all_neurons['OM4_0'], 0.5, 10.5)
-    connect_one_to_all(all_generators['CV5'], all_neurons['OM4_0'], 0.5, 10.5)
+    connect_one_to_all(all_generators['CV4'], all_neurons['OM4_0'], 0.5, 5)
+    connect_one_to_all(all_generators['CV5'], all_neurons['OM4_0'], 0.5, 5)
 
     connect_one_to_all(all_neurons['CD4'], all_neurons['OM4_0'], 1, 11)
     connect_one_to_all(all_neurons['CD5'], all_neurons['OM4_0'], 1, 11)
 
-    connect_fixed_outdegree(all_neurons['OM4_0'], all_neurons['OM4_1'], 3, 50)
-    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_2_E'], 1, 26)
-    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_2_F'], 1, 23)
-    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['OM4_1'], 2.5, 26)
-    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['OM4_1'], 2.5, 20)
-    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['OM4_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['OM4_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_1'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_2_E'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_2_F'], 1, -70 * inh_coef)
+    connect_fixed_outdegree(all_neurons['OM4_0'], all_neurons['OM4_1'], 1, 30)
+    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_2_E'], 1, 21.5)
+    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_2_F'], 0.1, 13)
+    connect_fixed_outdegree(all_neurons['OM4_1'], all_neurons['OM4_3'], 3.5, 4)
+    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['OM4_1'], 2.5, 18.3)
+    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['OM4_1'], 2.5, 16)
+    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['OM4_3'], 1, 2)
+    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['OM4_3'], 0.3, 12)
+    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_1'], 1.5, -3)
+    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_2_E'], 0.3, -23)
+    connect_fixed_outdegree(all_neurons['OM4_3'], all_neurons['OM4_2_F'], 1, -2)
 
     connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['OM5_2_F'], 1, 50)
-    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['eIP_E'], 2, 9, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['eIP_F'], 1, 7, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM4_2_E'], all_neurons['eIP_E'], 2, 35, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM4_2_F'], all_neurons['eIP_F'], 1, 30, nestData.neurons_in_ip)
 
-    connect_fixed_outdegree(all_neurons['E5'], all_neurons['OM5_0'], 3, 8)
+    connect_fixed_outdegree(all_neurons['E5'], all_neurons['OM5_0'], 3, 12)
 
-    connect_one_to_all(all_generators['CV5'], all_neurons['OM5_0'], 0.5, 10.5)
+    connect_one_to_all(all_generators['CV5'], all_neurons['OM5_0'], 0.5, 5)
 
     connect_one_to_all(all_neurons['CD5'], all_neurons['OM5_0'], 1, 11)
 
-    connect_fixed_outdegree(all_neurons['OM5_0'], all_neurons['OM5_1'], 1, 50)
-    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_2_E'], 1, 26)
-    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_2_F'], 1, 30)
-    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['OM5_1'], 2.5, 26)
-    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['OM5_1'], 2.5, 30)
-    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['OM5_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['OM5_3'], 1, 3)
-    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_1'], 1, -70 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_2_E'], 1, -20 * inh_coef)
-    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_2_F'], 1, -20 * inh_coef)
+    connect_fixed_outdegree(all_neurons['OM5_0'], all_neurons['OM5_1'], 1, 30)
+    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_2_E'], 1, 20.5)
+    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_2_F'], 0.1, 15.5)
+    connect_fixed_outdegree(all_neurons['OM5_1'], all_neurons['OM5_3'], 3.5, 4)
+    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['OM5_1'], 2.5, 17.5)
+    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['OM5_1'], 2.5, 16)
+    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['OM5_3'], 1, 2)
+    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['OM5_3'], 0.3, 15)
+    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_1'], 1.5, -3)
+    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_2_E'], 0.3, -20)
+    connect_fixed_outdegree(all_neurons['OM5_3'], all_neurons['OM5_2_F'], 1, -2)
 
-    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['eIP_E'], 2, 9, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['eIP_F'], 3, 7, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM5_2_E'], all_neurons['eIP_E'], 2, 30, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['OM5_2_F'], all_neurons['eIP_F'], 3, 30, nestData.neurons_in_ip)
 
     connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['eIP_F'], 0.5, -50, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['iIP_F'], all_neurons['eIP_E'], 0.5, -50, nestData.neurons_in_ip)
+    # connect_fixed_outdegree(all_neurons['iIP_F'], all_neurons['eIP_E'], 0.5, -50, nestData.neurons_in_ip)
+    connect_one_to_all(all_generators['iIP_F'], all_neurons['eIP_E'], 0.5, -50)
 
     connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM1_2_F'], 0.5, -500, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM2_2_F'], 0.5, -15, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM3_2_F'], 0.5, -15, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM4_2_F'], 0.5, -15, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM2_2_F'], 0.5, -100, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM3_2_F'], 0.5, -100, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['OM4_2_F'], 0.5, -100, nestData.neurons_in_ip)
 
-    connect_one_to_all(all_generators['EES'], all_neurons['Ia_E_aff'], 1, 300)
-    connect_one_to_all(all_generators['EES'], all_neurons['Ia_F_aff'], 1, 300)
+    connect_one_to_all(all_generators['EES'], all_neurons['Ia_E_aff'], 1, 500)
+    connect_one_to_all(all_generators['EES'], all_neurons['Ia_F_aff'], 1, 500)
 
-    connect_fixed_outdegree(all_neurons['eIP_E'], all_neurons['MN_E'], 2.5, 1.4, nestData.neurons_in_moto)  # d1
+    connect_fixed_outdegree(all_neurons['eIP_E'], all_neurons['MN_E'], 2.5, 400, nestData.neurons_in_moto)
 
-    connect_fixed_outdegree(all_neurons['eIP_F'], all_neurons['MN_F'], 1, 11, nestData.neurons_in_moto)
+    connect_fixed_outdegree(all_neurons['eIP_F'], all_neurons['MN_F'], 1, 200, nestData.neurons_in_moto)
 
-    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['Ia_E_pool'], 1, 10, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['iIP_F'], all_neurons['Ia_F_pool'], 1, 10, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['iIP_E'], all_neurons['Ia_E_pool'], 1, 30, nestData.neurons_in_ip)
+    connect_one_to_all(all_generators['iIP_F'], all_neurons['Ia_F_pool'], 1, 30)
+    # Возможно нужно заменить на connect_fixed_outdegree
 
-    connect_fixed_outdegree(all_neurons['Ia_E_pool'], all_neurons['MN_F'], 1, -20, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['Ia_E_pool'], all_neurons['MN_F'], 1, -150, nestData.neurons_in_ip)
     connect_fixed_outdegree(all_neurons['Ia_E_pool'], all_neurons['Ia_F_pool'], 1, -1, nestData.neurons_in_ip)
-    connect_fixed_outdegree(all_neurons['Ia_F_pool'], all_neurons['MN_E'], 1, -4, nestData.neurons_in_ip)
+    connect_fixed_outdegree(all_neurons['Ia_F_pool'], all_neurons['MN_E'], 1, -50, nestData.neurons_in_ip)
     connect_fixed_outdegree(all_neurons['Ia_F_pool'], all_neurons['Ia_E_pool'], 1, -1, nestData.neurons_in_ip)
 
-    connect_fixed_outdegree(all_neurons['Ia_E_aff'], all_neurons['MN_E'], 2, 8, nestData.neurons_in_moto)
-    connect_fixed_outdegree(all_neurons['Ia_F_aff'], all_neurons['MN_F'], 2, 6, nestData.neurons_in_moto)
+    connect_fixed_outdegree(all_neurons['Ia_E_aff'], all_neurons['MN_E'], 2, 30, nestData.neurons_in_moto)
+    connect_fixed_outdegree(all_neurons['Ia_F_aff'], all_neurons['MN_F'], 2, 22, nestData.neurons_in_moto)
 
-    connect_fixed_outdegree(all_neurons['MN_E'], all_neurons['R_E'], 2, 1)
-    connect_fixed_outdegree(all_neurons['MN_F'], all_neurons['R_F'], 2, 1)
+    connect_fixed_outdegree(all_neurons['MN_E'], all_neurons['R_E'], 2, 4)
+    connect_fixed_outdegree(all_neurons['MN_F'], all_neurons['R_F'], 0.5, 6)
 
-    connect_fixed_outdegree(all_neurons['R_E'], all_neurons['MN_E'], 2, -0.5, nestData.neurons_in_moto)
+    connect_fixed_outdegree(all_neurons['R_E'], all_neurons['MN_E'], 2, -10, nestData.neurons_in_moto)
     connect_fixed_outdegree(all_neurons['R_E'], all_neurons['R_F'], 2, -1)
 
-    connect_fixed_outdegree(all_neurons['R_F'], all_neurons['MN_F'], 2, -0.5, nestData.neurons_in_moto)
+    connect_fixed_outdegree(all_neurons['R_F'], all_neurons['MN_F'], 0.5, -50, nestData.neurons_in_moto)
     connect_fixed_outdegree(all_neurons['R_F'], all_neurons['R_E'], 2, -1)
 
     return all_neurons

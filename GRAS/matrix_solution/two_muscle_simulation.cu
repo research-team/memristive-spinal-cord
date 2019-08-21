@@ -474,7 +474,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 	/// OM 1
 	// input from EES group 1
-	connect_fixed_outdegree(E1, OM1_0, 1, 15);
+	connect_fixed_outdegree(E1, OM1_0, 2, 15);
 	// input from sensory
 	connect_one_to_all(CV1, OM1_0, 0.5, 10 * quadru_coef * sero_coef);
 	connect_one_to_all(CV2, OM1_0, 0.5, 10 * quadru_coef * sero_coef);
@@ -497,12 +497,12 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM2
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 30);
 	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 16, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 12, neurons_in_ip); //16
 	connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
-	connect_fixed_outdegree(E2, OM2_0, 3, 7);
+	connect_fixed_outdegree(E2, OM2_0, 2, 7);
 	// input from sensory [CV]
 	connect_one_to_all(CV2, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	connect_one_to_all(CV3, OM2_0, 0.5, 10.5 * quadru_coef * sero_coef);
@@ -552,7 +552,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM3
 	connect_fixed_outdegree(OM3_2_F, OM4_2_F, 4, 30);
 	// output to IP
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 2.5, 8, neurons_in_ip); // 7 - 8
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 2, 8, neurons_in_ip); // 7 - 8
 	connect_fixed_outdegree(OM3_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// OM 4
@@ -579,12 +579,12 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	// output to OM4
 	connect_fixed_outdegree(OM4_2_F, OM5_2_F, 4, 30);
 	// output to IP
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 2.5, 7, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 2, 7, neurons_in_ip);
 	connect_fixed_outdegree(OM4_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
-	connect_fixed_outdegree(E5, OM5_0, 3, 7);
+	connect_fixed_outdegree(E5, OM5_0, 1, 7);
 	// input from sensory [CV]
 	connect_one_to_all(CV5, OM5_0, 0.5, 10.5 * quadru_coef * sero_coef);
 	// input from sensory [CD]
@@ -602,7 +602,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_3, OM5_2_E, 1, -20 * inh_coef);
 	connect_fixed_outdegree(OM5_3, OM5_2_F, 1, -3 * inh_coef);
 	// output to IP
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 2, 8, neurons_in_ip); // 2.5
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1, 10, neurons_in_ip); // 2.5
 	connect_fixed_outdegree(OM5_2_F, eIP_F, 4, 5, neurons_in_ip);
 
 	/// reflex arc
@@ -617,7 +617,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 2, 2.3, neurons_in_moto); // 2.2
+	connect_fixed_outdegree(eIP_E, MN_E, 0.5, 2.3, neurons_in_moto); // 2.2
 	connect_fixed_outdegree(eIP_F, MN_F, 5, 8, neurons_in_moto);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
@@ -815,6 +815,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	init_array<float>(nrn_h, neurons_number, 1);             // by default neurons have opened sodium channel activation
 	init_array<float>(nrn_m, neurons_number, 0);             // by default neurons have closed sodium channel inactivation
 	init_array<float>(nrn_v_m, neurons_number, E_L);               // by default neurons have E_L membrane state at start
+	init_array<float>(nrn_g_exc, neurons_number, 200);
 	init_array<float>(nrn_g_inh, neurons_number, 0);         // by default neurons have zero inhibitory synaptic conductivity
 	init_array<bool>(nrn_has_spike, neurons_number, false);  // by default neurons haven't spikes at start
 	init_array<int>(nrn_ref_time_timer, neurons_number, 0);  // by default neurons have ref_t timers as 0
@@ -822,7 +823,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.4 / SIM_STEP));  // neuron ref time, aprx interval is (1.8, 4.2)
 	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 6); // membrane capacity (185, 215)
 	rand_normal_init_array<float>(nrn_threshold, neurons_number, -50, 0.4); // neurons threshold (-51.2, -48.8)
-	rand_normal_init_array<float>(nrn_g_exc, neurons_number, 70, 20);
 
 	// moto neurons
 //	for (int i = 1637; i <= 1832; i++) {

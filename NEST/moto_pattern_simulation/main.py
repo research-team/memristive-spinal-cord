@@ -1,5 +1,4 @@
 import nest
-
 import nestData
 import multimetersDef
 import newNest
@@ -14,7 +13,7 @@ nest.SetKernelStatus({
     'resolution': 0.025,
     'overwrite_files': True})
 
-all_neurons = newNest.create_network(1)
+all_neurons = newNest.create_network()
 
 multimeters = multimetersDef.multimeters_creater(nest, all_neurons)
 spike_detectors = multimetersDef.spike_det_creater(nest, all_neurons)

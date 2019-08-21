@@ -362,22 +362,17 @@ def calc_amplitudes(datas, latencies, step, ees_end, after_latencies=False):
 	for i in range(len(latencies)):
 		max_times_amp_tmp = []
 		for j in range(len(max_times[i])):
-			if max_times[i][j] > latencies[i]:
+			if max_times[i][j] < ees_end:   ## > latencies[i]
 				max_times_amp_tmp.append(max_times[i][j])
 		max_times_amp.append(max_times_amp_tmp)
 		min_times_amp_tmp = []
 		for j in range(len(min_times[i])):
-			if min_times[i][j] > latencies[i]:
+			if min_times[i][j] < ees_end:#: > latencies[i]
 				min_times_amp_tmp.append(min_times[i][j])
 		min_times_amp.append(min_times_amp_tmp)
 
 		max_values_amp.append(max_values[i][len(max_times[i]) - len(max_times_amp[i]):])
 		min_values_amp.append(min_values[i][len(min_times[i]) - len(min_times_amp[i]):])
-
-	# print("amp max_times = ", max_times)
-	# print("amp max_values = ", max_values)
-	# print("amp min_times = ", min_times)
-	# print("amp min_values = ", min_values)
 
 	corrected_max_times_amp = []
 	corrected_max_values_amp = []
@@ -579,9 +574,9 @@ def __process(latencies, voltages, stim_indexes, step, ees_end, debugging, inhib
 		list: amplitudes -- amplitude per slice
 	"""
 	mins_maxes = calc_max_min(stim_indexes, voltages, find_EES=True)   # check
-	ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
+	# ees_indexes = find_ees_indexes(stim_indexes, mins_maxes, reverse_ees=reverse_ees)
 	norm_voltages = normalization(voltages, zero_relative=True)
-	mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
+	# mins_maxes = calc_max_min(ees_indexes, voltages, stim_corr=stim_indexes)
 	# latencies = find_latencies(mins_maxes, step, norm_to_ms=True, reversed_data=reversed_data,
 	#                            inhibition_zero=inhibition_zero, first_kink=first_kink) # , thresholds
 	amplitudes, peaks_number, max_times, min_times, max_values, min_values = \
@@ -589,6 +584,12 @@ def __process(latencies, voltages, stim_indexes, step, ees_end, debugging, inhib
 
 	# if debugging:
 	# 	debug(voltages, mins_maxes, stim_indexes, ees_indexes, latencies, amplitudes, step)
+	# print("amplitudes = ", amplitudes)
+	# print("peaks_number = ", peaks_number)
+	# print("max_times = ", max_times)
+	# print("min_times = ", min_times)
+	# print("max_values = ", max_values)
+	# print("min_values = ", min_values)
 	return amplitudes, peaks_number, max_times, min_times, max_values, min_values
 
 
@@ -1065,7 +1066,7 @@ def absolute_sum(data_list, step):
 	return volts
 
 
-def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):
+def changing_peaks(data, herz, step, max_amp_coef=-0.3, min_amp_coef=-0.5, filtering=False):   # , ees_end,
 	# print("data = ", len(data), type(data))
 	ees_end= 36
 	latencies, amplitudes = get_lat_amp(data, herz, step)

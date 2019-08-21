@@ -11,7 +11,7 @@ nhost = int(pc.nhost())
 
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-ees_i = 25 # interval between self.ees stimulus 
+ees_fr = 40 # frequency of EES
 versions = 25
 step_number = 2 # number of steps
 
@@ -27,7 +27,7 @@ see topology https://github.cself.OM/research-team/memristive-spinal-cord/blob/m
 and all will be clear
 '''
 class CPG:
-  def __init__(self, speed, ees_int, inh_p, step_number, N = 20):
+  def __init__(self, speed, ees_fr, inh_p, step_number, N = 20):
 
     self.interneurons = []
     self.motoneurons = []
@@ -122,10 +122,11 @@ class CPG:
     self.Iagener_F = []
     
     # ees
-    self.ees = self.addgener(1, ees_int, 10000, False)
+    self.ees = self.addgener(1, ees_fr, 10000, False)
     
     #skin inputs
-    c_int = 5
+    cfr = 200
+    c_int = 1000/cfr
     self.C1 = []
     self.C2 = []
     self.C3 = []
@@ -136,23 +137,23 @@ class CPG:
     self.C_0 = []
 
     for i in range(step_number):
-        self.C1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C1.append(self.addgener(speed*0 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
-        self.C2.append(self.addgener(speed*1 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C2.append(self.addgener(speed*1 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
-        self.C3.append(self.addgener(speed*2 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C3.append(self.addgener(speed*2 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
-        self.C4a.append(self.addgener(speed*3 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C4a.append(self.addgener(speed*3 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
-        self.C4b.append(self.addgener(speed*4 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C4b.append(self.addgener(speed*4 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
-        self.C5.append(self.addgener(speed*5 + i*(speed*6 + 125), c_int, speed/c_int))
+        self.C5.append(self.addgener(speed*5 + i*(speed*6 + 125), cfr, speed/c_int))
     for i in range(step_number):
         self.Iagener_E.append(self.addIagener((1 + i*(speed*6 + 125)), self.ncell, speed))
     for i in range(step_number):
         self.Iagener_F.append(self.addIagener((speed*6 + i*(speed*6 + 125)), self.ncell, 25))
     for i in range(step_number):
-        self.C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), c_int, (125/c_int-1), False))
+        self.C_0.append(self.addgener(speed*6 + i*(speed*6 + 125), cfr, (125/c_int-1), False))
     '''
     for i in range(step_number):
         self.C_1.append(self.addgener(speed*0 + i*(speed*6 + 125), c_int, 6*speed/c_int))
@@ -448,15 +449,15 @@ class CPG:
     self.affgroups.append((gids, name))
     return gids
 
-  def addgener(self, start, interval, nums, r=True):
+  def addgener(self, start, freq, nums, r=True):
     '''
     Creates generator and returns generator gid
     Parameters
     ----------
     start: int
         generator start up
-    interval: int
-        interval between signals in generator 
+    freq: int
+        generator frequency  
     nums: int
         signals number
     Returns
@@ -472,7 +473,7 @@ class CPG:
       stim.noise = 0.1
     else:
       stim.start = random.uniform(start, start + 1)
-    stim.interval = interval
+    stim.interval = 1000/freq
     #skinstim.noise = 0.1
     self.stims.append(stim)
     while(pc.gid_exists(gid)!=0):
@@ -737,7 +738,7 @@ if __name__ == '__main__':
     '''
     k_nrns = 0
     k_name = 1
-    cpg_ex = CPG(speed, ees_i, 100, step_number)
+    cpg_ex = CPG(speed, ees_fr, 100, step_number)
 
     for i in range(versions): 
       cpg_ex.updateconnections()         

@@ -1,7 +1,7 @@
+import ntpath
 import logging
 import numpy as np
 import pylab as plt
-import h5py as hdf5
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
@@ -9,8 +9,9 @@ from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
+from analysis.functions import draw_vector
+from analysis.functions import auto_prepare_data
 
-np.set_printoptions(suppress=True)
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
 
@@ -110,20 +111,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
-	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=alpha, color=color)
-
-
-def read_data(filepath):
-	with hdf5.File(filepath, 'r') as file:
-		data_by_test = [test_values[:] for test_values in file.values()]
-		if not all(map(len, data_by_test)):
-			raise Exception("Has empty data")
-	return data_by_test
-
-
-def select_slices(path, begin, end, sign=1):
-	return [sign * data[begin:end][::10] for data in read_data(path)]
+	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
 
 
 def hex2rgb(hex_color):
@@ -147,6 +136,24 @@ def angle_between(v1, v2):
 
 def poly_area_by_coords(x, y):
 	return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def split_by_slices(data, slice_length):
+	"""
+	TODO: add docstring
+	Args:
+		data (np.ndarray): data array
+		slice_length (int): slice length in steps
+	Returns:
+		np.ndarray: sliced data
+	"""
+	slices_begin_indexes = range(0, len(data) + 1, slice_length)
+	splitted_per_slice = [data[beg:beg + slice_length] for beg in slices_begin_indexes]
+	print(len(splitted_per_slice))
+	# remove tails
+	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
+		del splitted_per_slice[-1]
+	return splitted_per_slice
 
 
 def calc_boxplots(dots):
@@ -180,32 +187,6 @@ def calc_boxplots(dots):
 			low_flier = dot
 
 	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
-
-
-def normalization(data, a=0, b=1, save_centering=False):
-	"""
-	Normalization in [a, b] interval or with saving centering
-	x` = (b - a) * (xi - min(x)) / (max(x) - min(x)) + a
-	Args:
-		data (np.ndarray): data for normalization
-		a (float): left interval
-		b (float): right interval
-		save_centering (bool): if True -- will save data centering and just normalize by lowest data
-	Returns:
-		np.ndarray: normalized data
-	"""
-	# checking on errors
-	if a >= b:
-		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
-	if save_centering:
-		minimal = abs(min(data))
-		return [volt / minimal for volt in data]
-	else:
-		min_x = min(data)
-		max_x = max(data)
-		const = (b - a) / (max_x - min_x)
-
-		return [(x - min_x) * const + a for x in data]
 
 
 def smooth(data, box_pts):
@@ -249,7 +230,7 @@ def max_at(array):
 	return index, value
 
 
-def find_extremuma(array, condition):
+def find_extrema(array, condition):
 	"""
 	Wrapper of numpy.argrelextrema for siplifying code
 	Args:
@@ -285,93 +266,6 @@ def indexes_where(indexes, less_than=None, greater_than=None):
 	if greater_than is not None:
 		return np.compress(indexes > greater_than, indexes).astype(int)
 	raise Exception("You didn't choose any condtinion!")
-
-
-def draw_vector(p0, p1, color):
-	"""
-	Small function for drawing vector with arrow by two points
-	Args:
-		p0 (np.ndarray): begin of the vector
-		p1 (np.ndarray): end of the vector
-		color (str): the color of vector
-	"""
-	ax = plt.gca()
-	# this plot is fixing the problem of hiding annotations because of their not markers origin
-	ax.plot(p1[0], p1[1], '.', alpha=0)
-	ax.annotate('', p1, p0, arrowprops=dict(facecolor=color, linewidth=1.0))
-
-
-def center_data_by_line(y_points, debugging=False):
-	"""
-	Straight the data and center the rotated points cloud at (0, 0)
-	Args:
-		y_points (list or np.ndarray): list of Y points value
-		debugging (bool): True -- will print debugging info and plot figures
-	Returns:
-		np.ndarray: new straighten Y data
-	"""
-	X = 0
-	Y = 1
-	# prepare original data (convert to 2D ndarray)
-	dots_2D = np.stack((range(len(y_points)), y_points), axis=1)
-	# calc PCA for dots cloud
-	pca = PCA(n_components=2)
-	pca.fit(dots_2D)
-	# get PCA components for finding an rotation angle
-	cos_theta = pca.components_[0, 0]
-	sin_theta = pca.components_[0, 1]
-	# one possible value of Theta that lies in [0, pi]
-	arccos = np.arccos(cos_theta)
-
-	# if arccos is in Q1 (quadrant), rotate CLOCKwise by arccos
-	if cos_theta > 0 and sin_theta > 0:
-		arccos *= -1
-	# elif arccos is in Q2, rotate COUNTERclockwise by the complement of theta
-	elif cos_theta < 0 and sin_theta > 0:
-		arccos = np.pi - arccos
-	# elif arccos is in Q3, rotate CLOCKwise by the complement of theta
-	elif cos_theta < 0 and sin_theta < 0:
-		arccos = -(np.pi - arccos)
-	# if arccos is in Q4, rotate COUNTERclockwise by theta, i.e. do nothing
-	elif cos_theta > 0 and sin_theta < 0:
-		pass
-
-	# manually build the counter-clockwise rotation matrix
-	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-	                            [np.sin(arccos), np.cos(arccos)]])
-	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
-	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
-	# center the rotated point cloud at (0, 0)
-	rotated_dots_2D -= rotated_dots_2D.mean(axis=0)
-
-	# plot debugging figures
-	if debugging:
-		plt.figure(figsize=(16, 9))
-		plt.suptitle("PCA")
-		# plot all dots and connect them
-		plt.scatter(dots_2D[:, X], dots_2D[:, Y], alpha=0.2)
-		plt.plot(dots_2D[:, X], dots_2D[:, Y])
-		# plot vectors
-		for v_length, vector in zip(pca.explained_variance_, pca.components_):
-			v = vector * 3 * np.sqrt(v_length)
-			draw_vector(pca.mean_, pca.mean_ + v)
-		# figure properties
-		plt.tight_layout()
-		plt.show()
-		plt.close()
-
-		plt.figure(figsize=(16, 9))
-		plt.suptitle("Centered data")
-		# plot ogignal data on centered
-		plt.plot(range(len(dots_2D)), dots_2D[:, Y], label='original')
-		plt.plot(range(len(rotated_dots_2D)), rotated_dots_2D[:, Y], label='centered')
-		plt.axhline(y=0, color='g', linestyle='--')
-		# figure properties
-		plt.tight_layout()
-		plt.legend()
-		plt.show()
-
-	return rotated_dots_2D[:, 1]
 
 
 def find_min_deltas(array, extremuma):
@@ -416,14 +310,33 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 		np.ndarray:
 	"""
 	# prepare data for concatenating dots into one list (per parameter)
-	common_lenght = len(minima_indexes) + len(maxima_indexes)
-	merged_names = [None] * common_lenght
-	merged_indexes = [None] * common_lenght
-	merged_values = [None] * common_lenght
 
 	# who located earlier -- max or min
 	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
 	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
+
+	common_length = len(minima_indexes) + len(maxima_indexes)
+
+	merged_names = [None] * common_length
+	merged_indexes = [None] * common_length
+	merged_values = [None] * common_length
+
+	# be sure that size of [min_starts::2] be enough for filling
+	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
+		minima_indexes = minima_indexes[:-1]
+		minima_values = minima_values[:-1]
+
+	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
+		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
+		minima_values = np.append(minima_values, minima_values[-1])
+
+	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
+		maxima_indexes = maxima_indexes[:-1]
+		maxima_values = maxima_values[:-1]
+
+	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
+		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
+		maxima_values = np.append(maxima_values, maxima_values[-1])
 
 	# fill minima lists based on the precedence
 	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
@@ -433,7 +346,7 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
 	merged_indexes[max_starts::2] = maxima_indexes
 	merged_values[max_starts::2] = maxima_values
-	# convert them to the array for usability
+
 	merged_names = np.array(merged_names)
 	merged_values = np.array(merged_values)
 	merged_indexes = np.array(merged_indexes).astype(int)
@@ -479,13 +392,13 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
 
 
-def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
+def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
 		data_test_runs (list or np.ndarry): arrays of data
 		ees_hz (int): EES value
-		data_step (float): data step
+		step_size (float): data step
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		list: latencies indexes
@@ -495,20 +408,20 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 	global_mono_indexes = []
 	global_amp_values = []
 
-	data_test_runs = np.array(data_test_runs)
-
+	data_test_runs = np.array(data_test_runs, dtype=float)
 	# additional properties
-	slice_in_ms = int(1000 / ees_hz)
+	slice_in_ms = 1000 / ees_hz
+	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / step_size))
+	slice_in_steps = int(slice_in_ms / step_size)
 	# set ees area, before that time we don't try to find latencies
-	ees_zone_time = int(7 / data_step)
-	shared_x = np.arange(slice_in_ms / data_step) * data_step
-	# get number of slices based on length of the bio data
-	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / data_step))
-	# split original data only for visualization
-	splitted_per_slice_original = np.split(data_test_runs.T, slices_number)
-	# calc boxplot per step and split it by number of slices
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in data_test_runs.T])
-	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
+	ees_zone_time = int(7 / step_size)
+	shared_x = np.arange(slice_in_steps) * step_size
+	original_data = data_test_runs.T
+	# calc boxplot per dot
+	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
+	# split data by slices
+	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
+	splitted_per_slice_original = split_by_slices(original_data, slice_in_steps)
 
 	# compute latency per slice
 	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
@@ -535,13 +448,13 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		"""[2] find all extremuma"""
 		# find all Q1 extremuma indexes and values
-		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extremuma(smoothed_Q1, np.less_equal)
-		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extremuma(smoothed_Q1, np.greater_equal)
+		e_all_Q1_minima_indexes, e_all_Q1_minima_values = find_extrema(smoothed_Q1, np.less_equal)
+		e_all_Q1_maxima_indexes, e_all_Q1_maxima_values = find_extrema(smoothed_Q1, np.greater_equal)
 		log.info(f"all Q1 minima extrema: {e_all_Q1_minima_indexes}")
 		log.info(f"all Q1 maxima extrema: {e_all_Q1_maxima_indexes}")
 		# find all Q3 extremuma indexes and values
-		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extremuma(smoothed_Q3, np.less_equal)
-		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extremuma(smoothed_Q3, np.greater_equal)
+		e_all_Q3_minima_indexes, e_all_Q3_minima_values = find_extrema(smoothed_Q3, np.less_equal)
+		e_all_Q3_maxima_indexes, e_all_Q3_maxima_values = find_extrema(smoothed_Q3, np.greater_equal)
 		log.info(f"all Q3 minima extrema: {e_all_Q3_minima_indexes}")
 		log.info(f"all Q3 maxima extrema: {e_all_Q3_maxima_indexes}")
 
@@ -549,10 +462,17 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# get the minima extremuma of mono answers (Q1 is lower than Q3, so take a Q1 data)
 		e_mono_Q1_minima_indexes = e_all_Q1_minima_indexes[e_all_Q1_minima_indexes < ees_zone_time]
 		# find an index of the biggest delta between first dot (median[0]) and mono extremuma
+
+		if len(e_mono_Q1_minima_indexes) == 0:
+			global_amp_values.append(0)
+			global_lat_indexes.append(len(data_Q1) - 1)
+			global_mono_indexes.append(3)
+			continue
+
 		max_delta_Q1_index = max_at(np.abs(smoothed_Q1[e_mono_Q1_minima_indexes] - median[0]))[0]
 		# get index of extremuma with the biggest delta
 		mono_answer_index = e_mono_Q1_minima_indexes[max_delta_Q1_index]
-		log.info(f"Mono answer: {mono_answer_index * data_step}ms")
+		log.info(f"Mono answer: {mono_answer_index * step_size}ms")
 
 		"""[4] find a poly area"""
 		l_poly_border = ees_zone_time
@@ -562,15 +482,22 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			if mono_answer_end_index > ees_zone_time:
 				l_poly_border = mono_answer_end_index
 				break
-		if l_poly_border > int(10 / data_step):
-			l_poly_border = int(10 / data_step)
+		if l_poly_border > int(10 / step_size):
+			l_poly_border = int(10 / step_size)
 
 		global_mono_indexes.append(l_poly_border)
 
-		log.info(f"Poly area: {l_poly_border * data_step} - {slice_in_ms}")
+		log.info(f"Poly area: {l_poly_border * step_size} - {slice_in_ms}")
 
 		"""[5] find a latency"""
 		delta_poly_diff = np.abs(np.diff(delta_smoothed_data[l_poly_border:], n=1))
+
+		if not len(delta_poly_diff):
+			global_amp_values.append(0)
+			global_lat_indexes.append(len(data_Q1) - 1)
+			global_mono_indexes.append(mono_answer_index)
+			continue
+
 		diff_Q1, diff_median, diff_Q3 = np.percentile(delta_poly_diff, percents)
 		allowed_diff_for_extremuma = diff_median
 
@@ -580,6 +507,18 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		poly_gradient_diff = np.abs(np.diff(poly_gradient, n=1))
 		poly_gradient_diff = np.append(poly_gradient_diff, poly_gradient_diff[-1])
 		Q1, med, Q3 = np.percentile(poly_gradient_diff, percents)
+
+		if all(delta_poly_diff < 0.012):
+			global_amp_values.append(0)
+			global_lat_indexes.append(len(data_Q1) - 1)
+			global_mono_indexes.append(mono_answer_index)
+			continue
+
+		if not len(poly_gradient[poly_gradient_diff > Q3]):
+			global_amp_values.append(0)
+			global_lat_indexes.append(len(data_Q1) - 1)
+			global_mono_indexes.append(mono_answer_index)
+			continue
 
 		gradient_Q1, gradient_med, gradient_Q3 = np.percentile(poly_gradient[poly_gradient_diff > Q3], percents)
 
@@ -591,7 +530,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		# if not found -- the last index
 		else:
 			latency_index = len(gradient) - 1
-		log.info(f"Latency: {latency_index * data_step}")
+		log.info(f"Latency: {latency_index * step_size}")
 
 		# append found latency to the global list of the all latencies per slice
 		global_lat_indexes.append(latency_index)
@@ -658,8 +597,8 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 			ax2 = plt.subplot2grid(shape=gridsize, loc=(1, 0), sharex=ax1)
 			ax3 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
 
-			xticks = np.arange(0, int(slice_in_ms / data_step) + 1, int(1 / data_step))
-			xticklabels = (xticks * data_step).astype(int)
+			xticks = np.arange(0, int(slice_in_ms / step_size) + 1, int(1 / step_size))
+			xticklabels = (xticks * step_size).astype(int)
 
 			ax1.title.set_text(f"Slice #{slice_index + 1}/{slices_number}")
 			# plot an area of EES
@@ -694,7 +633,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax1.set_xticks(xticks)
 			ax1.set_xticklabels(xticklabels)
-			ax1.set_xlim(0, int(slice_in_ms / data_step))
+			ax1.set_xlim(0, int(slice_in_ms / step_size))
 			ax1.set_ylim(-1, 1)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
@@ -707,7 +646,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax2.set_xticks(xticks)
 			ax2.set_xticklabels(xticklabels)
-			ax2.set_xlim(0, int(slice_in_ms / data_step))
+			ax2.set_xlim(0, int(slice_in_ms / step_size))
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
 
@@ -722,7 +661,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 			ax3.set_xticks(xticks)
 			ax3.set_xticklabels(xticklabels)
-			ax3.set_xlim(0, int(slice_in_ms / data_step))
+			ax3.set_xlim(0, int(slice_in_ms / step_size))
 			ax3.grid(axis='x', linestyle='--', zorder=0)
 			ax3.legend()
 
@@ -734,7 +673,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		plt.subplots(figsize=(16, 9))
 		for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_original):
 			y_offset = slice_index * 1
-			plt.plot(np.arange(len(slice_boxplot_data)) * data_step, slice_boxplot_data + y_offset)
+			plt.plot(np.arange(len(slice_boxplot_data)) * step_size, slice_boxplot_data + y_offset)
 		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
 		plt.grid(axis='x')
 		plt.xlim(0, slice_in_ms)
@@ -756,7 +695,7 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 		plt.xticks(range(slice_in_ms + 1), range(slice_in_ms + 1))
 		plt.grid(axis='x')
 
-		lat_x = [x * data_step for x in global_lat_indexes]
+		lat_x = [x * step_size for x in global_lat_indexes]
 		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
 		         in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
@@ -767,79 +706,23 @@ def get_lat_amp(data_test_runs, ees_hz, data_step, debugging=False):
 
 		plt.show()
 
-	global_lat_indexes = np.array(global_lat_indexes) * data_step
+	global_lat_indexes = np.array(global_lat_indexes) * step_size
 	global_amp_values = np.array(global_amp_values)
-	global_mono_indexes = np.array(global_mono_indexes) * data_step
+	global_mono_indexes = np.array(global_mono_indexes) * step_size
 
 	return global_lat_indexes, global_amp_values, global_mono_indexes
 
 
-def plot_slices_for_article(extensor_data, flexor_data, latencies, ees_hz, data_step, folder, filename):
+def get_peaks(data_runs, latencies, ees_hz, step_size):
 	"""
 	TODO: add docstring
 	Args:
-		extensor_data (list): values of extensor motoneurons membrane potential
-		flexor_data (list): values of flexor motoneurons membrane potential
-		latencies (list): latencies of poly answers per slice
-		ees_hz (int): EES stimulation frequency
-		data_step (float): data step
-		folder (str): save folder path
-		filename (str): name of the future path
-	"""
-	all_data = np.concatenate((np.array(extensor_data), np.array(flexor_data)), axis=1)
-	latencies = (np.array(latencies) / data_step).astype(int)
-
-	# additional properties
-	slice_in_ms = int(1000 / ees_hz)
-	# set ees area, before that time we don't try to find latencies
-	shared_x = np.arange(slice_in_ms / data_step) * data_step
-	slices_number = int(len(all_data[0]) / (slice_in_ms / data_step))
-
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in all_data.T])
-	splitted_per_slice_boxplots = np.split(boxplots_per_iter, slices_number)
-
-	yticks = []
-	xticks = range(slice_in_ms + 1)
-	slice_indexes = range(1, slices_number + 1)
-	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
-
-	plt.subplots(figsize=(16, 9))
-
-	for slice_index, data in enumerate(splitted_per_slice_boxplots):
-		data += slice_index
-		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7)
-		plt.plot(shared_x, data[:, k_median], color='k')
-		yticks.append(data[:, k_median][0])
-
-	lat_x = latencies * data_step
-	lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat in enumerate(latencies)]
-	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k')
-	plt.plot(lat_x, lat_y, '.', markersize=25, color='k')
-
-	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
-	yticklabels = [None] * slices_number
-	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
-		yticklabels[i] = slice_indexes[i]
-
-	plt.xticks(xticks, xticklabels, fontsize=56)
-	plt.yticks(yticks, yticklabels, fontsize=56)
-	plt.xlim(0, slice_in_ms)
-	plt.grid(axis='x')
-
-	plt.tight_layout()
-	plt.savefig(f"{folder}/{filename}.pdf", dpi=250, format="pdf")
-	plt.close()
-
-
-def get_peaks(data, herz, step):
-	"""
-	TODO: add docstring
-	Args:
-		data:
-		herz:
-		step:
+		data_runs:
+		latencies:
+		ees_hz:
+		step_size:
 	Returns:
-
+		list: number of peaks per slice
 	"""
 	max_times_amp = []
 	max_values_amp = []
@@ -848,21 +731,26 @@ def get_peaks(data, herz, step):
 	max_peaks = []
 	min_peaks = []
 
-	l_poly_border = int(10 / step)
-	slice_length = int(1000 / herz / step)
-	slices_number = len(data[0]) // slice_length
-	latencies, amplitudes, _ = get_lat_amp(data, herz, step)
+	slice_in_ms = 1000 / ees_hz
+	slice_in_steps = int(slice_in_ms / step_size)
 
-	for i, run_data in enumerate(data):
-		for sliced_data in np.split(smooth(run_data, 7), slices_number):
-			e_all_minima_indexes, e_all_minima_values = find_extremuma(sliced_data, np.less_equal)
-			e_all_maxima_indexes, e_all_maxima_values = find_extremuma(sliced_data, np.greater_equal)
+	#
+	for data in data_runs:
+		# smooth data to remove micro-peaks
+		smoothed_data = smooth(data, 7)
+		# split data by slice based on EES (slice length)
+		splitted_per_slice = split_by_slices(smoothed_data, slice_in_steps)
+		# calc extrema per slice data
+		for poly_border, slice_data in zip(latencies, splitted_per_slice):
+			poly_border = int(poly_border / step_size)
+			e_all_minima_indexes, e_all_minima_values = find_extrema(slice_data, np.less_equal)
+			e_all_maxima_indexes, e_all_maxima_values = find_extrema(slice_data, np.greater_equal)
 
-			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > l_poly_border]
-			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > l_poly_border]
+			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > poly_border]
+			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > poly_border]
 
-			e_poly_maxima_indexes = e_all_maxima_indexes[e_all_maxima_indexes > l_poly_border]
-			e_poly_maxima_values = e_all_maxima_values[e_all_maxima_indexes > l_poly_border]
+			e_poly_maxima_indexes = e_all_maxima_indexes[e_all_maxima_indexes > poly_border]
+			e_poly_maxima_values = e_all_maxima_values[e_all_maxima_indexes > poly_border]
 
 			min_peaks.append(len(e_poly_minima_indexes))
 			max_peaks.append(len(e_poly_maxima_indexes))
@@ -873,20 +761,20 @@ def get_peaks(data, herz, step):
 			max_times_amp.append(e_poly_maxima_indexes)
 			max_values_amp.append(e_poly_maxima_values)
 
-	min_peaks = np.split(np.array(min_peaks), len(data))
-	max_peaks = np.split(np.array(max_peaks), len(data))
+	min_peaks = np.split(np.array(min_peaks), len(data_runs))
+	max_peaks = np.split(np.array(max_peaks), len(data_runs))
 
-	min_times_amp = np.split(np.array(min_times_amp), len(data))
-	min_values_amp = np.split(np.array(min_values_amp), len(data))
+	min_times_amp = np.split(np.array(min_times_amp), len(data_runs))
+	min_values_amp = np.split(np.array(min_values_amp), len(data_runs))
 
-	max_times_amp = np.split(np.array(max_times_amp), len(data))
-	max_values_amp = np.split(np.array(max_values_amp), len(data))
+	max_times_amp = np.split(np.array(max_times_amp), len(data_runs))
+	max_values_amp = np.split(np.array(max_values_amp), len(data_runs))
 
 	sum_peaks = []
 	for i in range(len(min_peaks)):
 		for j in range(len(min_peaks[i])):
 			sum_peaks.append(max_peaks[i][j] + min_peaks[i][j])
-	sum_peaks = sum(sum_peaks) / len(data)
+	sum_peaks = sum(sum_peaks) / len(data_runs)
 
 	sum_peaks_for_plot = []
 	for j in range(len(max_peaks)):
@@ -895,354 +783,48 @@ def get_peaks(data, herz, step):
 			sum_peaks_for_plot_tmp.append(max_peaks[j][i] + min_peaks[j][i])
 		sum_peaks_for_plot.append(sum_peaks_for_plot_tmp)
 
-	avg_sum_peaks_in_sl = list(map(sum, np.array(sum_peaks_for_plot).T))
-	avg_sum_peaks_in_sl = [a / len(data) for a in avg_sum_peaks_in_sl]
-	for a in range(len(avg_sum_peaks_in_sl)):
-		avg_sum_peaks_in_sl[a] = round(avg_sum_peaks_in_sl[a], 1)
+	avg_sum_peaks_per_slice = list(map(sum, np.array(sum_peaks_for_plot).T))
+	avg_sum_peaks_per_slice = [a / len(data_runs) for a in avg_sum_peaks_per_slice]
+	for a in range(len(avg_sum_peaks_per_slice)):
+		avg_sum_peaks_per_slice[a] = round(avg_sum_peaks_per_slice[a], 1)
 
 	all_peaks_sum = []
 	for i in range(len(sum_peaks_for_plot)):
 		all_peaks_sum.append(sum(sum_peaks_for_plot[i]))
 
-	return latencies, max_times_amp, min_times_amp, max_values_amp, min_values_amp, amplitudes, \
-	       sum_peaks_for_plot, avg_sum_peaks_in_sl, all_peaks_sum, sum_peaks
+	return avg_sum_peaks_per_slice
 
 
-def prepare_data(dataset):
-	"""
-	Centering -> Normalizing -> returning
-	Args:
-		dataset (list or np.ndarray): original dataset
-	Returns:
-		list: prepared dataset per test
-	"""
-	prepared_data = []
-	for data_per_test in dataset:
-		centered_data = center_data_by_line(data_per_test)
-		normalized_data = normalization(centered_data, save_centering=True)
-		prepared_data.append(normalized_data)
-	return prepared_data
-
-
-def plot_3D_PCA_for_article(all_pack, folder):
-	"""
-	TODO: add docstring
-	Args:
-		all_pack (list of list): special structure to easily work with (coords, color and label)
-		folder (str): save folder path
-	"""
-	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
-		# init 3D projection figure
-		fig = plt.figure(figsize=(10,10))
-		ax = fig.add_subplot(111, projection='3d')
-		# plot each data pack
-		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
-		for coords, color, label in all_pack:
-			# create PCA instance and fit the model with coords
-			pca = PCA(n_components=3)
-			pca.fit(coords)
-			# get the center (mean value of points cloud)
-			center = pca.mean_
-			# get PCA vectors' head points (semi axis)
-			vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
-			vectors_points = np.array(vectors_points)
-			# form full axis points (original vectors + mirrored vectors)
-			axis_points = np.concatenate((vectors_points, -vectors_points), axis=0)
-			# centering vectors and axis points
-			vectors_points += center
-			axis_points += center
-			# calculate radii and rotation matrix based on axis points
-			radii, rotation = form_ellipse(axis_points)
-			# plot PCA vectors
-			for point_head in vectors_points:
-				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-				ax.add_artist(arrow)
-			# plot cloud of points
-			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
-			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
-		# figure properties
-		ax.set_xticklabels(ax.get_xticks().astype(int), fontsize=35)
-		ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=35)
-		ax.set_zticklabels(ax.get_zticks().astype(int), fontsize=35)
-
-		ax.xaxis._axinfo['tick']['inward_factor'] = 0
-		ax.yaxis._axinfo['tick']['inward_factor'] = 0
-		ax.zaxis._axinfo['tick']['inward_factor'] = 0
-
-		if "Lat" not in title:
-			ax.set_xticks([])
-		if "Amp" not in title:
-			ax.set_yticks([])
-		if "Peak" not in title:
-			ax.set_zticks([])
-
-		plt.legend()
-		ax.view_init(elev=elev, azim=azim)
-		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-		title = str(title).lower().replace(" ", "_")
-		plt.savefig(f"{folder}/{title}.pdf", dpi=250, format="pdf")
-
-		plt.close(fig)
-
-
-def recolor(boxplot_elements, color, fill_color):
-	"""
-	Add colors to bars (setup each element)
-	Args:
-		boxplot_elements (dict):
-			components of the boxplot
-		color (str):
-			HEX color of outside lines
-		fill_color (str):
-			HEX color of filling
-	"""
-	for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-		plt.setp(boxplot_elements[element], color=color, linewidth=3)
-	plt.setp(boxplot_elements["fliers"], markeredgecolor=color)
-	for patch in boxplot_elements['boxes']:
-		patch.set(facecolor=fill_color)
-
-
-def plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, all_data, mono_per_slice, folder, filename):
-	"""
-	TODO: add docstring
-	Args:
-		amp_per_slice (list): amplitudes per slice
-		peaks_per_slice (list): number of peaks per slice
-		lat_per_slice (list): latencies per slice
-		all_data (list of list): data per test run
-		mono_per_slice (list): end of mono area per slice
-		folder (str): folder path
-		filename 9str): filename of the future file
-	"""
-	step = 0.25
-	box_distance = 1.2
-	color = "#472650"
-	fill_color = "#9D8DA3"
-	slices_number = len(amp_per_slice)
-	slice_indexes = np.array(range(slices_number))
-	# calc boxplots per iter
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in np.array(all_data).T])
-
-	# plot histograms
-	for data, title in (amp_per_slice, "amplitudes"), (peaks_per_slice, "peaks"):
-		# create subplots
-		fig, ax = plt.subplots(figsize=(16, 9))
-		# property of bar fliers
-		xticks = [x * box_distance for x in slice_indexes]
-		# plot amplitudes or peaks
-		plt.bar(xticks, data, width=bar_width, color=color, zorder=2)
-		# set labels
-		xticklabels = [None] * len(slice_indexes)
-		human_read = [i + 1 for i in slice_indexes]
-		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
-			xticklabels[i] = human_read[i]
-		# set Y ticks
-		yticks = ax.get_yticks()
-		human_read = list(yticks)
-		yticklabels = [None] * len(yticks)
-		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
-			yticklabels[i] = int(human_read[i]) if human_read[i] >= 10 else f"{human_read[i]:.1f}"
-		# plot properties
-		plt.grid(axis="y")
-		plt.xticks(xticks, xticklabels, fontsize=56)
-		plt.yticks(yticks, yticklabels, fontsize=56)
-		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
-		plt.tight_layout()
-		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
-		plt.close()
-
-		log.info(f"Plotted {title} for {filename}")
-
-	# form areas
-	mono_area = [slice_data[:int(time / step)] for time, slice_data in
-	             zip(mono_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
-	poly_area = [slice_data[int(time / step):] for time, slice_data in
-		         zip(lat_per_slice, np.split(np.array(boxplots_per_iter), slices_number))]
-
-	# plot per area
-	for data_test_runs, title in (mono_area, "mono"), (poly_area, "poly"):
-		area_data = []
-		data_test_runs = np.array(data_test_runs)
-		# calc diff per slice
-		for slice_data in data_test_runs:
-			area_data.append(abs(slice_data[:, k_fliers_high] - slice_data[:, k_fliers_low]))
-
-		fig, ax = plt.subplots(figsize=(16, 9))
-
-		fliers = dict(markerfacecolor='k', marker='*', markersize=3)
-		# plot latencies
-		xticks = [x * box_distance for x in slice_indexes]
-		plt.xticks(fontsize=56)
-		plt.yticks(fontsize=56)
-
-		lat_plot = ax.boxplot(area_data, positions=xticks, widths=bar_width, patch_artist=True, flierprops=fliers)
-		recolor(lat_plot, color, fill_color)
-
-		xticks = [i * box_distance for i in slice_indexes]
-		xticklabels = [None] * len(slice_indexes)
-		human_read = [i + 1 for i in slice_indexes]
-		for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
-			xticklabels[i] = human_read[i]
-
-		yticks = np.array(ax.get_yticks())
-		yticks = yticks[yticks >= 0]
-		human_read = list(yticks)
-		yticklabels = [None] * len(yticks)
-		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
-			if human_read[i] >= 10:
-				yticklabels[i] = int(human_read[i])
-			else:
-				yticklabels[i] = f"{human_read[i]:.1f}"
-		# plot properties
-		plt.xticks(xticks, xticklabels, fontsize=56)
-		plt.yticks(yticks, yticklabels, fontsize=56)
-		plt.grid(axis="y")
-		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
-		plt.ylim(0, ax.get_yticks()[-1])
-		plt.tight_layout()
-		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
-		plt.close()
-
-		log.info(f"Plotted {title} for {filename}")
-
-
-def for_article():
-	"""
-	TODO: add docstring
-	"""
-	# stuff variables
-	all_pack = []
-	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"])
-
-	# list of filenames for easily reading data
-	bio_folder = "/home/alex/GitHub/memristive-spinal-cord/data/bio"
-	bio_pack = [
-	    "bio_control_E_21cms_40Hz_i100_2pedal_no5ht_T_2017-09-05",
-	    "bio_control_E_21cms_40Hz_i100_4pedal_no5ht_T_2017-09-05",
-	    "bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_2016-05-12",
-	    "bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12",
-	    "bio_sci_E_15cms_40Hz_i100_4pedal_no5ht_T_2016-06-12"
-	]
-
-	neuron_folder = "/home/alex/GitHub/memristive-spinal-cord/data/neuron"
-	neuron_pack = [
-	    "neuron_E_15cms_40Hz_i100_2pedal_5ht_T",
-	    "neuron_E_15cms_40Hz_i100_2pedal_no5ht_T",
-	    "neuron_E_15cms_40Hz_i100_4pedal_no5ht_T",
-	    "neuron_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	    "neuron_E_21cms_40Hz_i100_4pedal_no5ht_T"
-	]
-
-	gras_folder = "/home/alex/GitHub/memristive-spinal-cord/data/gras"
-	gras_pack = [
-	    "gras_E_15cms_40Hz_i100_2pedal_5ht_T",
-	    "gras_E_15cms_40Hz_i100_2pedal_no5ht_T",
-	    "gras_E_15cms_40Hz_i100_4pedal_no5ht_T",
-	    "gras_E_21cms_40Hz_i100_2pedal_no5ht_T",
-	    "gras_E_21cms_40Hz_i100_4pedal_no5ht_T"
-	]
-
-	# control
-	pack = bio_pack
-	folder = bio_folder
-	plot_pca_flag = True
-	plot_slices_flag = True
-	plot_histogram_flag = True
-
-	# prepare data per file
-	for data_name in pack:
-		log.info(f"prepare {data_name}")
-		path_extensor = f"{folder}/{data_name}.hdf5"
-		path_flexor = f"{folder}/{data_name.replace('_E_', '_F_')}.hdf5"
-		# check if it is a bio data -- use another function
-		if "bio_" in data_name:
-			e_dataset = read_data(path_extensor)
-			f_dataset = read_data(path_flexor)
-		# simulation data computes by the common function
-		else:
-			# calculate extensor borders
-			extensor_begin = 0
-			extensor_end = 12000 if "15cms" in data_name else 6000
-			# calculate flexor borders
-			flexor_begin = extensor_end
-			flexor_end = extensor_end + (7000 if "4pedal" in data_name else 5000)
-			# use native funcion for get needful data
-			e_dataset = select_slices(path_extensor, extensor_begin, extensor_end)
-			f_dataset = select_slices(path_flexor, flexor_begin, flexor_end)
-		# prepare each data (stepping, centering, normalization)
-		e_prepared_data = prepare_data(e_dataset)
-		f_prepared_data = prepare_data(f_dataset)
-		# get latencies, amplitudes and begining of poly answers
-		lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data,
-		                                                           ees_hz=40, data_step=0.25, debugging=False)
-		# get number of peaks per slice
-		peaks_per_slice = get_peaks(e_prepared_data, herz=40, step=0.25)[7]
-		# form data pack
-		all_pack.append([np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_name])
-		# plot histograms of amplitudes and number of peaks
-		if plot_histogram_flag:
-			plot_histograms_for_article(amp_per_slice, peaks_per_slice, lat_per_slice, e_prepared_data, mono_per_slice,
-			                            folder=folder, filename=data_name)
-		# plot all slices with pattern
-		if plot_slices_flag:
-			plot_slices_for_article(e_prepared_data, f_prepared_data, lat_per_slice,
-			                        ees_hz=40, data_step=0.25, folder=folder, filename=data_name)
-	# plot 3D PCA for each plane
-	if plot_pca_flag:
-		plot_3D_PCA_for_article(all_pack, folder=folder)
-
-
-def plot_pca(debugging=False, plot_3d=False):
+def plot_pca(filenames, debugging=False, plot_3d=True):
 	"""
 	Preparing data and drawing PCA for them
 	Args:
 		debugging:
 		plot_3d:
 	"""
-	if debugging:
-		log.basicConfig(level=log.INFO)
 
-	bio_path = '/home/alex/GitHub/memristive-spinal-cord/bio-data/hdf5/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_T_2016-06-12.hdf5'
-	gras_path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/MN_E.hdf5'
-	neuron_path = '/home/alex/Downloads/Telegram Desktop/mn_E25tests.hdf5'
 
-	# process BIO dataset
-	dataset = read_data(bio_path)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
-	# form data pack
-	bio_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#a6261d", "bio"]
+	bio_folder = '/home/alex/GitHub/memristive-spinal-cord/data/bio/'
+	neuron_folder = ""
+	gras_folder = ""
+	nest_folder = ""
 
-	# process GRAS dataset
-	dataset = select_slices(gras_path, 0, 6000, sign=1)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
-	# form data pack
-	gras_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#287a72", "gras"]
+	compare_pack = [
+		f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_0.25step.hdf5",
+		f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_0.25step.hdf5",
+	]
 
-	# process NEURON dataset
-	dataset = select_slices(neuron_path, 0, 6000, sign=-1)
-	prepared_data = prepare_data(dataset)
-	lat_per_slice, amp_per_slice = get_lat_amp(prepared_data, ees_hz=40, data_step=0.25)
-	peaks_per_slice = get_peaks(prepared_data, 40, 0.25)[7]
-	# form data pack
-	neuron_pack = [np.stack((lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), "#f2aa2e", "neuron"]
 
-	axis_labels = ["Latencies", "Amplitudes", "Peaks"]
-
+	# plot data (3D or 2D)
 	if plot_3d:
 		# init 3D projection figure
 		fig = plt.figure()
 		ax = fig.add_subplot(111, projection='3d')
-		# plot each data pack
-		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
-		for coords, color, label in bio_pack, neuron_pack, gras_pack:
+		# plot for each data pack
+		for coords, color, label in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
+			# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
 			pca.fit(coords)
 			# get the center (mean value of points cloud)
 			center = pca.mean_
@@ -1279,7 +861,7 @@ def plot_pca(debugging=False, plot_3d=False):
 			# start plotting
 			fig, ax = plt.subplots()
 			# plot per pack
-			for coords, color, title in bio_pack, gras_pack, neuron_pack:
+			for coords, color, title in data_pack:
 				# get only necessary coords
 				coords = coords[:, [comb_A, comb_B]]
 				# create PCA instance and fit the model with coords
@@ -1325,11 +907,3 @@ def plot_pca(debugging=False, plot_3d=False):
 			plt.ylabel(axis_labels[comb_B], fontsize=28)
 			plt.legend()
 			plt.show()
-
-
-def run():
-	for_article()
-
-
-if __name__ == "__main__":
-	run()
