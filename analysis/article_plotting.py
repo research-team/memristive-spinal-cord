@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import pylab as plt
 from analysis.functions import auto_prepare_data
-from analysis.pearson_correlation import calc_correlation
 from analysis.PCA import plot_3D_PCA, split_by_slices, get_lat_amp, get_peaks, calc_boxplots
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -202,7 +201,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice,
 		log.info(f"Plotted {title} for {filename}")
 
 
-def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False):
+def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False, step_size_to=0.1):
 	"""
 	ToDo add info
 	Args:
@@ -220,80 +219,28 @@ def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices
 		filename = ntpath.basename(filepath)
 		data_label = filename.replace('.hdf5', '')
 		# get prepared data, EES frequency and data step size
-		e_prepared_data, ees_hz, step_size = auto_prepare_data(folder, filename)
+		e_prepared_data, ees_hz, step_size = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 		# process latencies and amplitudes per slice
-		e_lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, ees_hz, step_size)
+		e_lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, ees_hz, step_size_to)
 		# process peaks per slice
-		peaks_per_slice = get_peaks(e_prepared_data, e_lat_per_slice, ees_hz=ees_hz, step_size=step_size)
+		peaks_per_slice = get_peaks(e_prepared_data, e_lat_per_slice, ees_hz=ees_hz, step_size=step_size_to)
 		# form data pack
 		coords_meta = (np.stack((e_lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_label)
 		all_pack.append(coords_meta)
 		# plot histograms of amplitudes and number of peaks
 		if plot_histogram_flag:
 			plot_histograms(amp_per_slice, peaks_per_slice, e_lat_per_slice, e_prepared_data, mono_per_slice,
-			                folder=folder, filename=filename, ees_hz=ees_hz, step_size=step_size)
+			                folder=folder, filename=filename, ees_hz=ees_hz, step_size=step_size_to)
 		# plot all slices with pattern
 		if plot_slices_flag:
 			f_prepared_data = auto_prepare_data(folder, filename.replace('_E_', '_F_'))[0]
 			f_lat_per_slice = get_lat_amp(f_prepared_data, ees_hz, step_size)[0]
 			all_lat_per_slice = np.append(e_lat_per_slice, f_lat_per_slice)
 			plot_slices(e_prepared_data, f_prepared_data, all_lat_per_slice,
-			            ees_hz=ees_hz, step_size=step_size, folder=folder, filename=filename)
+			            ees_hz=ees_hz, step_size=step_size_to, folder=folder, filename=filename)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
 		plot_3D_PCA(all_pack, save_to=save_to)
-
-
-def plot_correlation():
-	# FixMe: don't forget to change!
-	save_to = "/home/alex/el_test"
-
-	data_a_folder = "/home/alex/el_test"
-	data_a_filename = "bio_E_21cms_40Hz_i100_2pedal_no5ht_T"
-
-	data_b_folder = "/home/alex/el_test"
-	data_b_filename = "gras_E_21cms_40Hz_i0_2pedal_no5ht_T"
-
-	# get extensor from data
-	e_data_a, f_data_a, _ = auto_prepare_data(data_a_folder, data_a_filename, step_size_to=0.1)
-	e_data_b, f_data_b, _ = auto_prepare_data(data_b_folder, data_b_filename, step_size_to=0.1)
-
-	e_mono_corr, e_poly_corr = calc_correlation(e_data_a, e_data_b)
-	f_mono_corr, f_poly_corr = calc_correlation(f_data_a, f_data_b)
-
-
-	def __plot_corr(mono_corr, poly_corr, muscle):
-		plt.figure(figsize=(16, 9))
-
-		title = f"{data_a_filename.split('_')[0]}_{data_b_filename}"
-		box_colors = iter(["#275b78", "#287a72"])
-		# plot boxplots
-		for i, data in enumerate([poly_corr, mono_corr]):
-			color = next(box_colors)
-			box = plt.boxplot(data, positions=[i], vert=False, whis=[5, 95], widths=0.7, patch_artist=True)
-			# change colors for all elements
-			for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-				for patch in box[element]:
-					if element == "fliers":
-						patch.set_markersize(10)
-						patch.set_markerfacecolor(color)
-						patch.set_markeredgecolor(None)
-					patch.set_color(color)
-					patch.set_linewidth(3)
-			for patch in box['boxes']:
-				patch.set(facecolor=f"{color}55")
-
-		yticks = [0, 1]
-		ylabels = ["poly", "mono"]
-		plt.yticks(yticks, ylabels)
-
-		plt.xticks(fontsize=56)
-		plt.yticks(fontsize=56)
-		plt.tight_layout()
-		plt.savefig(f"{save_to}/{muscle}_{title}.pdf", format="pdf")
-
-	__plot_corr(e_mono_corr, e_poly_corr, "extensort")
-	__plot_corr(f_mono_corr, f_poly_corr, "flexor")
 
 
 def for_article():
@@ -302,27 +249,22 @@ def for_article():
 	"""
 	save_to = '/home/alex/GitHub/memristive-spinal-cord/data/bio/'
 
-	bio_folder = '/home/alex/bio_data_hdf/toe/8/'
-	neuron_folder = ""
-	gras_folder = ""
-	nest_folder = ""
-
 	compare_pack = [
-		f"{bio_folder}/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5",
-		# f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_0.25step.hdf5",
+		f'/home/alex/GitHub/memristive-spinal-cord/data/bio/bio_E_15cms_40Hz_i100_2pedal_5ht_T_0.25step.hdf5',
+		f'/home/alex/GitHub/memristive-spinal-cord/data/neuron/neuron_E_15cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5'
 	]
 
 	# control
-	plot_pca_flag = False
-	plot_slices_flag = True
+	step_size_to = 0.25
+	plot_pca_flag = True
+	plot_slices_flag = False
 	plot_histogram_flag = False
 
-	__process_dataset(compare_pack, save_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag)
+	__process_dataset(compare_pack, save_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag, step_size_to)
 
 
 def run():
 	for_article()
-	# plot_correlation()
 
 
 if __name__ == "__main__":

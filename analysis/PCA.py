@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import pylab as plt
+from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
@@ -54,15 +55,16 @@ def form_ellipse(P):
 	points_number, dimension = P.shape
 	# auxiliary matrix
 	u = (1 / points_number) * np.ones(points_number)
-	# center of the P points
+	# vector containing the center of the ellipsoid
 	center = P.T @ u
-	# form the algebraic form of the ellipsoid by computing the (multiplicative) inverse of a matrix . . .
+	# this matrix contains all the information regarding the shape of the ellipsoid
 	A = np.linalg.inv(P.T @ (np.diag(u) @ P) - np.outer(center, center)) / dimension
-	# get singular value decomposition data of the matrix A
+	# to get the radii and orientation of the ellipsoid take the SVD of the output matrix A
 	_, size, rotation = np.linalg.svd(A)
+	# the radii are given by
 	radiuses = 1 / np.sqrt(size)
-
-	return radiuses, rotation
+	# rotation matrix gives the orientation of the ellipsoid
+	return radiuses, rotation, A, center
 
 
 def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.2):
@@ -79,16 +81,17 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 	"""
 	ax = plt.gca()
 
-	u = np.linspace(0, 2 * np.pi, 100)
-	v = np.linspace(0, np.pi, 100)
+	phi = np.linspace(0, np.pi, 100)
+	theta = np.linspace(0, 2 * np.pi, 100)
 	# cartesian coordinates that correspond to the spherical angles
-	x = radii[0] * np.outer(np.cos(u), np.sin(v))
-	y = radii[1] * np.outer(np.sin(u), np.sin(v))
-	z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
+	x = radii[0] * np.outer(np.cos(theta), np.sin(phi))
+	y = radii[1] * np.outer(np.sin(theta), np.sin(phi))
+	z = radii[2] * np.outer(np.ones_like(theta), np.cos(phi))
 	# rotate accordingly
 	for i in range(len(x)):
 		for j in range(len(x)):
 			x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
+
 	# additional visualization for debugging
 	if plot_axes:
 		# matrix of axes
@@ -106,7 +109,7 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
+	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
 
 
@@ -116,7 +119,9 @@ def hex2rgb(hex_color):
 
 
 def length(p0, p1):
-	return np.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2)
+	if len(p0) == 2:
+		return np.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2)
+	return np.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2 + (p0[2] - p1[2]) ** 2)
 
 
 def unit_vector(vector):
@@ -140,7 +145,6 @@ def split_by_slices(data, slice_length):
 	"""
 	slices_begin_indexes = range(0, len(data) + 1, slice_length)
 	splitted_per_slice = [data[beg:beg + slice_length] for beg in slices_begin_indexes]
-	print(len(splitted_per_slice))
 	# remove tails
 	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
 		del splitted_per_slice[-1]
@@ -553,27 +557,27 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 		if Q1_is_ok:
 			# merge Q1 poly extremuma indexes
 			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
-			                                                                              e_poly_Q1_minima_values,
-			                                                                              e_poly_Q1_maxima_indexes,
-			                                                                              e_poly_Q1_maxima_values)
+																						  e_poly_Q1_minima_values,
+																						  e_poly_Q1_maxima_indexes,
+																						  e_poly_Q1_maxima_values)
 			# filtering Q1 poly extremuma: remove micropeaks
 			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
-			                                                                        e_poly_Q1_indexes,
-			                                                                        e_poly_Q1_values,
-			                                                                        allowed_diff=allowed_diff_for_extremuma)
+																					e_poly_Q1_indexes,
+																					e_poly_Q1_values,
+																					allowed_diff=allowed_diff_for_extremuma)
 			amp_sum += sum(np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index]))
 
 		if Q3_is_ok:
 			# merge Q3 poly extremuma indexes
 			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
-			                                                                              e_poly_Q3_minima_values,
-			                                                                              e_poly_Q3_maxima_indexes,
-			                                                                              e_poly_Q3_maxima_values)
+																						  e_poly_Q3_minima_values,
+																						  e_poly_Q3_maxima_indexes,
+																						  e_poly_Q3_maxima_values)
 			# filtering Q3 poly extremuma: remove micropeaks
 			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
-			                                                                        e_poly_Q3_indexes,
-			                                                                        e_poly_Q3_values,
-			                                                                        allowed_diff=allowed_diff_for_extremuma)
+																					e_poly_Q3_indexes,
+																					e_poly_Q3_values,
+																					allowed_diff=allowed_diff_for_extremuma)
 			amp_sum += sum(np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index]))
 
 		log.info(f"Amplitude sum: {amp_sum}")
@@ -606,19 +610,19 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 			ax1.plot(median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
 			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
-			         label="minima extremuma")
+					 label="minima extremuma")
 			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
-			         label="maxima extremuma")
+					 label="maxima extremuma")
 			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
 			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'], e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
-			         markersize=10, color=min_color, label="minima POLY extremuma")
+					 markersize=10, color=min_color, label="minima POLY extremuma")
 			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'], e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
-			         markersize=10, color=max_color, label="maxima POLY extremuma")
+					 markersize=10, color=max_color, label="maxima POLY extremuma")
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'min'], e_poly_Q3_values[e_poly_Q3_names == 'min'], '.',
-			         markersize=10, color=min_color)
+					 markersize=10, color=min_color)
 			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'], e_poly_Q3_values[e_poly_Q3_names == 'max'], '.',
-			         markersize=10, color=max_color)
+					 markersize=10, color=max_color)
 			# plot the best latency with guidline
 			ax1.axvline(x=latency_index, color='k')
 
@@ -665,7 +669,7 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 		for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_original):
 			y_offset = slice_index * 1
 			plt.plot(np.arange(len(slice_boxplot_data)) * step_size, slice_boxplot_data + y_offset)
-		plt.xticks(range(0, slice_in_ms + 1), range(0, slice_in_ms + 1))
+		plt.xticks(np.arange(0, slice_in_ms + 1), np.arange(0, slice_in_ms + 1))
 		plt.grid(axis='x')
 		plt.xlim(0, slice_in_ms)
 		plt.show()
@@ -677,18 +681,18 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 		for slice_index, data in enumerate(splitted_per_slice_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3,
-			                 label="flier")
+							 label="flier")
 			plt.fill_between(shared_x, data[:, k_whiskers_high], data[:, k_whiskers_low], color='r', alpha=0.5,
-			                 label="whisker")
+							 label="whisker")
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
-		plt.xticks(range(slice_in_ms + 1), range(slice_in_ms + 1))
+		plt.xticks(np.arange(slice_in_ms + 1), np.arange(slice_in_ms + 1))
 		plt.grid(axis='x')
 
 		lat_x = [x * step_size for x in global_lat_indexes]
 		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
-		         in enumerate(global_lat_indexes)]
+				 in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
 
 		# plt.xticks(range(100), [x * bio_step for x in range(100) if x % 4 == 0])
@@ -799,6 +803,8 @@ def plot_3D_PCA(data_pack, save_to):
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
+
+
 		for coords, color, label in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
@@ -814,7 +820,7 @@ def plot_3D_PCA(data_pack, save_to):
 			vectors_points += center
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
-			radii, rotation = form_ellipse(axis_points)
+			radii, rotation, A, C = form_ellipse(axis_points)
 
 			# plot PCA vectors
 			for point_head in vectors_points:
@@ -824,17 +830,6 @@ def plot_3D_PCA(data_pack, save_to):
 			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
 			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
-
-			# # plot by combinations (lat, peaks) (amp, peaks) (lat, amp)
-			# for comb_A, comb_B in (0, 2), (1, 2), (0, 1):
-			# 	p0 = vectors_points[comb_A][[comb_A, comb_B]]
-			# 	p1 = vectors_points[comb_B][[comb_A, comb_B]]
-			# 	c = center[[comb_A, comb_B]]
-			# 	a = length(p0, c)
-			# 	b = length(p1, c)
-			# 	area = a * b * np.pi
-			# 	angle = angle_between(p0 - c, p1 - c)
-			# 	dataset_meta[label].append((f"{labels[comb_A]}/{labels[comb_B]}", area, angle, c))
 
 		# figure properties
 		ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
