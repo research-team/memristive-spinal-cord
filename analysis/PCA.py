@@ -1,16 +1,11 @@
-import ntpath
 import logging
 import numpy as np
 import pylab as plt
-from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
-from matplotlib.patches import Ellipse
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
-from analysis.functions import draw_vector
-from analysis.functions import auto_prepare_data
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -111,7 +106,7 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=alpha / 2)
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
 
 
@@ -132,10 +127,6 @@ def angle_between(v1, v2):
 	v1_u = unit_vector(v1)
 	v2_u = unit_vector(v2)
 	return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
-
-
-def poly_area_by_coords(x, y):
-	return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
 def split_by_slices(data, slice_length):
@@ -795,36 +786,22 @@ def get_peaks(data_runs, latencies, ees_hz, step_size):
 	return avg_sum_peaks_per_slice
 
 
-def plot_pca(filenames, debugging=False, plot_3d=True):
+def plot_3D_PCA(data_pack, save_to):
 	"""
-	Preparing data and drawing PCA for them
+	TODO: add docstring
 	Args:
-		debugging:
-		plot_3d:
+		data_pack (list of tuple): special structure to easily work with (coords, color and label)
+		save_to (str): save folder path
 	"""
-
-
-	bio_folder = '/home/alex/GitHub/memristive-spinal-cord/data/bio/'
-	neuron_folder = ""
-	gras_folder = ""
-	nest_folder = ""
-
-	compare_pack = [
-		f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_5ht_T_0.25step.hdf5",
-		f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_0.25step.hdf5",
-	]
-
-
-	# plot data (3D or 2D)
-	if plot_3d:
+	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		# init 3D projection figure
-		fig = plt.figure()
+		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
-		# plot for each data pack
+		# plot each data pack
+		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
 		for coords, color, label in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
-			# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
 			pca.fit(coords)
 			# get the center (mean value of points cloud)
 			center = pca.mean_
@@ -838,6 +815,7 @@ def plot_pca(filenames, debugging=False, plot_3d=True):
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation = form_ellipse(axis_points)
+
 			# plot PCA vectors
 			for point_head in vectors_points:
 				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
@@ -845,65 +823,38 @@ def plot_pca(filenames, debugging=False, plot_3d=True):
 			# plot cloud of points
 			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, plot_axes=debugging, color=color, alpha=0.1)
+			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
+
+			# # plot by combinations (lat, peaks) (amp, peaks) (lat, amp)
+			# for comb_A, comb_B in (0, 2), (1, 2), (0, 1):
+			# 	p0 = vectors_points[comb_A][[comb_A, comb_B]]
+			# 	p1 = vectors_points[comb_B][[comb_A, comb_B]]
+			# 	c = center[[comb_A, comb_B]]
+			# 	a = length(p0, c)
+			# 	b = length(p1, c)
+			# 	area = a * b * np.pi
+			# 	angle = angle_between(p0 - c, p1 - c)
+			# 	dataset_meta[label].append((f"{labels[comb_A]}/{labels[comb_B]}", area, angle, c))
+
 		# figure properties
-		ax.set_xlabel(axis_labels[0])
-		ax.set_ylabel(axis_labels[1])
-		ax.set_zlabel(axis_labels[2])
+		ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+		ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
+		ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+
+		ax.xaxis._axinfo['tick']['inward_factor'] = 0
+		ax.yaxis._axinfo['tick']['inward_factor'] = 0
+		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+		if "Lat" not in title:
+			ax.set_xticks([])
+		if "Amp" not in title:
+			ax.set_yticks([])
+		if "Peak" not in title:
+			ax.set_zticks([])
+
 		plt.legend()
-		plt.show()
+		ax.view_init(elev=elev, azim=azim)
+		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+		title = str(title).lower().replace(" ", "_")
+		plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
 		plt.close(fig)
-	else:
-		X = 0
-		Y = 1
-		# plot by combinations (lat, amp) (amp, peaks) (lat, peaks)
-		for comb_A, comb_B in (0, 1), (1, 2), (0, 2):
-			# start plotting
-			fig, ax = plt.subplots()
-			# plot per pack
-			for coords, color, title in data_pack:
-				# get only necessary coords
-				coords = coords[:, [comb_A, comb_B]]
-				# create PCA instance and fit the model with coords
-				pca = PCA(n_components=2)
-				pca.fit(coords)
-				# get the center (mean value of points cloud)
-				center = pca.mean_
-				# get PCA vectors' head points (semi axis)
-				vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
-				vectors_points = np.array(vectors_points) + center
-				# calc an angle between first vector and vertical vector from the center
-				vertical = np.array([center[X], center[Y] + 10])
-				angle = angle_between(vertical - center, vectors_points[0] - center)
-				# check on angle sign
-				sign = -1 if vectors_points[0][X] > center[X] else 1
-				# calculate ellipse size
-				e_height = length(center, vectors_points[0]) * 2
-				e_width = length(center, vectors_points[1]) * 2
-				# plot PCA vectors
-				for point_head in vectors_points:
-					draw_vector(center, point_head, color=color)
-				# plot dots
-				ax.scatter(coords[:, X], coords[:, Y], color=color, label=title, s=80)
-				# plot ellipse
-				ellipse = Ellipse(xy=tuple(center), width=e_width, height=e_height, angle=sign * angle)
-				ellipse.set_edgecolor(hex2rgb(color))
-				ellipse.set_fill(False)
-				ax.add_artist(ellipse)
-				# fill convex figure
-				hull = ConvexHull(coords)
-				ax.fill(coords[hull.vertices, X], coords[hull.vertices, Y], color=color, alpha=0.3)
-				# calc an area of the poly figure
-				poly_area = poly_area_by_coords(coords[hull.vertices, X], coords[hull.vertices, Y])
-
-				if debugging:
-					for index, x, y in zip(range(len(coords[:, X])), coords[:, X], coords[:, Y]):
-						ax.text(x, y, index + 1)
-
-			# plot atributes
-			plt.xticks(fontsize=28)
-			plt.yticks(fontsize=28)
-			plt.xlabel(axis_labels[comb_A], fontsize=28)
-			plt.ylabel(axis_labels[comb_B], fontsize=28)
-			plt.legend()
-			plt.show()
