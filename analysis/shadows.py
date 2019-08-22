@@ -3,13 +3,7 @@ import pylab
 import numpy as np
 import h5py as hdf5
 from collections import defaultdict
-from analysis.functions import read_bio_data, normalization
-# from analysis.bio_data_6runs import data_slices
-from analysis.patterns_in_bio_data import bio_data_runs
-from analysis.neuron_data import neuron_data
 from copy import deepcopy
-from analysis.functions import bio_slices
-from analysis.functions import find_min_diff
 
 
 def read_data(filepath):
@@ -25,7 +19,7 @@ def read_data(filepath):
 	with hdf5.File(filepath) as file:
 		for test_name, test_values in file.items():
 			print("len(test_values) = ", len(test_values))
-			data_by_test[test_name] = test_values[:]  # [:] will return ndarray, don't use list() !!!
+			data_by_test[test_name] = test_values[:21120]  # 21600 for 50Hz
 	return data_by_test
 
 
@@ -40,7 +34,7 @@ def restructure_data(original_data, sim_step):
 		slice index -> [test name -> test values which are corresponed to the current slice ]
 	"""
 	# constant
-	slice_duration = 25
+	slice_duration = 33
 	i = 0
 	for k, v in original_data.items():
 		# if v.__contains__('nan'):
@@ -92,7 +86,7 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 	x_coor = []
 	y_coor = []
 	for slice_number, tests in slices.items():
-		offset = slice_number * 96
+		offset = slice_number * 6
 		# for k, v in tests.items():
 		# 	tests[k] = normalization(v, zero_relative=True)
 		mean_data = list(map(lambda elements: np.mean(elements), zip(*tests.values())))  #
@@ -109,7 +103,7 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 		pylab.fill_between(times,
 		                   [mini + offset for mini in minimal_per_step],  # the minimal values + offset (slice number)
 		                   [maxi + offset for maxi in maximal_per_step],  # the maximal values + offset (slice number)
-		                   alpha=alpha, color=color)
+		                   alpha=0.5, color='#472650')
 
 		# pylab.plot(times[min_difference_indexes[slice_number]],
 		#            mean_data[min_difference_indexes[slice_number]] + offset, marker='.', markersize=12, color='red')
@@ -132,9 +126,9 @@ def plot(slices, sim_step, raw_data_filename, linewidth, alpha, color, save_path
 
 	# plot bio slices
 	step = 0.25
-	pylab.xticks(range(26), [i if i % 1 == 0 else "" for i in range(26)], fontsize=14)
+	pylab.xticks(range(34), [i if i % 1 == 0 else "" for i in range(34)], fontsize=14)
 	pylab.yticks(yticks, range(1, len(slices) + 1), fontsize=14)
-	pylab.xlim(0, 25)
+	pylab.xlim(0, 33)
 	pylab.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 	# pylab.show()
 	# if the save path is not specified
@@ -158,7 +152,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../GRAS/MN_E_4pedal_15.hdf5'
+	path = '../../neuron-data/mn_F_30Hz_25speed_25tests_hdf.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
@@ -166,10 +160,10 @@ def debugging():
 	slices = restructure_data(data, sim_step=sim_step)
 	dictionary = deepcopy(slices)
 
-	slices_1 = addFromTo(10, 21, dictionary)
+	# slices_1 = addFromTo(10, 21, dictionary)
 	# slices_2 = addFromTo(18, 30, dictionary)
 
-	all_maxes, all_mins = plot(slices_1, sim_step, path, 0.2, 0.45, '#ed553b')
+	all_maxes, all_mins = plot(slices, sim_step, path, 0.2, 0.45, '#ed553b')
 	# all_maxes, all_mins = plot(slices_2, sim_step, path, 0.2, 0.45, '#079294')
 	# all_maxes, all_mins = plot(slices3, sim_step, path, 0.2, 0.45, '#fbad18')
 	pylab.show()

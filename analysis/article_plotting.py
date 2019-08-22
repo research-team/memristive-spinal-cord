@@ -5,6 +5,7 @@ import pylab as plt
 from analysis.functions import auto_prepare_data
 from analysis.pearson_correlation import calc_correlation
 from analysis.PCA import plot_3D_PCA, split_by_slices, get_lat_amp, get_peaks, calc_boxplots
+import operator
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -152,7 +153,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice,
 		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
 		plt.close()
 
-		log.info(f"Plotted {title} for {filename}")
+		# log.info(f"Plotted {title} for {filename}")
 
 	# form areas
 	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_length)
@@ -196,7 +197,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice,
 		plt.savefig(f"{folder}/{filename}_{title}.pdf", dpi=250, format="pdf")
 		plt.close()
 
-		log.info(f"Plotted {title} for {filename}")
+		# log.info(f"Plotted {title} for {filename}")
 
 
 def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False):
@@ -238,7 +239,8 @@ def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices
 			            ees_hz=ees_hz, step_size=step_size, folder=folder, filename=filename)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
-		plot_3D_PCA(all_pack, save_to=save_to)
+		x1, y1, z1= plot_3D_PCA(all_pack, save_to=save_to)
+	return x1, y1, z1
 
 
 def plot_correlation():
@@ -293,28 +295,90 @@ def plot_correlation():
 	__plot_corr(f_mono_corr, f_poly_corr, "flexor")
 
 
+def inresect(a, b):
+	return list(set(a) & set(b))
+
+
 def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_to = '/home/alex/GitHub/memristive-spinal-cord/data/bio/'
+	save_to = '/home/anna/Desktop/res/'
 
-	bio_folder = '/home/alex/bio_data_hdf/toe/8/'
+	bio_folder = '/home/anna/PycharmProjects/LAB/memristive-spinal-cord/bio-data/hdf5/toe/4/'
 	neuron_folder = ""
-	gras_folder = ""
+	gras_folder = "/home/anna/PycharmProjects/LAB/memristive-spinal-cord/GRAS/hdf5/toe/"
 	nest_folder = ""
 
 	compare_pack = [
-		f"{bio_folder}/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5",
-		# f"{bio_folder}/bio_sci_E_15cms_40Hz_i100_2pedal_no5ht_0.25step.hdf5",
+		f"{bio_folder}/bio_E_21cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5",
+		f"{gras_folder}/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5",
 	]
 
 	# control
-	plot_pca_flag = False
-	plot_slices_flag = True
+	plot_pca_flag = True
+	plot_slices_flag = False
 	plot_histogram_flag = False
 
-	__process_dataset(compare_pack, save_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag)
+	x1, y1, z1 =\
+		__process_dataset(compare_pack, save_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag)
+
+	x1 = x1[:2]
+	x1[0] = x1[0][:1]
+	x1[1] = x1[1][:1]
+	y1 = y1[:2]
+	y1[0] = y1[0][:1]
+	y1[1] = y1[1][:1]
+	z1 = z1[:2]
+	z1[0] = z1[0][:1]
+	z1[1] = z1[1][:1]
+
+	# x1[0] = x1[0].tolist()
+	# x1[1] = x1[1].tolist()
+	# y1[0] = y1[0].tolist()
+	# y1[1] = y1[1].tolist()
+	# z1[0] = z1[0].tolist()
+	# z1[1] = z1[1].tolist()
+
+	x1[0] = x1[0].flatten()
+	x1[1] = x1[1].flatten()
+
+	y1[0] = y1[0].flatten()
+	y1[1] = y1[1].flatten()
+
+	z1[0] = z1[0].flatten()
+	z1[1] = z1[1].flatten()
+	print("len(x1) = ", len(x1), len(x1[0])) # [3][100][100]
+	print("----------")
+	print(x1[0])
+	print("----------")
+	print(x1[1])
+	print("----------")
+
+	print("len(y1) = ", len(y1), len(y1[0])) # [3][100][100]
+	print("----------")
+	print(y1[0])
+	print("----------")
+	print(y1[1])
+	print("----------")
+
+	print("len(z1) = ", len(z1), len(z1[0])) # [3][100][100]
+	print("----------")
+	print(z1[0])
+	print("----------")
+	print(z1[1])
+	print("----------")
+
+	print("types = ", type(x1[0]))
+	print(type(x1[1]))
+	print(type(x1))
+	x_intersection = inresect(x1[0], x1[1])
+	y_intersection = inresect(y1[0], y1[1])
+	z_intersection = inresect(z1[0], z1[1])
+	print("x_intersection = ", x_intersection)
+	print("y_intersection = ", y_intersection)
+	print("z_intersection = ", z_intersection)
+	raise Exception
 
 
 def run():

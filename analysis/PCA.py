@@ -61,7 +61,6 @@ def form_ellipse(P):
 	# get singular value decomposition data of the matrix A
 	_, size, rotation = np.linalg.svd(A)
 	radiuses = 1 / np.sqrt(size)
-
 	return radiuses, rotation
 
 
@@ -106,8 +105,19 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
+	# print("-----------")
+	# for xc in x:
+	# 	print("x= ", len(xc), xc)
+	# for yc in y:
+	# 	print("y = ", len(yc), yc)
+	# for zc in z:
+	# 	print("z= ", len(zc), zc)
+	# print("len(z) = ", len(z[0]))
+	# print("-----------")
 	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
+
+	return x, y, z
 
 
 def hex2rgb(hex_color):
@@ -289,7 +299,6 @@ def find_min_deltas(array, extremuma):
 
 def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima_values):
 	"""
-
 	Args:
 		minima_indexes (np.ndarray):
 		minima_values (np.ndarray):
@@ -793,6 +802,10 @@ def plot_3D_PCA(data_pack, save_to):
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
 		save_to (str): save folder path
 	"""
+	x1 = []
+	y1 = []
+	z1 = []
+
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
@@ -805,6 +818,7 @@ def plot_3D_PCA(data_pack, save_to):
 			pca.fit(coords)
 			# get the center (mean value of points cloud)
 			center = pca.mean_
+			# print("center = ", center)
 			# get PCA vectors' head points (semi axis)
 			vectors_points = [3 * np.sqrt(val) * vec for val, vec in zip(pca.explained_variance_, pca.components_)]
 			vectors_points = np.array(vectors_points)
@@ -815,7 +829,9 @@ def plot_3D_PCA(data_pack, save_to):
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation = form_ellipse(axis_points)
-
+			# print("radii = ", radii)
+			# print("rotation = ", rotation)
+			# print("vectors_points = ", vectors_points)
 			# plot PCA vectors
 			for point_head in vectors_points:
 				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
@@ -823,7 +839,7 @@ def plot_3D_PCA(data_pack, save_to):
 			# plot cloud of points
 			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
+			x, y, z = plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
 
 			# # plot by combinations (lat, peaks) (amp, peaks) (lat, amp)
 			# for comb_A, comb_B in (0, 2), (1, 2), (0, 1):
@@ -835,6 +851,10 @@ def plot_3D_PCA(data_pack, save_to):
 			# 	area = a * b * np.pi
 			# 	angle = angle_between(p0 - c, p1 - c)
 			# 	dataset_meta[label].append((f"{labels[comb_A]}/{labels[comb_B]}", area, angle, c))
+
+			x1.append(x)
+			y1.append(y)
+			z1.append(z)
 
 		# figure properties
 		ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
@@ -857,4 +877,6 @@ def plot_3D_PCA(data_pack, save_to):
 		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 		title = str(title).lower().replace(" ", "_")
 		plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
+		plt.show()
 		plt.close(fig)
+	return x1, y1, z1
