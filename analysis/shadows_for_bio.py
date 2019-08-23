@@ -4,7 +4,7 @@ from matplotlib import pylab as plt
 from cycler import cycler
 import matplotlib.patches as mpatches
 from analysis.shadows import debugging
-from analysis.functions import find_min_diff, sim_process
+# from analysis.functions import find_min_diff, sim_process
 from analysis.cut_several_steps_files import select_slices
 from GRAS.shadows_boxplot import calc_boxplots
 
@@ -159,35 +159,35 @@ for index, run in enumerate(all_neuron_slices):
 	#                  [maxi + offset for maxi in maximal_per_step], alpha=0.35, color=colors[1])
 
 
-lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True, first_kink=True)[0]
-min_lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True)[0]
+# lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True, first_kink=True)[0]
+# min_lat = sim_process(bio_mean_data, step=0.25, inhibition_zero=True)[0]
 print("len(all_maxes) = ", len(all_maxes[0]))
 # min_difference_indexes, max_difference_indexes, necessary_indexes = \
 # 	find_min_diff(all_maxes, all_mins, step, lat, from_first_kink=True)
 
-min_difference_indexes, max_difference_indexes, necessary_indexes = \
-	find_min_diff(high_box_Q3_slices, low_box_Q1_slices, step, lat, from_first_kink=False)
+# min_difference_indexes, max_difference_indexes, necessary_indexes = \
+# 	find_min_diff(high_box_Q3_slices, low_box_Q1_slices, step, lat, from_first_kink=False)
 
-neuron_min_difference_indexes, neuron_max_difference_indexes, neuron_necessary_indexes = \
-	find_min_diff(high_box_Q3_neuron_slices, low_box_Q1_neuron_slices, sim_step, lat, from_first_kink=False)
+# neuron_min_difference_indexes, neuron_max_difference_indexes, neuron_necessary_indexes = \
+# 	find_min_diff(high_box_Q3_neuron_slices, low_box_Q1_neuron_slices, sim_step, lat, from_first_kink=False)
 
 x_coor = []
 y_coor = []
 
 for index, run in enumerate(all_bio_slices):
-	coord = int(lat[index] * 4)
-	min_lat_coord = int(min_lat[index] * 4)
+	# coord = int(lat[index] * 4)
+	# min_lat_coord = int(min_lat[index] * 4)
 	offset = index * split_coef
 	mean_data = list(map(lambda elements: np.mean(elements), zip(*run)))
 	times = [time * step for time in range(len(mean_data))]
-	plt.plot(times[min_difference_indexes[index]], mean_data[min_difference_indexes[index]] + offset, marker='.',
-	         markersize=12, color='red')
-	plt.plot(times[max_difference_indexes[index]], mean_data[max_difference_indexes[index]] + offset, marker='.',
-	         markersize=12,	color='blue')
-	plt.plot(times[necessary_indexes[index]], mean_data[necessary_indexes[index]] + offset, marker='.',
-	         markersize=12,	color='black')
-	x_coor.append(times[necessary_indexes[index]])
-	y_coor.append(mean_data[necessary_indexes[index]] + offset)
+	# plt.plot(times[min_difference_indexes[index]], mean_data[min_difference_indexes[index]] + offset, marker='.',
+	#          markersize=12, color='red')
+	# plt.plot(times[max_difference_indexes[index]], mean_data[max_difference_indexes[index]] + offset, marker='.',
+	#          markersize=12,	color='blue')
+	# plt.plot(times[necessary_indexes[index]], mean_data[necessary_indexes[index]] + offset, marker='.',
+	#          markersize=12,	color='black')
+	# x_coor.append(times[necessary_indexes[index]])
+	# y_coor.append(mean_data[necessary_indexes[index]] + offset)
 	x_2_coors = []
 	y_2_coors = []
 	if len(x_coor) > 1:
@@ -203,8 +203,8 @@ plt.grid(which='major', axis='x', linestyle='--', linewidth=0.5)
 plt.show()
 
 for index, run in enumerate(all_neuron_slices):
-	coord = int(lat[index] * 4)
-	min_lat_coord = int(min_lat[index] * 4)
+	# coord = int(lat[index] * 4)
+	# min_lat_coord = int(min_lat[index] * 4)
 	offset = index * 6
 	mean_data = list(map(lambda elements: np.mean(elements), zip(*run)))
 	times = [time * sim_step for time in range(len(mean_data))]
@@ -214,8 +214,8 @@ for index, run in enumerate(all_neuron_slices):
 	#          marker='.', markersize=12,	color='blue')
 	# plt.plot(times[neuron_necessary_indexes[index]], mean_data[neuron_necessary_indexes[index]] + offset, marker='.',
 	#          markersize=12,	color='black')
-	x_coor.append(times[neuron_necessary_indexes[index]])
-	y_coor.append(mean_data[neuron_necessary_indexes[index]] + offset)
+	# x_coor.append(times[neuron_necessary_indexes[index]])
+	# y_coor.append(mean_data[neuron_necessary_indexes[index]] + offset)
 	x_2_coors = []
 	y_2_coors = []
 	if len(x_coor) > 1:

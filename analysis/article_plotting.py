@@ -283,17 +283,17 @@ def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_pca_to = '/home/alex/ne'
+	save_pca_to = '/home/anna/Desktop/res'
 
 	compare_pack = [
-		'/home/alex/bio_article/air/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/anna/Desktop/data/4pedal/bio_E_21cms_40Hz_i100_4pedal_no5ht_T_0.25step.hdf5',
 	]
 
 	# control
-	step_size_to = 0.1
+	step_size_to = 0.25
 	plot_pca_flag = False
-	plot_slices_flag = False
-	plot_histogram_flag = False
+	plot_slices_flag = True
+	plot_histogram_flag = True
 
 	__process_dataset(compare_pack, save_pca_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag, step_size_to)
 

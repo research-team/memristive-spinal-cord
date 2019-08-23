@@ -6,10 +6,7 @@ from collections import defaultdict
 from analysis.functions import read_bio_data, normalization
 # from analysis.bio_data_6runs import data_slices
 from analysis.patterns_in_bio_data import bio_data_runs
-from analysis.neuron_data import neuron_data
 from copy import deepcopy
-from analysis.functions import bio_slices
-from analysis.functions import find_min_diff
 
 
 def read_data(filepath):
@@ -158,7 +155,7 @@ def addFromTo(a, b, dict):
 
 
 def debugging():
-	path = '../../GRAS/MN_E_4pedal_15.hdf5'
+	path = '/home/anna/Desktop/data/4pedal/bio_E_21cms_40Hz_i100_4pedal_no5ht_T_0.25step.hdf5'
 	# add info about simulation step. Neuron is 0.025ms, NEST is 0.1ms
 	sim_step = 0.025    # don't forget to change the step size!
 
