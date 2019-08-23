@@ -293,7 +293,7 @@ def find_min_deltas(array, extremuma):
 
 def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima_values):
 	"""
-
+	ToDo add info
 	Args:
 		minima_indexes (np.ndarray):
 		minima_values (np.ndarray):
@@ -558,27 +558,27 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 		if Q1_is_ok:
 			# merge Q1 poly extremuma indexes
 			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = merge_extremuma_arrays(e_poly_Q1_minima_indexes,
-																						  e_poly_Q1_minima_values,
-																						  e_poly_Q1_maxima_indexes,
-																						  e_poly_Q1_maxima_values)
+			                                                                              e_poly_Q1_minima_values,
+			                                                                              e_poly_Q1_maxima_indexes,
+			                                                                              e_poly_Q1_maxima_values)
 			# filtering Q1 poly extremuma: remove micropeaks
 			e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values = filter_extremuma(e_poly_Q1_names,
-																					e_poly_Q1_indexes,
-																					e_poly_Q1_values,
-																					allowed_diff=allowed_diff_for_extremuma)
+			                                                                        e_poly_Q1_indexes,
+			                                                                        e_poly_Q1_values,
+			                                                                        allowed_diff=allowed_diff_for_extremuma)
 			amp_sum += sum(np.abs(e_poly_Q1_values[e_poly_Q1_indexes > latency_index]))
 
 		if Q3_is_ok:
 			# merge Q3 poly extremuma indexes
 			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = merge_extremuma_arrays(e_poly_Q3_minima_indexes,
-																						  e_poly_Q3_minima_values,
-																						  e_poly_Q3_maxima_indexes,
-																						  e_poly_Q3_maxima_values)
+			                                                                              e_poly_Q3_minima_values,
+			                                                                              e_poly_Q3_maxima_indexes,
+			                                                                              e_poly_Q3_maxima_values)
 			# filtering Q3 poly extremuma: remove micropeaks
 			e_poly_Q3_names, e_poly_Q3_indexes, e_poly_Q3_values = filter_extremuma(e_poly_Q3_names,
-																					e_poly_Q3_indexes,
-																					e_poly_Q3_values,
-																					allowed_diff=allowed_diff_for_extremuma)
+			                                                                        e_poly_Q3_indexes,
+			                                                                        e_poly_Q3_values,
+			                                                                        allowed_diff=allowed_diff_for_extremuma)
 			amp_sum += sum(np.abs(e_poly_Q3_values[e_poly_Q3_indexes > latency_index]))
 
 		log.info(f"Amplitude sum: {amp_sum}")
@@ -730,7 +730,6 @@ def get_peaks(data_runs, latencies, ees_hz, step_size):
 	slice_in_ms = 1000 / ees_hz
 	slice_in_steps = int(slice_in_ms / step_size)
 
-	#
 	for data in data_runs:
 		# smooth data to remove micro-peaks
 		smoothed_data = smooth(data, 7)
@@ -791,14 +790,18 @@ def get_peaks(data_runs, latencies, ees_hz, step_size):
 	return avg_sum_peaks_per_slice
 
 
-def plot_3D_PCA(data_pack, save_to):
+def plot_3D_PCA(data_pack, save_to, correlation=False):
 	"""
 	TODO: add docstring
 	Args:
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
 		save_to (str): save folder path
+		correlation (bool): enable or disable corelation calculating
 	"""
+	# plot PCA at different point of view
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
+		volume_sum = 0
+		data_pack_xyz = []
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
@@ -820,36 +823,87 @@ def plot_3D_PCA(data_pack, save_to):
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation, A, C = form_ellipse(axis_points)
-			# plot PCA vectors
-			for point_head in vectors_points:
-				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-				ax.add_artist(arrow)
-			# plot cloud of points
-			ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
-			# plot ellipsoid
-			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
 
-		# figure properties
-		ax.xaxis._axinfo['tick']['inward_factor'] = 0
-		ax.yaxis._axinfo['tick']['inward_factor'] = 0
-		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+			if correlation:
+				# start calculus of points intersection without plotting
+				volume = (4 / 3) * np.pi * radii[0] * radii[1] * radii[2]
+				volume_sum += volume
+				print(f"V: {volume}, {label}")
+				# keep ellipsoid surface dots, A matrix, center
+				phi = np.linspace(0, np.pi, 600)
+				theta = np.linspace(0, 2 * np.pi, 600)
+				# cartesian coordinates that correspond to the spherical angles
+				x = radii[0] * np.outer(np.cos(theta), np.sin(phi))
+				y = radii[1] * np.outer(np.sin(theta), np.sin(phi))
+				z = radii[2] * np.outer(np.ones_like(theta), np.cos(phi))
+				# rotate accordingly
+				for i in range(len(x)):
+					for j in range(len(x)):
+						x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
+				data_pack_xyz.append((A, C, x.flatten(), y.flatten(), z.flatten()))
+			else:
+				# plot PCA vectors
+				for point_head in vectors_points:
+					arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>",
+					                color=color)
+					ax.add_artist(arrow)
+				# plot cloud of points
+				ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
+				# plot ellipsoid
+				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
 
-		if "Lat" not in title:
-			ax.set_xticks([])
-			ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
-			ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
-		if "Amp" not in title:
-			ax.set_yticks([])
-			ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
-			ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
-		if "Peak" not in title:
-			ax.set_zticks([])
-			ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
-			ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35)
+		if correlation:
+			# collect all intersect point
+			points_in = []
+			# get data of two ellipsoids: A matrix, center and points coordinates
+			A1, C1, x1, y1, z1 = data_pack_xyz[0]
+			A2, C2, x2, y2, z2 = data_pack_xyz[1]
+			# based on stackoverflow.com/a/34385879/5891876 solution with own modernization
+			# the equation for the surface of an ellipsoid is (x-c)TA(x-c)=1.
+			# all we need to check is whether (x-c)TA(x-c) is less than 1 for each of points
+			for coord in np.stack((x1, y1, z1), axis=1):
+				if np.sum(np.dot(coord - C2, A2 * (coord - C2))) <= 1:
+					points_in.append(coord)
+			# do the same for another ellipsoid
+			for coord in np.stack((x2, y2, z2), axis=1):
+				if np.sum(np.dot(coord - C1, A1 * (coord - C1))) <= 1:
+					points_in.append(coord)
+			points_in = np.array(points_in)
 
-		plt.legend()
-		ax.view_init(elev=elev, azim=azim)
-		plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-		title = str(title).lower().replace(" ", "_")
-		plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
-		plt.close(fig)
+			if not len(points_in):
+				print("NO INTERSECTIONS: 0 correlation")
+				return
+			# form convex hull of 3D surface
+			hull = ConvexHull(points_in)
+			# get a volume of this surface
+			v_intersection = hull.volume
+			# calc correlation value
+			corr = v_intersection / (volume_sum - v_intersection)
+			print(f"(V_12 / (V_1 + V_2 - V_12)): {corr}")
+			# debugging plotting
+			# ax.scatter(*points_in.T, alpha=0.2, s=1, color='r', label="IN")
+		else:
+			# figure properties
+			ax.xaxis._axinfo['tick']['inward_factor'] = 0
+			ax.yaxis._axinfo['tick']['inward_factor'] = 0
+			ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+			if "Lat" not in title:
+				ax.set_xticks([])
+				ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
+				ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+			if "Amp" not in title:
+				ax.set_yticks([])
+				ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+				ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+			if "Peak" not in title:
+				ax.set_zticks([])
+				ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+				ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35)
+
+			plt.legend()
+			ax.view_init(elev=elev, azim=azim)
+			plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+			title = str(title).lower().replace(" ", "_")
+			plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
+			plt.close(fig)

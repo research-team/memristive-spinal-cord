@@ -236,7 +236,8 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice,
 		log.info(f"Plotted {title} for {filename}")
 
 
-def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False, step_size_to=0.1):
+def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_slices_flag=False,
+                      plot_pca_flag=False, plot_correlation=False, step_size_to=0.1):
 	"""
 	ToDo add info
 	Args:
@@ -275,8 +276,8 @@ def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_sl
 			plot_slices(e_prepared_data, f_prepared_data, all_lat_per_slice,
 			            folder=folder, filename=filename, ees_hz=ees_hz, step_size=step_size_to)
 	# plot 3D PCA for each plane
-	if plot_pca_flag:
-		plot_3D_PCA(all_pack, save_to=save_pca_to)
+	if plot_pca_flag or plot_correlation:
+		plot_3D_PCA(all_pack, save_to=save_pca_to, correlation=plot_correlation)
 
 
 def for_article():
@@ -286,16 +287,19 @@ def for_article():
 	save_pca_to = '/home/anna/Desktop/res'
 
 	compare_pack = [
-		'/home/anna/Desktop/data/4pedal/bio_E_21cms_40Hz_i100_4pedal_no5ht_T_0.25step.hdf5',
+		'/home/alex/bio_article/foot/bio_E_21cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/alex/bio_article/foot/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
 	]
 
 	# control
-	step_size_to = 0.25
-	plot_pca_flag = False
-	plot_slices_flag = True
+	step_size_to = 0.1
+	plot_pca_flag = True
+	plot_correlation = True
+	plot_slices_flag = False
 	plot_histogram_flag = True
 
-	__process_dataset(compare_pack, save_pca_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag, step_size_to)
+	__process_dataset(compare_pack, save_pca_to, plot_histogram_flag,
+	                  plot_slices_flag, plot_pca_flag, plot_correlation, step_size_to)
 
 
 def run():
