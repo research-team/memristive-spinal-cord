@@ -406,14 +406,15 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 	data_test_runs = np.array(data_test_runs, dtype=float)
 	# additional properties
 	slice_in_ms = 1000 / ees_hz
-	slices_number = int(len(data_test_runs[0]) / (slice_in_ms / step_size))
-	slice_in_steps = int(slice_in_ms / step_size)
+	slice_in_steps = int(1000 / ees_hz / step_size)
+	slices_number = int(len(data_test_runs[0]) / slice_in_steps)
 	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / step_size)
 	shared_x = np.arange(slice_in_steps) * step_size
 	original_data = data_test_runs.T
 	# calc boxplot per dot
 	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
+
 	# split data by slices
 	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
 	splitted_per_slice_original = split_by_slices(original_data, slice_in_steps)
@@ -712,10 +713,10 @@ def get_peaks(data_runs, latencies, ees_hz, step_size):
 	"""
 	TODO: add docstring
 	Args:
-		data_runs:
-		latencies:
-		ees_hz:
-		step_size:
+		data_runs (np.ndarray):
+		latencies (list):
+		ees_hz (int):
+		step_size (float):
 	Returns:
 		list: number of peaks per slice
 	"""
@@ -803,8 +804,6 @@ def plot_3D_PCA(data_pack, save_to):
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		# coords is a matrix of coordinates, stacked as [[x1, y1, z1], [x2, y2, z2] ...]
-
-
 		for coords, color, label in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
@@ -821,7 +820,6 @@ def plot_3D_PCA(data_pack, save_to):
 			axis_points += center
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation, A, C = form_ellipse(axis_points)
-
 			# plot PCA vectors
 			for point_head in vectors_points:
 				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
@@ -832,20 +830,22 @@ def plot_3D_PCA(data_pack, save_to):
 			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
 
 		# figure properties
-		ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
-		ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
-		ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
-
 		ax.xaxis._axinfo['tick']['inward_factor'] = 0
 		ax.yaxis._axinfo['tick']['inward_factor'] = 0
 		ax.zaxis._axinfo['tick']['inward_factor'] = 0
 
 		if "Lat" not in title:
 			ax.set_xticks([])
+			ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
+			ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
 		if "Amp" not in title:
 			ax.set_yticks([])
+			ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+			ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
 		if "Peak" not in title:
 			ax.set_zticks([])
+			ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
+			ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35)
 
 		plt.legend()
 		ax.view_init(elev=elev, azim=azim)

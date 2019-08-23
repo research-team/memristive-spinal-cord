@@ -27,13 +27,13 @@ def normalization(data, a=0, b=1, save_centering=False):
 		raise Exception("Left interval 'a' must be fewer than right interval 'b'")
 	if save_centering:
 		minimal = abs(min(data))
-		return [volt / minimal for volt in data]
+		return data / minimal
 	else:
 		min_x = min(data)
 		max_x = max(data)
 		const = (b - a) / (max_x - min_x)
 
-		return [(x - min_x) * const + a for x in data]
+		return (data - min_x) * const + a
 
 
 def read_data(filepath):
@@ -86,7 +86,7 @@ def read_bio_data(path):
 	return data_RMG, shifted_indexes
 
 
-def extract_data(path, beg=None, end=None, step_from=None, step_to=None):
+def extract_data(path, beg=None, end=None, step_from=None, step_to=None, ees_hz=None):
 	"""
 	ToDo add info
 	Args:
@@ -111,10 +111,11 @@ def extract_data(path, beg=None, end=None, step_from=None, step_to=None):
 		shrink_step = int(step_to / step_from)
 
 	# slice data and shrink if need
-	sliced_data = [data[beg:end][::shrink_step] for data in read_data(path)]
+	shrinked_data = [data[beg:end][::shrink_step] for data in read_data(path)]
+
 	# check if all lengths are equal
-	if len(set(map(len, sliced_data))) <= 1:
-		return np.array(sliced_data)
+	if len(set(map(len, shrinked_data))) <= 1:
+		return np.array(shrinked_data)
 	raise Exception("Length of slices not equal!")
 
 
@@ -136,7 +137,7 @@ def center_data_by_line(y_points, debugging=False):
 	"""
 	Straight the data and center the rotated points cloud at (0, 0)
 	Args:
-		y_points (list or np.ndarray): list of Y points value
+		y_points (np.ndarray): list of Y points value
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		np.ndarray: new straighten Y data
@@ -218,7 +219,28 @@ def prepare_data(dataset):
 		centered_data = center_data_by_line(data_per_test)
 		normalized_data = normalization(centered_data, save_centering=True)
 		prepared_data.append(normalized_data)
-	return prepared_data
+	return np.array(prepared_data)
+
+
+def split_by_slices(dataset, slice_len_steps):
+	"""
+	TODO: add docstring
+	Args:
+		dataset (np.ndarray): dataset (N experimental runs)
+		slice_len_steps (int): slice length in steps
+	Returns:
+		np.ndarray: sliced data
+	"""
+	sliced_dataset = []
+	for data in dataset:
+		slices_begin_indexes = range(0, len(data) + 1, slice_len_steps)
+		splitted_per_slice = [data[beg:beg + slice_len_steps] for beg in slices_begin_indexes]
+		# remove tail
+		if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
+			del splitted_per_slice[-1]
+		sliced_dataset.append(splitted_per_slice)
+
+	return np.array(sliced_dataset)
 
 
 def auto_prepare_data(folder, filename, step_size_to=None):
@@ -250,34 +272,34 @@ def auto_prepare_data(folder, filename, step_size_to=None):
 	if step_size not in (0.025, 0.1, 0.25):
 		raise Exception("Step size not in allowed list")
 
-	slice_in_steps = int(25 / step_size)
 	filepath = f"{folder}/{filename}"
-
+	slice_in_steps = int(1000 / ees_hz / step_size)
+	wtf = int(25 / step_size)
 	# extract data of extensor
 	if '_E_' in filename:
 		# extract dataset based on slice numbers (except biological data)
 		if 'bio_' in filename:
-			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to)
+			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
 		else:
 			e_begin = 0
-			e_end = e_slices_number[speed] * slice_in_steps
+			e_end = wtf * e_slices_number[speed]
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, e_begin, e_end, step_size, step_size_to)
+			dataset = extract_data(filepath, e_begin, e_end, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
 	# extract data of flexor
 	elif '_F_' in filename:
 		# preapre flexor data
 		if 'bio_' in filename:
-			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to)
+			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
 		else:
-			f_begin = e_slices_number[speed] * slice_in_steps
-			f_end = f_begin + (7 if '4pedal' in filename else 5) * slice_in_steps
+			f_begin = wtf * e_slices_number[speed]
+			f_end = f_begin + (7 if '4pedal' in filename else 5) * wtf
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, f_begin, f_end, step_size, step_size_to)
+			dataset = extract_data(filepath, f_begin, f_end, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
 	# in another case
 	else:
 		raise Exception("Couldn't parse filename and extract muscle name")
 
 	# centering and normalizing data
-	prepared_data = prepare_data(dataset)
+	prepared_dataset = prepare_data(dataset)
 
-	return prepared_data, ees_hz, step_size
+	return prepared_dataset, ees_hz, step_size

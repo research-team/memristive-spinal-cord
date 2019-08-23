@@ -1,3 +1,4 @@
+import os
 import ntpath
 import logging
 import numpy as np
@@ -41,8 +42,7 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, step_size, folder
 	e_splitted_per_slice_boxplots = split_by_slices(e_boxplots_per_iter, slice_in_steps)
 	f_splitted_per_slice_boxplots = split_by_slices(f_boxplots_per_iter, slice_in_steps)
 
-	all_splitted_per_slice_boxplots = np.vstack((e_splitted_per_slice_boxplots,
-	                                             f_splitted_per_slice_boxplots))
+	all_splitted_per_slice_boxplots = list(e_splitted_per_slice_boxplots) + list(f_splitted_per_slice_boxplots)
 
 	yticks = []
 	slices_number = int((len(extensor_data[0]) + len(flexor_data[0])) / (slice_in_ms / step_size))
@@ -51,20 +51,54 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, step_size, folder
 	e_slices_number = int(len(extensor_data[0]) / (slice_in_ms / step_size))
 	fig, ax = plt.subplots(figsize=(16, 9))
 
+	# Parsing example: bio_F_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5
+	meta = filename.split("_")
+	meta_type = meta[1].lower()
+	meta_speed = meta[2]
+	ideal_filename = f"{meta_type}_{meta_speed}"
+
+	if "bio_" in filename and os.path.exists(f"{folder}/{ideal_filename}"):
+		y_data = []
+		# collect extensor data
+		with open(f"{folder}/{ideal_filename}") as file:
+			for d in file.readlines():
+				y_data.append(list(map(float, d.split())))
+		# collect flexor_data
+		with open(f"{folder}/{ideal_filename.replace('e_', 'f_')}") as file:
+			for d in file.readlines():
+				y_data.append(list(map(float, d.split())))
+		# convert list to array for more simplicity using
+		y_data = np.array(y_data)
+		# plot "ideal" line
+		for i, d in enumerate(y_data):
+			d += i + (0 if i < e_slices_number else 1)
+			shared_x = np.arange(len(d)) * step_size
+			plt.plot(shared_x, d, color='k', linewidth=3, zorder=4)
+
+	# plot fliers
 	for slice_index, data in enumerate(all_splitted_per_slice_boxplots):
 		data += slice_index + (0 if slice_index < e_slices_number else 1)
 		shared_x = np.arange(len(data[:, k_fliers_high])) * step_size
 		plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7, zorder=3)
-		plt.plot(shared_x, data[:, k_median], color='k', zorder=3)
+		if "bio_" not in filename:
+			plt.plot(shared_x, data[:, k_median], color='k', zorder=3)
 		yticks.append(data[:, k_median][0])
 
 	lat_x = latencies * step_size
 	lat_y = [all_splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat in enumerate(latencies)]
-	plt.plot(lat_x, lat_y, linewidth=4, linestyle='--', color='k', zorder=3)
-	plt.plot(lat_x, lat_y, '.', markersize=25, color='k', zorder=3)
+
+	plt.plot(lat_x[:len(e_splitted_per_slice_boxplots)],
+	         lat_y[:len(e_splitted_per_slice_boxplots)],
+	         linewidth=8,  color='r', zorder=6, alpha=0.8)
+	plt.plot(lat_x[len(e_splitted_per_slice_boxplots):],
+	         lat_y[len(e_splitted_per_slice_boxplots):],
+	         linewidth=8, color='r', zorder=6, alpha=0.8)
 
 	xticks = range(int(slice_in_ms) + 1)
-	xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
+	if len(xticks) <= 35:
+		xticklabels = [x if i % 5 == 0 else None for i, x in enumerate(xticks)]
+	else:
+		xticklabels = [x if i % 25 == 0 else None for i, x in enumerate(xticks)]
 	yticklabels = [None] * slices_number
 	slice_indexes = range(1, slices_number + 1)
 	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
@@ -73,6 +107,7 @@ def plot_slices(extensor_data, flexor_data, latencies, ees_hz, step_size, folder
 	plt.xticks(xticks, xticklabels, fontsize=56)
 	plt.yticks(yticks, yticklabels, fontsize=56)
 	plt.xlim(0, slice_in_ms)
+	print(slice_in_ms)
 
 	# Hide the right and top spines
 	ax.spines['right'].set_visible(False)
@@ -201,7 +236,7 @@ def plot_histograms(amp_per_slice, peaks_per_slice, lat_per_slice,
 		log.info(f"Plotted {title} for {filename}")
 
 
-def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False, step_size_to=0.1):
+def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_slices_flag=False, plot_pca_flag=False, step_size_to=0.1):
 	"""
 	ToDo add info
 	Args:
@@ -221,7 +256,7 @@ def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices
 		# get prepared data, EES frequency and data step size
 		e_prepared_data, ees_hz, step_size = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 		# process latencies and amplitudes per slice
-		e_lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, ees_hz, step_size_to)
+		e_lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, ees_hz, step_size=step_size_to)
 		# process peaks per slice
 		peaks_per_slice = get_peaks(e_prepared_data, e_lat_per_slice, ees_hz=ees_hz, step_size=step_size_to)
 		# form data pack
@@ -233,34 +268,34 @@ def __process_dataset(filepaths, save_to, plot_histogram_flag=False, plot_slices
 			                folder=folder, filename=filename, ees_hz=ees_hz, step_size=step_size_to)
 		# plot all slices with pattern
 		if plot_slices_flag:
-			f_prepared_data = auto_prepare_data(folder, filename.replace('_E_', '_F_'))[0]
-			f_lat_per_slice = get_lat_amp(f_prepared_data, ees_hz, step_size)[0]
+			flexor_filename = filename.replace('_E_', '_F_')
+			f_prepared_data = auto_prepare_data(folder, flexor_filename, step_size_to=step_size_to)[0]
+			f_lat_per_slice = get_lat_amp(f_prepared_data, ees_hz, step_size=step_size_to)[0]
 			all_lat_per_slice = np.append(e_lat_per_slice, f_lat_per_slice)
 			plot_slices(e_prepared_data, f_prepared_data, all_lat_per_slice,
-			            ees_hz=ees_hz, step_size=step_size_to, folder=folder, filename=filename)
+			            folder=folder, filename=filename, ees_hz=ees_hz, step_size=step_size_to)
 	# plot 3D PCA for each plane
 	if plot_pca_flag:
-		plot_3D_PCA(all_pack, save_to=save_to)
+		plot_3D_PCA(all_pack, save_to=save_pca_to)
 
 
 def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_to = '/home/alex/GitHub/memristive-spinal-cord/data/bio/'
+	save_pca_to = '/home/alex/ne'
 
 	compare_pack = [
-		f'/home/alex/GitHub/memristive-spinal-cord/data/bio/bio_E_15cms_40Hz_i100_2pedal_5ht_T_0.25step.hdf5',
-		f'/home/alex/GitHub/memristive-spinal-cord/data/neuron/neuron_E_15cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5'
+		'/home/alex/bio_article/air/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
 	]
 
 	# control
-	step_size_to = 0.25
-	plot_pca_flag = True
+	step_size_to = 0.1
+	plot_pca_flag = False
 	plot_slices_flag = False
 	plot_histogram_flag = False
 
-	__process_dataset(compare_pack, save_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag, step_size_to)
+	__process_dataset(compare_pack, save_pca_to, plot_histogram_flag, plot_slices_flag, plot_pca_flag, step_size_to)
 
 
 def run():
