@@ -243,41 +243,6 @@ class Functions:
 		# NEST connection
 		nest.Connect(pre=pre_ids, post=post_ids, syn_spec=syn_spec, conn_spec=conn_spec)
 
-		if True:
-			y_nest_delay = [nest.GetStatus([conn])[0]['delay'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
-			y_nest_weight = [nest.GetStatus([conn])[0]['weight'] for conn in nest.GetConnections(source=pre_ids, target=post_ids)]
-
-			y_orig_delay = np.random.normal(syn_delay, syn_delay / 5, len(y_nest_delay))
-			y_orig_weight = np.random.normal(syn_weight, syn_weight / 10, len(y_nest_weight))
-
-			clr_nest = 'orange'
-			clr_orig = 'b'
-
-			plt.figure()
-			plt.subplot(121)
-			plt.title("Delay")
-			plt.plot(range(len(y_nest_delay)), sorted(y_nest_delay), label="NEST", color=clr_nest)
-			plt.plot(range(len(y_orig_delay)), sorted(y_orig_delay), label="orig", color=clr_orig)
-			plt.axhline(y=syn_delay)
-			plt.axhline(y=max(y_orig_delay), color=clr_orig)
-			plt.axhline(y=max(y_nest_delay), color=clr_nest)
-			plt.axhline(y=min(y_orig_delay), color=clr_orig)
-			plt.axhline(y=min(y_nest_delay), color=clr_nest)
-
-			plt.subplot(122)
-			plt.title("Weight")
-			plt.plot(range(len(y_nest_weight)), sorted(y_nest_weight), label="NEST", color='orange')
-			plt.plot(range(len(y_orig_weight)), sorted(y_orig_weight), label="orig", color='b')
-			plt.axhline(y=syn_weight)
-			plt.axhline(y=max(y_orig_weight), color=clr_orig)
-			plt.axhline(y=max(y_nest_weight), color=clr_nest)
-			plt.axhline(y=min(y_orig_weight), color=clr_orig)
-			plt.axhline(y=min(y_nest_weight), color=clr_nest)
-
-			plt.legend()
-			plt.show()
-			plt.close()
-
 
 	def connect_one_to_all(self, pre_ids, post_ids, syn_delay, syn_weight, no_distr=False):
 		"""
@@ -390,6 +355,17 @@ class Functions:
 			g_inh = np.mean(np.split(volt_data[:, k_g_inh], time_parts), axis=1)
 
 			del volt_data
+
+			expected_length = int(self.P.T_sim / self.P.resolution)
+			# fill missing volts values
+			for _ in range(expected_length - len(volts)):
+				volts = np.append(volts, volts[-1])
+			# fill missing g_exc values
+			for _ in range(expected_length - len(g_exc)):
+				volts = np.append(g_exc, g_exc[-1])
+			# fill missing g_inh values
+			for _ in range(expected_length - len(g_inh)):
+				volts = np.append(g_inh, g_inh[-1])
 
 			spikes = []
 			for filename in filenames_gdf:
