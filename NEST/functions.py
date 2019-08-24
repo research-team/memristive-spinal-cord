@@ -46,7 +46,7 @@ class Functions:
 		# init global T of simulation
 		P.step_cycle = extensor_time + flexor_time
 		P.T_sim = float(P.step_cycle * P.steps)
-
+		P.resolution = nest.GetKernelStatus()['resolution']
 		self.P = P
 		self.multimeters = []
 		self.cv_generators = []
