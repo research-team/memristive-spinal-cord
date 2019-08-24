@@ -357,15 +357,16 @@ class Functions:
 			del volt_data
 
 			expected_length = int(self.P.T_sim / self.P.resolution)
+
 			# fill missing volts values
 			for _ in range(expected_length - len(volts)):
 				volts = np.append(volts, volts[-1])
 			# fill missing g_exc values
 			for _ in range(expected_length - len(g_exc)):
-				volts = np.append(g_exc, g_exc[-1])
+				g_exc = np.append(g_exc, g_exc[-1])
 			# fill missing g_inh values
 			for _ in range(expected_length - len(g_inh)):
-				volts = np.append(g_inh, g_inh[-1])
+				g_inh = np.append(g_inh, g_inh[-1])
 
 			spikes = []
 			for filename in filenames_gdf:

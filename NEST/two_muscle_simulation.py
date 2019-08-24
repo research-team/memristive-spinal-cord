@@ -2,11 +2,9 @@ import os
 import nest
 from time import time
 from multiprocessing import cpu_count
-
-from functions import Functions
-from functions import Parameters
-
-import plot_results
+from NEST.functions import Functions
+from NEST.functions import Parameters
+from GRAS.tests_runner import convert_to_hdf5, plot_results
 
 
 class V3(Functions):
@@ -323,17 +321,20 @@ if __name__ == "__main__":
     parameters = Parameters()
     parameters.tests = 10
     parameters.steps = 1
-    parameters.cms = 15
+    parameters.cms = 21
     parameters.EES = 40
     parameters.inh = 100
     parameters.ped = 2
     parameters.ht5 = False
     parameters.save_all = False
 
+    save_folder = f"{os.getcwd()}/dat"
+
     for i in range(parameters.tests):
         try:
             V3(parameters, iteration=i)
-        except Exception:
-            continue
+        except Exception as error:
+            print(error)
 
-    plot_results.run()
+    convert_to_hdf5(save_folder)
+    plot_results(save_folder, ees_hz=parameters.EES)
