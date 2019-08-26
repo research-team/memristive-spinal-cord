@@ -42,7 +42,7 @@ class Functions:
 		P.skin_stim = stim[P.cms]
 		# init T of muslce activation time
 		extensor_time = 6 * P.skin_stim
-		flexor_time = (5 if P.ped == 2 else 7) * P.skin_stim
+		flexor_time = (7 if P.ped == 4 else 2) * 25
 		# init global T of simulation
 		P.step_cycle = extensor_time + flexor_time
 		P.T_sim = float(P.step_cycle * P.steps)
