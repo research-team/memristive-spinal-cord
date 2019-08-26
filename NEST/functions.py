@@ -1,16 +1,14 @@
 import os
 import nest
 import numpy as np
-import pylab as plt
 from random import normalvariate
 from collections import defaultdict
 
 syn_outdegree = 27
 
 class Parameters:
-	__slots__ = ['tests', 'steps', 'cms', 'EES', 'inh',
-	             'ped', 'ht5', 'save_all', 'step_cycle',
-	             'resolution', 'T_sim', 'skin_stim']
+	__slots__ = ['tests', 'steps', 'cms', 'EES', 'inh', 'ped', 'ht5', 'save_all', 'step_cycle',
+	             'resolution', 'T_sim', 'skin_stim', 'extensor_time', 'flexor_time']
 
 	def __init__(self):
 		self.tests: int
@@ -25,6 +23,8 @@ class Parameters:
 		self.resolution: float
 		self.T_sim: float
 		self.skin_stim: float
+		self.extensor_time: int
+		self.flexor_time: int
 
 
 class Functions:
@@ -40,13 +40,13 @@ class Functions:
 		        15: 50,
 		        6: 125}
 		P.skin_stim = stim[P.cms]
-		# init T of muslce activation time
-		extensor_time = 6 * P.skin_stim
-		flexor_time = (7 if P.ped == 4 else 2) * 25
-		# init global T of simulation
-		P.step_cycle = extensor_time + flexor_time
-		P.T_sim = float(P.step_cycle * P.steps)
 		P.resolution = nest.GetKernelStatus()['resolution']
+		# init T of muslce activation time
+		P.extensor_time = 6 * P.skin_stim
+		P.flexor_time = (7 if P.ped == 4 else 2) * int(25 / P.resolution)
+		# init global T of simulation
+		P.step_cycle = P.extensor_time + P.flexor_time
+		P.T_sim = float(P.step_cycle * P.steps)
 		self.P = P
 		self.multimeters = []
 		self.cv_generators = []

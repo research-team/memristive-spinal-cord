@@ -119,7 +119,7 @@ class V3(Functions):
 		self.connect_noise_generator(CV4, rate=5000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
-		                             t_end=6 * self.P.skin_stim + (7 if self.P.ped == 4 else 5) * 25 - 5)
+		                             t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 370, no_distr=True)
