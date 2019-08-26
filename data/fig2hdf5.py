@@ -3,9 +3,18 @@ import numpy as np
 import pylab as plt
 import h5py as hdf5
 from scipy.io import loadmat
-
+from analysis.functions import center_data_by_line, normalization
 
 def fig2png(filename, title, rat, begin, end):
+	fl = ntpath.basename(filename)
+	'''e_air_13.5cms_1-5'''
+	meta = fl.replace(".fig", "").split("_")
+	sli = meta[-1].split('-')
+	begin = int(sli[0])
+	end = int(sli[1])
+	fold = ntpath.dirname(filename)
+	new_filename = "_".join(meta[:-1])
+
 	d = loadmat(filename, squeeze_me=True, struct_as_record=False)
 	ax1 = d['hgS_070000'].children
 
@@ -16,28 +25,44 @@ def fig2png(filename, title, rat, begin, end):
 
 	yticks = []
 	plt.suptitle(f"{title} [{begin} : {end}] \n {rat}")
+	y_data = []
 
+	proper_index = 0
 	for i, line in enumerate(ax1.children, 1):
 		if line.type == 'graph2d.lineseries':
-			x = line.properties.XData
-			y = line.properties.YData - i * 2
-			yticks.append(y[0])
-
 			if begin <= i <= end:
-				plt.plot(x, y)
-			else:
-				plt.plot(x, y, color='gray', linestyle='--')
+				x = line.properties.XData
+				y = line.properties.YData - 3 * proper_index
+				y_data += list(y)
+				proper_index += 1
+				# plt.plot(x, y)
 
 		if line.type == 'text':
 			break
+	Y = np.array(y_data)
+	centered = center_data_by_line(Y)
+	normalized_data = normalization(centered, save_centering=True)
 
-	plt.xlim(ax1.properties.XLim)
+	slice_length = int(1000 / 40 / 0.1)
+	slice_number = len(normalized_data) // slice_length
+	sliced = np.split(normalized_data, slice_number)
+
+
+	with open(f"{fold}/{new_filename}", 'w') as file:
+		for d in sliced:
+			file.write(" ".join(map(str, d)) + "\n")
+
+	return
+	raise Exception
+
+	# plt.xlim(ax1.properties.XLim)
 	plt.yticks(yticks, range(1, len(yticks) + 1))
 
 	folder = "/home/alex/bio_data_png"
-	title_for_file = '_'.join(title.split())
+	# title_for_file = '_'.join(title.split())
 	plt.tight_layout()
-	plt.savefig(f"{folder}/{title_for_file}_{rat.replace('.fig', '')}.png", format="png", dpi=200)
+	plt.show()
+	#plt.savefig(f"{folder}/{title_for_file}_{rat.replace('.fig', '')}.png", format="png", dpi=200)
 	plt.close()
 
 
@@ -50,7 +75,6 @@ def fig2hdf5(filename, title, rat, begin, end):
 
 	y_data = []
 
-	print(f"rat: {rat} \t title: {title}")
 
 	proper_index = 0
 	for i, line in enumerate(ax1.children, 1):
@@ -63,6 +87,8 @@ def fig2hdf5(filename, title, rat, begin, end):
 		if line.type == 'text':
 			break
 
+	print(f"{len(y_data)} rat: {rat} \t title: {title}")
+
 	title = title.lower()
 	*mode, muscle, speed, _ = title.split()
 
@@ -73,7 +99,8 @@ def fig2hdf5(filename, title, rat, begin, end):
 
 	new_filename = f"bio_{muscle}_{speed}_40Hz_i100_2pedal_{qpz}5ht_T.hdf5"
 
-	folder = f"/home/alex/bio_data_hdf/{mode}"
+	rat_number = rat.split("_")[0][1:]
+	folder = f"/home/alex/bio_data_hdf/{mode}/{rat_number}"
 
 	if not os.path.exists(folder):
 		os.makedirs(folder)

@@ -43,10 +43,11 @@ class Functions:
 		P.resolution = nest.GetKernelStatus()['resolution']
 		# init T of muslce activation time
 		P.extensor_time = 6 * P.skin_stim
-		P.flexor_time = (7 if P.ped == 4 else 2) * int(25 / P.resolution)
+		P.flexor_time = (7 if P.ped == 4 else 5) * 25
 		# init global T of simulation
 		P.step_cycle = P.extensor_time + P.flexor_time
 		P.T_sim = float(P.step_cycle * P.steps)
+
 		self.P = P
 		self.multimeters = []
 		self.cv_generators = []

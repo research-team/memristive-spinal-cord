@@ -83,18 +83,14 @@ def plot_results(save_folder, ees_hz=40, sim_step=0.025):
 		logging.info(f"start plotting {filename}")
 		with hdf5.File(f"{save_folder}/{filename}") as hdf5_file:
 			listed_data = np.array([data[:] for data in hdf5_file.values()])
-			from time import time
-			start = time()
 			plot_shadows_boxplot(listed_data, ees_hz, sim_step, save_folder=save_folder, filename=title)
-			end = time()
-			print(end - start)
 
 
 def testrunner():
-	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/"
+	script_place = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution"
 	save_folder = f"{script_place}/dat"
 
-	args = {tests_number: 15,
+	args = {tests_number: 25,
 	        cms: 21,
 	        ees: 40,
 	        inh: 100,
@@ -102,8 +98,8 @@ def testrunner():
 	        ht5: 0,
 	        save_all: 0}
 
-	# run_tests(script_place, args)
-	# convert_to_hdf5(save_folder)
+	run_tests(script_place, args)
+	convert_to_hdf5(save_folder)
 	plot_results(save_folder, ees_hz=args[ees])
 
 

@@ -305,9 +305,9 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 10
+	parameters.tests = 1
 	parameters.steps = 1
-	parameters.cms = 21
+	parameters.cms = 15
 	parameters.EES = 40
 	parameters.inh = 100
 	parameters.ped = 2
