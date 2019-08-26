@@ -4,10 +4,17 @@ __pycache__/
 *$py.class
 
 GRAS/matrix_solution/results/*
-GRAS/matrix_solution/done/*
+GRAS/matrix_solution/dat
+
 GRAS/object_solution/results/*
-GRAS/matrix_solution/dat/*
+GRAS/matrix_solution/dat
+
 NEST/second_level/results/*
+NEST/dat
+
+*.dat
+*.pdf
+*.zip
 # C extensions
 *.so
 *.hdf5
