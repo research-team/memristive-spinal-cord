@@ -40,16 +40,15 @@ def read_data(filepath):
 	"""
 	ToDo add info
 	Args:
-		filepath:
-
+		filepath (str): path to the file
 	Returns:
-
+		np.ndarray: data
 	"""
 	with hdf5.File(filepath, 'r') as file:
 		data_by_test = [test_values[:] for test_values in file.values()]
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
-	return data_by_test
+	return np.array(data_by_test)
 
 
 def read_bio_data(path):
@@ -86,37 +85,36 @@ def read_bio_data(path):
 	return data_RMG, shifted_indexes
 
 
-def extract_data(path, beg=None, end=None, step_from=None, step_to=None, ees_hz=None):
+def subsampling(dataset, step_from, step_to):
+	# to convert
+	if step_from == step_to or not step_from or not step_to:
+		sub_step = 1
+	else:
+		sub_step = int(step_to / step_from)
+
+	subsampled_dataset = [data[::sub_step] for data in dataset]
+
+	# check if all lengths are equal
+	if len(set(map(len, subsampled_dataset))) <= 1:
+		return np.array(subsampled_dataset)
+	raise Exception("Length of slices not equal!")
+
+
+def extract_data(path, beg=None, end=None):
 	"""
 	ToDo add info
 	Args:
 		path:
 		beg:
 		end:
-		step_from:
-		step_to:
-
 	Returns:
-		np.ndarray: sliced data
+		np.ndarray: extracted data
 	"""
-	#
 	if beg is None:
 		beg = 0
 	if end is None:
 		end = int(10e6)
-	# to convert
-	if step_from == step_to or not step_from or not step_to:
-		shrink_step = 1
-	else:
-		shrink_step = int(step_to / step_from)
-
-	# slice data and shrink if need
-	shrinked_data = [data[beg:end][::shrink_step] for data in read_data(path)]
-
-	# check if all lengths are equal
-	if len(set(map(len, shrinked_data))) <= 1:
-		return np.array(shrinked_data)
-	raise Exception("Length of slices not equal!")
+	return read_data(path)[:, beg:end]
 
 
 def draw_vector(p0, p1, color):
@@ -206,6 +204,60 @@ def center_data_by_line(y_points, debugging=False):
 	return rotated_dots_2D[:, 1]
 
 
+def calc_boxplots(dots, percents=(25, 50, 75)):
+	"""
+	Function for calculating boxplots from array of dots
+	Args:
+		dots (np.ndarray): array of dots
+		percents (tuple):
+	Returns:
+		tuple: [7 elements] median, Q3 and Q1 values, highest and lowest whiskers, highest and lowest fliers
+	"""
+	low_box_Q1, median, high_box_Q3 = np.percentile(dots, percents)
+	# calc borders
+	IQR = high_box_Q3 - low_box_Q1
+	Q1_15 = low_box_Q1 - 1.5 * IQR
+	Q3_15 = high_box_Q3 + 1.5 * IQR
+
+	high_whisker, low_whisker = high_box_Q3, low_box_Q1,
+
+	for dot in dots:
+		if high_box_Q3 < dot <= Q3_15 and dot > high_whisker:
+			high_whisker = dot
+		if Q1_15 <= dot < low_box_Q1 and dot < low_whisker:
+			low_whisker = dot
+
+	high_flier, low_flier = high_whisker, low_whisker
+	for dot in dots:
+		if dot > Q3_15 and dot > high_flier:
+			high_flier = dot
+
+		if dot < Q1_15 and dot < low_flier:
+			low_flier = dot
+
+	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
+
+
+def get_boxplots(sliced_datasets):
+	"""
+	ToDo
+	Args:
+		sliced_datasets (np.ndarray):
+	Returns:
+		np.ndarray: boxplots per slice per dataset
+	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+	# additional properties
+	slices_number = len(sliced_datasets[0])
+	# calc boxplot per dot in envolved dataset
+	envolved_dataset = np.array([d.flatten() for d in sliced_datasets]).T
+	boxplots = np.array([calc_boxplots(dots_per_iter) for dots_per_iter in envolved_dataset])
+	splitted_boxplots = np.split(boxplots, slices_number)
+
+	return splitted_boxplots
+
+
 def prepare_data(dataset):
 	"""
 	Center the data set, then normalize it and return
@@ -222,25 +274,21 @@ def prepare_data(dataset):
 	return np.array(prepared_data)
 
 
-def split_by_slices(dataset, slice_len_steps):
+def split_by_slices(data, slice_in_steps):
 	"""
 	TODO: add docstring
 	Args:
-		dataset (np.ndarray): dataset (N experimental runs)
-		slice_len_steps (int): slice length in steps
+		data (np.ndarray): data array
+		slice_in_steps (int): slice length in steps
 	Returns:
 		np.ndarray: sliced data
 	"""
-	sliced_dataset = []
-	for data in dataset:
-		slices_begin_indexes = range(0, len(data) + 1, slice_len_steps)
-		splitted_per_slice = [data[beg:beg + slice_len_steps] for beg in slices_begin_indexes]
-		# remove tail
-		if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
-			del splitted_per_slice[-1]
-		sliced_dataset.append(splitted_per_slice)
-
-	return np.array(sliced_dataset)
+	slices_begin_indexes = range(0, len(data) + 1, slice_in_steps)
+	splitted_per_slice = [data[beg:beg + slice_in_steps] for beg in slices_begin_indexes]
+	# remove tails
+	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
+		del splitted_per_slice[-1]
+	return np.array(splitted_per_slice)
 
 
 def auto_prepare_data(folder, filename, step_size_to=None):
@@ -272,34 +320,39 @@ def auto_prepare_data(folder, filename, step_size_to=None):
 	if step_size not in (0.025, 0.1, 0.25):
 		raise Exception("Step size not in allowed list")
 
+	# ToDo why
+	standard_slice_length_in_steps = int(25 / step_size)
 	filepath = f"{folder}/{filename}"
-	slice_in_steps = int(1000 / ees_hz / step_size)
-	wtf = int(25 / step_size)
+
 	# extract data of extensor
 	if '_E_' in filename:
 		# extract dataset based on slice numbers (except biological data)
 		if 'bio_' in filename:
-			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
+			dataset = extract_data(filepath)
 		else:
 			e_begin = 0
-			e_end = wtf * e_slices_number[speed]
+			e_end = standard_slice_length_in_steps * e_slices_number[speed]
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, e_begin, e_end, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
+			dataset = extract_data(filepath, e_begin, e_end)
 	# extract data of flexor
 	elif '_F_' in filename:
 		# preapre flexor data
 		if 'bio_' in filename:
-			dataset = extract_data(filepath, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
+			dataset = extract_data(filepath)
 		else:
-			f_begin = wtf * e_slices_number[speed]
-			f_end = f_begin + (7 if '4pedal' in filename else 5) * wtf
+			f_begin = standard_slice_length_in_steps * e_slices_number[speed]
+			f_end = f_begin + (7 if '4pedal' in filename else 5) * standard_slice_length_in_steps
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, f_begin, f_end, step_from=step_size, step_to=step_size_to, ees_hz=ees_hz)
+			dataset = extract_data(filepath, f_begin, f_end)
 	# in another case
 	else:
 		raise Exception("Couldn't parse filename and extract muscle name")
+	# subsampling data to the new data step
+	dataset = subsampling(dataset, step_from=step_size, step_to=step_size_to)
+	#
+	slice_in_ms = int(1000 / ees_hz)
+	slice_in_steps = int(slice_in_ms / step_size_to)
+	# split datatest into the slices
+	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepare_data(dataset)])
 
-	# centering and normalizing data
-	prepared_dataset = prepare_data(dataset)
-
-	return prepared_dataset, ees_hz, step_size
+	return splitted_per_slice

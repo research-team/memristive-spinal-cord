@@ -1,44 +1,17 @@
 import logging
 import numpy as np
 import pylab as plt
+from analysis.functions import calc_boxplots
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
-
-percents = [25, 50, 75]
-
-
-def calc_boxplots(dots):
-	low_box_Q1, median, high_box_Q3 = np.percentile(dots, percents)
-	# calc borders
-	IQR = high_box_Q3 - low_box_Q1
-	Q1_15 = low_box_Q1 - 1.5 * IQR
-	Q3_15 = high_box_Q3 + 1.5 * IQR
-
-	high_whisker, low_whisker = high_box_Q3, low_box_Q1,
-
-	for dot in dots:
-		if high_box_Q3 < dot <= Q3_15 and dot > high_whisker:
-			high_whisker = dot
-		if Q1_15 <= dot < low_box_Q1 and dot < low_whisker:
-			low_whisker = dot
-
-	high_flier, low_flier = high_whisker, low_whisker
-	for dot in dots:
-		if dot > Q3_15 and dot > high_flier:
-			high_flier = dot
-
-		if dot < Q1_15 and dot < low_flier:
-			low_flier = dot
-
-	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
 
 
 def plot_shadows_boxplot(data_per_test, ees_hz, step, save_folder, filename, debugging=False):
 	"""
 	Plot shadows (and/or save) based on the input data
 	Args:
-		data_per_test (np.ndarray of np.ndarray): data per test with list of dots
+		data_per_test (np.ndarray): data per test with list of dots
 		ees_hz (int): EES value
 		step (float): step size of the data for human-read normalization time
 		save_folder (str): saving folder path
