@@ -350,7 +350,7 @@ void HebbianFunction(bool *neuron_has_spike,     // array of bools -- is neuron 
     if (tid < syn_number) {
 
         // ignore synapses with generator of spikes
-        if((tid > 540 && tid < 2700) || (tid > 3680 && tid < 4220) || (tid > 4320 && tid < 19180)
+        if((tid > 3680 && tid < 4220) || (tid > 4320 && tid < 19180)
         || (tid > 19260 && tid < 34120) || (tid > 34180 && tid < 49060)
         || (tid > 49100 && tid < 64000) || (tid > 64020 && tid < 308316)
         || (tid > 309396)) {

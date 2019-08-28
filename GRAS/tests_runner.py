@@ -3,13 +3,15 @@ import logging
 import subprocess
 import numpy as np
 import h5py as hdf5
-from shadows_boxplot import plot_shadows_boxplot
+from GRAS.shadows_boxplot import plot_shadows_boxplot
+from GRAS.matrix_solution.plot_results import run
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-tests_number, cms, ees, inh, ped, ht5 = range(6)
+tests_number, cms, ees, inh, ped, ht5, save_all = range(7)
+
 
 def run_tests(build_folder, args):
 	"""
@@ -30,7 +32,7 @@ def run_tests(build_folder, args):
 	for itest in range(args[tests_number]):
 		logger.info(f"running test #{itest}")
 		cmd_build = f"{nvcc} -o {build_folder}/{buildname} {build_folder}/{buildfile}"
-		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {itest} 0"
+		cmd_run = f"{build_folder}/{buildname} {args[cms]} {args[ees]} {args[inh]} {args[ped]} {args[ht5]} {args[save_all]} {itest}"
 
 		for cmd in [cmd_build, cmd_run]:
 			logger.info(f"Execute: {cmd}")
@@ -43,7 +45,7 @@ def run_tests(build_folder, args):
 				logger.info(error)
 
 
-def convert_to_hdf5(result_folder):
+def convert_to_hdf5(result_folder, args):
 	"""
 	Converts dat files into hdf5 with compression
 	Args:
@@ -56,7 +58,15 @@ def convert_to_hdf5(result_folder):
 		datfiles = filter(is_datfile, os.listdir(result_folder))
 
 		# prepare hdf5 file for writing data per test
-		with hdf5.File(f"{result_folder}/{muscle}.hdf5", 'w') as hdf5_file:
+		name = f"gras_{muscle.replace('MN_', '')}_" \
+			f"{args[cms]}cms_" \
+			f"{args[ees]}Hz_" \
+			f"i{args[inh]}_" \
+			f"{args[ped]}pedal_" \
+			f"{'' if args[ht5] else 'no'}5ht_" \
+			f"T.hdf5"
+
+		with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
 			for test_index, filename in enumerate(datfiles):
 				with open(f"{result_folder}/{filename}") as datfile:
 					data = [-float(v) for v in datfile.readline().split()]
@@ -66,13 +76,11 @@ def convert_to_hdf5(result_folder):
 						continue
 					hdf5_file.create_dataset(f"{test_index}", data=data, compression="gzip")
 		# check that hdf5 file was written properly
-		with hdf5.File(f"{result_folder}/{muscle}.hdf5") as hdf5_file:
-			print(f"{result_folder}/{muscle}.hdf5")
-			print(list(hdf5_file.values()))
+		with hdf5.File(f"{result_folder}/{name}") as hdf5_file:
 			assert all(map(len, hdf5_file.values()))
 
 
-def plot_results(save_folder, ees_hz=40, sim_step=0.025):
+def plot_results1(save_folder, ees_hz=40, sim_step=0.025):
 	"""
 	Plot hdf5 results by invoking special function of plotting shadows based on boxplots
 	Args:
@@ -102,12 +110,15 @@ def testrunner():
 	        ees: 40,
 	        inh: 100,
 	        ped: 2,
-	        ht5: 0}
+	        ht5: 0,
+	        save_all: 0}
 
 	run_tests(script_place, args)
-	convert_to_hdf5(save_folder)
-	plot_results(save_folder, ees_hz=args[ees])
+	convert_to_hdf5(save_folder, args)
+	plot_results1(save_folder, ees_hz=args[ees])
 
+	if args.get(save_all) == 1 and args.get(tests_number) == 1:
+		run()
 
 if __name__ == "__main__":
 	testrunner()
