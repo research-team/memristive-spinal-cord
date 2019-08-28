@@ -17,12 +17,12 @@ class V3(Functions):
 		"""
 		nest.ResetKernel()
 		nest.SetKernelStatus({'data_path': "dat",
-		                      'print_time': True,
-		                      'resolution': 0.025,
-		                      'overwrite_files': True,
-		                      'data_prefix': f"{iteration}_",
-		                      'total_num_virtual_procs': cpu_count(),
-		                      'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
+							  'print_time': True,
+							  'resolution': 0.025,
+							  'overwrite_files': True,
+							  'data_prefix': f"{iteration}_",
+							  'total_num_virtual_procs': cpu_count(),
+							  'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
 
 		super().__init__(parameters)
 		self.P = parameters
@@ -37,14 +37,18 @@ class V3(Functions):
 		"""
 		TODO add info
 		"""
-		inh_coef = 1
+
+		if self.P.air:
+			self.P.toe = True
+
+		inh_coef = self.P.inh / 100
 		quadru_coef = 0.5 if self.P.ped == 4 else 1
 		sero_coef = 5.3 if self.P.ht5 else 1
+		air_coef = 0.5 if self.P.air else 1
+		toe_coef = 0.5 if self.P.toe else 1
 
-		syn_outdegree = 27  # synapse number outgoing from one neuron
 		neurons_in_ip = 196  # number of neurons in interneuronal pool
 		neurons_in_moto = 169  # motoneurons number
-		neurons_in_group = 20  # number of neurons in a group
 		neurons_in_aff_ip = 196  # number of neurons in interneuronal pool
 		neurons_in_afferent = 120  # number of neurons in afferent
 
@@ -119,7 +123,7 @@ class V3(Functions):
 		self.connect_noise_generator(CV4, rate=5000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
-		                             t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
+									 t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 370, no_distr=True)
@@ -165,8 +169,8 @@ class V3(Functions):
 		# input from EES group 1
 		self.connect_fixed_outdegree(E1, OM1_0, 1, 20)
 		# input from sensory
-		self.connect_one_to_all(CV1, OM1_0, 0.5, 2 * quadru_coef * sero_coef)
-		self.connect_one_to_all(CV2, OM1_0, 0.5, 2 * quadru_coef * sero_coef)
+		self.connect_one_to_all(CV1, OM1_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
+		self.connect_one_to_all(CV2, OM1_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
 		# [inhibition]
 		self.connect_one_to_all(CV3, OM1_3, 1, 80)
 		self.connect_one_to_all(CV4, OM1_3, 1, 80)
@@ -190,8 +194,8 @@ class V3(Functions):
 		# input from EES group 2
 		self.connect_fixed_outdegree(E2, OM2_0, 1, 7)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV2, OM2_0, 0.5, 2 * quadru_coef * sero_coef)
-		self.connect_one_to_all(CV3, OM2_0, 0.5, 2 * quadru_coef * sero_coef)
+		self.connect_one_to_all(CV2, OM2_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
+		self.connect_one_to_all(CV3, OM2_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
 		# [inhibition]
 		self.connect_one_to_all(CV4, OM2_3, 1, 80)
 		self.connect_one_to_all(CV5, OM2_3, 1, 80)
@@ -214,8 +218,8 @@ class V3(Functions):
 		# input from EES group 3
 		self.connect_fixed_outdegree(E3, OM3_0, 1, 7)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV3, OM3_0, 0.5, 2 * quadru_coef * sero_coef)
-		self.connect_one_to_all(CV4, OM3_0, 0.5, 2 * quadru_coef * sero_coef)
+		self.connect_one_to_all(CV3, OM3_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
+		self.connect_one_to_all(CV4, OM3_0, 0.5, 2 * quadru_coef * sero_coef * toe_coef)
 		# [inhibition]
 		self.connect_one_to_all(CV5, OM3_3, 1, 80)
 		# input from sensory [CD]
@@ -239,8 +243,8 @@ class V3(Functions):
 		# input from EES group 4
 		self.connect_fixed_outdegree(E4, OM4_0, 1, 7)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV4, OM4_0, 0.5, 2 * quadru_coef * sero_coef)
-		self.connect_one_to_all(CV5, OM4_0, 0.5, 2 * quadru_coef * sero_coef)
+		self.connect_one_to_all(CV4, OM4_0, 0.5, 2 * quadru_coef * sero_coef * air_coef)
+		self.connect_one_to_all(CV5, OM4_0, 0.5, 2 * quadru_coef * sero_coef * air_coef)
 		# input from sensory [CD]
 		self.connect_one_to_all(CD4, OM4_0, 1, 11)
 		self.connect_one_to_all(CD5, OM4_0, 1, 11)
@@ -263,7 +267,7 @@ class V3(Functions):
 		# input from EES group 5
 		self.connect_fixed_outdegree(E5, OM5_0, 1, 7)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV5, OM5_0, 0.5, 2 * quadru_coef * sero_coef)
+		self.connect_one_to_all(CV5, OM5_0, 0.5, 2 * quadru_coef * sero_coef * air_coef)
 		# input from sensory [CD]
 		self.connect_one_to_all(CD5, OM5_0, 1, 11)
 		# inner connectomes
@@ -305,13 +309,15 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 1
+	parameters.tests = 10
 	parameters.steps = 1
-	parameters.cms = 15
+	parameters.cms = 21
 	parameters.EES = 40
 	parameters.inh = 100
 	parameters.ped = 2
 	parameters.ht5 = False
+	parameters.air = True
+	parameters.toe = False
 	parameters.save_all = False
 
 	save_folder = f"{os.getcwd()}/dat"

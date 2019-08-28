@@ -5,10 +5,11 @@ from random import normalvariate
 from collections import defaultdict
 
 syn_outdegree = 27
+nrns_in_group = 20
 
 class Parameters:
 	__slots__ = ['tests', 'steps', 'cms', 'EES', 'inh', 'ped', 'ht5', 'save_all', 'step_cycle',
-	             'resolution', 'T_sim', 'skin_stim', 'extensor_time', 'flexor_time']
+	             'resolution', 'T_sim', 'skin_stim', 'extensor_time', 'flexor_time', 'air', 'toe']
 
 	def __init__(self):
 		self.tests: int
@@ -25,6 +26,8 @@ class Parameters:
 		self.skin_stim: float
 		self.extensor_time: int
 		self.flexor_time: int
+		self.air: bool
+		self.toe: bool
 
 
 class Functions:
@@ -47,7 +50,6 @@ class Functions:
 		# init global T of simulation
 		P.step_cycle = P.extensor_time + P.flexor_time
 		P.T_sim = float(P.step_cycle * P.steps)
-
 		self.P = P
 		self.multimeters = []
 		self.cv_generators = []
@@ -122,7 +124,7 @@ class Functions:
 		return nest.Create(model='spike_detector', n=1, params=detector_params)
 
 
-	def form_group(self, name, nrn_number=20):
+	def form_group(self, name, nrn_number=nrns_in_group):
 		"""
 		Function for creating new neruons
 		Args:
