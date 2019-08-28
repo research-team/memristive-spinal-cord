@@ -12,7 +12,7 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 25
+versions = 1
 step_number = 2 # number of steps
 layers = 6  # default
 extra_layers = 0 + layers
@@ -177,8 +177,9 @@ class CPG:
             self.exconnectcells(self.dict_1[layer - 1], self.dict_2F[layer - 1], 0.05, 2, 27)
             self.exconnectcells(self.dict_2F[layer - 1], self.dict_1[layer - 1], 0.05, 3, 27)
 
-        self.exconnectcells_CV_OM_IP(self.dict_CV[0], self.OM1_0F, 0.002, 2, 50)
+        self.exconnectcells_CV_OM_IP(self.dict_CV[0], self.OM1_0F, 0.005, 2, 50)
         self.exconnectcells(self.OM1_0F, self.dict_1[0], 0.05, 2, 27)
+        self.exconnectcells(self.dict_1[0], self.dict_2F[0], 0.05, 2, 50)
         self.exconnectcells(self.dict_2F[0], self.dict_2F[1], 0.05, 3, 50)
 
         '''between delays vself.Ia excitatory pools'''
@@ -196,13 +197,8 @@ class CPG:
             for i in range(layer):
                 self.exconnectcells(self.dict_C[layer], self.dict_3[i], 0.045, 1, 80)
 
-        # for layer in range(layers, extra_layers):
-        #     for i in range(layer):
-        #         self.exconnectcells(self.dict_C[layer], self.dict_3[i], 0.045, 1, 80)
-
-        '''ees'''
-        self.genconnect(self.ees, self.Ia_aff_F, 1, 0, random.randint(10, 50))
         self.genconnect(self.ees, self.Ia_aff_E, 1, 0, random.randint(10, 50))
+        self.genconnect(self.ees, self.Ia_aff_F, 1, 0, random.randint(10, 50))
         self.genconnect(self.ees, self.dict_CV[0], 0.5, 1, random.randint(10, 50))
 
         self.exconnectcells(self.Ia_aff_E, self.mns_E, 0.8, 2, random.randint(10, 50))
@@ -216,7 +212,7 @@ class CPG:
             self.inhconnectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.045, 2, 80)
             '''Flexor'''
             self.exconnectcells_CV_OM_IP(self.dict_2F[layer], self.dict_IP_F[layer], 0.5, 2, 50)
-            self.exconnectcells(self.dict_IP_F[layer], self.mns_F[:int(3 * len(self.mns_E) / 5)], 0.5, 2, random.randint(10, 50))
+            self.exconnectcells(self.dict_IP_F[layer], self.mns_F, 0.5, 2, 50)
             '''skin inputs'''
             self.exconnectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.8, 2, 50)
 
@@ -245,8 +241,10 @@ class CPG:
 
         '''C=0 Flexor'''
         self.inhconnectcells(self.iIP_F, self.IP_E, 0.99, 1, 80)
+        self.inhconnectcells(self.iIP_F, self.iIP_E, 0.99, 1, 80)
         self.inhconnectcells(self.C_0, self.Ia_aff_E, 0.9, 1, 80)
         self.inhconnectcells(self.C_0, self.IP_E, 0.99, 1, 80)
+        self.exconnectcells(self.C_0, self.iIP_F, 0.5, 1, 50)
 
         '''reflex arc'''
         self.exconnectcells(self.iIP_E, self.Ia_E, 0.5, 1, 50)
@@ -260,12 +258,12 @@ class CPG:
         self.exconnectcells(self.Ia_aff_F[:int(len(self.Ia_aff_F) / 6)], self.Ia_F, 0.8, 1, 30)
         self.exconnectcells(self.mns_F, self.R_F, 0.0004, 1, 30)
         self.inhconnectcells(self.Ia_F, self.mns_E, 0.04, 1, 45)
-        self.inhconnectcells(self.R_F, self.mns_F, 0.005, 1, 45)
+        # self.inhconnectcells(self.R_F, self.mns_F, 0.005, 1, 45)
         self.inhconnectcells(self.R_F, self.Ia_F, 0.001, 1, 20)
 
         self.inhconnectcells(self.R_E, self.R_F, 0.04, 1, 30)
-        self.inhconnectcells(self.Ia_E, self.Ia_F, 0.08, 1, 30)
         self.inhconnectcells(self.R_F, self.R_E, 0.04, 1, 30)
+        self.inhconnectcells(self.Ia_E, self.Ia_F, 0.08, 1, 30)
         self.inhconnectcells(self.Ia_F, self.Ia_E, 0.08, 1, 50)
         self.inhconnectcells(self.iIP_E, self.iIP_F, 0.04, 1, 30)
         self.inhconnectcells(self.iIP_F, self.iIP_E, 0.04, 1, 30)
@@ -645,7 +643,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path=str('./nr/' + name + 'r%dv%d_6layers' % (rank, version))
+            path=str('./nr/' + name + 'r%dv%d_6layers_str' % (rank, version))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")
@@ -686,12 +684,12 @@ if __name__ == '__main__':
         motorecorders = []
         for group in cpg_ex.motogroups:
             motorecorders.append(spike_record(group[k_nrns], i))
-        # affrecorders = []
-        # for group in cpg_ex.affgroups:
-        #   affrecorders.append(spike_record(group[k_nrns], i))
-        # recorders = []
-        # for group in cpg_ex.groups:
-        #   recorders.append(spike_record(group[k_nrns], i))
+        affrecorders = []
+        for group in cpg_ex.affgroups:
+          affrecorders.append(spike_record(group[k_nrns], i))
+        recorders = []
+        for group in cpg_ex.groups:
+          recorders.append(spike_record(group[k_nrns], i))
 
         print("- " * 10, "\nstart")
         prun(speed, step_number)
@@ -699,10 +697,10 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.groups, recorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.groups, recorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
 
     #if (nhost > 1):
     finish()
