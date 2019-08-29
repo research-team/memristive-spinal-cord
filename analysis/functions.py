@@ -114,6 +114,18 @@ def extract_data(path, beg=None, end=None):
 		beg = 0
 	if end is None:
 		end = int(10e6)
+	'''
+	FixMe: temporary debugging
+	a = read_data(path)[:, beg:end]
+	print(beg, end)
+	slice_length = int(int(1000 / 100) / 0.025)
+	for k in a:
+		plt.plot(range(beg, end), k)
+	for i in range(beg, end + 1, slice_length):
+		plt.axvline(x=i)
+	plt.xticks(range(beg, end + 1, slice_length))
+	plt.show()
+	'''
 	return read_data(path)[:, beg:end]
 
 
@@ -320,7 +332,6 @@ def auto_prepare_data(folder, filename, step_size_to=None):
 	if step_size not in (0.025, 0.1, 0.25):
 		raise Exception("Step size not in allowed list")
 
-	# ToDo why
 	standard_slice_length_in_steps = int(25 / step_size)
 	filepath = f"{folder}/{filename}"
 

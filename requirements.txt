@@ -1,3 +1,0 @@
---index-url https://pypi.python.org/simple/
--e git+git://github.com/research-team/neucogar-lib.git#egg=neucogar
--e .

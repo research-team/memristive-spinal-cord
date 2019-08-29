@@ -686,7 +686,6 @@ def get_peaks(data_runs, latencies, step_size):
 	Args:
 		data_runs (np.ndarray):
 		latencies (list):
-		ees_hz (int):
 		step_size (float):
 	Returns:
 		list: number of peaks per slice
@@ -817,7 +816,6 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 				ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
-
 		if correlation:
 			# collect all intersect point
 			points_in = []
