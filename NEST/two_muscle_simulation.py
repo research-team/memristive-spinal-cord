@@ -309,14 +309,14 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 10
+	parameters.tests = 25
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
 	parameters.inh = 100
 	parameters.ped = 2
 	parameters.ht5 = False
-	parameters.air = True
+	parameters.air = False
 	parameters.toe = False
 	parameters.save_all = False
 
