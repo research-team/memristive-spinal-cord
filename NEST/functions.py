@@ -172,8 +172,10 @@ class Functions:
 			t_end = self.P.T_sim
 
 		# total possible number of spikes without t_start and t_end at current rate
-		num_spikes = self.P.T_sim // (1000 / rate)
-		spike_times = np.arange(num_spikes) * round(1000 / rate, 2) + offset + resolution
+		num_spikes = int(self.P.T_sim / (1000 / rate))
+		spike_times = np.around(int(1000 / rate) * np.arange(num_spikes) + offset, decimals=1).astype(float)
+		if spike_times[0] == 0:
+			spike_times[0] = resolution
 		spike_times = spike_times[(t_start <= spike_times) & (spike_times < t_end)]
 
 		# parameters
