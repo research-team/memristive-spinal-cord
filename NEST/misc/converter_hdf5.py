@@ -1,13 +1,13 @@
 import os
-# import logging
+import logging
 import numpy as np
 import h5py as hdf5
 import time as libtime
 import multiprocessing as mp
 from collections import defaultdict
 
-# logging.basicConfig(level=logging.DEBUG)
-# logger = logging.getLogger('Converter')
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('Converter')
 
 
 def merge_nest_files(data_path):
@@ -26,11 +26,11 @@ def merge_nest_files(data_path):
 		if filename.endswith('.dat'):
 			test_names.add("-".join(filename.split("-")[:2]))
 
-	# logger.info("have found {} tests".format(len(test_names)))
+	logger.info("have found {} tests".format(len(test_names)))
 
 	# grab data from these tests
 	for test_name in test_names:
-		# logger.info('gathering data from test {}'.format(test_name))
+		logger.info('gathering data from test {}'.format(test_name))
 		voltage_data = defaultdict(list)
 		for filename in os.listdir(data_path):
 			if filename.startswith(test_name) and filename.endswith('.dat'):

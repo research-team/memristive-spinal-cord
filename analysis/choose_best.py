@@ -1,30 +1,11 @@
 from analysis.functions import read_data
 from matplotlib import pylab as plt
-from analysis.functions import center_data_by_line,  normalization
-import numpy as np
 
 step = 0.25
 split_coef = 3
 
-bio = read_data('/home/anna/Desktop/data/4pedal/bio_F_15cms_40Hz_i100_4pedal_no5ht_T_0.25step.hdf5')
-y_data = bio[3]
-
-Y = np.array(y_data)
-centered = center_data_by_line(Y)
-normalized_data = normalization(centered, save_centering=True)
-
-slice_length = int(1000 / 40 / 0.25)
-slice_number = len(normalized_data) // slice_length
-sliced = np.split(normalized_data, slice_number)
-
-with open("/home/anna/Desktop/data/4pedal/f_15cms", 'w') as file:
-	for d in sliced:
-		file.write(" ".join(map(str, d)) + "\n")
-raise Exception
-print(best_run)
-# raise Exception
-
-# best_slices = best_run.split(maxsplit=6)
+bio = read_data('/home/anna/Desktop/data/4pedal/bio_E_21cms_40Hz_i100_4pedal_no5ht_T_0.25step.hdf5')
+best_run = list(bio[0])
 offset = 0
 best_slices = []
 for run in range(int(len(best_run) / 100)):
@@ -35,16 +16,15 @@ for run in range(int(len(best_run) / 100)):
 	best_slices.append(best_slices_tmp)
 
 for s in range(len(best_slices)):
-	# best_slices[s] = str(best_slices[s])
-	print(best_slices[s])
+	best_slices[s] = str(best_slices[s])
 
 # best_run = ', '.join(best_run)
 print(len(best_run), best_run)
 
-with open("/home/anna/Desktop/data/4pedal/f_21cms", "w") as file:
-	for b in best_slices:
-		file.write(" ".join(map(str, b)) + '\n')
-
+file = open("/home/anna/Desktop/data/4pedal/e_21cms", "w")
+for b in best_slices:
+	file.write(str(b) + '\n')
+file.close()
 bio_slices = []
 for k in range(len(bio)):
 	bio_slices_t = []

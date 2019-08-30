@@ -7,6 +7,7 @@ from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
+from analysis.functions import get_boxplots
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -149,39 +150,6 @@ def split_by_slices(data, slice_length):
 	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
 		del splitted_per_slice[-1]
 	return splitted_per_slice
-
-
-def calc_boxplots(dots):
-	"""
-	Function for calculating boxplots from array of dots
-	Args:
-		dots (np.ndarray): array of dots
-	Returns:
-		tuple: [7 elements] median, Q3 and Q1 values, highest and lowest whiskers, highest and lowest fliers
-	"""
-	low_box_Q1, median, high_box_Q3 = np.percentile(dots, percents)
-	# calc borders
-	IQR = high_box_Q3 - low_box_Q1
-	Q1_15 = low_box_Q1 - 1.5 * IQR
-	Q3_15 = high_box_Q3 + 1.5 * IQR
-
-	high_whisker, low_whisker = high_box_Q3, low_box_Q1,
-
-	for dot in dots:
-		if high_box_Q3 < dot <= Q3_15 and dot > high_whisker:
-			high_whisker = dot
-		if Q1_15 <= dot < low_box_Q1 and dot < low_whisker:
-			low_whisker = dot
-
-	high_flier, low_flier = high_whisker, low_whisker
-	for dot in dots:
-		if dot > Q3_15 and dot > high_flier:
-			high_flier = dot
-
-		if dot < Q1_15 and dot < low_flier:
-			low_flier = dot
-
-	return median, high_box_Q3, low_box_Q1, high_whisker, low_whisker, high_flier, low_flier
 
 
 def smooth(data, box_pts):
@@ -387,46 +355,41 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
 
 
-def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
+def get_lat_amp(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
-		data_test_runs (list or np.ndarry): arrays of data
-		ees_hz (int): EES value
+		sliced_datasets (np.ndarry): arrays of data
+		                      data per slice
+		               [[...], [...], [...], [...],
+		dataset number  [...], [...], [...], [...],
+		                [...], [...], [...], [...]]
 		step_size (float): data step
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		list: latencies indexes
 		list: amplitudes values
 	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+
 	global_lat_indexes = []
 	global_mono_indexes = []
 	global_amp_values = []
-
-	data_test_runs = np.array(data_test_runs, dtype=float)
-	# additional properties
-	slice_in_ms = 1000 / ees_hz
-	slice_in_steps = int(1000 / ees_hz / step_size)
-	slices_number = int(len(data_test_runs[0]) / slice_in_steps)
-	# set ees area, before that time we don't try to find latencies
 	ees_zone_time = int(7 / step_size)
-	shared_x = np.arange(slice_in_steps) * step_size
-	original_data = data_test_runs.T
-	# calc boxplot per dot
-	boxplots_per_iter = np.array([calc_boxplots(dot) for dot in original_data])
-
-	# split data by slices
-	splitted_per_slice_boxplots = split_by_slices(boxplots_per_iter, slice_in_steps)
-	splitted_per_slice_original = split_by_slices(original_data, slice_in_steps)
+	slices_number = len(sliced_datasets[0])
+	steps_in_slice = len(sliced_datasets[0][0])
+	slice_in_ms = steps_in_slice * step_size
+	splitted_boxplots = get_boxplots(sliced_datasets)
 
 	# compute latency per slice
-	for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_boxplots):
+	for slice_index, boxplot_data in enumerate(splitted_boxplots):
 		log.info(f"{slice_index + 1:=^20}")
 		"""[1] prepare data"""
 		# get data by keys
-		data_Q1 = slice_boxplot_data[:, k_fliers_low]
-		data_Q3 = slice_boxplot_data[:, k_fliers_high]
-		median = slice_boxplot_data[:, k_median]
+		data_Q1 = boxplot_data[:, k_fliers_low]
+		data_Q3 = boxplot_data[:, k_fliers_high]
+		median = boxplot_data[:, k_median]
 		# smooth a little the data to avoid micropeaks
 		smoothed_Q1 = smooth(data_Q1, 2)
 		smoothed_Q3 = smooth(data_Q3, 2)
@@ -593,71 +556,78 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 			ax2 = plt.subplot2grid(shape=gridsize, loc=(1, 0), sharex=ax1)
 			ax3 = plt.subplot2grid(shape=gridsize, loc=(2, 0), sharex=ax1)
 
-			xticks = np.arange(0, int(slice_in_ms / step_size) + 1, int(1 / step_size))
-			xticklabels = (xticks * step_size).astype(int)
+			shared_x = np.arange(steps_in_slice) * step_size
+			xticks = np.arange(0, steps_in_slice + 1, int(1 / step_size)) * step_size
+			xticklabels = xticks.astype(int)
 
 			ax1.title.set_text(f"Slice #{slice_index + 1}/{slices_number}")
 			# plot an area of EES
-			ax1.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
+			ax1.axvspan(xmin=0, xmax=l_poly_border * step_size, color='g', alpha=0.3, label="EES area")
 			# plot EES
-			ax1.axvline(x=mono_answer_index, color='orange', linewidth=3, label="EES")
+			ax1.axvline(x=mono_answer_index * step_size, color='orange', linewidth=3, label="EES")
 			# plot zero line
 			ax1.axhline(y=0, color='k', linewidth=1, linestyle='dotted')
 			# plot original bio data per slice
-			ax1.plot(splitted_per_slice_original[slice_index], linewidth=0.7)
+			for d in sliced_datasets[:, slice_index]:
+				ax1.plot(shared_x, d, linewidth=0.7)
+
 			# plot Q1 and Q3 areas, and median
-			ax1.plot(smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
-			ax1.plot(smoothed_Q3, color='k', linewidth=3.5)
-			ax1.plot(median, linestyle='--', color='grey', label="median value")
+			ax1.plot(shared_x, smoothed_Q1, color='k', linewidth=3.5, label="Q1/Q3 values")
+			ax1.plot(shared_x, smoothed_Q3, color='k', linewidth=3.5)
+			ax1.plot(shared_x, median, linestyle='--', color='grey', label="median value")
 			# plot extremuma
-			ax1.plot(e_all_Q1_minima_indexes, e_all_Q1_minima_values, '.', markersize=3, color=min_color,
-					 label="minima extremuma")
-			ax1.plot(e_all_Q1_maxima_indexes, e_all_Q1_maxima_values, '.', markersize=3, color=max_color,
-					 label="maxima extremuma")
-			ax1.plot(e_all_Q3_minima_indexes, e_all_Q3_minima_values, '.', markersize=3, color=min_color)
-			ax1.plot(e_all_Q3_maxima_indexes, e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
-			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'], e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
+			ax1.plot(e_all_Q1_minima_indexes * step_size,
+			         e_all_Q1_minima_values, '.', markersize=3, color=min_color, label="minima extremuma")
+			ax1.plot(e_all_Q1_maxima_indexes * step_size,
+			         e_all_Q1_maxima_values, '.', markersize=3, color=max_color, label="maxima extremuma")
+			ax1.plot(e_all_Q3_minima_indexes * step_size,
+			         e_all_Q3_minima_values, '.', markersize=3, color=min_color)
+			ax1.plot(e_all_Q3_maxima_indexes * step_size,
+			         e_all_Q3_maxima_values, '.', markersize=3, color=max_color)
+			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'min'] * step_size,
+			         e_poly_Q1_values[e_poly_Q1_names == 'min'], '.',
 					 markersize=10, color=min_color, label="minima POLY extremuma")
-			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'], e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
-					 markersize=10, color=max_color, label="maxima POLY extremuma")
-			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'min'], e_poly_Q3_values[e_poly_Q3_names == 'min'], '.',
-					 markersize=10, color=min_color)
-			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'], e_poly_Q3_values[e_poly_Q3_names == 'max'], '.',
-					 markersize=10, color=max_color)
+			ax1.plot(e_poly_Q1_indexes[e_poly_Q1_names == 'max'] * step_size,
+			         e_poly_Q1_values[e_poly_Q1_names == 'max'], '.',
+			         markersize=10, color=max_color, label="maxima POLY extremuma")
+			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'min'] * step_size,
+			         e_poly_Q3_values[e_poly_Q3_names == 'min'], '.', markersize=10, color=min_color)
+			ax1.plot(e_poly_Q3_indexes[e_poly_Q3_names == 'max'] * step_size,
+			         e_poly_Q3_values[e_poly_Q3_names == 'max'], '.', markersize=10, color=max_color)
 			# plot the best latency with guidline
-			ax1.axvline(x=latency_index, color='k')
+			ax1.axvline(x=latency_index * step_size, color='k')
 
 			ax1.set_xticks(xticks)
 			ax1.set_xticklabels(xticklabels)
-			ax1.set_xlim(0, int(slice_in_ms / step_size))
+			ax1.set_xlim(0, slice_in_ms)
 			ax1.set_ylim(-1, 1)
 			ax1.grid(axis='x', linestyle='--')
 			ax1.legend()
 
 			ax2.title.set_text("Delta of variance per iter")
 			# plot an area of EES
-			ax2.axvline(x=latency_index, color='k')
-			ax2.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
-			ax2.bar(range(len(delta_smoothed_data)), delta_smoothed_data, width=0.4, zorder=3, color='k', label='delta')
+			ax2.axvline(x=latency_index * step_size, color='k')
+			ax2.axvspan(xmin=0, xmax=l_poly_border * step_size, color='g', alpha=0.3, label="EES area")
+			ax2.bar(shared_x, delta_smoothed_data, width=0.4, zorder=3, color='k', label='delta')
 
 			ax2.set_xticks(xticks)
 			ax2.set_xticklabels(xticklabels)
-			ax2.set_xlim(0, int(slice_in_ms / step_size))
+			ax2.set_xlim(0, slice_in_ms)
 			ax2.grid(axis='x', linestyle='--', zorder=0)
 			ax2.legend()
 
 			ax3.title.set_text("Gradient")
-			ax3.axvspan(xmin=0, xmax=l_poly_border, color='g', alpha=0.3, label="EES area")
+			ax3.axvspan(xmin=0, xmax=l_poly_border * step_size, color='g', alpha=0.3, label="EES area")
 			ax3.axhline(y=0, linestyle='--', color='k')
-			ax3.axvline(x=latency_index, color='k')
+			ax3.axvline(x=latency_index * step_size, color='k')
 			ax3.axhline(y=gradient_Q3, color='g', label="positive gradient mean", linewidth=2)
-			ax3.plot(gradient, label='delta gradient', linewidth=2)
-			ax3.plot(latency_index, gradient[latency_index], '.', markersize=15, label="latency", color='k')
-			ax3.scatter(range(len(gradient)), gradient, s=10)
+			ax3.plot(shared_x, gradient, label='delta gradient', linewidth=2)
+			ax3.plot(latency_index * step_size, gradient[latency_index], '.', markersize=15, label="latency", color='k')
+			ax3.scatter(shared_x, gradient, s=10)
 
 			ax3.set_xticks(xticks)
 			ax3.set_xticklabels(xticklabels)
-			ax3.set_xlim(0, int(slice_in_ms / step_size))
+			ax3.set_xlim(0, slice_in_ms)
 			ax3.grid(axis='x', linestyle='--', zorder=0)
 			ax3.legend()
 
@@ -667,19 +637,20 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 	if debugging:
 		# original data
 		plt.subplots(figsize=(16, 9))
-		for slice_index, slice_boxplot_data in enumerate(splitted_per_slice_original):
-			y_offset = slice_index * 1
-			plt.plot(np.arange(len(slice_boxplot_data)) * step_size, slice_boxplot_data + y_offset)
-		plt.xticks(np.arange(0, slice_in_ms + 1), np.arange(0, slice_in_ms + 1))
+		for dataset in sliced_datasets:
+			for slice_index, boxplot_data in enumerate(dataset):
+				y_offset = slice_index * 1
+				plt.plot(np.arange(len(boxplot_data)) * step_size, boxplot_data + y_offset)
+		plt.xticks(np.arange(0, steps_in_slice * step_size + 1), np.arange(0, steps_in_slice * step_size + 1))
 		plt.grid(axis='x')
-		plt.xlim(0, slice_in_ms)
+		plt.xlim(0, steps_in_slice * step_size)
 		plt.show()
 
 		# original data with latency
 		plt.subplots(figsize=(16, 9))
 		yticks = []
 		y_offset = 1
-		for slice_index, data in enumerate(splitted_per_slice_boxplots):
+		for slice_index, data in enumerate(splitted_boxplots):
 			data += slice_index * y_offset  # is a link (!)
 			plt.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color='r', alpha=0.3,
 							 label="flier")
@@ -688,17 +659,17 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 			plt.fill_between(shared_x, data[:, k_box_Q3], data[:, k_box_Q1], color='r', alpha=0.7, label="box")
 			plt.plot(shared_x, data[:, k_median], linestyle='--', color='k')
 			yticks.append(data[:, k_median][0])
-		plt.xticks(np.arange(slice_in_ms + 1), np.arange(slice_in_ms + 1))
+		plt.xticks(np.arange(steps_in_slice * step_size + 1), np.arange(steps_in_slice * step_size + 1))
 		plt.grid(axis='x')
 
 		lat_x = [x * step_size for x in global_lat_indexes]
-		lat_y = [splitted_per_slice_boxplots[slice_index][:, k_median][lat] for slice_index, lat
+		lat_y = [splitted_boxplots[slice_index][:, k_median][lat] for slice_index, lat
 				 in enumerate(global_lat_indexes)]
 		plt.plot(lat_x, lat_y, linewidth=3, color='g')
 
 		# plt.xticks(range(100), [x * bio_step for x in range(100) if x % 4 == 0])
 		plt.yticks(yticks, range(1, slices_number + 1))
-		plt.xlim(0, slice_in_ms)
+		plt.xlim(0, steps_in_slice * step_size)
 
 		plt.show()
 
@@ -709,37 +680,31 @@ def get_lat_amp(data_test_runs, ees_hz, step_size, debugging=False):
 	return global_lat_indexes, global_amp_values, global_mono_indexes
 
 
-def get_peaks(data_runs, latencies, ees_hz, step_size):
+def get_peaks(data_runs, latencies, step_size):
 	"""
 	TODO: add docstring
 	Args:
 		data_runs (np.ndarray):
 		latencies (list):
-		ees_hz (int):
 		step_size (float):
 	Returns:
 		list: number of peaks per slice
 	"""
-	max_times_amp = []
-	max_values_amp = []
-	min_times_amp = []
-	min_values_amp = []
 	max_peaks = []
 	min_peaks = []
+	max_times_amp = []
+	min_times_amp = []
+	max_values_amp = []
+	min_values_amp = []
 
-	slice_in_ms = 1000 / ees_hz
-	slice_in_steps = int(slice_in_ms / step_size)
-
-	for data in data_runs:
-		# smooth data to remove micro-peaks
-		smoothed_data = smooth(data, 7)
-		# split data by slice based on EES (slice length)
-		splitted_per_slice = split_by_slices(smoothed_data, slice_in_steps)
+	for experiment_data in data_runs:
 		# calc extrema per slice data
-		for poly_border, slice_data in zip(latencies, splitted_per_slice):
+		for poly_border, slice_data in zip(latencies, experiment_data):
+			# smooth data to remove micro-peaks
+			smoothed_data = smooth(slice_data, 7)
 			poly_border = int(poly_border / step_size)
-			e_all_minima_indexes, e_all_minima_values = find_extrema(slice_data, np.less_equal)
-			e_all_maxima_indexes, e_all_maxima_values = find_extrema(slice_data, np.greater_equal)
+			e_all_minima_indexes, e_all_minima_values = find_extrema(smoothed_data, np.less_equal)
+			e_all_maxima_indexes, e_all_maxima_values = find_extrema(smoothed_data, np.greater_equal)
 
 			e_poly_minima_indexes = e_all_minima_indexes[e_all_minima_indexes > poly_border]
 			e_poly_minima_values = e_all_minima_values[e_all_minima_indexes > poly_border]
@@ -851,7 +816,6 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 				ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color, alpha=0.1)
-
 		if correlation:
 			# collect all intersect point
 			points_in = []
