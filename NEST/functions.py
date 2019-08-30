@@ -5,10 +5,11 @@ from random import normalvariate
 from collections import defaultdict
 
 syn_outdegree = 27
+nrns_in_group = 20
 
 class Parameters:
 	__slots__ = ['tests', 'steps', 'cms', 'EES', 'inh', 'ped', 'ht5', 'save_all', 'step_cycle',
-	             'resolution', 'T_sim', 'skin_stim', 'extensor_time', 'flexor_time']
+	             'resolution', 'T_sim', 'skin_stim', 'extensor_time', 'flexor_time', 'air', 'toe']
 
 	def __init__(self):
 		self.tests: int
@@ -25,6 +26,8 @@ class Parameters:
 		self.skin_stim: float
 		self.extensor_time: int
 		self.flexor_time: int
+		self.air: bool
+		self.toe: bool
 
 
 class Functions:
@@ -47,7 +50,6 @@ class Functions:
 		# init global T of simulation
 		P.step_cycle = P.extensor_time + P.flexor_time
 		P.T_sim = float(P.step_cycle * P.steps)
-
 		self.P = P
 		self.multimeters = []
 		self.cv_generators = []
@@ -122,7 +124,7 @@ class Functions:
 		return nest.Create(model='spike_detector', n=1, params=detector_params)
 
 
-	def form_group(self, name, nrn_number=20):
+	def form_group(self, name, nrn_number=nrns_in_group):
 		"""
 		Function for creating new neruons
 		Args:
@@ -170,8 +172,10 @@ class Functions:
 			t_end = self.P.T_sim
 
 		# total possible number of spikes without t_start and t_end at current rate
-		num_spikes = self.P.T_sim // (1000 / rate)
-		spike_times = np.arange(num_spikes) * round(1000 / rate, 2) + offset + resolution
+		num_spikes = int(self.P.T_sim / (1000 / rate))
+		spike_times = np.around(int(1000 / rate) * np.arange(num_spikes) + offset, decimals=1).astype(float)
+		if spike_times[0] == 0:
+			spike_times[0] = resolution
 		spike_times = spike_times[(t_start <= spike_times) & (spike_times < t_end)]
 
 		# parameters

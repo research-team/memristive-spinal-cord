@@ -41,7 +41,7 @@ def plot_slices(extensor_data, flexor_data, latencies, step_size, folder, filena
 	slices_number = len(extensor_data[0]) + len(flexor_data[0])
 	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
 
-	e_slices_number = int(len(extensor_data[0]) / steps_in_slice)
+	e_slices_number = len(extensor_data[0])
 	fig, ax = plt.subplots(figsize=(16, 9))
 
 	# Parsing example: bio_F_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5
@@ -106,7 +106,8 @@ def plot_slices(extensor_data, flexor_data, latencies, step_size, folder, filena
 	ax.spines['top'].set_visible(False)
 
 	plt.tight_layout()
-	plt.savefig(f"{folder}/{lighted_filename}.pdf", dpi=250, format="pdf")
+	# plt.savefig(f"{folder}/{lighted_filename}.pdf", dpi=250, format="pdf")
+	plt.show()
 	plt.close()
 
 
@@ -273,13 +274,12 @@ def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_pca_to = '/home/anna/Desktop/res'
+	save_pca_to = '/home/alex/GitHub/DATA/gras/hz'
 
 	compare_pack = [
 		'/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_20Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_60Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_100Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		# '/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_100Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		# '/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_100Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 
 	# control
