@@ -18,8 +18,9 @@ def read_data(file_path):
 	global tickrate
 	global title
 	mat_data = sio.loadmat(file_path)
-	tickrate = int(mat_data['tickrate'][0][0])
-	title = mat_data['titles'][0]
+	print(mat_data.keys())
+	# tickrate = int(mat_data['tickrate'][0][0])
+	# title = mat_data['titles'][0]
 	return mat_data
 
 
@@ -47,10 +48,10 @@ def trim_myogram(raw_data, path, slicing_index='Stim'):
 		data_start = int(raw_data['datastart'][index]) - 1
 		data_end = int(raw_data['dataend'][index])
 		float_data = [round(float(x), 3) for x in raw_data['data'][0][data_start:data_end]]
-		if title_rmg in data_title:
-			volt_data = float_data
-		# if title_rta in data_title:
+		# if title_rmg in data_title:
 		# 	volt_data = float_data
+		if title_rta in data_title:
+			volt_data = float_data
 		if title_stim in data_title:
 			stim_data = float_data
 			# find peaks in stimulations data

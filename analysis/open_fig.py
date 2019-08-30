@@ -85,4 +85,4 @@ def plotFig(filename,fignr=1):
    plt.show()
 
 
-plotFig('/home/anna/Downloads/4_3 volts_NQBiSCI_Rat-1_12-06-2016_RTA_one_step.fig')
+plotFig('/home/anna/Desktop/data/bio/Different Frequencies_20_40_100_250 Hz/250Hz/RTA/22_SCI Rat-1_11-22-2016_RTA_250Hz_one_step.fig')
