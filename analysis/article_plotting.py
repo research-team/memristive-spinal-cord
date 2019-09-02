@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import pylab as plt
 from analysis.functions import auto_prepare_data, get_boxplots
-from analysis.PCA import plot_3D_PCA, split_by_slices, get_lat_amp, get_peaks
+from analysis.PCA import plot_3D_PCA, split_by_slices, get_lat_amp, get_peaks, get_lat_amp_peak_per_exp
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -248,6 +248,8 @@ def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_sl
 		e_prepared_data = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 		# process latencies and amplitudes per slice
 		e_lat_per_slice, amp_per_slice, mono_per_slice = get_lat_amp(e_prepared_data, step_size_to, debugging=False)
+		# raw version
+		# e_lat_per_slice, amp_per_slice, peaks_per_slice = get_lat_amp_peak_per_exp(e_prepared_data, step_size_to)
 		# process peaks per slice
 		peaks_per_slice = get_peaks(e_prepared_data, e_lat_per_slice, step_size=step_size_to)
 		# form data pack
@@ -277,16 +279,16 @@ def for_article():
 	save_pca_to = '/home/alex/GitHub/DATA/gras/hz'
 
 	compare_pack = [
-		'/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_20Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		# '/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_100Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/foot/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/gras/hz/gras_E_21cms_100Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 
 	# control
 	step_size_to = 0.1
-	plot_pca_flag = False
-	plot_correlation = False
-	plot_slices_flag = True
+	plot_pca_flag = True
+	plot_correlation = True
+	plot_slices_flag = False
 	plot_histogram_flag = False
 
 	__process_dataset(compare_pack, save_pca_to, plot_histogram_flag,

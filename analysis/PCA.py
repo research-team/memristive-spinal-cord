@@ -110,7 +110,7 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b', alpha=0.
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid
 	stride = 4
-	# ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.3)
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.2)
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, alpha=0.1, color=color)
 
 
@@ -204,6 +204,9 @@ def find_extrema(array, condition):
 		np.ndarray: values of extremuma
 	"""
 	indexes = argrelextrema(array, condition)[0]
+	if len(indexes) == 0:
+		return None, None
+
 	values = array[indexes]
 
 	diff_neighbor_extremuma = np.abs(np.diff(values, n=1))
@@ -353,6 +356,130 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 	e_poly_Q1_values = merged_values[filtered_mask_indexes]
 
 	return e_poly_Q1_names, e_poly_Q1_indexes, e_poly_Q1_values
+
+
+def get_lat_amp_peak_per_exp(sliced_datasets, step_size, debugging=False):
+	"""
+	Function for finding latencies at each slice in normalized (!) data
+	Args:
+		sliced_datasets (np.ndarry): arrays of data
+		                      data per slice
+		               [[...], [...], [...], [...],
+		dataset number  [...], [...], [...], [...],
+		                [...], [...], [...], [...]]
+		step_size (float): data step
+		debugging (bool): True -- will print debugging info and plot figures
+	Returns:
+		list: latencies indexes
+		list: amplitudes values
+	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+
+	global_lat_times = []
+	global_amp_values = []
+	global_peaks_numbers = []
+
+	ees_zone_time = int(7 / step_size)
+	slices_number = len(sliced_datasets[0])
+	steps_in_slice = len(sliced_datasets[0][0])
+	slice_in_ms = steps_in_slice * step_size
+
+	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
+	for experiment_data in sliced_datasets:
+		for slice_data in experiment_data:
+			# smooth data
+			smoothed_data = smooth(slice_data, 2)
+			smoothed_data[:2] = slice_data[:2]
+			smoothed_data[-2:] = slice_data[-2:]
+
+			# find latencies in ms (as accurate as possible)
+			gradient = np.gradient(smoothed_data)
+			assert len(gradient) == len(smoothed_data)
+
+			l_poly_border = 100
+			poly_gradient = gradient[l_poly_border:]
+
+			# common X for gradient
+			poly_gradient_x = np.arange(len(poly_gradient))
+			# get positive gradient X Y data
+			positive_gradient_x = np.argwhere(poly_gradient > 0).flatten()
+			positive_gradient_y = poly_gradient[positive_gradient_x].flatten()
+			# get negative gradient X Y data
+			negative_gradient_x = np.argwhere(poly_gradient < 0).flatten()
+			negative_gradient_y = poly_gradient[negative_gradient_x].flatten()
+			# calc . . .
+			if len(positive_gradient_y):
+				pos_gradient_Q1, pos_gradient_med, pos_gradient_Q3 = np.percentile(positive_gradient_y, [25, 50, 75])
+			else:
+				pos_gradient_Q1, pos_gradient_med, pos_gradient_Q3 = 999, 999, 999
+			if len(negative_gradient_y):
+				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = np.percentile(negative_gradient_y, [25, 50, 75])
+			else:
+				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = -999, -999, -999
+
+			# find the index of the cross between gradient and positive Q3 or  negative Q1
+			for index, grad in enumerate(gradient[l_poly_border:]):
+				if grad > pos_gradient_Q3 or grad < neg_gradient_Q1:
+					latency_index = index + l_poly_border
+					break
+			# if not found -- the last index
+			else:
+				latency_index = len(gradient) - 1
+
+			global_lat_times.append(latency_index)
+
+			if False:
+				plt.figure(figsize=(16, 9))
+
+				plt.axhline(y=pos_gradient_Q3, color='r', linestyle='dotted')
+				plt.axhline(y=neg_gradient_Q1, color='b', linestyle='dotted')
+				plt.plot([latency_index], [smooth_data[latency_index]], '.', color='k', markersize=15)
+
+				plt.fill_between(np.arange(len(poly_gradient)) + l_poly_border, poly_gradient, [0] * len(poly_gradient),
+				                 color='r', alpha=0.6)
+				plt.fill_between(range(len(gradient)), [0] * len(gradient), [-1] * len(gradient), color='w')
+				plt.fill_between(np.arange(len(poly_gradient)) + l_poly_border, poly_gradient, [0] * len(poly_gradient),
+				                 color='b', alpha=0.2)
+
+				plt.axhline(y=0, color='k', linestyle='--')
+				plt.plot(smooth_data, color='b', label="slice data")
+				plt.plot(np.arange(len(gradient)), gradient, color='r', label="gradient")
+
+				plt.legend()
+				plt.xlim(0, len(smooth_data))
+				step_size = 0.1
+				plt.xticks(range(len(smooth_data)), [x * step_size if x % 25 == 0 else None for x in range(len(smooth_data) + 1)])
+
+				plt.show()
+
+			# find amplitudes (integral area)
+			amplitude_sum = np.sum(np.abs(smoothed_data[l_poly_border:]))
+			global_amp_values.append(amplitude_sum)
+
+			# find peaks number (filtered extremuma) with strong smoothing
+			smoothed_data = smooth(slice_data, 7)
+			smoothed_data[:2] = slice_data[:2]
+			smoothed_data[-2:] = slice_data[-2:]
+
+			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
+			e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
+
+			if False:
+				plt.plot(np.gradient(smoothed_data), color='r')
+				plt.plot(slice_data, color='g')
+				plt.plot(smoothed_data, color='k')
+				plt.plot(e_maxima_indexes + l_poly_border, e_maxima_values, '.', color='r')
+				plt.plot(e_minima_indexes + l_poly_border, e_minima_values, '.', color='b')
+				plt.show()
+			peaks = 0
+			if e_maxima_indexes is not None:
+				peaks += len(e_maxima_indexes)
+			if e_minima_indexes is not None:
+				peaks += len(e_minima_indexes)
+			global_peaks_numbers.append(peaks)
+
+	return np.array(global_lat_times) * step_size, np.array(global_amp_values), np.array(global_peaks_numbers)
 
 
 def get_lat_amp(sliced_datasets, step_size, debugging=False):
