@@ -109,7 +109,7 @@ Group form_group(const string& group_name, int nrns_in_group = neurons_in_group)
 
 	global_id += nrns_in_group;
 	printf("Formed %s IDs [%d ... %d] = %d\n",
-	       group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
+		   group_name.c_str(), global_id - nrns_in_group, global_id - 1, nrns_in_group);
 
 	return group;
 }
@@ -122,25 +122,25 @@ float step_to_ms(int step) { return step * SIM_STEP; }
 
 __global__
 void neurons_kernel(const float *C_m,
-                    float *V_m,
-                    float *h,
-                    float *m,
-                    float *n,
-                    float *g_exc,
-                    float *g_inh,
-                    const float *nrn_threshold,
-                    bool *has_spike,
-                    const int *nrn_ref_time,
-                    int *nrn_ref_time_timer,
-                    const int neurons_number,
-                    int shifted_sim_iter,
-                    const int activated_C_,
-                    const int early_activated_C_,
-                    const int sim_iter,
-                    const int *begin_C_spiking,
-                    const int *end_C_spiking,
-                    const int decrease_lvl_Ia_spikes,
-                    const int ees_spike_each_step){
+					float *V_m,
+					float *h,
+					float *m,
+					float *n,
+					float *g_exc,
+					float *g_inh,
+					const float *nrn_threshold,
+					bool *has_spike,
+					const int *nrn_ref_time,
+					int *nrn_ref_time_timer,
+					const int neurons_number,
+					int shifted_sim_iter,
+					const int activated_C_,
+					const int early_activated_C_,
+					const int sim_iter,
+					const int *begin_C_spiking,
+					const int *end_C_spiking,
+					const int decrease_lvl_Ia_spikes,
+					const int ees_spike_each_step){
 	/**
 	 *
 	 */
@@ -288,14 +288,14 @@ void neurons_kernel(const float *C_m,
 
 __global__
 void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is neuron has spike or not
-                     float *neuron_g_exc,              // array of excitatory conductivity per neuron (changable)
-                     float *neuron_g_inh,              // array of inhibitory conductivity per neuron (changable)
-                     const int *synapses_pre_nrn_id,   // array of pre neurons ID per synapse
-                     const int *synapses_post_nrn_id,  // array of post neurons ID per synapse
-                     const int *synapses_delay,        // array of synaptic delay per synapse
-                     int *synapses_delay_timer,        // array as above but changable
-                     const float *synapses_weight,     // array of synaptic weight per synapse
-                     const int syn_number){            // number of synapses
+					 float *neuron_g_exc,              // array of excitatory conductivity per neuron (changable)
+					 float *neuron_g_inh,              // array of inhibitory conductivity per neuron (changable)
+					 const int *synapses_pre_nrn_id,   // array of pre neurons ID per synapse
+					 const int *synapses_post_nrn_id,  // array of post neurons ID per synapse
+					 const int *synapses_delay,        // array of synaptic delay per synapse
+					 int *synapses_delay_timer,        // array as above but changable
+					 const float *synapses_weight,     // array of synaptic weight per synapse
+					 const int syn_number){            // number of synapses
 	/**
 	 *
 	 */
@@ -328,9 +328,9 @@ void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is n
 }
 
 void connect_one_to_all(const Group& pre_neurons,
-                        const Group& post_neurons,
-                        float syn_delay,
-                        float weight) {
+						const Group& post_neurons,
+						float syn_delay,
+						float weight) {
 	/**
 	 *
 	 */
@@ -347,16 +347,16 @@ void connect_one_to_all(const Group& pre_neurons,
 	}
 
 	printf("Connect %s to %s [one_to_all] (1:%d). Total: %d W=%.2f, D=%.1f\n", pre_neurons.group_name.c_str(),
-	       post_neurons.group_name.c_str(), post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size,
-	       weight, syn_delay);
+		   post_neurons.group_name.c_str(), post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size,
+		   weight, syn_delay);
 }
 
 void connect_fixed_outdegree(const Group& pre_neurons,
-                             const Group& post_neurons,
-                             float syn_delay,
-                             float syn_weight,
-                             int outdegree=syn_outdegree,
-                             bool no_distr=false) {
+							 const Group& post_neurons,
+							 float syn_delay,
+							 float syn_weight,
+							 int outdegree=syn_outdegree,
+							 bool no_distr=false) {
 	/**
 	 *
 	 */
@@ -384,8 +384,8 @@ void connect_fixed_outdegree(const Group& pre_neurons,
 	}
 
 	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
-	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
-	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+		   pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
+		   outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
 }
 
 void init_network(float inh_coef, int pedal, int has5ht) {
@@ -737,11 +737,11 @@ int get_skin_stim_time(int cms) {
 }
 
 void copy_data_to(GroupMetadata &metadata,
-                  const float* nrn_v_m,
-                  const float* nrn_g_exc,
-                  const float* nrn_g_inh,
-                  const bool *nrn_has_spike,
-                  unsigned int sim_iter) {
+				  const float* nrn_v_m,
+				  const float* nrn_g_exc,
+				  const float* nrn_g_inh,
+				  const bool *nrn_has_spike,
+				  unsigned int sim_iter) {
 	/**
 	 *
 	 */
@@ -823,11 +823,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.4 / SIM_STEP));  // neuron ref time, aprx interval is (1.8, 4.2)
 	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 6); // membrane capacity (185, 215)
 	rand_normal_init_array<float>(nrn_threshold, neurons_number, -50, 0.4); // neurons threshold (-51.2, -48.8)
-
-	// moto neurons
-//	for (int i = 1637; i <= 1832; i++) {
-//		nrn_threshold[i] = -60;
-//	}
 
 	// synapse variables
 	auto *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
