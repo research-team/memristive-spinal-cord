@@ -25,11 +25,11 @@ import random
 
 '''
 network creation
-see topology https://github.cself.OM/research-team/memristive-spinal-cord/blob/master/doc/dself.Iagram/cpg_generatoself.R_FE_paper.png
+see topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 and all will be clear
 '''
 class CPG:
-    def __init__(self, speed, ees_fr, inh_p, step_number, layers, extra_layers, N = 20):
+    def __init__(self, speed, ees_fr, inh_p, step_number, layers, extra_layers, N = 40):
 
         self.interneurons = []
         self.motoneurons = []
@@ -346,7 +346,7 @@ class CPG:
         gids = []
         gid = 0
         for i in range(rank, num, nhost):
-            cell = bioaff(random.randint(1, 3))
+            cell = bioaff(random.randint(2, 10))
             self.afferents.append(cell)
             while pc.gid_exists(gid) != 0:
                 gid += 1

@@ -2,6 +2,8 @@ from neuron import h
 import random
 h.load_file('stdlib.hoc') #for h.lambda_f
 
+import random
+
 class interneuron(object):
   '''
   Interneuron class with parameters:
@@ -68,7 +70,7 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = 10 # microns
+    self.soma.L = self.soma.diam = random.randint(8, 20) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
@@ -87,14 +89,17 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.Ra = 100 # Ra ohm cm - membrane resistance
       sec.cm = 1 # cm uf/cm2 - membrane capacitance
+
+    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -70 
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
+
+    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
 
     if self.delay:
       distance = random.uniform(30, 1500)
@@ -113,6 +118,7 @@ class interneuron(object):
       self.dend.g_pas = 0.001
       self.dend.e_pas = -65
 
+    self.axon.Ra = 50
     self.axon.insert('hh')
 
   def position(self, x, y, z):

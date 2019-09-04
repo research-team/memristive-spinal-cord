@@ -1,6 +1,8 @@
 from neuron import h
 h.load_file('stdlib.hoc') #for h.lambda_f
 
+import random
+
 class motoneuron(object):
   '''
   Motoneuron class with parameters:
@@ -75,7 +77,7 @@ class motoneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = 36 # microns
+    self.soma.L = self.soma.diam = random.randint(20, 50) # microns
     self.dend.L = 200 # microns
     self.dend.diam = 1 # microns
     self.axon.L = 150 # microns
@@ -101,7 +103,6 @@ class motoneuron(object):
     self.soma.g_pas = 0.002
     self.soma.e_pas = -80
     '''
-    
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
     self.dend.e_pas = -80
@@ -109,7 +110,7 @@ class motoneuron(object):
     self.dend.cm = 1 # cm uf/cm2 - membrane capacitance
 
     self.axon.insert('hh')
-    self.axon.Ra = 70 # Ra ohm cm - membrane resistance
+    self.axon.Ra = 50 # Ra ohm cm - membrane resistance
     self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
 
   def position(self, x, y, z):
