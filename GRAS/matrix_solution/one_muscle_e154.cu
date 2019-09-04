@@ -20,9 +20,6 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include "include/stubs.h"
-#include "include/ioctl.h"
-#include "include/ifc_ldev.h"
 #include <ctime>
 #include <vector>
 #include <random>
@@ -35,7 +32,7 @@
 
 using namespace std;
 
-typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
+//typedef IDaqLDevice *(*CREATEFUNCPTR)(ULONG Slot);
 void prepare_device();
 void close_device();
 
@@ -84,17 +81,17 @@ const auto dac_sleep_time = chrono::microseconds(250);
 const auto adc_sleep_time = chrono::microseconds(50);
 
 // device variables
-ADC_PAR adc_par;
-PVOID dll_handle;
-LUnknown *pIUnknown;
-IDaqLDevice *device;
-SLOT_PAR slot_param;
+//ADC_PAR adc_par;
+//PVOID dll_handle;
+//LUnknown *pIUnknown;
+//IDaqLDevice *device;
+//SLOT_PAR slot_param;
 pthread_t thread_DAC;
 pthread_t thread_ADC;
-ASYNC_PAR async_par_dac;
-PLATA_DESCR_U2 plata_descr;
-CREATEFUNCPTR CreateInstance;
-ULONG mem_buffer_size = 131072;
+//ASYNC_PAR async_par_dac;
+//PLATA_DESCR_U2 plata_descr;
+//CREATEFUNCPTR CreateInstance;
+//ULONG mem_buffer_size = 131072;
 // global vectors of SynapseMetadata of synapses for each neuron
 vector<vector<SynapseMetadata>> metadatas;
 #ifdef TEST
@@ -117,171 +114,171 @@ void errorchk(bool condition, string text) {
 }
 
 void prepare_device() {
-	// load the dynamic shared object (shared library). RTLD_LAZY - perform lazy binding
-	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/lcomp/liblcomp.so", RTLD_LAZY);
-	errorchk(!dll_handle, "open DLL");
-
-	// return the address where that symbol is loaded into memory
-	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
-	errorchk(dlerror() != NULL, "create instance");
-
-	// create an object which related with a specific virtual slot (default 0)
-	pIUnknown = CreateInstance(0);
-	errorchk(pIUnknown == NULL, "call create instance");
-
-	// get a pointer to the interface
-	errorchk(pIUnknown->QueryInterface(IID_ILDEV, (void **) &device) != S_OK, "query interface");
-
-	// close an interface
-	errorchk(pIUnknown->Release() != 1, "free IUnknown");
-
-	// open an appropriate link of the board driver
-	errorchk(device->OpenLDevice() == INVALID_HANDLE_VALUE, "open device");
-
-	// get an information of the specific virtual slot
-	errorchk(device->GetSlotParam(&slot_param) != L_SUCCESS, "get slot parameters");
-
-	// load a BIOS to the board
-	errorchk(device->LoadBios(model) != 1, "load BIOS");
-
-	// Test for board availability (always success)
-	errorchk(device->PlataTest() != L_SUCCESS, "plata test");
-
-	// read an user Flash
-	errorchk(device->ReadPlataDescr(&plata_descr) != L_SUCCESS, "read the board description");
-
-	// allocate memory for a big ring buffer
-	errorchk(device->RequestBufferStream(&mem_buffer_size) != L_SUCCESS, "request buffer stream");
-
-	// fill DAC parameters
-	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
-	adc_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
-	adc_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
-	adc_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
-	adc_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
-	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
-	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
-	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
-	adc_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них
-	adc_par.t1.FIFO = 512;           // размер половины аппаратного буфера FIFO на плате
-	adc_par.t1.IrqStep = IrqStep;     // шаг генерации прерываний
-	adc_par.t1.Pages = Pages;         // размер кольцевого буфера в шагах прерываний
-	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
-	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
-
-	// 0 - нет синхронизации
-	// 1 - цифровая синхронизация старта, остальные параметры синхронизации не используются
-	// 2 - покадровая синхронизация, остальные параметры синхронизации не используются
-	// 3 - аналоговая синхронизация старта по выбранному каналу АЦП
-	adc_par.t1.SynchroType = 0;
-
-	// 0 - аналоговая синхронизация по уровню
-	// 1 - аналоговая синхронизация по переходу
-	adc_par.t1.SynchroSensitivity = 0;
-
-	// 0 - по уровню «выше» или переходу «снизу-вверх»
-	// 1 - по уровню «ниже» или переходу «сверху-вниз»
-	adc_par.t1.SynchroMode = 0;
-
-	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
-	errorchk(device->FillDAQparameters(&adc_par.t1) != L_SUCCESS, "fill DAQ parameters");
-
-	// setup the ADC/DAC board setting based on specific i/o parameters
-	errorchk(device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC) != L_SUCCESS, "set ADC parameters stream");
-
-	// show properties
-	cout << "Board properties" << endl;
-	cout << "BrdName           : " << plata_descr.t7.BrdName << endl;
-	cout << "SerNum            : " << plata_descr.t7.SerNum << endl;
-	cout << "Rev               : " << plata_descr.t7.Rev << endl;
-	cout << "Quartz            : " << dec << plata_descr.t7.Quartz << endl;
-
-	// show ADC parameters
-	cout << "ADC parameters" << endl;
-	cout << "Buffer size (word): " << mem_buffer_size << endl;
-	cout << "Pages             : " << adc_par.t1.Pages << endl;
-	cout << "IrqStep           : " << adc_par.t1.IrqStep << endl;
-	cout << "FIFO              : " << adc_par.t1.FIFO << endl;
-	cout << "Rate              : " << adc_par.t1.dRate << endl;
-	// turn on an correction mode. Itself loads coefficients to the board
-	// errorchk(device->EnableCorrection(0) != L_SUCCESS, "enable correction mode");
-
-	// init inner variables of the driver before starting collect a data
-	errorchk(device->InitStartLDevice() != L_SUCCESS, "init start device");
-
-	// start collect data from the board into the big ring buffer
-	errorchk(device->StartLDevice() != L_SUCCESS, "START device");
+//	// load the dynamic shared object (shared library). RTLD_LAZY - perform lazy binding
+//	dll_handle = dlopen("/home/alex/Programs/drivers/lcomp/lcomp/liblcomp.so", RTLD_LAZY);
+//	errorchk(!dll_handle, "open DLL");
+//
+//	// return the address where that symbol is loaded into memory
+//	CreateInstance = (CREATEFUNCPTR) dlsym(dll_handle, "CreateInstance");
+//	errorchk(dlerror() != NULL, "create instance");
+//
+//	// create an object which related with a specific virtual slot (default 0)
+//	pIUnknown = CreateInstance(0);
+//	errorchk(pIUnknown == NULL, "call create instance");
+//
+//	// get a pointer to the interface
+//	errorchk(pIUnknown->QueryInterface(IID_ILDEV, (void **) &device) != S_OK, "query interface");
+//
+//	// close an interface
+//	errorchk(pIUnknown->Release() != 1, "free IUnknown");
+//
+//	// open an appropriate link of the board driver
+//	errorchk(device->OpenLDevice() == INVALID_HANDLE_VALUE, "open device");
+//
+//	// get an information of the specific virtual slot
+//	errorchk(device->GetSlotParam(&slot_param) != L_SUCCESS, "get slot parameters");
+//
+//	// load a BIOS to the board
+//	errorchk(device->LoadBios(model) != 1, "load BIOS");
+//
+//	// Test for board availability (always success)
+//	errorchk(device->PlataTest() != L_SUCCESS, "plata test");
+//
+//	// read an user Flash
+//	errorchk(device->ReadPlataDescr(&plata_descr) != L_SUCCESS, "read the board description");
+//
+//	// allocate memory for a big ring buffer
+//	errorchk(device->RequestBufferStream(&mem_buffer_size) != L_SUCCESS, "request buffer stream");
+//
+//	// fill DAC parameters
+//	adc_par.t1.s_Type = L_ADC_PARAM;  // тип структуры
+//	adc_par.t1.AutoInit = 1;          // флаг указывающий на тип сбора данных 0 - однократный 1 -циклически
+//	adc_par.t1.dRate = 100.0;         // частота опроса каналов в кадре (кГц)
+//	adc_par.t1.dKadr = 0;             // интервал между кадрами (мс), фактически определяет скоростьсбора данных;
+//	adc_par.t1.dScale = 0;            // масштаб работы таймера для 1250 или делителя для 1221
+//	adc_par.t1.AdChannel = 0;         // номер канала, выбранный для аналоговой синхронизации
+//	adc_par.t1.AdPorog = 0;           // пороговое значение для аналоговой синхронизации в коде АЦП
+//	adc_par.t1.NCh = 1;               // количество опрашиваемых в кадре каналов (для E154 макс. 16)
+//	adc_par.t1.Chn[0] = 0x0;          // массив с номерами каналов и усилением на них
+//	adc_par.t1.FIFO = 512;           // размер половины аппаратного буфера FIFO на плате
+//	adc_par.t1.IrqStep = IrqStep;     // шаг генерации прерываний
+//	adc_par.t1.Pages = Pages;         // размер кольцевого буфера в шагах прерываний
+//	adc_par.t1.IrqEna = 1;            // разрешение генерации прерывания от платы (1/0);
+//	adc_par.t1.AdcEna = 1;            // разрешение работы AЦП (1/0)
+//
+//	// 0 - нет синхронизации
+//	// 1 - цифровая синхронизация старта, остальные параметры синхронизации не используются
+//	// 2 - покадровая синхронизация, остальные параметры синхронизации не используются
+//	// 3 - аналоговая синхронизация старта по выбранному каналу АЦП
+//	adc_par.t1.SynchroType = 0;
+//
+//	// 0 - аналоговая синхронизация по уровню
+//	// 1 - аналоговая синхронизация по переходу
+//	adc_par.t1.SynchroSensitivity = 0;
+//
+//	// 0 - по уровню «выше» или переходу «снизу-вверх»
+//	// 1 - по уровню «ниже» или переходу «сверху-вниз»
+//	adc_par.t1.SynchroMode = 0;
+//
+//	// fill inner parameter's structure of data collection values ​​from the structure ADC_PAR, DAC_PAR
+//	errorchk(device->FillDAQparameters(&adc_par.t1) != L_SUCCESS, "fill DAQ parameters");
+//
+//	// setup the ADC/DAC board setting based on specific i/o parameters
+//	errorchk(device->SetParametersStream(&adc_par.t1, &mem_buffer_size, (void **) &data1, (void **) &sync1, L_STREAM_ADC) != L_SUCCESS, "set ADC parameters stream");
+//
+//	// show properties
+//	cout << "Board properties" << endl;
+//	cout << "BrdName           : " << plata_descr.t7.BrdName << endl;
+//	cout << "SerNum            : " << plata_descr.t7.SerNum << endl;
+//	cout << "Rev               : " << plata_descr.t7.Rev << endl;
+//	cout << "Quartz            : " << dec << plata_descr.t7.Quartz << endl;
+//
+//	// show ADC parameters
+//	cout << "ADC parameters" << endl;
+//	cout << "Buffer size (word): " << mem_buffer_size << endl;
+//	cout << "Pages             : " << adc_par.t1.Pages << endl;
+//	cout << "IrqStep           : " << adc_par.t1.IrqStep << endl;
+//	cout << "FIFO              : " << adc_par.t1.FIFO << endl;
+//	cout << "Rate              : " << adc_par.t1.dRate << endl;
+//	// turn on an correction mode. Itself loads coefficients to the board
+//	// errorchk(device->EnableCorrection(0) != L_SUCCESS, "enable correction mode");
+//
+//	// init inner variables of the driver before starting collect a data
+//	errorchk(device->InitStartLDevice() != L_SUCCESS, "init start device");
+//
+//	// start collect data from the board into the big ring buffer
+//	errorchk(device->StartLDevice() != L_SUCCESS, "START device");
 }
 
 void close_device() {
-	// stop collecting data from the board
-	device->StopLDevice();
-	errorchk(false, "STOP device");
-
-	// finishing work with the board
-	device->CloseLDevice();
-	errorchk(false, "close device");
-
-	// close an dll handle (decrements the reference count on the dynamic library handle)
-	if (dll_handle)
-		dlclose(dll_handle);
+//	// stop collecting data from the board
+//	device->StopLDevice();
+//	errorchk(false, "STOP device");
+//
+//	// finishing work with the board
+//	device->CloseLDevice();
+//	errorchk(false, "close device");
+//
+//	// close an dll handle (decrements the reference count on the dynamic library handle)
+//	if (dll_handle)
+//		dlclose(dll_handle);
 }
 
 void *parallel_DAC_async(void *arg) {
-	async_par_dac.s_Type = L_ASYNC_DAC_OUT;
-	async_par_dac.Chn[0] = 1;
-	async_par_dac.Mode = 0;
-	async_par_dac.Data[0] = 0;
-	device->IoAsync(&async_par_dac);
-
-	float tmp;
-
-	while (gpu_is_run) {
-		tmp = motoneuron_voltage;
-		if (tmp > 5) {
-			tmp = 5;
-		}
-		async_par_dac.Data[0] = 0x07; //tmp > 0? tmp / 5.0 * 0x7F : 10;
-		device->IoAsync(&async_par_dac);
-		#ifdef DEBUG
-			cout << "Normalized by sim: " << round(motoneuron_voltage * 1000) / 1000 << "V, DAC -> " << async_par_dac.Data[0];
-		#endif
-		this_thread::sleep_for(dac_sleep_time);
-
-		async_par_dac.Data[0] = 0;
-		device->IoAsync(&async_par_dac);
-
-		this_thread::sleep_for(dac_sleep_time);
-		#ifdef DEBUG
-			cout << ", ACD <- " << data1[0] << endl;
-		#endif
-	}
-
-	async_par_dac.Data[0] = 0;
-	device->IoAsync(&async_par_dac);
-
-	errorchk(false, "finishing DAC executing commands");
+//	async_par_dac.s_Type = L_ASYNC_DAC_OUT;
+//	async_par_dac.Chn[0] = 1;
+//	async_par_dac.Mode = 0;
+//	async_par_dac.Data[0] = 0;
+//	device->IoAsync(&async_par_dac);
+//
+//	float tmp;
+//
+//	while (gpu_is_run) {
+//		tmp = motoneuron_voltage;
+//		if (tmp > 5) {
+//			tmp = 5;
+//		}
+//		async_par_dac.Data[0] = 0x07; //tmp > 0? tmp / 5.0 * 0x7F : 10;
+//		device->IoAsync(&async_par_dac);
+//		#ifdef DEBUG
+//			cout << "Normalized by sim: " << round(motoneuron_voltage * 1000) / 1000 << "V, DAC -> " << async_par_dac.Data[0];
+//		#endif
+//		this_thread::sleep_for(dac_sleep_time);
+//
+//		async_par_dac.Data[0] = 0;
+//		device->IoAsync(&async_par_dac);
+//
+//		this_thread::sleep_for(dac_sleep_time);
+//		#ifdef DEBUG
+//			cout << ", ACD <- " << data1[0] << endl;
+//		#endif
+//	}
+//
+//	async_par_dac.Data[0] = 0;
+//	device->IoAsync(&async_par_dac);
+//
+//	errorchk(false, "finishing DAC executing commands");
 
 	return 0;
 }
 
 void *parallel_ADC_stream(void *arg) {
-	int halfbuffer;
-	int fl2, fl1;
-
-	halfbuffer = IrqStep * Pages / 2;
-	fl1 = fl2 = (*sync1 <= halfbuffer)? 0 : 1;
-
-	while(gpu_is_run) {
-		while(fl2 == fl1) {
-			fl2 = (*sync1 <= halfbuffer)? 0 : 1;
-			if(!gpu_is_run)
-				break;
-			this_thread::sleep_for(adc_sleep_time);
-		}
-		fl1 = (*sync1 <= halfbuffer)? 0 : 1;
-	}
-	errorchk(false, "finishing ADC executing commands");
+//	int halfbuffer;
+//	int fl2, fl1;
+//
+//	halfbuffer = IrqStep * Pages / 2;
+//	fl1 = fl2 = (*sync1 <= halfbuffer)? 0 : 1;
+//
+//	while(gpu_is_run) {
+//		while(fl2 == fl1) {
+//			fl2 = (*sync1 <= halfbuffer)? 0 : 1;
+//			if(!gpu_is_run)
+//				break;
+//			this_thread::sleep_for(adc_sleep_time);
+//		}
+//		fl1 = (*sync1 <= halfbuffer)? 0 : 1;
+//	}
+//	errorchk(false, "finishing ADC executing commands");
 	return 0;
 }
 
@@ -920,12 +917,13 @@ void simulate() {
 #ifdef TEST
 	init_array<float>(voltage_recording, neurons_number * sim_time_in_step, V_rest);
 #endif
-
+	int syn_sum = 0;
 	// fill arrays of synapses (per each neuron)
 	for(unsigned int neuron_id = 0; neuron_id < neurons_number; neuron_id++) {
 		// get number of synapses for current neuron
 		unsigned int syn_count = static_cast<unsigned int>(metadatas.at(neuron_id).size());
 		synapses_number[neuron_id] = syn_count;
+		syn_sum += syn_count;
 
 		// prepare arrays for filling and copying to the GPU
 		int tmp_synapses_post_nrn_id[syn_count];
@@ -954,6 +952,9 @@ void simulate() {
 		cudaMemcpy(synapses_delay_timer[neuron_id], &tmp_synapses_delay_timer, datasize<int>(syn_count), cudaMemcpyHostToDevice);
 		cudaMemcpy(synapses_weight[neuron_id], &tmp_synapses_weight, datasize<float>(syn_count), cudaMemcpyHostToDevice);
 	}
+	printf("nrn %d", neurons_number);
+	printf("syn %d", syn_sum);
+	exit(0);
 	// allocate memory on GPU for one variable
 	cudaMalloc((void**)&gpu_motoneuron_voltage, sizeof(float));
 	// allocate memory on GPU for 1D arrays
@@ -1118,9 +1119,9 @@ void simulate() {
 }
 
 int main() {
-	prepare_device();
+//	prepare_device();
 	simulate();
-	close_device();
+//	close_device();
 
 	// you are awesome
 	cout << COLOR_GREEN "SUCCESS" COLOR_RESET << endl;
