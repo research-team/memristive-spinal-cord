@@ -70,11 +70,11 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(8, 20) # microns
+    self.soma.L = self.soma.diam = random.randint(8, 15) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
-    self.dend.diam = 1 # microns
+    self.dend.diam = random.gauss(1, 0.5) # microns
 
   def geom_nseg(self):
     '''
