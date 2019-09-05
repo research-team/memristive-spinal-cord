@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import pylab as plt
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
-from analysis.PCA import plot_3D_PCA, get_lat_amp_peak_per_exp
+from analysis.PCA import plot_3D_PCA, get_lat_per_exp, get_amp_per_exp, get_peak_per_exp
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -145,9 +145,9 @@ def plot_histograms(lat_per_slice, amp_per_slice, peaks_per_slice, dataset, fold
 	"""
 	TODO: add docstring
 	Args:
-		amp_per_slice (list): amplitudes per slice
-		peaks_per_slice (list): number of peaks per slice
-		lat_per_slice (list): latencies per slice
+		amp_per_slice (np.ndarray): amplitudes per slice
+		peaks_per_slice (np.ndarray): number of peaks per slice
+		lat_per_slice (np.ndarray): latencies per slice
 		dataset (np.ndarray): data per test run
 		folder (str): folder path
 		filename (str): filename of the future file
@@ -259,7 +259,9 @@ def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_sl
 		# get prepared data, EES frequency and data step size
 		e_prepared_data = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 		# process latencies and amplitudes per slice
-		e_lat_per_slice, amp_per_slice, peaks_per_slice = get_lat_amp_peak_per_exp(e_prepared_data, step_size_to)
+		e_lat_per_slice = get_lat_per_exp(e_prepared_data, step_size_to)
+		amp_per_slice = get_amp_per_exp(e_prepared_data, step_size_to)
+		peaks_per_slice = get_peak_per_exp(e_prepared_data, step_size_to, split_by_intervals=True)
 		# form data pack
 		coords_meta = (np.stack((e_lat_per_slice, amp_per_slice, peaks_per_slice), axis=1), next(colors), data_label)
 		all_pack.append(coords_meta)
@@ -271,7 +273,7 @@ def __process_dataset(filepaths, save_pca_to, plot_histogram_flag=False, plot_sl
 		if plot_slices_flag:
 			flexor_filename = filename.replace('_E_', '_F_')
 			f_prepared_data = auto_prepare_data(folder, flexor_filename, step_size_to=step_size_to)
-			f_lat_per_slice = get_lat_amp_peak_per_exp(f_prepared_data, step_size_to)[0]
+			f_lat_per_slice = get_lat_per_exp(f_prepared_data, step_size_to)
 			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
 			            folder=folder, filename=filename, step_size=step_size_to)
 	# plot 3D PCA for each plane
@@ -286,9 +288,9 @@ def for_article():
 	save_pca_to = '/home/alex/GitHub/DATA/gras/hz'
 
 	compare_pack = [
-		# '/home/alex/GitHub/DATA/bio/foot/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/foot/gras_E_15cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/foot/bio_E_21cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		# '/home/alex/GitHub/DATA/neuron/foot/neuron_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		# '/home/alex/GitHub/DATA/gras/foot/gras_E_15cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 
 	# control

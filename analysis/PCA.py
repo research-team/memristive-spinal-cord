@@ -3,6 +3,7 @@ import numpy as np
 import pylab as plt
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
+import matplotlib.patches as mpatches
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
@@ -151,7 +152,99 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def get_lat_amp_peak_per_exp(sliced_datasets, step_size, debugging=False):
+def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima_values):
+	"""
+	ToDo add info
+	Args:
+		minima_indexes (np.ndarray):
+		minima_values (np.ndarray):
+		maxima_indexes (np.ndarray):
+		maxima_values (np.ndarray):
+	Returns:
+		np.ndarray:
+		np.ndarray:
+		np.ndarray:
+	"""
+	# prepare data for concatenating dots into one list (per parameter)
+
+	# who located earlier -- max or min
+	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
+	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
+
+	common_length = len(minima_indexes) + len(maxima_indexes)
+
+	merged_names = [None] * common_length
+	merged_indexes = [None] * common_length
+	merged_values = [None] * common_length
+
+	# be sure that size of [min_starts::2] be enough for filling
+	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
+		minima_indexes = minima_indexes[:-1]
+		minima_values = minima_values[:-1]
+
+	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
+		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
+		minima_values = np.append(minima_values, minima_values[-1])
+
+	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
+		maxima_indexes = maxima_indexes[:-1]
+		maxima_values = maxima_values[:-1]
+
+	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
+		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
+		maxima_values = np.append(maxima_values, maxima_values[-1])
+
+	# fill minima lists based on the precedence
+	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
+	merged_indexes[min_starts::2] = minima_indexes
+	merged_values[min_starts::2] = minima_values
+	# the same for the maxima
+	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
+	merged_indexes[max_starts::2] = maxima_indexes
+	merged_values[max_starts::2] = maxima_values
+
+	merged_names = np.array(merged_names)
+	merged_values = np.array(merged_values)
+	merged_indexes = np.array(merged_indexes).astype(int)
+
+	return merged_names, merged_indexes, merged_values
+
+
+def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
+	"""
+	Filtering extremuma by value (allowed_diff)
+	Args:
+		merged_names (np.ndarray): array of merged extremuma names
+		merged_indexes (np.ndarray): array of merged extremuma indexes (X)
+		merged_values (np.ndarray): array of merged extremuma values (Y)
+		allowed_diff (float): remove arrays value which lower than that diff
+	Returns:
+		np.ndarray: filtered names
+		np.ndarray: filtered indexes
+		np.ndarray: filtered values
+	"""
+	# find good extremuma from the end
+	filtered_mask_indexes = []
+	i = 0
+	next_i = 0
+
+	while i < len(merged_names) and next_i < len(merged_names):
+		next_i = i + 1
+		while next_i < len(merged_names):
+			if abs(merged_values[i] - merged_values[next_i]) > allowed_diff:
+				filtered_mask_indexes.append(next_i)
+				i = next_i
+				break
+			next_i += 1
+	filtered_mask_indexes = np.append(0, filtered_mask_indexes)
+	e_poly_names = merged_names[filtered_mask_indexes]
+	e_poly_indexes = merged_indexes[filtered_mask_indexes]
+	e_poly_values = merged_values[filtered_mask_indexes]
+
+	return e_poly_names, e_poly_indexes, e_poly_values
+
+
+def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -170,9 +263,7 @@ def get_lat_amp_peak_per_exp(sliced_datasets, step_size, debugging=False):
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
 
-	global_amp_values = []
 	global_lat_indexes = []
-	global_peaks_number = []
 	micro_border = 0.005
 	l_poly_border = int(10 / step_size)
 
@@ -236,34 +327,176 @@ def get_lat_amp_peak_per_exp(sliced_datasets, step_size, debugging=False):
 				plt.legend()
 				plt.show()
 
+	return np.array(global_lat_indexes) * step_size
+
+
+def get_amp_per_exp(sliced_datasets, step_size, debugging=False):
+	"""
+	Function for finding latencies at each slice in normalized (!) data
+	Args:
+		sliced_datasets (np.ndarry): arrays of data
+		                      data per slice
+		               [[...], [...], [...], [...],
+		dataset number  [...], [...], [...], [...],
+		                [...], [...], [...], [...]]
+		step_size (float): data step
+		debugging (bool): True -- will print debugging info and plot figures
+	Returns:
+		np.ndarray: latencies indexes
+		np.ndarray: amplitudes values
+		np.ndarray: peaks number
+	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+
+	global_amp_values = []
+	l_poly_border = int(10 / step_size)
+
+	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
+	for slices_per_experiment in sliced_datasets:
+		for slice_data in slices_per_experiment:
+			# smooth data to avoid micro peaks and noise
+			smoothed_data = smooth(slice_data, 2)
+			smoothed_data[:2] = slice_data[:2]
+			smoothed_data[-2:] = slice_data[-2:]
+
 			# II. find the sum of amplitudes (integral area)
 			amplitude_sum = np.sum(np.abs(smoothed_data[l_poly_border:]))
 			global_amp_values.append(amplitude_sum)
 
-			# III. find peaks number by strong smoothing
-			smoothed_data = smooth(slice_data, 7)
-			smoothed_data[:2] = slice_data[:2]
-			smoothed_data[-2:] = slice_data[-2:]
-			# get maxima/minima extrema
-			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
-			e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
-			# sum all found peaks
-			peaks_sum = 0
-			if e_maxima_indexes is not None:
-				peaks_sum += len(e_maxima_indexes)
-			if e_minima_indexes is not None:
-				peaks_sum += len(e_minima_indexes)
-			global_peaks_number.append(peaks_sum)
+	return np.array(global_amp_values)
+
+
+def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugging=False):
+	"""
+	Function for finding latencies at each slice in normalized (!) data
+	Args:
+		sliced_datasets (np.ndarry): arrays of data
+		                      data per slice
+		               [[...], [...], [...], [...],
+		dataset number  [...], [...], [...], [...],
+		                [...], [...], [...], [...]]
+		step_size (float): data step
+		split_by_intervals (bool):
+		debugging (bool): True -- will print debugging info and plot figures
+	Returns:
+		np.ndarray: latencies indexes
+		np.ndarray: amplitudes values
+		np.ndarray: peaks number
+	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+
+	global_peaks_number = []
+	l_poly_border = int(10 / step_size)
+	dataset_size = len(sliced_datasets)
+	slices_number = len(sliced_datasets[0])
+	# static borders
+	intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]]) / step_size
+	# prepare array for fitting data
+	peaks_per_interval = np.zeros((slices_number, len(intervals)))
+	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
+	for slices_per_experiment in sliced_datasets:
+		for slice_index, slice_data in enumerate(slices_per_experiment):
+			# smooth
+			smoothed_data = smooth(slice_data, 2)
+			#
+			if split_by_intervals:
+				# get all extrema
+				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
+				e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
+				# remove mono
+				without_mono = np.append(smoothed_data[:int(3 / step_size)], smoothed_data[int(7 / step_size):])
+				#
+				delta_diff = np.abs(np.diff(without_mono, n=1))
+				diff_Q1, diff_median, diff_Q3 = np.percentile(delta_diff, (15, 50, 85))
+				# merge extrema indexes
+				e_poly_names, e_poly_indexes, e_poly_values = merge_extremuma_arrays(e_minima_indexes, e_minima_values,
+				                                                                     e_maxima_indexes, e_maxima_values)
+				# filtering extrema: remove micropeaks
+				e_poly_names, e_poly_indexes, e_poly_values = filter_extremuma(e_poly_names, e_poly_indexes,
+				                                                               e_poly_values,
+				                                                               allowed_diff=diff_Q3)
+				# check on intervals
+				for interval_index, interval in enumerate(intervals):
+					# sum maxima peaks
+					peaks_in_interval = list(filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes))
+					peaks_per_interval[slice_index][interval_index] += len(peaks_in_interval)
+			else:
+				# get maxima/minima extrema
+				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
+				e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
+
+				# sum all found peaks
+				peaks_sum = 0
+				if e_maxima_indexes is not None:
+					peaks_sum += len(e_maxima_indexes)
+				if e_minima_indexes is not None:
+					peaks_sum += len(e_minima_indexes)
+				global_peaks_number.append(peaks_sum)
 
 			if debugging:
-				plt.plot(np.gradient(smoothed_data), color='r')
-				plt.plot(slice_data, color='g')
-				plt.plot(smoothed_data, color='k')
-				plt.plot(e_maxima_indexes + l_poly_border, e_maxima_values, '.', color='r')
-				plt.plot(e_minima_indexes + l_poly_border, e_minima_values, '.', color='b')
+				plt.axvspan(xmin=3 / step_size, xmax=7 / step_size, color='r', alpha=0.3)
+				plt.plot(slice_data, color='g', label="original")
+				plt.plot(smoothed_data, color='k', label="smoothed")
+				plt.plot(e_poly_indexes, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
+
+				plt.plot(e_maxima_indexes, e_maxima_values, '.', color='r', markersize=10)
+				plt.plot(e_minima_indexes, e_minima_values, '.', color='cyan', markersize=10)
+
+				plt.legend()
 				plt.show()
 
-	return np.array(global_lat_indexes) * step_size, np.array(global_amp_values), np.array(global_peaks_number)
+
+	colors = ["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"]
+
+	peaks_per_interval = peaks_per_interval / dataset_size
+	# reshape
+	c = peaks_per_interval[:, 0].copy()
+	peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
+	peaks_per_interval[:, -1] = c
+	peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
+
+
+	for i, k in enumerate(peaks_per_interval.T):
+		print(k)
+		plt.plot(range(len(k)), k, color=colors[i], label=f"{intervals[i]}")
+		plt.plot(range(len(k)), k, '.', color=colors[i])
+	plt.xticks(range(slices_number), range(1, slices_number + 1))
+	plt.legend()
+	plt.show()
+
+
+	"""bar plot version"""
+	for slice_index, slice_peaks in enumerate(peaks_per_interval):
+		bottom = 0
+		for interval_index, interval_data in enumerate(slice_peaks):
+			# Create brown bars
+			bar_color = colors[interval_index]
+			plt.bar(slice_index, interval_data, bottom=bottom, color=bar_color, width=0.8, alpha=0.9)
+			if interval_data != 0:
+				plt.text(slice_index, interval_data / 2 + bottom, f"{interval_data:.2f}",
+				         color='w', ha="center", va="center", fontsize=13)
+			bottom += interval_data
+
+	plt.xticks(range(slices_number), range(1, slices_number + 1))
+
+	patches = []
+	intervals[0] += intervals[-1][-1]
+	c = intervals[0, :].copy()
+	intervals[0:-1, :] = intervals[1:, :]
+	intervals[-1] = c
+
+	for interval_index, interval_data in enumerate(intervals[::-1] * step_size):
+		patches.append(mpatches.Patch(color=colors[::-1][interval_index], label=f'{interval_data}'))
+	plt.legend(handles=patches)
+
+	plt.show()
+
+	if split_by_intervals:
+		return peaks_per_interval
+
+	return np.array(global_peaks_number)
 
 
 def plot_3D_PCA(data_pack, save_to, correlation=False):
