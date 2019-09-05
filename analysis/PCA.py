@@ -3,7 +3,6 @@ import numpy as np
 import pylab as plt
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
-import matplotlib.patches as mpatches
 from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
@@ -257,8 +256,6 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		np.ndarray: latencies indexes
-		np.ndarray: amplitudes values
-		np.ndarray: peaks number
 	"""
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
@@ -342,9 +339,7 @@ def get_amp_per_exp(sliced_datasets, step_size, debugging=False):
 		step_size (float): data step
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
-		np.ndarray: latencies indexes
 		np.ndarray: amplitudes values
-		np.ndarray: peaks number
 	"""
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
@@ -380,48 +375,54 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugg
 		split_by_intervals (bool):
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
-		np.ndarray: latencies indexes
-		np.ndarray: amplitudes values
-		np.ndarray: peaks number
+		np.ndarray: peaks number or intervals
 	"""
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
 
 	global_peaks_number = []
+	# only for non-interval's algorithm
 	l_poly_border = int(10 / step_size)
 	dataset_size = len(sliced_datasets)
 	slices_number = len(sliced_datasets[0])
-	# static borders
+	# static borders (convert by division to steps)
 	intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]]) / step_size
 	# prepare array for fitting data
 	peaks_per_interval = np.zeros((slices_number, len(intervals)))
-	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
+	#
+	mono_end = int(7 / step_size)
+	mono_start = int(3 / step_size)
+	# nested loop for processong each slice in datasets
+	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2]) to make it 1D with saving order
 	for slices_per_experiment in sliced_datasets:
 		for slice_index, slice_data in enumerate(slices_per_experiment):
-			# smooth
+			# smooth data (small value for smoothing only micro-peaks)
 			smoothed_data = smooth(slice_data, 2)
-			#
+			# optional variant to calculate peaks in specific intervals
+			# get all extrema
+			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
+			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
+
 			if split_by_intervals:
-				# get all extrema
-				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
-				e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
-				# remove mono
-				without_mono = np.append(smoothed_data[:int(3 / step_size)], smoothed_data[int(7 / step_size):])
-				#
-				delta_diff = np.abs(np.diff(without_mono, n=1))
-				diff_Q1, diff_median, diff_Q3 = np.percentile(delta_diff, (15, 50, 85))
-				# merge extrema indexes
+				# merge extrema
 				e_poly_names, e_poly_indexes, e_poly_values = merge_extremuma_arrays(e_minima_indexes, e_minima_values,
 				                                                                     e_maxima_indexes, e_maxima_values)
-				# filtering extrema: remove micropeaks
+				# remove extrema included in mono area
+				mask = (e_poly_indexes < mono_start) | (e_poly_indexes > mono_end)
+				e_poly_names = e_poly_names[mask]
+				e_poly_indexes = e_poly_indexes[mask]
+				e_poly_values = e_poly_values[mask]
+
+				# calc the values which corresponds to the percentiles
+				diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
+				# filter extrema: remove micropeaks by Q3 percentile value
 				e_poly_names, e_poly_indexes, e_poly_values = filter_extremuma(e_poly_names, e_poly_indexes,
 				                                                               e_poly_values,
 				                                                               allowed_diff=diff_Q3)
-				# check on intervals
+				# fill array by intervals
 				for interval_index, interval in enumerate(intervals):
-					# sum maxima peaks
-					peaks_in_interval = list(filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes))
-					peaks_per_interval[slice_index][interval_index] += len(peaks_in_interval)
+					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes)
+					peaks_per_interval[slice_index][interval_index] += len(list(peaks_in_interval))
 			else:
 				# get maxima/minima extrema
 				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
@@ -439,61 +440,22 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugg
 				plt.axvspan(xmin=3 / step_size, xmax=7 / step_size, color='r', alpha=0.3)
 				plt.plot(slice_data, color='g', label="original")
 				plt.plot(smoothed_data, color='k', label="smoothed")
-				plt.plot(e_poly_indexes, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
-
+				if split_by_intervals:
+					plt.plot(e_poly_indexes, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
 				plt.plot(e_maxima_indexes, e_maxima_values, '.', color='r', markersize=10)
 				plt.plot(e_minima_indexes, e_minima_values, '.', color='cyan', markersize=10)
 
 				plt.legend()
 				plt.show()
 
-
-	colors = ["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"]
-
-	peaks_per_interval = peaks_per_interval / dataset_size
-	# reshape
-	c = peaks_per_interval[:, 0].copy()
-	peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
-	peaks_per_interval[:, -1] = c
-	peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
-
-
-	for i, k in enumerate(peaks_per_interval.T):
-		print(k)
-		plt.plot(range(len(k)), k, color=colors[i], label=f"{intervals[i]}")
-		plt.plot(range(len(k)), k, '.', color=colors[i])
-	plt.xticks(range(slices_number), range(1, slices_number + 1))
-	plt.legend()
-	plt.show()
-
-
-	"""bar plot version"""
-	for slice_index, slice_peaks in enumerate(peaks_per_interval):
-		bottom = 0
-		for interval_index, interval_data in enumerate(slice_peaks):
-			# Create brown bars
-			bar_color = colors[interval_index]
-			plt.bar(slice_index, interval_data, bottom=bottom, color=bar_color, width=0.8, alpha=0.9)
-			if interval_data != 0:
-				plt.text(slice_index, interval_data / 2 + bottom, f"{interval_data:.2f}",
-				         color='w', ha="center", va="center", fontsize=13)
-			bottom += interval_data
-
-	plt.xticks(range(slices_number), range(1, slices_number + 1))
-
-	patches = []
-	intervals[0] += intervals[-1][-1]
-	c = intervals[0, :].copy()
-	intervals[0:-1, :] = intervals[1:, :]
-	intervals[-1] = c
-
-	for interval_index, interval_data in enumerate(intervals[::-1] * step_size):
-		patches.append(mpatches.Patch(color=colors[::-1][interval_index], label=f'{interval_data}'))
-	plt.legend(handles=patches)
-
-	plt.show()
-
 	if split_by_intervals:
+		peaks_per_interval = peaks_per_interval / dataset_size
+		# reshape
+		c = peaks_per_interval[:, 0].copy()
+		peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
+		peaks_per_interval[:, -1] = c
+		peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
+
 		return peaks_per_interval
 
 	return np.array(global_peaks_number)
