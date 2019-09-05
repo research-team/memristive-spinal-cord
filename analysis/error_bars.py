@@ -116,17 +116,26 @@ for i in range(len(amplitudes_from_low_sum)):
 	ys.append(amplitudes_from_high_sum[i])
 print("ys = ", ys)
 
+# df = pd.DataFrame({'xs': xs, 'ys':ys})
+# print("df = ", df)
 colors = ['black', 'dimgrey', 'darkgray', 'rosybrown', 'lightcoral', 'brown',
           'red', 'salmon', 'orangered', 'lightsalmon', 'sienna', 'chocolate']
 plt.figure(figsize=(15, 5))
 offset = 0
 for i in range(len(bp_low)):
+	xs_in = []
+	ys_in= []
 	for j in range(3):
-		# print("xs[{}] = ".format(j), xs[j])
-		# print("ys[{}] = ".format(j), ys[j])
-		plt.scatter(xs[offset + j], ys[offset + j], color=colors[i])
+		xs_in.append(xs[offset + j])
+		ys_in.append(ys[offset + j])
+		df = pd.DataFrame({'xs_in': xs_in, 'ys_in': ys_in})
+		print("xs_in = ", xs_in)
+		print("ys_in = ", ys_in)
+		df.plot(x='xs_in', y='ys_in')
+		# plt.scatter(xs[offset + j], ys[offset + j], color=colors[i])
 		# plt.plot(xs[offset + j], ys[offset + j], 'xb-')
 	offset += 3
+# df.plot(x='xs', y='ys')
 plt.show()
 amplitudes = []
 amplitudes.append(amplitudes_from_low.flatten())
