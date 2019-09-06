@@ -73,8 +73,6 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	f_splitted_per_slice_boxplots = get_boxplots(flexor_data)
 	# combine
 	all_splitted_per_slice_boxplots = list(e_splitted_per_slice_boxplots) + list(f_splitted_per_slice_boxplots)
-
-
 	slices_number = e_slices_number + f_slices_number
 	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
 	#
@@ -96,7 +94,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 		bio_ideal_y_data = np.array(bio_ideal_y_data)
 
 
-	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in filename else (16, 9))
+	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in filename else (16, 12))
 	# plot latency shadow for extensor
 	plt.fill_betweenx(e_slices_indexes,
 	                  e_box_latencies[:, k_box_low] * step_size,
@@ -135,7 +133,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	plt.yticks(yticks, yticklabels, fontsize=56)
 	plt.xlim(0, slice_in_ms)
 
-	# Hide the right and top spines
+	# hide the right and top spines
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 
@@ -144,108 +142,17 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	plt.close()
 
 
-def plot_histograms(lat_per_slice, amp_per_slice, peaks_per_slice, dataset, folder, filename, step_size):
-	"""
-	TODO: add docstring
-	Args:
-		amp_per_slice (np.ndarray): amplitudes per slice
-		peaks_per_slice (np.ndarray): number of peaks per slice
-		lat_per_slice (np.ndarray): latencies per slice
-		dataset (np.ndarray): data per test run
-		folder (str): folder path
-		filename (str): filename of the future file
-		step_size (float):
-	"""
-	bar_width = 0.9
-	box_distance = 1.2
-	color = "#472650"
-	fill_color = "#9D8DA3"
-	slices_number = len(lat_per_slice)
-	slice_indexes = np.array(range(slices_number))
-
-	lighted_filename = "_".join(filename.split("_")[:-1])
-
-	xticks = [x * box_distance for x in slice_indexes]
-	# set labels
-	xticklabels = [None] * len(slice_indexes)
-	human_read = [i + 1 for i in slice_indexes]
-	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
-		xticklabels[i] = human_read[i]
-
-	# plot histograms
-	for data, title in (amp_per_slice, "amplitudes"), (peaks_per_slice, "peaks"):
-		# create subplots
-		fig, ax = plt.subplots(figsize=(16, 9))
-		# plot amplitudes or peaks
-		plt.bar(xticks, data, width=bar_width, color=color, zorder=2)
-		# set Y ticks
-		yticks = ax.get_yticks()
-		human_read = list(yticks)
-		yticklabels = [None] * len(yticks)
-		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
-			yticklabels[i] = int(human_read[i]) if human_read[i] >= 10 else f"{human_read[i]:.1f}"
-		# plot properties
-		plt.grid(axis="y")
-		plt.xticks(xticks, xticklabels, fontsize=56)
-		plt.yticks(yticks, yticklabels, fontsize=56)
-		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
-		plt.tight_layout()
-		plt.savefig(f"{folder}/{lighted_filename}_{title}.pdf", dpi=250, format="pdf")
-		plt.close()
-
-		log.info(f"Plotted {title} for {filename}")
-
-	# form areas
-	raise NotImplemented
-
-	splitted_per_slice_boxplots = get_boxplots(dataset)
-	mono_area = [slice_data[:int(time / step_size)] for time, slice_data in splitted_per_slice_boxplots]
-	poly_area = [slice_data[int(time / step_size):] for time, slice_data in zip(lat_per_slice, splitted_per_slice_boxplots)]
-
-	# plot per area
-	for data_test_runs, title in (mono_area, "mono"), (poly_area, "poly"):
-		area_data = []
-		data_test_runs = np.array(data_test_runs)
-		# calc diff per slice
-		for slice_data in data_test_runs:
-			area_data.append(abs(slice_data[:, k_fliers_high] - slice_data[:, k_fliers_low]))
-
-		fig, ax = plt.subplots(figsize=(16, 9))
-
-		fliers = dict(markerfacecolor='k', marker='*', markersize=3)
-		# plot latencies
-		plt.xticks(fontsize=50)
-		plt.yticks(fontsize=50)
-
-		lat_plot = ax.boxplot(area_data, positions=xticks, widths=bar_width, patch_artist=True, flierprops=fliers)
-		recolor(lat_plot, color, fill_color)
-
-		yticks = np.array(ax.get_yticks())
-		yticks = yticks[yticks >= 0]
-		human_read = list(yticks)
-		yticklabels = [None] * len(yticks)
-		for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
-			if human_read[i] >= 10:
-				yticklabels[i] = int(human_read[i])
-			else:
-				yticklabels[i] = f"{human_read[i]:.1f}"
-		# plot properties
-		plt.xticks(xticks, xticklabels, fontsize=56)
-		plt.yticks(yticks, yticklabels, fontsize=56)
-		plt.grid(axis="y")
-		plt.xlim(-0.5, len(slice_indexes) * box_distance - bar_width / 2)
-		plt.ylim(0, ax.get_yticks()[-1])
-		plt.tight_layout()
-		plt.savefig(f"{folder}/{lighted_filename}_{title}.pdf", dpi=250, format="pdf")
-		plt.close()
-
-		log.info(f"Plotted {title} for {filename}")
-
-
-def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_size):
+def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_size, save_to):
 	cap_size = 0.3
 	patches = []
 	colors = iter(["#a6261d", "#f2aa2e", "#275b78", "#472650"])
+
+	mode = "_".join(names[0].split("_")[1:-1])
+	names = "_".join((name.split("_")[0] for name in names))
+	new_path = f"{save_to}/{names}_{mode}_dependency.pdf"
+
+	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in mode else (15, 5))
+	#
 	for pack_index, pack_data in enumerate(pack_datas_per_exp):
 		pack_color = next(colors)
 		box_latencies = np.array([calc_boxplots(dots) for dots in pack_lats_per_exp[pack_index].reshape(len(pack_data), -1).T])
@@ -263,20 +170,36 @@ def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_s
 
 			x = lat_med
 			# plt caps
-			plt.plot([x - cap_size, x + cap_size], [amp_from_low_lat, amp_from_low_lat], linewidth=1, color=pack_color)
-			plt.plot([x - cap_size, x + cap_size], [amp_from_high_lat, amp_from_high_lat], linewidth=1, color=pack_color)
+			ax.plot([x - cap_size, x + cap_size], [amp_from_low_lat, amp_from_low_lat], linewidth=3, color=pack_color)
+			ax.plot([x - cap_size, x + cap_size], [amp_from_high_lat, amp_from_high_lat], linewidth=3, color=pack_color)
 			# plt dot
-			plt.plot(x, amp_from_med_lat, '.', markersize='10', color=pack_color)
+			ax.plot(x, amp_from_med_lat, '.', markersize=15, color=pack_color)
 			# plt line
-			plt.plot([x, x], [amp_from_low_lat, amp_from_high_lat], linewidth=1, color=pack_color)
+			ax.plot([x, x], [amp_from_low_lat, amp_from_high_lat], linewidth=3, color=pack_color)
 
 		patches.append(mpatches.Patch(color=pack_color, label=f"{names[pack_index]}"))
 
-	plt.xlabel("Latency")
-	plt.ylabel("Amplitude")
-	plt.xticks(range(10, 26), range(10, 26))
+	# make ticks more visible
+	ax.tick_params(length=8, width=2)
+	# hide the right and top spines
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	# form xticklabels
+	xticks = list(range(10, 26))
+	xticklabels = [None] * len(xticks)
+	for i in [0, -1, int(1 / 3 * len(xticks)), int(2 / 3 * len(xticks))]:
+		xticklabels[i] = xticks[i]
+	# form yticklabels
+	yticks = ax.get_yticks()[1:-1]
+	yticklabels = [None] * len(yticks)
+	for i in [0, -1, int(1 / 3 * len(yticks)), int(2 / 3 * len(yticks))]:
+		yticklabels[i] = yticks[i]
+	plt.xticks(xticks, xticklabels, fontsize=50)
+	plt.yticks(yticks, yticklabels, fontsize=50)
+	plt.yticks(fontsize=50)
 	plt.legend(handles=patches)
-	plt.show()
+	plt.tight_layout()
+	plt.savefig(new_path, dpi=250, format="pdf")
 
 
 def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to):
@@ -395,7 +318,7 @@ def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=
 		plot_3D_PCA(pca_pack, save_to=save_to, correlation=plot_correlation)
 
 	if plot_lat_amp_dep:
-		plot_lat_amp_dependency(e_prepared_data_pack, e_latencies_pack, e_filenames_pack, step_size=step_size_to)
+		plot_lat_amp_dependency(e_prepared_data_pack, e_latencies_pack, e_filenames_pack, step_size=step_size_to, save_to=save_to)
 
 	if plot_peaks_by_intervals:
 		plot_peaks_bar_intervals(e_peaks_per_interval_pack, e_filenames_pack, step_size=step_size_to, save_to=save_to)
@@ -408,9 +331,9 @@ def for_article():
 	save_all_to = '/home/alex/GitHub/DATA/'
 
 	compare_pack = [
-		'/home/alex/GitHub/DATA/bio/foot/bio_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/foot/gras_E_13.5cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/gras/foot/gras_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/nest/foot/nest_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 
@@ -418,9 +341,9 @@ def for_article():
 	step_size_to = 0.1
 	plot_pca_flag = False
 	plot_correlation = False
-	plot_slices_flag = False
-	plot_lat_amp_dep = False
-	plot_peaks_by_intervals = True
+	plot_slices_flag = True
+	plot_lat_amp_dep = True
+	plot_peaks_by_intervals = False
 
 	__process_dataset(compare_pack, save_all_to, plot_slices_flag, plot_pca_flag, plot_correlation,
 	                  plot_peaks_by_intervals, plot_lat_amp_dep, step_size_to)
