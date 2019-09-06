@@ -235,7 +235,7 @@ def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
 				i = next_i
 				break
 			next_i += 1
-	filtered_mask_indexes = np.append(0, filtered_mask_indexes)
+	filtered_mask_indexes = np.append(0, filtered_mask_indexes).astype(int)
 	e_poly_names = merged_names[filtered_mask_indexes]
 	e_poly_indexes = merged_indexes[filtered_mask_indexes]
 	e_poly_values = merged_values[filtered_mask_indexes]
@@ -413,12 +413,16 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugg
 				e_poly_indexes = e_poly_indexes[mask]
 				e_poly_values = e_poly_values[mask]
 
-				# calc the values which corresponds to the percentiles
-				diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
-				# filter extrema: remove micropeaks by Q3 percentile value
-				e_poly_names, e_poly_indexes, e_poly_values = filter_extremuma(e_poly_names, e_poly_indexes,
-				                                                               e_poly_values,
-				                                                               allowed_diff=diff_Q3)
+				# check if where are no extrema (no activity)
+				if len(e_poly_indexes) == 0:
+					e_poly_names, e_poly_indexes, e_poly_values = [], [], []
+				else:
+					# calc the values which corresponds to the percentiles
+					diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
+					# filter extrema: remove micropeaks by Q3 percentile value
+					e_poly_names, e_poly_indexes, e_poly_values = filter_extremuma(e_poly_names, e_poly_indexes,
+					                                                               e_poly_values,
+					                                                               allowed_diff=diff_Q3)
 				# fill array by intervals
 				for interval_index, interval in enumerate(intervals):
 					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes)
