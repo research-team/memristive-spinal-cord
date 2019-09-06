@@ -580,4 +580,5 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 			ax.view_init(elev=elev, azim=azim)
 			plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 			plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
+			plt.savefig(f"{save_to}/{title}.png", dpi=250, format="png")
 			plt.close(fig)
