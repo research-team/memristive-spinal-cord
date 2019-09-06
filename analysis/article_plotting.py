@@ -242,6 +242,43 @@ def plot_histograms(lat_per_slice, amp_per_slice, peaks_per_slice, dataset, fold
 		log.info(f"Plotted {title} for {filename}")
 
 
+def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_size):
+	cap_size = 0.3
+	patches = []
+	colors = iter(["#a6261d", "#f2aa2e", "#275b78", "#472650"])
+	for pack_index, pack_data in enumerate(pack_datas_per_exp):
+		pack_color = next(colors)
+		box_latencies = np.array([calc_boxplots(dots) for dots in pack_lats_per_exp[pack_index].reshape(len(pack_data), -1).T])
+
+		for slice_index, latencies_per_slices in enumerate(box_latencies):
+			slice_of_exp = pack_data[:, slice_index]
+			#
+			lat_high = box_latencies[slice_index, k_box_high]
+			lat_med = box_latencies[slice_index, k_median]
+			lat_low = box_latencies[slice_index, k_box_low]
+			#
+			amp_from_low_lat = np.sum(np.abs(slice_of_exp[:, int(lat_low / step_size): ])) / len(pack_data)
+			amp_from_med_lat = np.sum(np.abs(slice_of_exp[:, int(lat_med / step_size): ])) / len(pack_data)
+			amp_from_high_lat = np.sum(np.abs(slice_of_exp[:, int(lat_high / step_size): ])) / len(pack_data)
+
+			x = lat_med
+			# plt caps
+			plt.plot([x - cap_size, x + cap_size], [amp_from_low_lat, amp_from_low_lat], linewidth=1, color=pack_color)
+			plt.plot([x - cap_size, x + cap_size], [amp_from_high_lat, amp_from_high_lat], linewidth=1, color=pack_color)
+			# plt dot
+			plt.plot(x, amp_from_med_lat, '.', markersize='10', color=pack_color)
+			# plt line
+			plt.plot([x, x], [amp_from_low_lat, amp_from_high_lat], linewidth=1, color=pack_color)
+
+		patches.append(mpatches.Patch(color=pack_color, label=f"{names[pack_index]}"))
+
+	plt.xlabel("Latency")
+	plt.ylabel("Amplitude")
+	plt.xticks(range(10, 26), range(10, 26))
+	plt.legend(handles=patches)
+	plt.show()
+
+
 def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to):
 	"""
 	ToDo add info
@@ -356,6 +393,9 @@ def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=
 
 	if plot_pca_flag or plot_correlation:
 		plot_3D_PCA(pca_pack, save_to=save_to, correlation=plot_correlation)
+
+	if plot_lat_amp_dep:
+		plot_lat_amp_dependency(e_prepared_data_pack, e_latencies_pack, e_filenames_pack, step_size=step_size_to)
 
 	if plot_peaks_by_intervals:
 		plot_peaks_bar_intervals(e_peaks_per_interval_pack, e_filenames_pack, step_size=step_size_to, save_to=save_to)
