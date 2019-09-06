@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import pylab as plt
+import matplotlib.ticker as ticker
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from scipy.signal import argrelextrema
@@ -263,7 +264,6 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 	global_lat_indexes = []
 	micro_border = 0.005
 	l_poly_border = int(10 / step_size)
-
 	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
 	for slices_per_experiment in sliced_datasets:
 		for slice_data in slices_per_experiment:
@@ -362,7 +362,7 @@ def get_amp_per_exp(sliced_datasets, step_size, debugging=False):
 	return np.array(global_amp_values)
 
 
-def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugging=False):
+def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -431,7 +431,6 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=True, debugg
 				# get maxima/minima extrema
 				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
 				e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
-
 				# sum all found peaks
 				peaks_sum = 0
 				if e_maxima_indexes is not None:
@@ -477,7 +476,7 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		volume_sum = 0
 		data_pack_xyz = []
-		title = str(title).lower().replace(" ", "_")
+		new_filename = str(title).lower().replace(" ", "_")
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
@@ -562,23 +561,27 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 			ax.xaxis._axinfo['tick']['inward_factor'] = 0
 			ax.yaxis._axinfo['tick']['inward_factor'] = 0
 			ax.zaxis._axinfo['tick']['inward_factor'] = 0
+
+			ax.tick_params(which='major', length=10, width=3, labelsize=50)
+			ax.tick_params(which='minor', length=4, width=2, labelsize=50)
+
 			# remove one of the plane ticks to make output pdf more readable
 			if "Lat" not in title:
 				ax.set_xticks([])
-				ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35, rotation=90)
-				ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
 			if "Amp" not in title:
 				ax.set_yticks([])
-				ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
-				ax.set_zticklabels(ax.get_zticks().astype(float), fontsize=35)
+				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
 			if "Peak" not in title:
 				ax.set_zticks([])
-				ax.set_xticklabels(ax.get_xticks().astype(float), fontsize=35, rotation=90)
-				ax.set_yticklabels(ax.get_yticks().astype(float), fontsize=35)
+				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
 
 			plt.legend()
 			ax.view_init(elev=elev, azim=azim)
 			plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-			plt.savefig(f"{save_to}/{title}.pdf", dpi=250, format="pdf")
-			plt.savefig(f"{save_to}/{title}.png", dpi=250, format="png")
+			plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
+			plt.savefig(f"{save_to}/{new_filename}.png", dpi=250, format="png")
 			plt.close(fig)

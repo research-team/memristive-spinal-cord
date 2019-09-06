@@ -270,9 +270,7 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=False,
-                      plot_correlation=False, plot_peaks_by_intervals=False,
-                      plot_lat_amp_dep=False, step_size_to=0.1):
+def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 	"""
 	ToDo add info
 	Args:
@@ -296,7 +294,7 @@ def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=
 		e_prepared_data = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 
 		# form data pack for peaks per interval
-		if plot_peaks_by_intervals:
+		if flags['plot_peaks_by_intervals']:
 			e_peaks_per_interval = get_peak_per_exp(e_prepared_data, step_size=step_size_to, split_by_intervals=True)
 			e_peaks_per_interval_pack.append(e_peaks_per_interval)
 
@@ -306,12 +304,12 @@ def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=
 		e_peaks = get_peak_per_exp(e_prepared_data, step_size_to)
 
 		# form PCA data pack
-		if plot_pca_flag or plot_correlation:
+		if flags['plot_pca_flag'] or flags['plot_correlation']:
 			coords_meta = (np.stack((e_latencies, e_amplitudes, e_peaks), axis=1), next(colors), data_label)
 			pca_pack.append(coords_meta)
 
 		# plot slices with pattern
-		if plot_slices_flag:
+		if flags['plot_slices_flag']:
 			# get flexor prepared data (centered, normalized, subsampled and sliced)
 			flexor_filename = filename.replace('_E_', '_F_')
 			f_prepared_data = auto_prepare_data(folder, flexor_filename, step_size_to=step_size_to)
@@ -326,13 +324,13 @@ def __process_dataset(filepaths, save_to, plot_slices_flag=False, plot_pca_flag=
 		e_lat_pack.append(e_latencies)
 		e_names_pack.append(filename)
 
-	if plot_pca_flag or plot_correlation:
-		plot_3D_PCA(pca_pack, save_to=save_to, correlation=plot_correlation)
+	if flags['plot_pca_flag'] or flags['plot_correlation']:
+		plot_3D_PCA(pca_pack, save_to=save_to, correlation=flags['plot_correlation'])
 
-	if plot_lat_amp_dep:
+	if flags['plot_lat_amp_dep']:
 		plot_lat_amp_dependency(e_data_pack, e_lat_pack, e_names_pack, step_size=step_size_to, save_to=save_to)
 
-	if plot_peaks_by_intervals:
+	if flags['plot_peaks_by_intervals']:
 		plot_peaks_bar_intervals(e_peaks_per_interval_pack, e_names_pack, step_size=step_size_to, save_to=save_to)
 
 
@@ -351,14 +349,13 @@ def for_article():
 
 	# control
 	step_size_to = 0.1
-	plot_pca_flag = False
-	plot_correlation = False
-	plot_slices_flag = False
-	plot_lat_amp_dep = False
-	plot_peaks_by_intervals = False
+	flags = dict(plot_pca_flag=True,
+	             plot_correlation=False,
+	             plot_slices_flag=False,
+	             plot_lat_amp_dep=False,
+	             plot_peaks_by_intervals=False)
 
-	__process_dataset(compare_pack, save_all_to, plot_slices_flag, plot_pca_flag, plot_correlation,
-	                  plot_peaks_by_intervals, plot_lat_amp_dep, step_size_to)
+	__process_dataset(compare_pack, save_all_to, flags, step_size_to)
 
 
 def run():
