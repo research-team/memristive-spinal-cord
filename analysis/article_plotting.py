@@ -179,15 +179,27 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 
 
 def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_size, save_to):
-	cap_size = 0.3
+	"""
+	ToDo add info
+	Args:
+		pack_datas_per_exp:
+		pack_lats_per_exp:
+		names:
+		step_size:
+		save_to:
+	"""
 	patches = []
+	cap_size = 0.1
 	colors = iter(["#a6261d", "#f2aa2e", "#275b78", "#472650"])
 	# form the new name of the file
 	mode = "_".join(names[0].split("_")[1:-1])
 	names = "_".join((name.split("_")[0] for name in names))
 	new_filename = f"{names}_{mode}_dependency.pdf"
 	# for the best visual result use an 1:1 ratio for 6cms data and 15:5 for others
-	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in mode else (15, 5))
+	ratio = (20, 20) if "6cms" in mode else (15, 5)
+	if len(pack_datas_per_exp) == 1:
+		ratio = (15, 5)
+	fig, ax = plt.subplots(figsize=ratio)
 	#
 	for pack_index, pack_data in enumerate(pack_datas_per_exp):
 		pack_color = next(colors)
@@ -274,9 +286,10 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 	"""
 	ToDo add info
 	Args:
-		filepaths (list):
-		plot_slices_flag (bool):
-		plot_pca_flag (bool):
+		filepaths:
+		save_to:
+		flags:
+		step_size_to:
 	"""
 	pca_pack = []
 	e_lat_pack = []
@@ -305,7 +318,17 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 
 		# form PCA data pack
 		if flags['plot_pca_flag'] or flags['plot_correlation']:
-			coords_meta = (np.stack((e_latencies, e_amplitudes, e_peaks), axis=1), next(colors), data_label)
+			if "bio" in filename:
+				color = '#A6261D'
+			elif "gras" in filename:
+				color = '#287A72'
+			elif "neuron" in filename:
+				color = '#F2AA2E'
+			elif "nest" in filename:
+				color = '#472650'
+			else:
+				raise Exception("Can't set color for data")
+			coords_meta = (np.stack((e_latencies, e_amplitudes, e_peaks), axis=1), color, data_label)
 			pca_pack.append(coords_meta)
 
 		# plot slices with pattern
@@ -341,9 +364,9 @@ def for_article():
 	save_all_to = '/home/alex/GitHub/DATA/'
 
 	compare_pack = [
-		'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/foot/gras_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/foot/bio_E_21cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/gras/foot/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/nest/foot/nest_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 

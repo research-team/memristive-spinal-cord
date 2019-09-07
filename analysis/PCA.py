@@ -91,8 +91,8 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b'):
 			Z_axis = np.linspace(-point[2], point[2], 5) + center[2]
 			ax.plot(X_axis, Y_axis, Z_axis, color='g')
 	# plot ellipsoid with wireframe
-	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.2)
-	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.1)
+	ax.plot_wireframe(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.1)
+	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.05)
 
 
 def split_by_slices(data, slice_length):
@@ -152,7 +152,7 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima_values):
+def merge_extrema(minima_indexes, minima_values, maxima_indexes, maxima_values):
 	"""
 	ToDo add info
 	Args:
@@ -210,7 +210,7 @@ def merge_extremuma_arrays(minima_indexes, minima_values, maxima_indexes, maxima
 	return merged_names, merged_indexes, merged_values
 
 
-def filter_extremuma(merged_names, merged_indexes, merged_values, allowed_diff):
+def filter_extrema(merged_names, merged_indexes, merged_values, allowed_diff):
 	"""
 	Filtering extremuma by value (allowed_diff)
 	Args:
@@ -285,11 +285,11 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 			negative_gradient_y = poly_gradient[negative_gradient_x].flatten()
 			# calc the median, Q1, and Q3 values of dots
 			if len(pos_gradient_y):
-				pos_gradient_Q1, pos_gradient_med, pos_gradient_Q3 = np.percentile(pos_gradient_y, [25, 50, 75])
+				pos_gradient_Q1, pos_gradient_med, pos_gradient_Q3 = np.percentile(pos_gradient_y, [20, 50, 80])
 			else:
 				pos_gradient_Q1, pos_gradient_med, pos_gradient_Q3 = np.inf, np.inf, np.inf
 			if len(negative_gradient_y):
-				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = np.percentile(negative_gradient_y, [25, 50, 75])
+				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = np.percentile(negative_gradient_y, [20, 50, 80])
 			else:
 				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = -np.inf, -np.inf, -np.inf
 			# find the index of latency by the cross between gradient and negative grad Q1/positive grad Q3
@@ -327,7 +327,7 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 	return np.array(global_lat_indexes) * step_size
 
 
-def get_amp_per_exp(sliced_datasets, step_size, debugging=False):
+def get_amp_per_exp(sliced_datasets, step_size):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -337,7 +337,6 @@ def get_amp_per_exp(sliced_datasets, step_size, debugging=False):
 		dataset number  [...], [...], [...], [...],
 		                [...], [...], [...], [...]]
 		step_size (float): data step
-		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		np.ndarray: amplitudes values
 	"""
@@ -405,8 +404,8 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 
 			if split_by_intervals:
 				# merge extrema
-				e_poly_names, e_poly_indexes, e_poly_values = merge_extremuma_arrays(e_minima_indexes, e_minima_values,
-				                                                                     e_maxima_indexes, e_maxima_values)
+				e_poly_names, e_poly_indexes, e_poly_values = merge_extrema(e_minima_indexes, e_minima_values,
+				                                                            e_maxima_indexes, e_maxima_values)
 				# remove extrema included in mono area
 				mask = (e_poly_indexes < mono_start) | (e_poly_indexes > mono_end)
 				e_poly_names = e_poly_names[mask]
@@ -420,9 +419,9 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 					# calc the values which corresponds to the percentiles
 					diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
 					# filter extrema: remove micropeaks by Q3 percentile value
-					e_poly_names, e_poly_indexes, e_poly_values = filter_extremuma(e_poly_names, e_poly_indexes,
-					                                                               e_poly_values,
-					                                                               allowed_diff=diff_Q3)
+					e_poly_names, e_poly_indexes, e_poly_values = filter_extrema(e_poly_names, e_poly_indexes,
+					                                                             e_poly_values,
+					                                                             allowed_diff=diff_Q3)
 				# fill array by intervals
 				for interval_index, interval in enumerate(intervals):
 					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes)
@@ -431,23 +430,34 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 				# get maxima/minima extrema
 				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
 				e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
-				# sum all found peaks
-				peaks_sum = 0
-				if e_maxima_indexes is not None:
-					peaks_sum += len(e_maxima_indexes)
-				if e_minima_indexes is not None:
-					peaks_sum += len(e_minima_indexes)
-				global_peaks_number.append(peaks_sum)
+
+				if e_maxima_indexes is None or e_minima_indexes is None:
+					global_peaks_number.append(0)
+					continue
+
+				e_poly_names, e_poly_indexes, e_poly_values = merge_extrema(e_minima_indexes, e_minima_values,
+				                                                            e_maxima_indexes, e_maxima_values)
+				# check if where are no extrema (no activity)
+				if len(e_poly_indexes) == 0:
+					e_poly_names, e_poly_indexes, e_poly_values = [], [], []
+				else:
+					# calc the values which corresponds to the percentiles
+					diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
+					# filter extrema: remove micropeaks by Q3 percentile value
+					e_poly_names, e_poly_indexes, e_poly_values = filter_extrema(e_poly_names, e_poly_indexes,
+					                                                             e_poly_values,
+					                                                             allowed_diff=diff_Q3)
+				#
+				global_peaks_number.append(len(e_poly_indexes))
 
 			if debugging:
 				plt.axvspan(xmin=3 / step_size, xmax=7 / step_size, color='r', alpha=0.3)
 				plt.plot(slice_data, color='g', label="original")
 				plt.plot(smoothed_data, color='k', label="smoothed")
-				if split_by_intervals:
-					plt.plot(e_poly_indexes, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
-				plt.plot(e_maxima_indexes, e_maxima_values, '.', color='r', markersize=10)
-				plt.plot(e_minima_indexes, e_minima_values, '.', color='cyan', markersize=10)
-
+				x_shift = 0 if split_by_intervals else l_poly_border
+				plt.plot(e_poly_indexes + x_shift, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
+				plt.plot(e_maxima_indexes + l_poly_border, e_maxima_values, '.', color='r', markersize=10)
+				plt.plot(e_minima_indexes + l_poly_border, e_minima_values, '.', color='cyan', markersize=10)
 				plt.legend()
 				plt.show()
 
@@ -481,7 +491,7 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
-		for coords, color, label in data_pack:
+		for coords, color, filename in data_pack:
 			# create PCA instance and fit the model with coords
 			pca = PCA(n_components=3)
 			# coords is a matrix of coordinates, stacked as [[x1, y1, z1], ... , [xN, yN, zN]]
@@ -503,7 +513,7 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 				# start calculus of points intersection
 				volume = (4 / 3) * np.pi * radii[0] * radii[1] * radii[2]
 				volume_sum += volume
-				log.info(f"V: {volume}, {label}")
+				log.info(f"V: {volume}, {filename}")
 				# keep ellipsoid surface dots, A matrix, center
 				phi = np.linspace(0, np.pi, 600)
 				theta = np.linspace(0, 2 * np.pi, 600)
@@ -522,7 +532,7 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 					arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
 					ax.add_artist(arrow)
 				# plot cloud of points
-				ax.scatter(*coords.T, alpha=0.5, s=30, color=color, label=label)
+				ax.scatter(*coords.T, alpha=0.2, s=30, color=color, label=filename)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
 		if correlation:
