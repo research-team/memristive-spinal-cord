@@ -8,7 +8,7 @@ import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
-from analysis.PCA import plot_3D_PCA, get_lat_per_exp, get_amp_per_exp, get_peak_per_exp
+from analysis.PCA import plot_3D_PCA, get_lat_per_exp, get_amp_per_exp, get_peaks_per_slice
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -178,64 +178,43 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_lat_amp_dependency(pack_datas_per_exp, pack_lats_per_exp, names, step_size, save_to):
+def plot_lat_amp_dependency(peaks_per_dataset, names, colors, step_size, save_to):
 	"""
 	ToDo add info
 	Args:
-		pack_datas_per_exp:
-		pack_lats_per_exp:
+		peaks_per_dataset:
 		names:
 		step_size:
 		save_to:
 	"""
-	patches = []
-	cap_size = 0.1
-	colors = iter(["#a6261d", "#f2aa2e", "#275b78", "#472650"])
-	# form the new name of the file
 	mode = "_".join(names[0].split("_")[1:-1])
-	names = "_".join((name.split("_")[0] for name in names))
-	new_filename = f"{names}_{mode}_dependency.pdf"
-	# for the best visual result use an 1:1 ratio for 6cms data and 15:5 for others
-	ratio = (20, 20) if "6cms" in mode else (15, 5)
-	if len(pack_datas_per_exp) == 1:
-		ratio = (15, 5)
-	fig, ax = plt.subplots(figsize=ratio)
-	#
-	for pack_index, pack_data in enumerate(pack_datas_per_exp):
-		pack_color = next(colors)
-		reshaped_lat_of_pack = pack_lats_per_exp[pack_index].reshape(len(pack_data), -1).T
-		box_latencies = np.array([calc_boxplots(dots) for dots in reshaped_lat_of_pack])
-		#
-		for slice_index, latencies_per_slices in enumerate(box_latencies):
-			slice_of_exp = pack_data[:, slice_index]
-			#
-			lat_high = box_latencies[slice_index, k_box_high]
-			lat_med = box_latencies[slice_index, k_median]
-			lat_low = box_latencies[slice_index, k_box_low]
-			#
-			amp_from_low_lat = np.sum(np.abs(slice_of_exp[:, int(lat_low / step_size): ])) / len(pack_data)
-			amp_from_med_lat = np.sum(np.abs(slice_of_exp[:, int(lat_med / step_size): ])) / len(pack_data)
-			amp_from_high_lat = np.sum(np.abs(slice_of_exp[:, int(lat_high / step_size): ])) / len(pack_data)
-			# plot a caps
-			x = lat_med
-			ax.plot([x - cap_size, x + cap_size], [amp_from_low_lat, amp_from_low_lat], linewidth=3, color=pack_color)
-			ax.plot([x - cap_size, x + cap_size], [amp_from_high_lat, amp_from_high_lat], linewidth=3, color=pack_color)
-			# plot a median dot
-			ax.plot(x, amp_from_med_lat, '.', markersize=15, color=pack_color)
-			# plot a line
-			ax.plot([x, x], [amp_from_low_lat, amp_from_high_lat], linewidth=3, color=pack_color)
-		# form the legend
-		patches.append(mpatches.Patch(color=pack_color, label=f"{names[pack_index]}"))
+	datasets = "_".join((name.split("_")[0] for name in names))
+	new_filename = f"{datasets}_{mode}_dependency.pdf"
+
+	fig, ax = plt.subplots(figsize=(15, 5))
+
+	for index_dataset, peaks in enumerate(peaks_per_dataset):
+		for slice_peaks in peaks:
+			if len(slice_peaks) == 0:
+				continue
+			slice_peaks = np.array(slice_peaks)
+			plt.plot(slice_peaks[:, 0] * step_size, slice_peaks[:, 1], '.', markersize=10, color=colors[index_dataset])
+
+	patches = []
+	for name, color in zip(names, colors):
+		patches.append(mpatches.Patch(color=color, label=name))
+
 	# use article from
 	axis_article_style(ax, auto_nbins=True)
 	plt.legend(handles=patches)
 	plt.tight_layout()
-	plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
+	plt.show()
+	# plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to):
+def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to, stacked_bars=False):
 	"""
 	ToDo add info
 	Args:
@@ -247,36 +226,69 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 	patches = []
 	dist_coef = 2
 	bar_width = 0.1
-	colors = ["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d"]
-	intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]]) / step_size
+	colors = ["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", 'g'] * 10
+	ms_intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]])
+	steps_intervals = ms_intervals / step_size
 	# form the new name of the file
 	mode = "_".join(names[0].split("_")[1:-1])
-	names = "_".join((name.split("_")[0] for name in names))
-	new_filename = f"{names}_{mode}_bar.pdf"
+	merged_names = "_".join((name.split("_")[0] for name in names))
+	new_filename = f"{merged_names}_{mode}_bar.pdf"
 	slices_number = len(pack_peaks_per_interval[0])
+
 	fig, ax = plt.subplots(figsize=(15, 5))
-	# calc each pack -- pack is a simulation (NEURON/GRAS/NEST) or bio data
-	for pack_index, pack_data in enumerate(pack_peaks_per_interval):
-		for slice_index, slice_peaks in enumerate(pack_data):
-			bottom = 0
-			# plot stacked bars (intervals are stacked, slices separated)
-			for interval_index, interval_data in enumerate(slice_peaks):
-				plt.bar(slice_index + dist_coef * pack_index * bar_width, interval_data,
-				        bottom=bottom, color=colors[interval_index], width=bar_width, alpha=0.9)
-				bottom += interval_data
-	# reshape intervals for forming legend patches
-	intervals[0] += intervals[-1][-1]
-	c = intervals[0, :].copy()
-	intervals[0:-1, :] = intervals[1:, :]
-	intervals[-1] = c
-	for interval_index, interval_data in enumerate(intervals[::-1] * step_size):
-		patches.append(mpatches.Patch(color=colors[::-1][interval_index], label=f'{interval_data}'))
-	plt.legend(handles=patches)
 
-	# use an article style axis
-	axis_article_style(ax, xshift=1, xmin=1, xmax=slices_number)
+	if stacked_bars:
+		# calc each pack -- pack is a simulation (NEURON/GRAS/NEST) or bio data
+		for pack_index, pack_data in enumerate(pack_peaks_per_interval):
+			for slice_index, slice_peaks in enumerate(pack_data):
+				bottom = 0
+				# plot stacked bars (intervals are stacked, slices separated)
+				for interval_index, interval_data in enumerate(slice_peaks):
+					plt.bar(slice_index + dist_coef * pack_index * bar_width, interval_data,
+					        bottom=bottom, color=colors[interval_index], width=bar_width, alpha=0.9)
+					bottom += interval_data
 
+		# reshape intervals for forming legend patches
+		steps_intervals[0] += steps_intervals[-1][-1]
+		c = steps_intervals[0, :].copy()
+		steps_intervals[0:-1, :] = steps_intervals[1:, :]
+		steps_intervals[-1] = c
+		for interval_index, interval_data in enumerate(steps_intervals[::-1] * step_size):
+			patches.append(mpatches.Patch(color=colors[::-1][interval_index], label=f'{interval_data}'))
+		plt.legend(handles=patches)
+
+		# use an article style axis
+		axis_article_style(ax, xshift=1, xmin=1, xmax=slices_number)
+	#
+	else:
+		for pack_index, pack_data in enumerate(pack_peaks_per_interval):
+			print(pack_data)
+			for interval_index, interval_data in enumerate(pack_data.T):
+				bottom = 0
+				# plot stacked bars (intervals are stacked, slices separated)
+				for slice_index, slice_data in enumerate(interval_data):
+					plt.bar(interval_index + dist_coef * pack_index * bar_width, slice_data,
+					        bottom=bottom, color=colors[slice_index], width=bar_width, alpha=0.9)
+					bottom += slice_data
+				plt.text(interval_index + dist_coef * pack_index * bar_width - bar_width / 2,
+				         bottom + 0.1, merged_names.split("_")[pack_index])
+
+		# reshape intervals for forming legend patches
+		for i in range(slices_number):
+			patches.append(mpatches.Patch(color=colors[i], label=f'{i + 1}'))
+		plt.legend(handles=patches, ncol=slices_number // 2, loc='upper center', bbox_to_anchor=(0.5, 1.1))
+
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	# make ticks more visible
+	ax.tick_params(which='major', length=10, width=3, labelsize=50)
+	ax.tick_params(which='minor', length=4, width=2, labelsize=50)
+	plt.xticks(range(len(ms_intervals)), [f"{interval[0]}-{interval[1]}ms" for interval in ms_intervals], fontsize=20)
+	plt.yticks(fontsize=50)
 	plt.tight_layout()
+	plt.show()
+	raise Exception
+
 	plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
@@ -295,39 +307,40 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 	e_lat_pack = []
 	e_names_pack = []
 	e_data_pack = []
-	e_peaks_per_interval_pack = []
-	colors = iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"] * 10)
+	peaks_per_dataset = []
+	peaks_per_interval_pack = []
+	colors = [] #iter(["#275b78", "#287a72", "#f2aa2e", "#472650", "#a6261d", "#f27c2e", "#2ba7b9"] * 10)
 
 	# process each file
 	for filepath in filepaths:
 		folder = ntpath.dirname(filepath)
 		filename = ntpath.basename(filepath)
 		data_label = filename.replace('.hdf5', '')
+		if "bio" in filename:
+			color = '#A6261D'
+		elif "gras" in filename:
+			color = '#287A72'
+		elif "neuron" in filename:
+			color = '#F2AA2E'
+		elif "nest" in filename:
+			color = '#472650'
+		else:
+			raise Exception("Can't set color for data")
 		# get extensor prepared data (centered, normalized, subsampled and sliced)
 		e_prepared_data = auto_prepare_data(folder, filename, step_size_to=step_size_to)
 
 		# form data pack for peaks per interval
 		if flags['plot_peaks_by_intervals']:
-			e_peaks_per_interval = get_peak_per_exp(e_prepared_data, step_size=step_size_to, split_by_intervals=True)
-			e_peaks_per_interval_pack.append(e_peaks_per_interval)
+			e_peaks_per_interval = get_peaks_per_slice(e_prepared_data, step_size_to, split_by_intervals=True)
+			peaks_per_interval_pack.append(e_peaks_per_interval)
 
 		# process latencies, amplitudes, peaks (per dataset per slice)
 		e_latencies = get_lat_per_exp(e_prepared_data, step_size_to)
-		e_amplitudes = get_amp_per_exp(e_prepared_data, step_size_to)
-		e_peaks = get_peak_per_exp(e_prepared_data, step_size_to)
+		# e_amplitudes = get_amp_per_exp(e_prepared_data, step_size_to)
+		e_peaks = get_peaks_per_slice(e_prepared_data, step_size_to, split_by_intervals=False, debugging=False)
 
 		# form PCA data pack
 		if flags['plot_pca_flag'] or flags['plot_correlation']:
-			if "bio" in filename:
-				color = '#A6261D'
-			elif "gras" in filename:
-				color = '#287A72'
-			elif "neuron" in filename:
-				color = '#F2AA2E'
-			elif "nest" in filename:
-				color = '#472650'
-			else:
-				raise Exception("Can't set color for data")
 			coords_meta = (np.stack((e_latencies, e_amplitudes, e_peaks), axis=1), color, data_label)
 			pca_pack.append(coords_meta)
 
@@ -346,15 +359,17 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 		e_data_pack.append(e_prepared_data)
 		e_lat_pack.append(e_latencies)
 		e_names_pack.append(filename)
+		colors.append(color)
+		peaks_per_dataset.append(e_peaks)
 
 	if flags['plot_pca_flag'] or flags['plot_correlation']:
 		plot_3D_PCA(pca_pack, save_to=save_to, correlation=flags['plot_correlation'])
 
 	if flags['plot_lat_amp_dep']:
-		plot_lat_amp_dependency(e_data_pack, e_lat_pack, e_names_pack, step_size=step_size_to, save_to=save_to)
+		plot_lat_amp_dependency(peaks_per_dataset, e_names_pack, colors, step_size=step_size_to, save_to=save_to)
 
 	if flags['plot_peaks_by_intervals']:
-		plot_peaks_bar_intervals(e_peaks_per_interval_pack, e_names_pack, step_size=step_size_to, save_to=save_to)
+		plot_peaks_bar_intervals(peaks_per_interval_pack, e_names_pack, step_size=step_size_to, save_to=save_to)
 
 
 def for_article():
@@ -364,19 +379,19 @@ def for_article():
 	save_all_to = '/home/alex/GitHub/DATA/'
 
 	compare_pack = [
-		'/home/alex/GitHub/DATA/bio/foot/bio_E_21cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
-		'/home/alex/GitHub/DATA/gras/foot/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		# '/home/alex/GitHub/DATA/gras/foot/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/nest/foot/nest_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 	]
 
 	# control
 	step_size_to = 0.1
-	flags = dict(plot_pca_flag=True,
+	flags = dict(plot_pca_flag=False,
 	             plot_correlation=False,
 	             plot_slices_flag=False,
-	             plot_lat_amp_dep=False,
-	             plot_peaks_by_intervals=False)
+	             plot_lat_amp_dep=True,
+	             plot_peaks_by_intervals=True)
 
 	__process_dataset(compare_pack, save_all_to, flags, step_size_to)
 

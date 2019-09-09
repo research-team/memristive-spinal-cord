@@ -293,6 +293,7 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 			else:
 				neg_gradient_Q1, neg_gradient_med, neg_gradient_Q3 = -np.inf, -np.inf, -np.inf
 			# find the index of latency by the cross between gradient and negative grad Q1/positive grad Q3
+			latency_index = None
 			for index, grad in enumerate(gradient[l_poly_border:]):
 				if (grad > pos_gradient_Q3 or grad < neg_gradient_Q1) and (grad > micro_border or grad < -micro_border):
 					latency_index = index + l_poly_border
@@ -361,7 +362,7 @@ def get_amp_per_exp(sliced_datasets, step_size):
 	return np.array(global_amp_values)
 
 
-def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debugging=False):
+def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -381,7 +382,7 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 
 	global_peaks_number = []
 	# only for non-interval's algorithm
-	l_poly_border = int(10 / step_size)
+	l_poly_border = int(7 / step_size)
 	dataset_size = len(sliced_datasets)
 	slices_number = len(sliced_datasets[0])
 	# static borders (convert by division to steps)
@@ -391,8 +392,14 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 	#
 	mono_end = int(7 / step_size)
 	mono_start = int(3 / step_size)
+
+	min_amplitude = 0.3
+	min_distance = int(0.7 / step_size)
+	max_distance = int(4 / step_size)
 	# nested loop for processong each slice in datasets
 	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2]) to make it 1D with saving order
+	peaks_per_slice = [[] for _ in range(slices_number)]
+	#
 	for slices_per_experiment in sliced_datasets:
 		for slice_index, slice_data in enumerate(slices_per_experiment):
 			# smooth data (small value for smoothing only micro-peaks)
@@ -401,65 +408,71 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 			# get all extrema
 			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
 			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
-
+			#
 			if split_by_intervals:
-				# merge extrema
-				e_poly_names, e_poly_indexes, e_poly_values = merge_extrema(e_minima_indexes, e_minima_values,
-				                                                            e_maxima_indexes, e_maxima_values)
-				# remove extrema included in mono area
-				mask = (e_poly_indexes < mono_start) | (e_poly_indexes > mono_end)
-				e_poly_names = e_poly_names[mask]
-				e_poly_indexes = e_poly_indexes[mask]
-				e_poly_values = e_poly_values[mask]
-
-				# check if where are no extrema (no activity)
-				if len(e_poly_indexes) == 0:
-					e_poly_names, e_poly_indexes, e_poly_values = [], [], []
+				dots = []
+				# check if
+				if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
+					continue
+				# combine dots
+				if e_minima_indexes[0] < e_maxima_indexes[0]:
+					comb = zip(e_maxima_indexes, e_minima_indexes[1:])
 				else:
-					# calc the values which corresponds to the percentiles
-					diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
-					# filter extrema: remove micropeaks by Q3 percentile value
-					e_poly_names, e_poly_indexes, e_poly_values = filter_extrema(e_poly_names, e_poly_indexes,
-					                                                             e_poly_values,
-					                                                             allowed_diff=diff_Q3)
-				# fill array by intervals
+					comb = zip(e_maxima_indexes, e_minima_indexes)
+				# find pairs
+				for max_index, min_index in comb:
+					max_value = e_maxima_values[e_maxima_indexes == max_index][0]
+					min_value = e_minima_values[e_minima_indexes == min_index][0]
+					dT = min_index - max_index
+					dA = abs(max_value - min_value)
+
+					max_is_ok = max_index < mono_start or max_index > mono_end
+					min_is_ok = min_index < mono_start or min_index > mono_end
+
+					if max_is_ok and min_is_ok and ((min_distance <= dT <= max_distance and dA >= 0.05) or dA >= min_amplitude):
+						dots += [max_index, min_index]
+				# sort pairs by intervals (use only their counts)
 				for interval_index, interval in enumerate(intervals):
-					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], e_poly_indexes)
+					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], dots)
 					peaks_per_interval[slice_index][interval_index] += len(list(peaks_in_interval))
 			else:
-				# get maxima/minima extrema
-				e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data[l_poly_border:], np.greater)
-				e_minima_indexes, e_minima_values = find_extrema(smoothed_data[l_poly_border:], np.less)
+				mask = e_maxima_indexes > mono_end
+				e_maxima_indexes = e_maxima_indexes[mask]
+				e_maxima_values = e_maxima_values[mask]
 
-				if e_maxima_indexes is None or e_minima_indexes is None:
-					global_peaks_number.append(0)
+				mask = e_minima_indexes > mono_end
+				e_minima_indexes = e_minima_indexes[mask]
+				e_minima_values = e_minima_values[mask]
+
+				if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
 					continue
-
-				e_poly_names, e_poly_indexes, e_poly_values = merge_extrema(e_minima_indexes, e_minima_values,
-				                                                            e_maxima_indexes, e_maxima_values)
-				# check if where are no extrema (no activity)
-				if len(e_poly_indexes) == 0:
-					e_poly_names, e_poly_indexes, e_poly_values = [], [], []
+				if e_minima_indexes[0] < e_maxima_indexes[0]:
+					comb = zip(e_maxima_indexes, e_minima_indexes[1:])
 				else:
-					# calc the values which corresponds to the percentiles
-					diff_Q1, diff_median, diff_Q3 = np.percentile(e_poly_values, (15, 50, 85))
-					# filter extrema: remove micropeaks by Q3 percentile value
-					e_poly_names, e_poly_indexes, e_poly_values = filter_extrema(e_poly_names, e_poly_indexes,
-					                                                             e_poly_values,
-					                                                             allowed_diff=diff_Q3)
-				#
-				global_peaks_number.append(len(e_poly_indexes))
-
-			if debugging:
-				plt.axvspan(xmin=3 / step_size, xmax=7 / step_size, color='r', alpha=0.3)
-				plt.plot(slice_data, color='g', label="original")
-				plt.plot(smoothed_data, color='k', label="smoothed")
-				x_shift = 0 if split_by_intervals else l_poly_border
-				plt.plot(e_poly_indexes + x_shift, e_poly_values, '.', color='k', markersize=20, alpha=0.8)
-				plt.plot(e_maxima_indexes + l_poly_border, e_maxima_values, '.', color='r', markersize=10)
-				plt.plot(e_minima_indexes + l_poly_border, e_minima_values, '.', color='cyan', markersize=10)
-				plt.legend()
-				plt.show()
+					comb = zip(e_maxima_indexes, e_minima_indexes)
+				dots = []
+				vals = []
+				for max_index, min_index in comb:
+					max_value = e_maxima_values[e_maxima_indexes == max_index][0]
+					min_value = e_minima_values[e_minima_indexes == min_index][0]
+					dT = min_index - max_index
+					dA = abs(max_value - min_value)
+					if (min_distance <= dT <= max_distance) and dA >= 0.05 or dA >= min_amplitude:
+						peaks_per_slice[slice_index] += [(max_index, dA)]
+						dots += [max_index, min_index]
+						vals += [max_value, min_value]
+						if debugging:
+							plt.plot([max_index * step_size, min_index * step_size], [max_value, max_value], color='k')
+							plt.plot([min_index * step_size, min_index * step_size], [max_value, min_value], color='k')
+							plt.text(min_index * step_size, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
+				if debugging:
+					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
+					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
+					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
+					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
+					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
+					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
+					plt.show()
 
 	if split_by_intervals:
 		peaks_per_interval = peaks_per_interval / dataset_size
@@ -471,7 +484,7 @@ def get_peak_per_exp(sliced_datasets, step_size, split_by_intervals=False, debug
 
 		return peaks_per_interval
 
-	return np.array(global_peaks_number)
+	return peaks_per_slice
 
 
 def plot_3D_PCA(data_pack, save_to, correlation=False):
