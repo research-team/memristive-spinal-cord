@@ -323,10 +323,12 @@ if __name__ == "__main__":
 	save_folder = f"{os.getcwd()}/dat"
 
 	for i in range(parameters.tests):
-		try:
-			V3(parameters, iteration=i)
-		except Exception as error:
-			print(error)
+		while True:
+			try:
+				V3(parameters, iteration=i)
+				break
+			except Exception:
+				continue
 
 	convert_to_hdf5(save_folder)
 	plot_results(save_folder, ees_hz=parameters.EES)
