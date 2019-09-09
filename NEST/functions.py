@@ -5,7 +5,8 @@ from random import normalvariate
 from collections import defaultdict
 
 syn_outdegree = 27
-nrns_in_group = 20
+nrns_in_group = 40
+
 
 class Parameters:
 	__slots__ = ['tests', 'steps', 'cms', 'EES', 'inh', 'ped', 'ht5', 'save_all', 'step_cycle',
@@ -34,6 +35,7 @@ class Functions:
 	"""
 	TODO add info
 	"""
+
 	def __init__(self, P):
 		"""
 		Args:
@@ -55,7 +57,6 @@ class Functions:
 		self.cv_generators = []
 		self.spikedetectors = []
 
-
 	def __build_params(self):
 		"""
 		ToDo add info
@@ -63,21 +64,20 @@ class Functions:
 			dict: formed neuron's params with randomization
 		"""
 		neuron_params = {'t_ref': normalvariate(3, 0.4),  # [ms] refractory period
-		                 'V_m': -70.0,      # [mV] starting value of membrane potential
-		                 'E_L': -72.0,      # [mV] Reversal potential for the leak current
-		                 'g_Na': 20000.0,   # [nS] Maximal conductance of the Sodium current
-		                 'g_K': 6000.0,     # [nS] Maximal conductance of the Potassium current
-		                 'g_L': 30.0,       # [nS] Conductance of the leak current
-		                 'E_Na': 50.0,      # [mV] Reversal potential for the Sodium current
-		                 'E_K': -100.0,     # [mV] Reversal potential for the Potassium current
-		                 'E_ex': 0.0,       # [mV] Reversal potential for excitatory input
-		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
-		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)
-		                 'tau_syn_in': 2.0, # [ms] Decay time of inhibitory synaptic current (ms)
+		                 'V_m': -70.0,  # [mV] starting value of membrane potential
+		                 'E_L': -72.0,  # [mV] Reversal potential for the leak current
+		                 'g_Na': 20000.0,  # [nS] Maximal conductance of the Sodium current
+		                 'g_K': 6000.0,  # [nS] Maximal conductance of the Potassium current
+		                 'g_L': 30.0,  # [nS] Conductance of the leak current
+		                 'E_Na': 50.0,  # [mV] Reversal potential for the Sodium current
+		                 'E_K': -100.0,  # [mV] Reversal potential for the Potassium current
+		                 'E_ex': 0.0,  # [mV] Reversal potential for excitatory input
+		                 'E_in': -80.0,  # [mV] Reversal potential for excitatory input
+		                 'tau_syn_ex': 0.2,  # [ms] Decay time of excitatory synaptic current (ms)
+		                 'tau_syn_in': 2.0,  # [ms] Decay time of inhibitory synaptic current (ms)
 		                 'C_m': normalvariate(200, 6)}  # [pF] capacity of membrane
 
 		return neuron_params
-
 
 	def create_multimeter(self, name, record_from):
 		"""
@@ -106,15 +106,14 @@ class Functions:
 
 		return nest.Create(model='multimeter', n=1, params=mm_params)
 
-
 	def create_spikedetector(self, name):
 		"""
 		ToDo add info
 		Args:
 			name: neurons group name
-	    Returns:
+		Returns:
 			list: list of spikedetector GID
-	    """
+		"""
 		detector_params = {'label': name,
 		                   'withgid': False,
 		                   'file_extension': 'sd',
@@ -122,7 +121,6 @@ class Functions:
 		                   'to_memory': False}
 
 		return nest.Create(model='spike_detector', n=1, params=detector_params)
-
 
 	def form_group(self, name, nrn_number=nrns_in_group):
 		"""
@@ -134,10 +132,26 @@ class Functions:
 			list: global IDs of created neurons
 		"""
 		neuron_model = 'hh_cond_exp_traub'
-		r_params = self.__build_params
-		gids = [nest.Create(model=neuron_model, n=1, params=r_params())[0] for _ in range(nrn_number)]
+		r_params = self.__build_params()
+		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F']:
+			r_params['C_m'] = normalvariate(200, 13)
+			r_params['t_ref'] = normalvariate(2, 0.15)
 
-		if self.P.save_all or name in ["MN_E", "MN_F"]:
+		gids = [nest.Create(model=neuron_model, n=1, params=r_params)[0] for _ in range(nrn_number)]
+
+		target_groups = [
+			# "OM1_0", "OM1_1", "OM1_2_E", "OM1_2_F", "OM1_3",
+			# "OM2_0", "OM2_1", "OM2_2_E", "OM2_2_F", "OM2_3",
+			# "OM3_0", "OM3_1", "OM3_2_E", "OM3_2_F", "OM3_3",
+			# "OM4_0", "OM4_1", "OM4_2_E", "OM4_2_F", "OM4_3",
+			# "OM5_0", "OM5_1", "OM5_2_E", "OM5_2_F", "OM5_3",
+			# "iIP_E", "iIP_F", "eIP_E", "eIP_F",
+			# "Ia_E_aff", "Ia_F_aff", "Ia_E_pool", "Ia_F_pool",
+			"MN_E", "MN_F",
+			# "R_E", "R_F"
+		]
+
+		if self.P.save_all or name in target_groups:
 			mm_device = self.create_multimeter(name, record_from="V_m")
 			sd_device = self.create_spikedetector(name)
 
@@ -148,7 +162,6 @@ class Functions:
 			nest.Connect(pre=gids, post=sd_device)
 
 		return gids
-
 
 	def connect_spike_generator(self, node, rate, t_start=None, t_end=None, offset=0):
 		"""
@@ -194,7 +207,6 @@ class Functions:
 		# connect the spike generator with node
 		nest.Connect(pre=spike_generator, post=node, syn_spec=syn_spec, conn_spec=conn_spec)
 
-
 	def connect_noise_generator(self, node, rate, t_start=None, t_end=None):
 		"""
 		TODO add info
@@ -232,7 +244,6 @@ class Functions:
 
 		self.cv_generators.append(spike_generator)
 
-
 	def __connect(self, pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr):
 		delay_distr = {"distribution": "normal",
 		               "mu": float(syn_delay),
@@ -248,7 +259,6 @@ class Functions:
 		# NEST connection
 		nest.Connect(pre=pre_ids, post=post_ids, syn_spec=syn_spec, conn_spec=conn_spec)
 
-
 	def connect_one_to_all(self, pre_ids, post_ids, syn_delay, syn_weight, no_distr=False):
 		"""
 		Connect group of neurons
@@ -260,12 +270,12 @@ class Functions:
 			no_distr (bool): disable distribution or no
 		"""
 		conn_spec = {'rule': 'all_to_all',  # fixed outgoing synapse number
-		             'multapses': False,    # allow recurring connections
-		             'autapses': False}     # allow self-connection
+		             'multapses': False,  # allow recurring connections
+		             'autapses': False}  # allow self-connection
 		self.__connect(pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr)
 
-
-	def connect_fixed_outdegree(self, pre_ids, post_ids, syn_delay, syn_weight, outdegree=syn_outdegree, no_distr=False):
+	def connect_fixed_outdegree(self, pre_ids, post_ids, syn_delay, syn_weight, outdegree=syn_outdegree,
+	                            no_distr=False):
 		"""
 		Connect group of neurons
 		Args:
@@ -277,12 +287,11 @@ class Functions:
 			no_distr (bool): disable distribution or no
 		"""
 		# initialize connection specification
-		conn_spec = {'rule': 'fixed_outdegree',    # fixed outgoing synapse number
+		conn_spec = {'rule': 'fixed_outdegree',  # fixed outgoing synapse number
 		             'outdegree': int(outdegree),  # number of synapses outgoing from PRE neuron
-		             'multapses': True,            # allow recurring connections
-		             'autapses': False}            # allow self-connection
+		             'multapses': True,  # allow recurring connections
+		             'autapses': False}  # allow self-connection
 		self.__connect(pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr)
-
 
 	def simulate(self):
 		"""
@@ -298,12 +307,10 @@ class Functions:
 			# simulate one step cycle
 			nest.Simulate(self.P.step_cycle)
 
-
 	def check(self, data):
 		for d in data:
 			if len(d) == 4:
 				yield d
-
 
 	def resave(self):
 		"""
