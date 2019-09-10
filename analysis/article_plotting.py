@@ -198,18 +198,18 @@ def plot_lat_amp_dependency(peaks_per_dataset, names, colors, step_size, save_to
 			if len(slice_peaks) == 0:
 				continue
 			slice_peaks = np.array(slice_peaks)
-			plt.plot(slice_peaks[:, 0] * step_size, slice_peaks[:, 1], '.', markersize=10, color=colors[index_dataset])
+			plt.plot(slice_peaks[:, 0] * step_size, slice_peaks[:, 1], 'o', markersize=5, color=colors[index_dataset])
 
 	patches = []
 	for name, color in zip(names, colors):
+		name = name.split("_")[0]
 		patches.append(mpatches.Patch(color=color, label=name))
 
 	# use article from
 	axis_article_style(ax, auto_nbins=True)
 	plt.legend(handles=patches)
 	plt.tight_layout()
-	plt.show()
-	# plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
+	plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
 
@@ -379,10 +379,10 @@ def for_article():
 	save_all_to = '/home/alex/GitHub/DATA/'
 
 	compare_pack = [
-		'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-		'/home/alex/GitHub/DATA/neuron/foot/neuron_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/neuron/qpz/neuron_E_6cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/gras/foot/gras_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
 		# '/home/alex/GitHub/DATA/nest/foot/nest_E_21cms_40Hz_i100_2pedal_no5ht_T_0.025step.hdf5',
+		'/home/alex/GitHub/DATA/bio/qpz/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
 	]
 
 	# control
@@ -391,7 +391,7 @@ def for_article():
 	             plot_correlation=False,
 	             plot_slices_flag=False,
 	             plot_lat_amp_dep=True,
-	             plot_peaks_by_intervals=True)
+	             plot_peaks_by_intervals=False)
 
 	__process_dataset(compare_pack, save_all_to, flags, step_size_to)
 
