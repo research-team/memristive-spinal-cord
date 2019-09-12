@@ -386,10 +386,7 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	"""
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
-
-	global_peaks_number = []
-	# only for non-interval's algorithm
-	l_poly_border = int(7 / step_size)
+	# get dataset shape
 	dataset_size = len(sliced_datasets)
 	slices_number = len(sliced_datasets[0])
 	# static borders (convert by division to steps)
@@ -397,28 +394,27 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	# prepare array for fitting data
 	peaks_per_interval = np.zeros((slices_number, len(intervals)))
 	#
+	min_amplitude = 0.3
 	mono_end = int(7 / step_size)
 	mono_start = int(3 / step_size)
-
-	min_amplitude = 0.3
 	min_distance = int(0.7 / step_size)
 	max_distance = int(4 / step_size)
 	# nested loop for processong each slice in datasets
 	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2]) to make it 1D with saving order
-	peak_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)] #np.zeros((dataset_size, slices_number))
-	ampl_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)] #np.zeros((dataset_size, slices_number))
+	peak_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)]
+	ampl_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)]
 	#
 	for dataset_index, slices_per_experiment in enumerate(sliced_datasets):
 		for slice_index, slice_data in enumerate(slices_per_experiment):
+			#
+			dots = []
+			vals = []
 			# smooth data (small value for smoothing only micro-peaks)
 			smoothed_data = smooth(slice_data, 2)
 			# optional variant to calculate peaks in specific intervals
 			# get all extrema
 			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
 			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
-			#
-			dots = []
-			vals = []
 			#
 			if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
 				continue
@@ -458,9 +454,11 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 							dots += [max_index, min_index]
 							vals += [max_value, min_value]
 							if debugging:
-								plt.plot([max_index * step_size, min_index * step_size], [max_value, max_value], color='k')
-								plt.plot([min_index * step_size, min_index * step_size], [max_value, min_value], color='k')
-								plt.text(min_index * step_size, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
+								min_index *= step_size
+								max_index *= step_size
+								plt.plot([max_index, min_index], [max_value, max_value], color='k')
+								plt.plot([min_index, min_index], [max_value, min_value], color='k')
+								plt.text(min_index, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
 					if debugging:
 						plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
 						plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
@@ -483,19 +481,21 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	return peak_matrix, ampl_matrix
 
 
-def plot_3D_PCA(data_pack, save_to, correlation=False):
+def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 	"""
 	TODO: add docstring
 	Args:
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
+		names (list of str): datasets names
 		save_to (str): save folder path
 		correlation (bool): enable or disable corelation calculating
 	"""
+	light_filename = "_".join(names[0].split("_")[1:-1])
 	# plot PCA at different point of view
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
 		volume_sum = 0
 		data_pack_xyz = []
-		new_filename = str(title).lower().replace(" ", "_")
+		new_filename = f"{light_filename}_{title.lower().replace(' ', '_')}"
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
@@ -541,7 +541,7 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 					arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
 					ax.add_artist(arrow)
 				# plot cloud of points
-				ax.scatter(*coords.T, alpha=0.2, s=30, color=color, label=filename)
+				ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
 		if correlation:
@@ -575,39 +575,33 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 			log.info(f"PCA similarity: {pca_similarity}")
 			# debugging plotting
 			# ax.scatter(*points_in.T, alpha=0.2, s=1, color='r')
+			return
 		else:
 			# figure properties
 			ax.xaxis._axinfo['tick']['inward_factor'] = 0
 			ax.yaxis._axinfo['tick']['inward_factor'] = 0
 			ax.zaxis._axinfo['tick']['inward_factor'] = 0
 
-			ax.set_xlabel("LAT")
-			ax.set_ylabel("AMP")
-			ax.set_zlabel("PEA")
-
 			ax.tick_params(which='major', length=10, width=3, labelsize=50)
 			ax.tick_params(which='minor', length=4, width=2, labelsize=50)
 
 			# remove one of the plane ticks to make output pdf more readable
-			# if "Lat" not in title:
-			# 	ax.set_xticks([])
-			# 	ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
-			# 	ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
-			# if "Amp" not in title:
-			# 	ax.set_yticks([])
-			# 	ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-			# 	ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
-			# if "Peak" not in title:
-			# 	ax.set_zticks([])
-			# 	ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-			# 	ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+			if "Lat" not in title:
+				ax.set_xticks([])
+				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+			if "Amp" not in title:
+				ax.set_yticks([])
+				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+			if "Peak" not in title:
+				ax.set_zticks([])
+				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
 
-			plt.legend()
 			ax.view_init(elev=elev, azim=azim)
-			plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-			plt.show()
-			return
-
-			plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
-			plt.savefig(f"{save_to}/{new_filename}.png", dpi=250, format="png")
+			fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+			bbox = fig.bbox_inches.from_bounds(1, 1, 8, 8)
+			plt.savefig(f"{save_to}/{new_filename}.pdf", bbox_inches=bbox, dpi=250, format="pdf")
+			plt.savefig(f"{save_to}/{new_filename}.png", bbox_inches=bbox, dpi=250, format="png")
 			plt.close(fig)
