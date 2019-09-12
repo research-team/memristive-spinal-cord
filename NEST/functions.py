@@ -207,7 +207,7 @@ class Functions:
 		# connect the spike generator with node
 		nest.Connect(pre=spike_generator, post=node, syn_spec=syn_spec, conn_spec=conn_spec)
 
-	def connect_noise_generator(self, node, rate, t_start=None, t_end=None):
+	def connect_noise_generator(self, node, rate, t_start=None, t_end=None, weight=None):
 		"""
 		TODO add info
 		Args:
@@ -231,7 +231,7 @@ class Functions:
 		                    'stop': float(t_end)}
 
 		syn_spec = {'model': 'static_synapse',
-		            'weight': 300.0,
+		            'weight': weight if weight is not None else 300.0,
 		            'delay': 0.1}
 
 		conn_spec = {'rule': 'all_to_all',

@@ -125,6 +125,8 @@ class V3(Functions):
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
 									 t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
+		self.connect_noise_generator(MN_E, rate=200, weight=150)
+
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 370, no_distr=True)
@@ -312,7 +314,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 5
+	parameters.tests = 1
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
