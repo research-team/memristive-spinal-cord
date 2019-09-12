@@ -314,7 +314,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 1
+	parameters.tests = 25
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40

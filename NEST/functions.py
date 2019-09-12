@@ -3,6 +3,7 @@ import nest
 import numpy as np
 from random import normalvariate
 from collections import defaultdict
+import re
 
 syn_outdegree = 27
 nrns_in_group = 40
@@ -133,9 +134,8 @@ class Functions:
 		"""
 		neuron_model = 'hh_cond_exp_traub'
 		r_params = self.__build_params()
-		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F']:
+		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F'] or re.fullmatch(r'MN.*', name):
 			r_params['C_m'] = normalvariate(200, 13)
-			r_params['t_ref'] = normalvariate(2, 0.15)
 
 		gids = [nest.Create(model=neuron_model, n=1, params=r_params)[0] for _ in range(nrn_number)]
 
