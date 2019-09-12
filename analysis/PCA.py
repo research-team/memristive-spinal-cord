@@ -244,7 +244,7 @@ def filter_extrema(merged_names, merged_indexes, merged_values, allowed_diff):
 	return e_poly_names, e_poly_indexes, e_poly_values
 
 
-def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
+def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -264,9 +264,14 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 	global_lat_indexes = []
 	micro_border = 0.005
 	l_poly_border = int(10 / step_size)
+
+	datasets_number = len(sliced_datasets)
+	slices_number = len(sliced_datasets[0])
+	latency_matrix = np.zeros((datasets_number, slices_number))
+
 	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
-	for slices_per_experiment in sliced_datasets:
-		for slice_data in slices_per_experiment:
+	for dataset_index, slices_per_experiment in enumerate(sliced_datasets):
+		for slice_index, slice_data in enumerate(slices_per_experiment):
 			# smooth data to avoid micro peaks and noise
 			smoothed_data = smooth(slice_data, 2)
 			smoothed_data[:2] = slice_data[:2]
@@ -302,7 +307,7 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 			else:
 				latency_index = len(gradient) - 1
 			# collect found item
-			global_lat_indexes.append(latency_index)
+			latency_matrix[dataset_index][slice_index] = latency_index
 
 			if debugging:
 				plt.figure(figsize=(16, 9))
@@ -325,7 +330,7 @@ def get_lat_per_exp(sliced_datasets, step_size, debugging=False):
 				plt.legend()
 				plt.show()
 
-	return np.array(global_lat_indexes) * step_size
+	return latency_matrix
 
 
 def get_amp_per_exp(sliced_datasets, step_size):
@@ -362,7 +367,7 @@ def get_amp_per_exp(sliced_datasets, step_size):
 	return np.array(global_amp_values)
 
 
-def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, debugging=False):
+def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_intervals=False, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -372,7 +377,9 @@ def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, de
 		dataset number  [...], [...], [...], [...],
 		                [...], [...], [...], [...]]
 		step_size (float): data step
+		latencies (np.ndarray):
 		split_by_intervals (bool):
+
 		debugging (bool): True -- will print debugging info and plot figures
 	Returns:
 		np.ndarray: peaks number or intervals
@@ -398,9 +405,10 @@ def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, de
 	max_distance = int(4 / step_size)
 	# nested loop for processong each slice in datasets
 	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2]) to make it 1D with saving order
-	peaks_per_slice = [[] for _ in range(slices_number)]
+	peak_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)] #np.zeros((dataset_size, slices_number))
+	ampl_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)] #np.zeros((dataset_size, slices_number))
 	#
-	for slices_per_experiment in sliced_datasets:
+	for dataset_index, slices_per_experiment in enumerate(sliced_datasets):
 		for slice_index, slice_data in enumerate(slices_per_experiment):
 			# smooth data (small value for smoothing only micro-peaks)
 			smoothed_data = smooth(slice_data, 2)
@@ -409,16 +417,18 @@ def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, de
 			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
 			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
 			#
+			dots = []
+			vals = []
+			#
+			if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
+				continue
+			#
+			if e_minima_indexes[0] < e_maxima_indexes[0]:
+				comb = zip(e_maxima_indexes, e_minima_indexes[1:])
+			else:
+				comb = zip(e_maxima_indexes, e_minima_indexes)
+			#
 			if split_by_intervals:
-				dots = []
-				# check if
-				if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
-					continue
-				# combine dots
-				if e_minima_indexes[0] < e_maxima_indexes[0]:
-					comb = zip(e_maxima_indexes, e_minima_indexes[1:])
-				else:
-					comb = zip(e_maxima_indexes, e_minima_indexes)
 				# find pairs
 				for max_index, min_index in comb:
 					max_value = e_maxima_values[e_maxima_indexes == max_index][0]
@@ -436,43 +446,29 @@ def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, de
 					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], dots)
 					peaks_per_interval[slice_index][interval_index] += len(list(peaks_in_interval))
 			else:
-				mask = e_maxima_indexes > mono_end
-				e_maxima_indexes = e_maxima_indexes[mask]
-				e_maxima_values = e_maxima_values[mask]
-
-				mask = e_minima_indexes > mono_end
-				e_minima_indexes = e_minima_indexes[mask]
-				e_minima_values = e_minima_values[mask]
-
-				if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
-					continue
-				if e_minima_indexes[0] < e_maxima_indexes[0]:
-					comb = zip(e_maxima_indexes, e_minima_indexes[1:])
-				else:
-					comb = zip(e_maxima_indexes, e_minima_indexes)
-				dots = []
-				vals = []
 				for max_index, min_index in comb:
-					max_value = e_maxima_values[e_maxima_indexes == max_index][0]
-					min_value = e_minima_values[e_minima_indexes == min_index][0]
-					dT = min_index - max_index
-					dA = abs(max_value - min_value)
-					if (min_distance <= dT <= max_distance) and dA >= 0.05 or dA >= min_amplitude:
-						peaks_per_slice[slice_index] += [(max_index, dA)]
-						dots += [max_index, min_index]
-						vals += [max_value, min_value]
-						if debugging:
-							plt.plot([max_index * step_size, min_index * step_size], [max_value, max_value], color='k')
-							plt.plot([min_index * step_size, min_index * step_size], [max_value, min_value], color='k')
-							plt.text(min_index * step_size, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
-				if debugging:
-					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
-					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
-					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
-					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
-					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
-					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
-					plt.show()
+					if max_index >= latencies[dataset_index][slice_index] and min_index >= latencies[dataset_index][slice_index]:
+						max_value = e_maxima_values[e_maxima_indexes == max_index][0]
+						min_value = e_minima_values[e_minima_indexes == min_index][0]
+						dT = min_index - max_index
+						dA = abs(max_value - min_value)
+						if (min_distance <= dT <= max_distance) and dA >= 0.05 or dA >= min_amplitude:
+							peak_matrix[dataset_index][slice_index].append(max_index)
+							ampl_matrix[dataset_index][slice_index].append(dA)
+							dots += [max_index, min_index]
+							vals += [max_value, min_value]
+							if debugging:
+								plt.plot([max_index * step_size, min_index * step_size], [max_value, max_value], color='k')
+								plt.plot([min_index * step_size, min_index * step_size], [max_value, min_value], color='k')
+								plt.text(min_index * step_size, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
+					if debugging:
+						plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
+						plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
+						plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
+						plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
+						plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
+						plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
+						plt.show()
 
 	if split_by_intervals:
 		peaks_per_interval = peaks_per_interval / dataset_size
@@ -484,7 +480,7 @@ def get_peaks_per_slice(sliced_datasets, step_size, split_by_intervals=False, de
 
 		return peaks_per_interval
 
-	return peaks_per_slice
+	return peak_matrix, ampl_matrix
 
 
 def plot_3D_PCA(data_pack, save_to, correlation=False):
@@ -585,26 +581,33 @@ def plot_3D_PCA(data_pack, save_to, correlation=False):
 			ax.yaxis._axinfo['tick']['inward_factor'] = 0
 			ax.zaxis._axinfo['tick']['inward_factor'] = 0
 
+			ax.set_xlabel("LAT")
+			ax.set_ylabel("AMP")
+			ax.set_zlabel("PEA")
+
 			ax.tick_params(which='major', length=10, width=3, labelsize=50)
 			ax.tick_params(which='minor', length=4, width=2, labelsize=50)
 
 			# remove one of the plane ticks to make output pdf more readable
-			if "Lat" not in title:
-				ax.set_xticks([])
-				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
-				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
-			if "Amp" not in title:
-				ax.set_yticks([])
-				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
-			if "Peak" not in title:
-				ax.set_zticks([])
-				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+			# if "Lat" not in title:
+			# 	ax.set_xticks([])
+			# 	ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+			# 	ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+			# if "Amp" not in title:
+			# 	ax.set_yticks([])
+			# 	ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+			# 	ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+			# if "Peak" not in title:
+			# 	ax.set_zticks([])
+			# 	ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+			# 	ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
 
 			plt.legend()
 			ax.view_init(elev=elev, azim=azim)
 			plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+			plt.show()
+			return
+
 			plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
 			plt.savefig(f"{save_to}/{new_filename}.png", dpi=250, format="png")
 			plt.close(fig)
