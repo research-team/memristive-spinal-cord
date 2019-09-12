@@ -13,8 +13,6 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-// my classes
-#include "Group.cpp"
 // colors
 #define COLOR_RED "\x1b[1;31m"
 #define COLOR_GREEN "\x1b[1;32m"
@@ -38,7 +36,7 @@ using namespace std;
 
 unsigned int global_id = 0;
 unsigned int SIM_TIME_IN_STEPS;
-const int LEG_STEPS = 3;             // [step] number of full cycle steps
+const int LEG_STEPS = 1;             // [step] number of full cycle steps
 const float SIM_STEP = 0.025;        // [s] simulation step
 
 // stuff variables
@@ -62,6 +60,17 @@ const float tau_syn_exc = 0.2;       // [ms] Decay time of excitatory synaptic c
 const float tau_syn_inh = 2.0;       // [ms] Decay time of inhibitory synaptic current (ms)
 const float V_adj = -63.0;           // adjusts threshold to around -50 mV
 const float g_bar = 1500;            // [nS] the maximal possible conductivity
+
+
+class Group {
+public:
+	Group() = default;
+
+	string group_name;
+	unsigned int id_start{};
+	unsigned int id_end{};
+	unsigned int group_size{};
+};
 
 // struct for human-readable initialization of connectomes
 struct SynapseMetadata {
@@ -185,6 +194,14 @@ void neurons_kernel(const float *C_m,
 			// Each thread gets same seed, a different sequence number, no offset
 			curandState localState;
 			curand_init(sim_iter, tid, 0, &localState);
+
+			// [627 ... 795]
+			if (627 <= tid && tid <= 795) {
+				if (curand_uniform(&localState) >= 0.5)
+					V_m[tid] += curand_uniform(&localState) * 2;
+				else
+					V_m[tid] -= curand_uniform(&localState) * 2;
+			}
 
 			// CV1
 			if (tid == 120 && begin_C_spiking[0] < shifted_sim_iter && shifted_sim_iter < end_C_spiking[0] && curand_uniform(&localState) >= 0.5) {
@@ -488,7 +505,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 27);
 	connect_fixed_outdegree(OM1_1, OM1_3, 1, 2);
 	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 22);
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 27);
+	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 3);
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 2);
 	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 4);
 	connect_fixed_outdegree(OM1_3, OM1_1, 1, -5 * inh_coef);
@@ -515,7 +532,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 35);
 	connect_fixed_outdegree(OM2_1, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 24);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 35);
+	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 3);
 	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 3);
 	connect_fixed_outdegree(OM2_3, OM2_1, 1, -5 * inh_coef);
@@ -543,7 +560,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM3_1, OM3_2_F, 1, 30);
 	connect_fixed_outdegree(OM3_1, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 23);
-	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 25);
+	connect_fixed_outdegree(OM3_2_F, OM3_1, 2.5, 3);
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_2_F, OM3_3, 1, 3);
 	connect_fixed_outdegree(OM3_3, OM3_1, 1, -70 * inh_coef);
@@ -570,7 +587,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM4_1, OM4_2_F, 1, 23);
 	connect_fixed_outdegree(OM4_1, OM4_3, 1, 3);
 	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 25);
-	connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 20);
+	connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 3);
 	connect_fixed_outdegree(OM4_2_E, OM4_3, 1, 3);
 	connect_fixed_outdegree(OM4_2_F, OM4_3, 1, 3);
 	connect_fixed_outdegree(OM4_3, OM4_1, 1, -70 * inh_coef);
@@ -595,7 +612,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(OM5_1, OM5_2_F, 1, 30);
 	connect_fixed_outdegree(OM5_1, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 26);
-	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 30);
+	connect_fixed_outdegree(OM5_2_F, OM5_1, 2.5, 3);
 	connect_fixed_outdegree(OM5_2_E, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_2_F, OM5_3, 1, 3);
 	connect_fixed_outdegree(OM5_3, OM5_1, 1, -70 * inh_coef);

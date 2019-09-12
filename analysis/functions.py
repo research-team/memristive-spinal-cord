@@ -342,7 +342,7 @@ def auto_prepare_data(folder, filename, step_size_to=None):
 			dataset = extract_data(filepath)
 		else:
 			e_begin = 0
-			e_end = standard_slice_length_in_steps * e_slices_number[speed]
+			e_end = e_begin + standard_slice_length_in_steps * e_slices_number[speed]
 			# use native funcion for get needful data
 			dataset = extract_data(filepath, e_begin, e_end)
 	# extract data of flexor
