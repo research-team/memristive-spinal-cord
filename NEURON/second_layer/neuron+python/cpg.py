@@ -13,9 +13,12 @@ nhost = int(pc.nhost())
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 25
-step_number = 2 # number of steps
+step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
+nMN = 200
+nAff = 120
+nInt = 196
 
 exnclist = []
 inhnclist = []
@@ -67,10 +70,6 @@ class CPG:
             self.dict_3 = {layer: f"OM{layer + 1}_3"}
             self.dict_C = {layer: f"C{layer + 1}"}
 
-        nMN = 200
-        nAff = 120
-        nInt = 196
-
         self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
         self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
 
@@ -116,8 +115,8 @@ class CPG:
         self.Ia_F = self.addpool(nInt, "Ia_F", "int")
         self.iIP_F = self.addpool(nInt, "iIP_F", "int")
         self.R_F = self.addpool(nInt, "R_F", "int")
-        self.Iagener_E = []
-        self.Iagener_F = []
+        # self.Iagener_E = []
+        # self.Iagener_F = []
 
         '''ees'''
         self.ees = self.addgener(1, ees_fr, 10000, False)
@@ -144,10 +143,10 @@ class CPG:
         self.C_1 = []
         self.C_0 = []
 
-        for i in range(step_number):
-            self.Iagener_E.append(self.addIagener((1 + i * (speed * 6 + 125)), self.ncell, speed))
-        for i in range(step_number):
-            self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
+        # for i in range(step_number):
+        #     self.Iagener_E.append(self.addIagener((1 + i * (speed * 6 + 125)), self.ncell, speed))
+        # for i in range(step_number):
+        #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
             self.C_0.append(self.addgener(speed * 6 + i * (speed * 6 + 125), cfr, (125/c_int - 2), False))
 
@@ -155,8 +154,8 @@ class CPG:
             self.C_1.append(self.dict_CV_1[layer])
         self.C_1 = sum(self.C_1, [])
 
-        self.Iagener_E = sum(self.Iagener_E, [])
-        self.Iagener_F = sum(self.Iagener_F, [])
+        # self.Iagener_E = sum(self.Iagener_E, [])
+        # self.Iagener_F = sum(self.Iagener_F, [])
 
         '''generators'''
         createmotif(self.OM1_0E, self.dict_1[0], self.dict_2E[0], self.dict_3[0])
@@ -299,9 +298,11 @@ class CPG:
             delaytype = True
         else:
             delaytype = False
+        if neurontype.lower() == "moto":
+            diams = motodiams(num)
         for i in range(rank, num, nhost):
             if neurontype.lower() == "moto":
-                cell = motoneuron()
+                cell = motoneuron(diams[i])
                 self.motoneurons.append(cell)
             elif neurontype.lower() == "aff":
                 cell = bioaff(random.randint(2, 10))
@@ -503,6 +504,22 @@ def spike_record(pool, version):
         v_vec.append(vec)
     return v_vec
 
+def motodiams(number):
+    nrn_number = number
+    standby_percent = 70
+    active_percent = 100 - standby_percent
+
+    standby_size = int(nrn_number * standby_percent / 100)
+    active_size = nrn_number - standby_size
+
+    loc_active, scale_active = 27, 3
+    loc_stanby, scale_stanby = 44, 4
+
+    x2 = np.concatenate([np.random.normal(loc=loc_active, scale=scale_active, size=active_size),
+                     np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
+
+    return x2
+
 
 def avgarr(z):
     ''' Summarizes extracellular voltage in pool
@@ -567,7 +584,6 @@ def finish():
     pc.runworker()
     pc.done()
     h.quit()
-
 
 if __name__ == '__main__':
     '''
