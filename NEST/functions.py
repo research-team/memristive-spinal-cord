@@ -134,7 +134,7 @@ class Functions:
 		"""
 		neuron_model = 'hh_cond_exp_traub'
 		r_params = self.__build_params()
-		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F'] or re.fullmatch(r'MN.*', name):
+		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F']:
 			r_params['C_m'] = normalvariate(200, 13)
 
 		gids = [nest.Create(model=neuron_model, n=1, params=r_params)[0] for _ in range(nrn_number)]
