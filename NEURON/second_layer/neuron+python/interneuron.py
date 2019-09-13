@@ -74,7 +74,7 @@ class interneuron(object):
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
-    self.dend.diam = random.gauss(1, 0.5) # microns
+    self.dend.diam = random.gauss(1, 0.2) # microns
 
   def geom_nseg(self):
     '''
