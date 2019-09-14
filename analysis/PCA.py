@@ -210,40 +210,6 @@ def merge_extrema(minima_indexes, minima_values, maxima_indexes, maxima_values):
 	return merged_names, merged_indexes, merged_values
 
 
-def filter_extrema(merged_names, merged_indexes, merged_values, allowed_diff):
-	"""
-	Filtering extremuma by value (allowed_diff)
-	Args:
-		merged_names (np.ndarray): array of merged extremuma names
-		merged_indexes (np.ndarray): array of merged extremuma indexes (X)
-		merged_values (np.ndarray): array of merged extremuma values (Y)
-		allowed_diff (float): remove arrays value which lower than that diff
-	Returns:
-		np.ndarray: filtered names
-		np.ndarray: filtered indexes
-		np.ndarray: filtered values
-	"""
-	# find good extremuma from the end
-	filtered_mask_indexes = []
-	i = 0
-	next_i = 0
-
-	while i < len(merged_names) and next_i < len(merged_names):
-		next_i = i + 1
-		while next_i < len(merged_names):
-			if abs(merged_values[i] - merged_values[next_i]) > allowed_diff:
-				filtered_mask_indexes.append(next_i)
-				i = next_i
-				break
-			next_i += 1
-	filtered_mask_indexes = np.append(0, filtered_mask_indexes).astype(int)
-	e_poly_names = merged_names[filtered_mask_indexes]
-	e_poly_indexes = merged_indexes[filtered_mask_indexes]
-	e_poly_values = merged_values[filtered_mask_indexes]
-
-	return e_poly_names, e_poly_indexes, e_poly_values
-
-
 def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
