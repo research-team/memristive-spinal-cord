@@ -18,12 +18,12 @@ class V3(Functions):
 		"""
 		nest.ResetKernel()
 		nest.SetKernelStatus({'data_path': "dat",
-							  'print_time': True,
-							  'resolution': 0.025,
-							  'overwrite_files': True,
-							  'data_prefix': f"{iteration}_",
-							  'total_num_virtual_procs': cpu_count(),
-							  'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
+		                      'print_time': True,
+		                      'resolution': 0.025,
+		                      'overwrite_files': True,
+		                      'data_prefix': f"{iteration}_",
+		                      'total_num_virtual_procs': cpu_count(),
+		                      'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
 
 		super().__init__(parameters)
 		self.P = parameters
@@ -61,13 +61,13 @@ class V3(Functions):
 		E4 = self.form_group("E4")
 		E5 = self.form_group("E5")
 
-		CV1 = self.form_group("CV1", 40)
-		CV2 = self.form_group("CV2", 40)
-		CV3 = self.form_group("CV3", 40)
-		CV4 = self.form_group("CV4", 40)
-		CV5 = self.form_group("CV5", 40)
-		CD4 = self.form_group("CD4", 40)
-		CD5 = self.form_group("CD5", 40)
+		CV1 = self.form_group("CV1")
+		CV2 = self.form_group("CV2")
+		CV3 = self.form_group("CV3")
+		CV4 = self.form_group("CV4")
+		CV5 = self.form_group("CV5")
+		CD4 = self.form_group("CD4")
+		CD5 = self.form_group("CD5")
 
 		OM1_0 = self.form_group("OM1_0")
 		OM1_1 = self.form_group("OM1_1")
@@ -99,8 +99,8 @@ class V3(Functions):
 		OM5_2_F = self.form_group("OM5_2_F")
 		OM5_3 = self.form_group("OM5_3")
 
-		MN_E = self.form_group("MN_E", neurons_in_moto)
-		MN_F = self.form_group("MN_F", neurons_in_moto)
+		MN_E = self.form_group("MN_E", neurons_in_moto, d_distr="bimodal")
+		MN_F = self.form_group("MN_F", neurons_in_moto, d_distr="bimodal")
 
 		Ia_E_aff = self.form_group("Ia_E_aff", neurons_in_afferent)
 		Ia_F_aff = self.form_group("Ia_F_aff", neurons_in_afferent)
@@ -124,11 +124,9 @@ class V3(Functions):
 		self.connect_noise_generator(CV4, rate=5000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
-									 t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
+		                             t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
 		self.connect_noise_generator(MN_E, rate=200, weight=125)
 		self.connect_noise_generator(MN_F, rate=200, weight=125)
-
-
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 370, no_distr=True)
@@ -316,7 +314,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 25
+	parameters.tests = 5
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
@@ -340,4 +338,4 @@ if __name__ == "__main__":
 
 	convert_to_hdf5(save_folder)
 	plot_results(save_folder, ees_hz=parameters.EES)
-	# draw.run()
+	draw.run()

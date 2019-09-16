@@ -123,7 +123,7 @@ class Functions:
 
 		return nest.Create(model='spike_detector', n=1, params=detector_params)
 
-	def form_group(self, name, nrn_number=nrns_in_group):
+	def form_group(self, name, nrn_number=nrns_in_group, d_distr="uniform"):
 		"""
 		Function for creating new neruons
 		Args:
@@ -132,12 +132,57 @@ class Functions:
 		Returns:
 			list: global IDs of created neurons
 		"""
+		sp_C_m = 2      # pF/um²
+		sp_g_Na = 0.5   # nS/um²
+		sp_g_K = 3      # nS/um²
+		sp_g_L = 0.02   # nS/um²
 		neuron_model = 'hh_cond_exp_traub'
-		r_params = self.__build_params()
-		if name in ['MN_E', 'MN_F', 'eIP_E', 'eIP_F']:
-			r_params['C_m'] = normalvariate(200, 13)
+		neuron_params = {# t_ref            # [ms] refractory period
+		                 # C_m              # [pF] capacity of membrane
+		                 # g_Na             # [nS] Maximal conductance of the Sodium current
+		                 # g_K              # [nS] Maximal conductance of the Potassium current
+		                 # g_L              # [nS] Conductance of the leak current
+		                 'V_m': -70.0,      # [mV] starting value of membrane potential
+		                 'E_Na': 50.0,      # [mV] Reversal potential for the Sodium current
+		                 'E_K': -100.0,     # [mV] Reversal potential for the Potassium current
+		                 'E_L': -72.0,      # [mV] Reversal potential for the leak current
+		                 'E_ex': 0.0,       # [mV] Reversal potential for excitatory input
+		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
+		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)
+		                 'tau_syn_in': 2.0, # [ms] Decay time of inhibitory synaptic current (ms)
+		}
+		# create neurons with default common parameters
+		gids = nest.Create(model=neuron_model, n=nrn_number, params=neuron_params)
+		# generate refractory period
+		t_refs = np.random.normal(3, 0.4, nrn_number)
+		# generate neuron diameters
+		if d_distr == "bimodal":
+			# for motoneurons
+			standby_percent = 70
+			standby_size = int(nrn_number * standby_percent / 100)
+			active_size = nrn_number - standby_size
 
-		gids = [nest.Create(model=neuron_model, n=1, params=r_params)[0] for _ in range(nrn_number)]
+			loc_active, scale_active = 27, 3    # 18 - 35, med=27
+			loc_standby, scale_standby = 57, 6  # 38.5 - 78, med=57
+
+			diameters = np.concatenate([np.random.normal(loc=loc_active, scale=scale_active, size=active_size),
+			                            np.random.normal(loc=loc_standby, scale=scale_standby, size=standby_size)])
+		elif d_distr == "normal":
+			raise NotImplemented
+		elif d_distr == "uniform":
+			# for interneurons
+			diameters = np.random.uniform(low=3, high=8, size=nrn_number)
+		else:
+			raise NotImplemented("Can not recognize distribution name")
+
+		# update neuron parameters based on distributions
+		for gid, diameter, t_ref in zip(gids, diameters, t_refs):
+			params = {'t_ref': t_ref,
+			          'C_m': sp_C_m * diameter,
+			          'g_Na': sp_g_Na * diameter,
+					  'g_K': sp_g_K * diameter,
+					  'g_L': sp_g_L * diameter}
+			nest.SetStatus([gid], params)
 
 		target_groups = [
 			# "OM1_0", "OM1_1", "OM1_2_E", "OM1_2_F", "OM1_3",
