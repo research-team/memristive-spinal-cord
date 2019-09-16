@@ -137,10 +137,6 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	ax.fill_betweenx(e_slices_indexes,
 	                 e_box_latencies[:, k_box_low] * step_size,
 	                 e_box_latencies[:, k_box_high] * step_size, color=pattern_color, alpha=0.3, zorder=3)
-	# plot latency shadow for flexor (+1 to slice index because of space between extensor and flexor)
-	ax.fill_betweenx(f_slices_indexes,
-	                 f_box_latencies[:, k_box_low] * step_size,
-	                 f_box_latencies[:, k_box_high] * step_size, color=pattern_color, alpha=0.3, zorder=3)
 	yticks = []
 	shared_x = np.arange(steps_in_slice) * step_size
 	# plot fliers and median line
@@ -230,8 +226,11 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 		names (list): filenames of grouped datasets
 		save_to (str): path for saving a built picture
 	"""
+	yticks = []
+	datasets_number = len(names)
 	dist_coef = 2
 	bar_height = 0.1
+	coef = 0.3 * datasets_number
 	colors = ["#275b78", "#f27c2e", "#f2aa2e", "#472650", "#a6261d", "#287a72", "#2ba7b9"] * 10
 	ms_intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]])
 	# form the new name of the file
@@ -257,13 +256,15 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 		for interval_index, interval_data in enumerate(pack_data.T):
 			left = 0
 			# plot stacked bars (intervals are stacked, slices separated)
+			y_pos = interval_index * coef + dist_coef * pack_index * bar_height
+			if pack_index == 0:
+				yticks.append(y_pos)
 			for slice_index, slice_data in enumerate(interval_data):
-				plt.barh(y=interval_index + dist_coef * pack_index * bar_height,
-				         width=slice_data, left=left, color=colors[slice_index], height=bar_height, alpha=0.9)
+				plt.barh(y=y_pos, width=slice_data, left=left, color=colors[slice_index], height=bar_height, alpha=0.9)
 				left += slice_data
-			plt.text(x=left + 0.1, y=interval_index + dist_coef * pack_index * bar_height - bar_height / 2, s=marker)
+			plt.text(x=left + 0.1, y=y_pos - bar_height / 4, s=marker)
 
-	yticks = np.arange(len(ms_intervals)) + 2 * bar_height + (dist_coef * bar_height) / 2
+	yticks = np.array(yticks) + datasets_number * bar_height - bar_height
 	yticklabels = [f"{interval[0]}-{interval[1]}" for interval in ms_intervals]
 	plt.yticks(yticks, yticklabels)
 	axis_article_style(ax, axis='x')

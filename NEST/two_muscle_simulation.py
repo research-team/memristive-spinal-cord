@@ -18,12 +18,12 @@ class V3(Functions):
 		"""
 		nest.ResetKernel()
 		nest.SetKernelStatus({'data_path': "dat",
-							  'print_time': True,
-							  'resolution': 0.025,
-							  'overwrite_files': True,
-							  'data_prefix': f"{iteration}_",
-							  'total_num_virtual_procs': cpu_count(),
-							  'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
+		                      'print_time': True,
+		                      'resolution': 0.025,
+		                      'overwrite_files': True,
+		                      'data_prefix': f"{iteration}_",
+		                      'total_num_virtual_procs': cpu_count(),
+		                      'rng_seeds': [int(time() * 10000 % 10000)] * cpu_count()})
 
 		super().__init__(parameters)
 		self.P = parameters
@@ -61,13 +61,13 @@ class V3(Functions):
 		E4 = self.form_group("E4")
 		E5 = self.form_group("E5")
 
-		CV1 = self.form_group("CV1", 40)
-		CV2 = self.form_group("CV2", 40)
-		CV3 = self.form_group("CV3", 40)
-		CV4 = self.form_group("CV4", 40)
-		CV5 = self.form_group("CV5", 40)
-		CD4 = self.form_group("CD4", 40)
-		CD5 = self.form_group("CD5", 40)
+		CV1 = self.form_group("CV1")
+		CV2 = self.form_group("CV2")
+		CV3 = self.form_group("CV3")
+		CV4 = self.form_group("CV4")
+		CV5 = self.form_group("CV5")
+		CD4 = self.form_group("CD4")
+		CD5 = self.form_group("CD5")
 
 		OM1_0 = self.form_group("OM1_0")
 		OM1_1 = self.form_group("OM1_1")
@@ -99,8 +99,8 @@ class V3(Functions):
 		OM5_2_F = self.form_group("OM5_2_F")
 		OM5_3 = self.form_group("OM5_3")
 
-		MN_E = self.form_group("MN_E", neurons_in_moto)
-		MN_F = self.form_group("MN_F", neurons_in_moto)
+		MN_E = self.form_group("MN_E", neurons_in_moto, d_distr="bimodal")
+		MN_F = self.form_group("MN_F", neurons_in_moto, d_distr="bimodal")
 
 		Ia_E_aff = self.form_group("Ia_E_aff", neurons_in_afferent)
 		Ia_F_aff = self.form_group("Ia_F_aff", neurons_in_afferent)
@@ -124,9 +124,9 @@ class V3(Functions):
 		self.connect_noise_generator(CV4, rate=5000, t_start=3 * self.P.skin_stim, t_end=5 * self.P.skin_stim - 2)
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
-									 t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
-		self.connect_noise_generator(MN_E, rate=200, weight=150)
-
+		                             t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
+		self.connect_noise_generator(MN_E, rate=200, weight=125)
+		self.connect_noise_generator(MN_F, rate=200, weight=125)
 
 		# connectomes
 		self.connect_fixed_outdegree(EES, E1, 1, 370, no_distr=True)
@@ -162,12 +162,12 @@ class V3(Functions):
 		self.connect_fixed_outdegree(OM4_2_F, eIP_F, 1, 7, neurons_in_ip)
 		self.connect_fixed_outdegree(OM5_2_F, eIP_F, 1, 7, neurons_in_ip)
 
-		self.connect_fixed_outdegree(eIP_F, MN_F, 1, 50, neurons_in_moto)
+		self.connect_fixed_outdegree(eIP_F, MN_F, 1, 1, neurons_in_moto)
 
-		self.connect_fixed_outdegree(MN_F, R_F, 0.5, 6)
+		self.connect_fixed_outdegree(MN_F, R_F, 0.5, 2)
 		self.connect_fixed_outdegree(R_F, MN_F, 2, 0, neurons_in_moto)
 
-		self.connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 22, neurons_in_moto)
+		self.connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 0.5, neurons_in_moto)
 		self.connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -50, neurons_in_ip)
 
 		# OM 1
@@ -183,10 +183,10 @@ class V3(Functions):
 		# inner connectomes
 		self.connect_fixed_outdegree(OM1_0, OM1_1, 0.5, 30)
 		self.connect_fixed_outdegree(OM1_1, OM1_2_E, 0.5, 30)
-		self.connect_fixed_outdegree(OM1_1, OM1_2_F, 0.4, 25)
+		self.connect_fixed_outdegree(OM1_1, OM1_2_F, 0.4, 50)
 		self.connect_fixed_outdegree(OM1_1, OM1_3, 4, 3.5)
 		self.connect_fixed_outdegree(OM1_2_E, OM1_1, 1.25, 21)
-		self.connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 25)
+		self.connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 30)
 		self.connect_fixed_outdegree(OM1_2_E, OM1_3, 4, 2)
 		self.connect_fixed_outdegree(OM1_2_F, OM1_3, 0.4, 15.5)
 		self.connect_fixed_outdegree(OM1_3, OM1_1, 1.5, -3 * inh_coef)
@@ -207,10 +207,10 @@ class V3(Functions):
 		# # inner connectomes
 		self.connect_fixed_outdegree(OM2_0, OM2_1, 0.5, 30)
 		self.connect_fixed_outdegree(OM2_1, OM2_2_E, 0.5, 28)
-		self.connect_fixed_outdegree(OM2_1, OM2_2_F, 0.4, 25)
+		self.connect_fixed_outdegree(OM2_1, OM2_2_F, 0.4, 30)
 		self.connect_fixed_outdegree(OM2_1, OM2_3, 4, 4.5)
 		self.connect_fixed_outdegree(OM2_2_E, OM2_1, 1.25, 24)
-		self.connect_fixed_outdegree(OM2_2_F, OM2_1, 1.25, 25)
+		self.connect_fixed_outdegree(OM2_2_F, OM2_1, 1.25, 26)
 		self.connect_fixed_outdegree(OM2_2_E, OM2_3, 4, 2)
 		self.connect_fixed_outdegree(OM2_2_F, OM2_3, 0.4, 15.5)
 		self.connect_fixed_outdegree(OM2_3, OM2_1, 1.5, -3 * inh_coef)
@@ -232,10 +232,10 @@ class V3(Functions):
 		# inner connectomes
 		self.connect_fixed_outdegree(OM3_0, OM3_1, 0.5, 30)
 		self.connect_fixed_outdegree(OM3_1, OM3_2_E, 0.5, 27.5)
-		self.connect_fixed_outdegree(OM3_1, OM3_2_F, 0.4, 25)
+		self.connect_fixed_outdegree(OM3_1, OM3_2_F, 0.4, 30)
 		self.connect_fixed_outdegree(OM3_1, OM3_3, 4, 4)
 		self.connect_fixed_outdegree(OM3_2_E, OM3_1, 1.25, 22)
-		self.connect_fixed_outdegree(OM3_2_F, OM3_1, 1.25, 25)
+		self.connect_fixed_outdegree(OM3_2_F, OM3_1, 1.25, 26)
 		self.connect_fixed_outdegree(OM3_2_E, OM3_3, 4, 2)
 		self.connect_fixed_outdegree(OM3_2_F, OM3_3, 0.4, 15.5)
 		self.connect_fixed_outdegree(OM3_3, OM3_1, 1.5, -3 * inh_coef)
@@ -256,10 +256,10 @@ class V3(Functions):
 		# inner connectomes
 		self.connect_fixed_outdegree(OM4_0, OM4_1, 0.5, 30)
 		self.connect_fixed_outdegree(OM4_1, OM4_2_E, 0.5, 27)
-		self.connect_fixed_outdegree(OM4_1, OM4_2_F, 0.4, 25)
+		self.connect_fixed_outdegree(OM4_1, OM4_2_F, 0.4, 30)
 		self.connect_fixed_outdegree(OM4_1, OM4_3, 4, 4)
 		self.connect_fixed_outdegree(OM4_2_E, OM4_1, 1.25, 23)
-		self.connect_fixed_outdegree(OM4_2_F, OM4_1, 1.25, 25)
+		self.connect_fixed_outdegree(OM4_2_F, OM4_1, 1.25, 26)
 		self.connect_fixed_outdegree(OM4_2_E, OM4_3, 4, 2)
 		self.connect_fixed_outdegree(OM4_2_F, OM4_3, 0.4, 15.5)
 		self.connect_fixed_outdegree(OM4_3, OM4_1, 1.5, -3 * inh_coef)
@@ -278,10 +278,10 @@ class V3(Functions):
 		# inner connectomes
 		self.connect_fixed_outdegree(OM5_0, OM5_1, 0.5, 30)
 		self.connect_fixed_outdegree(OM5_1, OM5_2_E, 0.5, 24)
-		self.connect_fixed_outdegree(OM5_1, OM5_2_F, 0.4, 25)
+		self.connect_fixed_outdegree(OM5_1, OM5_2_F, 0.4, 30)
 		self.connect_fixed_outdegree(OM5_1, OM5_3, 4, 4)
 		self.connect_fixed_outdegree(OM5_2_E, OM5_1, 1.25, 20)
-		self.connect_fixed_outdegree(OM5_2_F, OM5_1, 1.25, 25)
+		self.connect_fixed_outdegree(OM5_2_F, OM5_1, 1.25, 26)
 		self.connect_fixed_outdegree(OM5_2_E, OM5_3, 4, 2)
 		self.connect_fixed_outdegree(OM5_2_F, OM5_3, 0.4, 15.5)
 		self.connect_fixed_outdegree(OM5_3, OM5_1, 1.5, -2 * inh_coef)
@@ -292,10 +292,10 @@ class V3(Functions):
 		self.connect_fixed_outdegree(iIP_E, eIP_F, 3.3, -14, neurons_in_ip)
 		self.connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -40, neurons_in_ip)
 
-		self.connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -1, neurons_in_ip)
-		self.connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -1, neurons_in_ip)
-		self.connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -1, neurons_in_ip)
-		self.connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -1, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -3, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -3, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -3, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -3, neurons_in_ip)
 
 		self.connect_fixed_outdegree(EES, Ia_E_aff, 1, 500)
 		self.connect_fixed_outdegree(EES, Ia_F_aff, 1, 500)
@@ -314,7 +314,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 25
+	parameters.tests = 5
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40

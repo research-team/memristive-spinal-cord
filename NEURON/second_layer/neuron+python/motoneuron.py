@@ -16,8 +16,9 @@ class motoneuron(object):
     x, y, z: int
       3D coordinates 
   '''
-  def __init__(self):
+  def __init__(self, diam):
     #print 'construct ', self
+    self.diam = diam
     self.topol()
     self.subsets()
     self.geom()
@@ -77,7 +78,7 @@ class motoneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(20, 50) # microns
+    self.soma.L = self.soma.diam = self.diam # microns
     self.dend.L = 200 # microns
     self.dend.diam = 1 # microns
     self.axon.L = 150 # microns
@@ -96,21 +97,25 @@ class motoneuron(object):
     '''
     self.soma.insert('motoneuron')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
-    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
-    self.soma.cm = 1 # cm uf/cm2 - membrane capacitance  
+    self.soma.Ra = 200 # Ra ohm cm - membrane resistance
+    self.soma.cm = 2 # cm uf/cm2 - membrane capacitance  
     ''' 
     self.soma.insert('pas')
     self.soma.g_pas = 0.002
     self.soma.e_pas = -80
     '''
     self.dend.insert('pas')
-    self.dend.g_pas = 0.001
+    self.dend.g_pas = 0.0002
     self.dend.e_pas = -80
-    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
-    self.dend.cm = 1 # cm uf/cm2 - membrane capacitance
+    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
+    self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
 
     self.axon.insert('hh')
-    self.axon.Ra = 50 # Ra ohm cm - membrane resistance
+    self.axon.gnabar_hh = 0.5
+    self.axon.gkbar_hh = 0.1
+    self.axon.gl_hh = 0.01
+    self.axon.el_hh = -70 
+    self.axon.Ra = 70 # Ra ohm cm - membrane resistance
     self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
 
   def position(self, x, y, z):

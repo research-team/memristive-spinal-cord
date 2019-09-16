@@ -1,6 +1,8 @@
 from neuron import h
 h.load_file('stdlib.hoc') #for h.lambda_f
 
+import random
+
 class bioaff(object):
   '''
   Afferent with bio-axon class with parameters:
@@ -135,15 +137,15 @@ class bioaff(object):
     self.soma.gkbar_hh = 0.04
     self.soma.gl_hh = 0.00017
     self.soma.el_hh = -70
-    self.soma.Ra = 100
-    self.soma.cm = 1
+    self.soma.Ra = 200
+    self.soma.cm = 2
     self.soma.insert('extracellular')
 
     self.dend.insert('pas')
     self.dend.g_pas = 0.001
     self.dend.e_pas = -65
-    self.dend.Ra = 100
-    self.dend.cm = 1
+    self.dend.Ra = 200
+    self.dend.cm = 2
 
     for sec in self.node:
       sec.Ra = self.rhoa/10000   
