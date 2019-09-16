@@ -70,11 +70,11 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(8, 15) # microns
+    self.soma.L = self.soma.diam = random.randint(3, 8) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
-    self.dend.diam = random.gauss(1, 0.5) # microns
+    self.dend.diam = random.gauss(1, 0.2) # microns
 
   def geom_nseg(self):
     '''
@@ -89,9 +89,9 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.cm = 1 # cm uf/cm2 - membrane capacitance
+      sec.cm = 2 # cm uf/cm2 - membrane capacitance
 
-    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
+    self.soma.Ra = 200 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
@@ -99,7 +99,7 @@ class interneuron(object):
     self.soma.el_hh = -70 
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
-    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
+    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
 
     if self.delay:
       distance = random.uniform(30, 1500)
@@ -115,11 +115,16 @@ class interneuron(object):
       self.recs.append(rec)  
     else:
       self.dend.insert('pas')
-      self.dend.g_pas = 0.001
-      self.dend.e_pas = -65
+      self.dend.g_pas = 0.0002
+      self.dend.e_pas = -80
 
-    self.axon.Ra = 50
+    self.axon.Ra = 70
     self.axon.insert('hh')
+    self.axon.gnabar_hh = 0.5
+    self.axon.gkbar_hh = 0.1
+    self.axon.gl_hh = 0.01
+    self.axon.el_hh = -70 
+
 
   def position(self, x, y, z):
     '''

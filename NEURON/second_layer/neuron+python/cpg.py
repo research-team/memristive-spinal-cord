@@ -12,8 +12,8 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 25
-step_number = 1 # number of steps
+versions = 1
+step_number = 2 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -190,7 +190,7 @@ class CPG:
 
         connectcells(self.dict_CV[0], self.OM1_0E, 0.00044, 1, 27)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.0004, 1, 27)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.01, 1, 27)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -210,9 +210,9 @@ class CPG:
             '''Extensor'''
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.1, 2, 50)
             if layer == 1:
-                connectcells(self.dict_IP_E[layer], self.mns_E[:int(len(self.mns_E)/4)], 0.01, 2, random.randint(10, 50))
+                connectcells(self.dict_IP_E[layer], self.mns_E[:int(len(self.mns_E)/4)], 0.5, 2, random.randint(10, 50))
             else:
-                connectcells(self.dict_IP_E[layer], self.mns_E, 0.1, 2, random.randint(10, 50))
+                connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 2, random.randint(10, 50))
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.08, 2, 80, True)
             else:
@@ -228,8 +228,8 @@ class CPG:
         '''C'''
         connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00044, 1, 30)
         for layer in range(1, layers):
-            connectcells(self.dict_CV_1[layer], self.dict_0[layer - 1], 0.0004, 2, 27)
-            connectcells(self.dict_CV_1[layer], self.dict_0[layer], 0.0004, 2, 27)
+            connectcells(self.dict_CV_1[layer], self.dict_0[layer - 1], 0.01, 2, 27)
+            connectcells(self.dict_CV_1[layer], self.dict_0[layer], 0.01, 2, 27)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1, 50)
@@ -475,10 +475,10 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.05, 1, 27)
-    connectcells(OM1, OM2, 0.05, 2, 27)
-    connectcells(OM2, OM1, 0.05, 2, 27)
-    connectcells(OM2, OM3, 0.000001, 1, 27)
+    connectcells(OM0, OM1, 0.1, 1, 27)
+    connectcells(OM1, OM2, 0.1, 2, 27)
+    connectcells(OM2, OM1, 0.5, 3, 27)
+    connectcells(OM2, OM3, 0.001, 1, 27)
     connectcells(OM3, OM2, 0.9, 1, 99, True)
 
 
@@ -598,12 +598,12 @@ if __name__ == '__main__':
         motorecorders = []
         for group in cpg_ex.motogroups:
             motorecorders.append(spike_record(group[k_nrns], i))
-        # affrecorders = []
-        # for group in cpg_ex.affgroups:
-        #   affrecorders.append(spike_record(group[k_nrns], i))
-        # recorders = []
-        # for group in cpg_ex.groups:
-        #   recorders.append(spike_record(group[k_nrns], i))
+        affrecorders = []
+        for group in cpg_ex.affgroups:
+          affrecorders.append(spike_record(group[k_nrns], i))
+        recorders = []
+        for group in cpg_ex.groups:
+          recorders.append(spike_record(group[k_nrns], i))
 
         print("- " * 10, "\nstart")
         prun(speed, step_number)
@@ -611,8 +611,8 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.groups, recorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.groups, recorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
     finish()
