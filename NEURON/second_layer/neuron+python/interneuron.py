@@ -89,7 +89,7 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.cm = 2 # cm uf/cm2 - membrane capacitance
+      sec.cm = 1 # cm uf/cm2 - membrane capacitance
 
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')

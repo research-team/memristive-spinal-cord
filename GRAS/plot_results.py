@@ -141,7 +141,7 @@ def run():
 		path = sys.argv[1]
 		nuclei = sys.argv[2]
 	else:
-		path = "/home/almaz-shangareev/Desktop/memristive-spinal-cord/NEST/dat/"
+		path = "/home/alex/GitHub/memristive-spinal-cord/GRAS/matrix_solution/dat/"
 
 	plot(skin_stim_time, *read_data(path), step=step, save_to=f"{path}/results/", plot_only=nuclei)
 

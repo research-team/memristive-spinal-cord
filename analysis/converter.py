@@ -2,18 +2,20 @@ import os
 import numpy as np
 import pylab as plt
 import h5py as hdf5
+from mmap import mmap
 from scipy.io import loadmat
-from analysis.functions import center_data_by_line, normalization
+
 
 def fig2png(filename, title, rat, begin, end):
-	# fl = ntpath.basename(filename)
-	# '''e_air_13.5cms_1-5'''
-	# meta = fl.replace(".fig", "").split("_")
-	# sli = meta[-1].split('-')
-	# begin = int(sli[0])
-	# end = int(sli[1])
-	# fold = ntpath.dirname(filename)
-	# new_filename = "_".join(meta[:-1])
+	"""
+	Args:
+		filename:
+		title:
+		rat:
+		begin:
+		end:
+	"""
+	raise NotImplemented
 
 	matfile = loadmat(filename, squeeze_me=True, struct_as_record=False)
 	print(matfile)
@@ -76,9 +78,8 @@ def fig2png(filename, title, rat, begin, end):
 	plt.close()
 
 
-fig2png("/home/alex/Rat 25 2-14-2018 40 Hz trial 05_extensor.mat",0,0,0, 999)
-
 def fig2hdf5(filename, title, rat, begin, end):
+	raise NotImplemented
 	d = loadmat(filename, squeeze_me=True, struct_as_record=False)
 	ax1 = d['hgS_070000'].children
 
@@ -119,3 +120,50 @@ def fig2hdf5(filename, title, rat, begin, end):
 
 	with hdf5.File(f"{folder}/{new_filename}", "a") as file:
 		file.create_dataset(data=y_data, name=rat)
+
+
+def mapcount(filename):
+	lines = 0
+	with open(filename, "r+") as f:
+		buf = mmap(f.fileno(), 0)
+		readline = buf.readline
+		while readline():
+			lines += 1
+	return lines
+
+
+def txt2hdf5(path_source, path_target, buf_size=100000):
+	"""
+	ToDo add info, use log() instead of print()
+	Args:
+		path_source:
+		path_target:
+		buf_size:
+	"""
+	data_index = 0
+	print("Calc a lines number of the file...")
+	size = mapcount(path_source)
+	print(size)
+
+	print("Start converting...")
+	with open(path_source, 'r') as txtfile:
+		with hdf5.File(path_target, 'w') as hf:
+			hf.create_dataset(name="dataset", shape=(size,), dtype=float, compression='gzip')
+			tmp_lines = txtfile.readlines(buf_size)
+			show_each = 0
+			while tmp_lines:
+				data = np.array(tmp_lines).astype(float)
+				hf["dataset"][data_index:data_index + len(data)] = data
+				data_index += len(data)
+				tmp_lines = txtfile.readlines(buf_size)
+				show_each += 1
+				if show_each == 100:
+					print(f"{data_index / size * 100:.2f}%")
+					show_each = 0
+
+
+if __name__ == "__main__":
+	txt_path = "/home/alex/data.txt"
+	hdf5_path = "/home/alex/new.hdf5"
+
+	txt2hdf5(txt_path, hdf5_path, buf_size=200000)
