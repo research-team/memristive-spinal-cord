@@ -129,6 +129,7 @@ class Functions:
 		Args:
 			name (str): neurons group name
 			nrn_number (int): number of neurons
+			d_distr (str): distribution type
 		Returns:
 			list: global IDs of created neurons
 		"""
@@ -145,7 +146,7 @@ class Functions:
 		                 'V_m': -70.0,      # [mV] starting value of membrane potential
 		                 'E_Na': 50.0,      # [mV] Reversal potential for the Sodium current
 		                 'E_K': -100.0,     # [mV] Reversal potential for the Potassium current
-		                 'E_L': -72.0,      # [mV] Reversal potential for the leak current
+		                 'E_L': -70.0,      # [mV] Reversal potential for the leak current
 		                 'E_ex': 0.0,       # [mV] Reversal potential for excitatory input
 		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
 		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)

@@ -65,7 +65,6 @@ const float g_bar = 1500;            // [nS] the maximal possible conductivity
 class Group {
 public:
 	Group() = default;
-
 	string group_name;
 	unsigned int id_start{};
 	unsigned int id_end{};
@@ -305,14 +304,14 @@ void neurons_kernel(const float *C_m,
 
 __global__
 void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is neuron has spike or not
-					 float *neuron_g_exc,              // array of excitatory conductivity per neuron (changable)
-					 float *neuron_g_inh,              // array of inhibitory conductivity per neuron (changable)
-					 const int *synapses_pre_nrn_id,   // array of pre neurons ID per synapse
-					 const int *synapses_post_nrn_id,  // array of post neurons ID per synapse
-					 const int *synapses_delay,        // array of synaptic delay per synapse
-					 int *synapses_delay_timer,        // array as above but changable
-					 const float *synapses_weight,     // array of synaptic weight per synapse
-					 const int syn_number){            // number of synapses
+	                 float *neuron_g_exc,              // array of excitatory conductivity per neuron (changable)
+	                 float *neuron_g_inh,              // array of inhibitory conductivity per neuron (changable)
+	                 const int *synapses_pre_nrn_id,   // array of pre neurons ID per synapse
+	                 const int *synapses_post_nrn_id,  // array of post neurons ID per synapse
+	                 const int *synapses_delay,        // array of synaptic delay per synapse
+	                 int *synapses_delay_timer,        // array as above but changable
+	                 const float *synapses_weight,     // array of synaptic weight per synapse
+	                 const int syn_number){            // number of synapses
 	/**
 	 *
 	 */
@@ -345,9 +344,9 @@ void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is n
 }
 
 void connect_one_to_all(const Group& pre_neurons,
-						const Group& post_neurons,
-						float syn_delay,
-						float weight) {
+	                    const Group& post_neurons,
+	                    float syn_delay,
+	                    float weight) {
 	/**
 	 *
 	 */
@@ -369,11 +368,11 @@ void connect_one_to_all(const Group& pre_neurons,
 }
 
 void connect_fixed_outdegree(const Group& pre_neurons,
-							 const Group& post_neurons,
-							 float syn_delay,
-							 float syn_weight,
-							 int outdegree=syn_outdegree,
-							 bool no_distr=false) {
+	                         const Group& post_neurons,
+	                         float syn_delay,
+	                         float syn_weight,
+	                         int outdegree=syn_outdegree,
+	                         bool no_distr=false) {
 	/**
 	 *
 	 */
@@ -754,11 +753,11 @@ int get_skin_stim_time(int cms) {
 }
 
 void copy_data_to(GroupMetadata &metadata,
-				  const float* nrn_v_m,
-				  const float* nrn_g_exc,
-				  const float* nrn_g_inh,
-				  const bool *nrn_has_spike,
-				  unsigned int sim_iter) {
+	              const float* nrn_v_m,
+	              const float* nrn_g_exc,
+	              const float* nrn_g_inh,
+	              const bool *nrn_has_spike,
+	              unsigned int sim_iter) {
 	/**
 	 *
 	 */
@@ -793,7 +792,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 
 	// calculate spike frequency and C0/C1 activation time in steps
 	auto ees_spike_each_step = (unsigned int)(1000 / ees / SIM_STEP);
-	auto steps_activation_C0 = (unsigned int)(5 * skin_stim_time / SIM_STEP);
+	auto steps_activation_C0 = (unsigned int)(5 * get_skin_stim_time(25) / SIM_STEP);
 	auto steps_activation_C1 = (unsigned int)(6 * skin_stim_time / SIM_STEP);
 
 	// init neuron groups and connectomes

@@ -25,7 +25,7 @@ def run_tests(build_folder, args):
 	assert args[cms] in [21, 15, 6]
 
 	nvcc = "/usr/local/cuda-10.0/bin/nvcc"
-	buildfile = "two_muscle_simulation.cu"
+	buildfile = "two_muscle_sim.cu"
 
 	for itest in range(args[tests_number]):
 		logger.info(f"running test #{itest}")
@@ -91,11 +91,11 @@ def testrunner():
 	save_folder = f"{script_place}/dat"
 
 	args = {tests_number: 25,
-	        cms: 21,
+	        cms: 15,
 	        ees: 40,
 	        inh: 100,
 	        ped: 2,
-	        ht5: 0,
+	        ht5: 1,
 	        save_all: 0}
 
 	run_tests(script_place, args)
