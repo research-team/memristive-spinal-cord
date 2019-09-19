@@ -5,7 +5,7 @@ from multiprocessing import cpu_count
 from NEST.functions import Functions
 from NEST.functions import Parameters
 from GRAS.tests_runner import convert_to_hdf5, plot_results
-from GRAS.matrix_solution import plot_results as draw
+from GRAS import plot_results as draw
 
 
 class V3(Functions):
@@ -126,7 +126,7 @@ class V3(Functions):
 		self.connect_noise_generator(CV5, rate=5000, t_start=5 * self.P.skin_stim, t_end=6 * self.P.skin_stim - 2)
 		self.connect_noise_generator(iIP_F, rate=3000, t_start=6 * self.P.skin_stim,
 		                             t_end=6 * self.P.skin_stim + self.P.flexor_time - 5)
-		self.connect_noise_generator(MN_E, rate=200, weight=125)
+		self.connect_noise_generator(MN_E, rate=200, weight=100)
 		self.connect_noise_generator(MN_F, rate=200, weight=125)
 
 		# connectomes
@@ -173,10 +173,10 @@ class V3(Functions):
 
 		# OM 1
 		# input from EES group 1
-		self.connect_fixed_outdegree(E1, OM1_0, 1, 0.45 * coef)
+		self.connect_fixed_outdegree(E1, OM1_0, 1, 0.15 * coef)
 		# input from sensory
-		self.connect_one_to_all(CV1, OM1_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
-		self.connect_one_to_all(CV2, OM1_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV1, OM1_0, 0.5, 0.16 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV2, OM1_0, 0.5, 0.16 * quadru_coef * sero_coef * toe_coef * coef)
 		# [inhibition]
 		self.connect_one_to_all(CV3, OM1_3, 0.5, 100 * coef)
 		self.connect_one_to_all(CV4, OM1_3, 0.5, 100 * coef)
@@ -198,10 +198,10 @@ class V3(Functions):
 
 		# OM 2
 		# input from EES group 2
-		self.connect_fixed_outdegree(E2, OM2_0, 1, 0.5 * coef)
+		self.connect_fixed_outdegree(E2, OM2_0, 1, 0.15 * coef)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV2, OM2_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
-		self.connect_one_to_all(CV3, OM2_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV2, OM2_0, 0.5, 0.15 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV3, OM2_0, 0.5, 0.15 * quadru_coef * sero_coef * toe_coef * coef)
 		# [inhibition]
 		self.connect_one_to_all(CV4, OM2_3, 1, 80 * coef)
 		self.connect_one_to_all(CV5, OM2_3, 1, 80 * coef)
@@ -222,10 +222,10 @@ class V3(Functions):
 
 		# OM 3
 		# input from EES group 3
-		self.connect_fixed_outdegree(E3, OM3_0, 1, 0.35 * coef)
+		self.connect_fixed_outdegree(E3, OM3_0, 1, 0.12 * coef)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV3, OM3_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
-		self.connect_one_to_all(CV4, OM3_0, 0.5, 0.3 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV3, OM3_0, 0.5, 0.12 * quadru_coef * sero_coef * toe_coef * coef)
+		self.connect_one_to_all(CV4, OM3_0, 0.5, 0.12 * quadru_coef * sero_coef * toe_coef * coef)
 		# [inhibition]
 		self.connect_one_to_all(CV5, OM3_3, 1, 80 * coef)
 		# input from sensory [CD]
@@ -247,20 +247,20 @@ class V3(Functions):
 
 		# OM 4
 		# input from EES group 4
-		self.connect_fixed_outdegree(E4, OM4_0, 1, 0.4 * coef)
+		self.connect_fixed_outdegree(E4, OM4_0, 1, 0.12 * coef)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV4, OM4_0, 0.5, 0.3 * quadru_coef * sero_coef * air_coef * coef)
-		self.connect_one_to_all(CV5, OM4_0, 0.5, 0.3 * quadru_coef * sero_coef * air_coef * coef)
+		self.connect_one_to_all(CV4, OM4_0, 0.5, 0.14 * quadru_coef * sero_coef * air_coef * coef)
+		self.connect_one_to_all(CV5, OM4_0, 0.5, 0.14 * quadru_coef * sero_coef * air_coef * coef)
 		# input from sensory [CD]
 		self.connect_one_to_all(CD4, OM4_0, 1, 11 * coef)
 		self.connect_one_to_all(CD5, OM4_0, 1, 11 * coef)
 		# inner connectomes
 		self.connect_fixed_outdegree(OM4_0, OM4_1, 0.5, 30 * coef)
-		self.connect_fixed_outdegree(OM4_1, OM4_2_E, 0.5, 6 * coef)
-		self.connect_fixed_outdegree(OM4_1, OM4_2_F, 0.4, 30 * coef)
+		self.connect_fixed_outdegree(OM4_1, OM4_2_E, 2.5, 5 * coef)
+		self.connect_fixed_outdegree(OM4_1, OM4_2_F, 2.4, 30 * coef)
 		self.connect_fixed_outdegree(OM4_1, OM4_3, 4, 4 * coef)
-		self.connect_fixed_outdegree(OM4_2_E, OM4_1, 1.25, 4 * coef)
-		self.connect_fixed_outdegree(OM4_2_F, OM4_1, 1.25, 26 * coef)
+		self.connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 3.5 * coef)
+		self.connect_fixed_outdegree(OM4_2_F, OM4_1, 2.5, 26 * coef)
 		self.connect_fixed_outdegree(OM4_2_E, OM4_3, 4, 2 * coef)
 		self.connect_fixed_outdegree(OM4_2_F, OM4_3, 0.4, 15.5 * coef)
 		self.connect_fixed_outdegree(OM4_3, OM4_1, 1.5, -1 * inh_coef * coef)
@@ -271,9 +271,9 @@ class V3(Functions):
 
 		# OM 5
 		# input from EES group 5
-		self.connect_fixed_outdegree(E5, OM5_0, 1, 0.5 * coef)
+		self.connect_fixed_outdegree(E5, OM5_0, 1, 0.12 * coef)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV5, OM5_0, 0.5, 0.3 * quadru_coef * sero_coef * air_coef * coef)
+		self.connect_one_to_all(CV5, OM5_0, 0.5, 0.12 * quadru_coef * sero_coef * air_coef * coef)
 		# input from sensory [CD]
 		self.connect_one_to_all(CD5, OM5_0, 1, 11 * coef)
 		# inner connectomes
@@ -315,7 +315,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 5
+	parameters.tests = 3
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
@@ -328,15 +328,15 @@ if __name__ == "__main__":
 
 	save_folder = f"{os.getcwd()}/dat"
 
-	# for i in range(parameters.tests):
-	# 	while True:
-	# 		try:
-	# 			V3(parameters, iteration=i)
-	# 			break
-	# 		except Exception as error:
-	# 			print(error)
-	# 			continue
-	#
-	# convert_to_hdf5(save_folder)
-	# plot_results(save_folder, ees_hz=parameters.EES)
+	for i in range(parameters.tests):
+		while True:
+			try:
+				V3(parameters, iteration=i)
+				break
+			except Exception as error:
+				print(error)
+				continue
+
+	convert_to_hdf5(save_folder)
+	plot_results(save_folder, ees_hz=parameters.EES)
 	draw.run()
