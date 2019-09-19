@@ -198,23 +198,21 @@ class CPG:
             for i in range(layer - 1):
                 connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.99, 1, 99)
 
-        genconnect(self.ees, self.Ia_aff_E, 1, 0, random.randint(20, 50))
-        genconnect(self.ees, self.Ia_aff_F, 1, 0, random.randint(20, 50))
+        genconnect(self.ees, self.Ia_aff_E, 1, 0, 90)
+        genconnect(self.ees, self.Ia_aff_F, 1, 0, 90)
         genconnect(self.ees, self.dict_CV[0], 0.9, 1, 80)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, random.randint(10, 50))
-        connectcells(self.Ia_aff_F, self.mns_F, 0.8, 1, random.randint(10, 50))
+        connectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 80)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.8, 1, 80)
 
         '''IP'''
         for layer in range(layers):
             '''Extensor'''
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.1, 1, 80)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.1, 1, 80)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.1, 1, 100)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.5, 1, 80)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 1, 80)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 1, 80)
             if layer > 2:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.08, 2, 80, True)
-            else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.015, 2, 80, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.01, 2, 80, True)
             '''Flexor'''
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2, 50)
             connectcells(self.dict_IP_F[layer], self.mns_F, 0.1, 2, 50)

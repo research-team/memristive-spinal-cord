@@ -74,7 +74,7 @@ class interneuron(object):
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
-    self.dend.diam = random.uniform(1.5, 2) # microns
+    self.dend.diam = random.gauss(1, 0.2) # microns
 
   def geom_nseg(self):
     '''
@@ -89,7 +89,7 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.cm = random.uniform(1.5, 2) # cm uf/cm2 - membrane capacitance
+      sec.cm = 1 # cm uf/cm2 - membrane capacitance
 
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
