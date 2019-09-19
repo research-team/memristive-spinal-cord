@@ -208,9 +208,9 @@ class CPG:
         '''IP'''
         for layer in range(layers):
             '''Extensor'''
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.5, 1, 80)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 1, 80)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 1, 80)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.1, 1, 80)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.1, 1, 80)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.1, 1, 80)
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.01, 2, 80, True)
             '''Flexor'''
