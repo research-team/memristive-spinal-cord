@@ -188,7 +188,7 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 1, 27)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00044, 1, 27)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0004, 1, 27)
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer], self.dict_0[layer], 0.0004, 1, 27)
 
@@ -198,19 +198,19 @@ class CPG:
             for i in range(layer - 1):
                 connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.99, 1, 99)
 
-        genconnect(self.ees, self.Ia_aff_E, 1, 0, 90)
-        genconnect(self.ees, self.Ia_aff_F, 1, 0, 90)
+        genconnect(self.ees, self.Ia_aff_E, 1, 0, random.randint(20, 50))
+        genconnect(self.ees, self.Ia_aff_F, 1, 0, random.randint(20, 50))
         genconnect(self.ees, self.dict_CV[0], 0.9, 1, 80)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, 50)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.8, 1, 50)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.8, 1, random.randint(10, 50))
+        connectcells(self.Ia_aff_F, self.mns_F, 0.8, 1, random.randint(10, 50))
 
         '''IP'''
         for layer in range(layers):
             '''Extensor'''
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.5, 1, 50)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 1, 50)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 1, 50)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.1, 3, random.randint(10, 50))
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.1, 2, random.randint(30, 50))
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2, random.randint(10, 50))
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.08, 2, 80, True)
             # else:
@@ -224,10 +224,10 @@ class CPG:
         connectcells(self.IP_F, self.Ia_aff_F, 0.0001, 2, 80, True)
 
         '''C'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00044, 1, 30)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0004, 1, 30)
         for layer in range(1, layers):
-            connectcells(self.dict_CV_1[layer], self.dict_0[layer - 1], 0.0004, 1, 27)
-            connectcells(self.dict_CV_1[layer], self.dict_0[layer], 0.0004, 1, 27)
+            connectcells(self.dict_CV_1[layer], self.dict_0[layer - 1], 0.00036, 2, 27)
+            connectcells(self.dict_CV_1[layer], self.dict_0[layer], 0.00035, 2, 27)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1, 50)
@@ -473,11 +473,11 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.9, 1, 90)
-    connectcells(OM1, OM2, 0.9, 1, 80)
-    connectcells(OM2, OM1, 0.9, 2, 80)
+    connectcells(OM0, OM1, 0.5, 1, 50)
+    connectcells(OM1, OM2, 0.5, 2, 50)
+    connectcells(OM2, OM1, 0.5, 4, 50)
     connectcells(OM2, OM3, 0.001, 1, 47)
-    connectcells(OM3, OM2, 0.99, 1, 99, True)
+    connectcells(OM3, OM2, 0.8, 1, 99, True)
 
 
 def spike_record(pool, version):

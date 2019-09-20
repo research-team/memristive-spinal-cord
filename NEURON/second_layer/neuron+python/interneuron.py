@@ -89,9 +89,9 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.cm = random.uniform(1.5, 2) # cm uf/cm2 - membrane capacitance
+      sec.cm = 1 # cm uf/cm2 - membrane capacitance
 
-    self.soma.Ra = 200 # Ra ohm cm - membrane resistance
+    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
     self.soma.gnabar_hh = 0.3
     self.soma.gkbar_hh = 0.04
@@ -99,7 +99,7 @@ class interneuron(object):
     self.soma.el_hh = -70 
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
-    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
+    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
 
     if self.delay:
       distance = random.uniform(30, 1500)
@@ -115,16 +115,11 @@ class interneuron(object):
       self.recs.append(rec)  
     else:
       self.dend.insert('pas')
-      self.dend.g_pas = 0.0002
-      self.dend.e_pas = -80
+      self.dend.g_pas = 0.001
+      self.dend.e_pas = -70
 
-    self.axon.Ra = 70
+    self.axon.Ra = 50
     self.axon.insert('hh')
-    self.axon.gnabar_hh = 0.5
-    self.axon.gkbar_hh = 0.1
-    self.axon.gl_hh = 0.01
-    self.axon.el_hh = -70 
-
 
   def position(self, x, y, z):
     '''
