@@ -207,20 +207,22 @@ class bioaff(object):
     return nc
 
   def synapses(self):
+    for sec in self.node:
+      for i in range(100): 
+        s = h.ExpSyn(sec(0.5)) # Excitatory
+        s.tau = 0.1
+        s.e = 50
+        self.synlistees.append(s)
+        s = h.Exp2Syn(sec(0.5)) # Inhibitory
+        s.tau1 = 1.5
+        s.tau2 = 2
+        s.e = -80
+        self.synlistinh.append(s)  
     for i in range(100): 
       s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
-      s = h.ExpSyn(self.dend(0.5)) # Excitatory
-      s.tau = 0.1
-      s.e = 50
-      self.synlistees.append(s)
-      s = h.Exp2Syn(self.dend(0.5)) # Inhibitory
-      s.tau1 = 1.5
-      s.tau2 = 2
-      s.e = -80
-      self.synlistinh.append(s)  
 
      
 
