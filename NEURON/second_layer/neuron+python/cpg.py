@@ -56,9 +56,11 @@ class CPG:
             self.dict_2E = {layer: f"OM{layer + 1}_2E"}
             self.dict_2F = {layer: f"OM{layer + 1}_2F"}
             self.dict_3 = {layer: f"OM{layer + 1}_3"}
+            self.dict_C = {layer: f"C{layer + 1}"}
+
+        for layer in range(layers + 1):
             self.dict_CV = {layer: f"CV{layer + 1}"}
             self.dict_CV_1 = {layer: f"CV{layer + 1}_1"}
-            self.dict_C = {layer: f"C{layer + 1}"}
             self.dict_IP_E = {layer: f"IP{layer + 1}_E"}
             self.dict_IP_F = {layer: f"IP{layer + 1}_F"}
 
@@ -81,9 +83,8 @@ class CPG:
             self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
             self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
 
+        for layer in range(layers + 1):
             self.dict_CV[layer] = self.addpool(self.ncell, "CV" + str(layer + 1), "aff")
-
-        for layer in range(layers+1):
             self.dict_CV_1[layer] = self.addpool(self.ncell, "CV" + str(layer + 1) + "_1", "aff")
 
             '''interneuronal pool'''
