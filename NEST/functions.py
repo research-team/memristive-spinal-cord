@@ -1,4 +1,5 @@
 import os
+import math
 import nest
 import numpy as np
 from random import normalvariate
@@ -133,24 +134,24 @@ class Functions:
 		Returns:
 			list: global IDs of created neurons
 		"""
-		sp_C_m = 2      # pF/um²
-		sp_g_Na = 0.5   # nS/um²
-		sp_g_K = 3      # nS/um²
-		sp_g_L = 0.02   # nS/um²
+		sp_C_m = 2  # pF/um²
+		sp_g_Na = 0.5  # nS/um²
+		sp_g_K = 3  # nS/um²
+		sp_g_L = 0.02  # nS/um²
 		neuron_model = 'hh_cond_exp_traub'
-		neuron_params = {# t_ref            # [ms] refractory period
-		                 # C_m              # [pF] capacity of membrane
-		                 # g_Na             # [nS] Maximal conductance of the Sodium current
-		                 # g_K              # [nS] Maximal conductance of the Potassium current
-		                 # g_L              # [nS] Conductance of the leak current
-		                 'V_m': -70.0,      # [mV] starting value of membrane potential
-		                 'E_Na': 50.0,      # [mV] Reversal potential for the Sodium current
-		                 'E_K': -100.0,     # [mV] Reversal potential for the Potassium current
-		                 'E_L': -70.0,      # [mV] Reversal potential for the leak current
-		                 'E_ex': 0.0,       # [mV] Reversal potential for excitatory input
-		                 'E_in': -80.0,     # [mV] Reversal potential for excitatory input
-		                 'tau_syn_ex': 0.2, # [ms] Decay time of excitatory synaptic current (ms)
-		                 'tau_syn_in': 2.0, # [ms] Decay time of inhibitory synaptic current (ms)
+		neuron_params = {  # t_ref            # [ms] refractory period
+			# C_m              # [pF] capacity of membrane
+			# g_Na             # [nS] Maximal conductance of the Sodium current
+			# g_K              # [nS] Maximal conductance of the Potassium current
+			# g_L              # [nS] Conductance of the leak current
+			'V_m': -70.0,  # [mV] starting value of membrane potential
+			'E_Na': 50.0,  # [mV] Reversal potential for the Sodium current
+			'E_K': -100.0,  # [mV] Reversal potential for the Potassium current
+			'E_L': -70.0,  # [mV] Reversal potential for the leak current
+			'E_ex': 0.0,  # [mV] Reversal potential for excitatory input
+			'E_in': -80.0,  # [mV] Reversal potential for excitatory input
+			'tau_syn_ex': 0.2,  # [ms] Decay time of excitatory synaptic current (ms)
+			'tau_syn_in': 2.0,  # [ms] Decay time of inhibitory synaptic current (ms)
 		}
 		# create neurons with default common parameters
 		gids = nest.Create(model=neuron_model, n=nrn_number, params=neuron_params)
@@ -163,7 +164,7 @@ class Functions:
 			standby_size = int(nrn_number * standby_percent / 100)
 			active_size = nrn_number - standby_size
 
-			loc_active, scale_active = 27, 3    # 18 - 35, med=27
+			loc_active, scale_active = 27, 3  # 18 - 35, med=27
 			loc_standby, scale_standby = 57, 6  # 38.5 - 78, med=57
 
 			diameters = np.concatenate([np.random.normal(loc=loc_active, scale=scale_active, size=active_size),
@@ -172,7 +173,10 @@ class Functions:
 			raise NotImplemented
 		elif d_distr == "uniform":
 			# for interneurons
-			diameters = np.random.uniform(low=3, high=8, size=nrn_number)
+			if 'OM' in name:
+				diameters = np.random.uniform(low=1, high=10, size=nrn_number)
+			else:
+				diameters = np.random.uniform(low=3, high=8, size=nrn_number)
 		else:
 			raise NotImplemented("Can not recognize distribution name")
 
@@ -181,8 +185,8 @@ class Functions:
 			params = {'t_ref': t_ref,
 			          'C_m': sp_C_m * diameter,
 			          'g_Na': sp_g_Na * diameter,
-					  'g_K': sp_g_K * diameter,
-					  'g_L': sp_g_L * diameter}
+			          'g_K': sp_g_K * diameter,
+			          'g_L': sp_g_L * diameter}
 			nest.SetStatus([gid], params)
 
 		target_groups = [
@@ -191,7 +195,8 @@ class Functions:
 			# "OM3_0", "OM3_1", "OM3_2_E", "OM3_2_F", "OM3_3",
 			# "OM4_0", "OM4_1", "OM4_2_E", "OM4_2_F", "OM4_3",
 			# "OM5_0", "OM5_1", "OM5_2_E", "OM5_2_F", "OM5_3",
-			# "iIP_E", "iIP_F", "eIP_E", "eIP_F",
+			# "iIP_E", "iIP_F",
+			# "eIP_E", "eIP_F",
 			# "Ia_E_aff", "Ia_F_aff", "Ia_E_pool", "Ia_F_pool",
 			"MN_E", "MN_F",
 			# "R_E", "R_F"
@@ -291,13 +296,27 @@ class Functions:
 		self.cv_generators.append(spike_generator)
 
 	def __connect(self, pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr):
+
+		def create_low_high(mean, sigma, probability):
+			res = sigma * (-2 * math.log((2 * math.pi * probability ** 2 * sigma ** 2) ** 0.5, math.e)) ** 0.5
+			low = mean - res
+			high = mean + res
+			return low, high
+
+		weight_low, weight_high = create_low_high(syn_weight, abs(syn_weight) / 5, 0.001)
+
 		delay_distr = {"distribution": "normal",
 		               "mu": float(syn_delay),
 		               "sigma": float(syn_delay) / 5}
-		weight_distr = {"distribution": "normal",
+
+		weight_distr = {"distribution": "normal_clipped",
 		                "mu": float(syn_weight),
-		                "sigma": abs(syn_weight) / 10}
+		                "sigma": abs(syn_weight) / 5,
+		                "low": float(weight_low),
+		                "high": float(weight_high)
+		                }
 		# initialize synapse specification
+
 		syn_spec = {'model': 'static_synapse',
 		            'delay': float(syn_delay) if no_distr else delay_distr,
 		            'weight': float(syn_weight) if no_distr else weight_distr}

@@ -1,4 +1,5 @@
 import os
+import traceback
 import nest
 from time import time
 from multiprocessing import cpu_count
@@ -153,8 +154,8 @@ class V3(Functions):
 
 		self.connect_fixed_outdegree(eIP_E, MN_E, 2, 1.1, neurons_in_moto_extensor)
 
-		self.connect_fixed_outdegree(MN_E, R_E, 0.7, 0)
-		self.connect_fixed_outdegree(R_E, MN_E, 0.7, 0, neurons_in_moto_extensor)
+		# self.connect_fixed_outdegree(MN_E, R_E, 0.7, 0)
+		# self.connect_fixed_outdegree(R_E, MN_E, 0.7, 0, neurons_in_moto_extensor)
 
 		# flexor
 		self.connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip)
@@ -165,8 +166,8 @@ class V3(Functions):
 
 		self.connect_fixed_outdegree(eIP_F, MN_F, 1, 1, neurons_in_moto_flexor)
 
-		self.connect_fixed_outdegree(MN_F, R_F, 0.5, 2)
-		self.connect_fixed_outdegree(R_F, MN_F, 2, 0, neurons_in_moto_flexor)
+		# self.connect_fixed_outdegree(MN_F, R_F, 0.5, 2)
+		# self.connect_fixed_outdegree(R_F, MN_F, 2, 0, neurons_in_moto_flexor)
 
 		self.connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 0.5, neurons_in_moto_flexor)
 		self.connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -50, neurons_in_ip)
@@ -315,7 +316,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 3
+	parameters.tests = 5
 	parameters.steps = 1
 	parameters.cms = 21
 	parameters.EES = 40
@@ -334,6 +335,7 @@ if __name__ == "__main__":
 				V3(parameters, iteration=i)
 				break
 			except Exception as error:
+				print(traceback.format_exc())
 				print(error)
 				continue
 
