@@ -233,18 +233,18 @@ class CPG:
         connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0004, 2, 30)
 
         '''C2'''
-        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.00036, 2, 30)
-        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035, 2, 27)
+        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0004, 2, 30)
+        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.0004, 2, 27)
 
         '''C3'''
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00038, 2, 27)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00038, 2, 27)
+        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0004, 2, 27)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0004, 2, 27)
 
         '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00036, 2, 27)
-        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00035, 2, 27)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00036, 2, 27)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00035, 2, 27)
+        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.0004, 2, 27)
+        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.0004, 2, 27)
+        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.0004, 2, 27)
+        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 2, 27)
 
         '''C5'''
         connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0004, 2, 27)
