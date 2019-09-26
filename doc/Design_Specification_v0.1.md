@@ -28,7 +28,7 @@
 
 ### Deployment diagram
 
-![HLD Deployment diagram](2_legs_prosthesis_deployment.png)
+![HLD Deployment diagram](diagram/2_legs_prosthesis_deployment.png)
 
 
 ## v 0.1 HLD
@@ -37,9 +37,9 @@
 
 #### LLD
 
-![LLD Minimal 1 neuron Spiking prosthesis wiring diagram](prototype.png)
+![LLD Minimal 1 neuron Spiking prosthesis wiring diagram](diagram/prototype.png)
 
 ### Deployment diagram
 
-![HLD Deployment diagram v 0.1](1_l_1_m_prosthesis.v_0.1.png)
+![HLD Deployment diagram v 0.1](diagram/1_l_1_m_prosthesis.v_0.1.png)
 
