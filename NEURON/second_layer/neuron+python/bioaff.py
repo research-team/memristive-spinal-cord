@@ -223,8 +223,6 @@ class bioaff(object):
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
-
-     
-
+      
   def is_art(self):
     return 0
