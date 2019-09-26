@@ -8,6 +8,8 @@
 
 ![HLD Component diagram v 1.0](diagram/2_legs_prosthesis.png)
 
+![Myogram FE](diagram/myogram_FE-Combined.png)
+
 #### MLD RA + CPG
 
 ![MLD Component diagram CPG v 1.0](diagram/cpg_FE_combined.png)
@@ -22,12 +24,22 @@
 
 #### LLD Simple Spiking Motoneuron
 
-![LLD SSM](diagram/)
+![LLD SSM](diagram/motoNouron.png)
 
 ### Deployment diagram
 
 ![HLD Deployment diagram](2_legs_prosthesis_deployment.png)
 
+
 ## v 0.1 HLD
 
+### Wiring diagram
+
+#### LLD
+
+![LLD Minimal 1 neuron Spiking prosthesis wiring diagram](prototype.png)
+
 ### Deployment diagram
+
+![HLD Deployment diagram v 0.1](1_l_1_m_prosthesis.v_0.1.png)
+
