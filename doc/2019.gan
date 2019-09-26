@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="2019 " company="B-rain project" webLink="http://" view-date="2019-09-23" view-index="0" gantt-divider-location="390" resource-divider-location="300" version="2.8.10" locale="en_GB">
+<?xml version="1.0" encoding="UTF-8"?><project name="2019 " company="B-rain project" webLink="http://" view-date="2019-09-23" view-index="0" gantt-divider-location="419" resource-divider-location="300" version="2.8.10" locale="en_GB">
     <description/>
     <view zooming-state="default:7" id="gantt-chart">
-        <field id="tpd3" name="Name" width="162" order="0"/>
-        <field id="tpd4" name="Begin date" width="84" order="1"/>
-        <field id="tpd5" name="End date" width="87" order="2"/>
-        <field id="tpd6" name="Duration" width="53" order="3"/>
+        <field id="tpd3" name="Name" width="220" order="0"/>
+        <field id="tpd4" name="Begin date" width="83" order="1"/>
+        <field id="tpd5" name="End date" width="84" order="2"/>
+        <field id="tpd6" name="Duration" width="28" order="3"/>
     </view>
     <view id="resource-table">
         <field id="0" name="Name" width="210" order="0"/>
@@ -89,88 +89,88 @@
             <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
             <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
         </taskproperties>
-        <task id="0" name="Prototype v 0.1" meeting="false" start="2019-09-23" duration="98" complete="0" expand="true">
-            <task id="15" name="Left leg" meeting="false" start="2019-09-23" duration="76" complete="0" expand="true">
+        <task id="0" name="Prototype v 0.1" meeting="false" start="2019-10-01" duration="98" complete="0" expand="true">
+            <task id="15" name="Left leg" meeting="false" start="2019-10-01" duration="76" complete="0" expand="true">
                 <depend id="37" type="2" difference="0" hardness="Strong"/>
-                <task id="8" name="Insole controller" meeting="false" start="2019-09-23" duration="10" complete="0" expand="true">
+                <task id="8" name="Insole controller" meeting="false" start="2019-10-01" duration="10" complete="0" expand="true">
                     <depend id="9" type="2" difference="0" hardness="Strong"/>
                 </task>
-                <task id="9" name="Hip controller" meeting="false" start="2019-10-07" duration="10" complete="0" expand="true"/>
-                <task id="10" name="Foot prosthesis" color="#8cb6ce" meeting="false" start="2019-09-23" duration="20" complete="0" thirdDate="2019-09-23" thirdDate-constraint="0" expand="true">
-                    <task id="17" name="Redesign for human pattern 1" meeting="false" start="2019-09-23" duration="5" complete="0" expand="true">
+                <task id="9" name="Hip controller" meeting="false" start="2019-10-15" duration="10" complete="0" expand="true"/>
+                <task id="10" name="Foot prosthesis" color="#8cb6ce" meeting="false" start="2019-10-01" duration="20" complete="0" thirdDate="2019-09-23" thirdDate-constraint="0" expand="true">
+                    <task id="17" name="Redesign for human pattern 1" meeting="false" start="2019-10-01" duration="5" complete="0" expand="true">
                         <depend id="18" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="18" name="Implementation for humans" meeting="false" start="2019-09-30" duration="5" complete="0" expand="true">
+                    <task id="18" name="Implementation for humans" meeting="false" start="2019-10-08" duration="5" complete="0" expand="true">
                         <depend id="19" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="19" name="Redesign 2nd" meeting="false" start="2019-10-07" duration="5" complete="0" expand="true">
+                    <task id="19" name="Redesign 2nd" meeting="false" start="2019-10-15" duration="5" complete="0" expand="true">
                         <depend id="22" type="2" difference="0" hardness="Strong"/>
                         <depend id="25" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="25" name="Reimplementation" meeting="false" start="2019-10-14" duration="5" complete="0" expand="true">
+                    <task id="25" name="Reimplementation" meeting="false" start="2019-10-22" duration="5" complete="0" expand="true">
                         <depend id="23" type="2" difference="0" hardness="Strong"/>
                     </task>
                 </task>
-                <task id="11" name="Hip prosthesis" meeting="false" start="2019-10-14" duration="10" complete="0" expand="true">
+                <task id="11" name="Hip prosthesis" meeting="false" start="2019-10-22" duration="10" complete="0" expand="true">
                     <depend id="14" type="2" difference="0" hardness="Strong"/>
-                    <task id="22" name="Design" meeting="false" start="2019-10-14" duration="5" complete="0" expand="true">
+                    <task id="22" name="Design" meeting="false" start="2019-10-22" duration="5" complete="0" expand="true">
                         <depend id="23" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="23" name="Implementation" meeting="false" start="2019-10-21" duration="5" complete="0" expand="true"/>
+                    <task id="23" name="Implementation" meeting="false" start="2019-10-29" duration="5" complete="0" expand="true"/>
                 </task>
-                <task id="13" name="Foot stimulator" meeting="false" start="2019-09-23" duration="20" complete="0" expand="true">
+                <task id="13" name="Foot stimulator" meeting="false" start="2019-10-01" duration="20" complete="0" expand="true">
                     <depend id="14" type="2" difference="0" hardness="Strong"/>
-                    <task id="29" name="Design" meeting="false" start="2019-09-23" duration="10" complete="0" expand="true">
+                    <task id="29" name="Design" meeting="false" start="2019-10-01" duration="10" complete="0" expand="true">
                         <depend id="30" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="30" name="Implementation" meeting="false" start="2019-10-07" duration="10" complete="0" expand="true"/>
+                    <task id="30" name="Implementation" meeting="false" start="2019-10-15" duration="10" complete="0" expand="true"/>
                 </task>
-                <task id="14" name="Hip stimulator" meeting="false" start="2019-10-28" duration="10" complete="0" expand="true">
+                <task id="14" name="Hip stimulator" meeting="false" start="2019-11-06" duration="10" complete="0" expand="true">
                     <depend id="34" type="2" difference="0" hardness="Strong"/>
                 </task>
-                <task id="34" name="Integration" meeting="false" start="2019-11-12" duration="10" complete="0" expand="true">
+                <task id="34" name="Integration" meeting="false" start="2019-11-20" duration="10" complete="0" expand="true">
                     <depend id="35" type="2" difference="0" hardness="Strong"/>
                 </task>
-                <task id="35" name="Validation" meeting="false" start="2019-11-27" duration="30" complete="0" expand="true">
+                <task id="35" name="Validation" meeting="false" start="2019-12-05" duration="30" complete="0" expand="true">
                     <depend id="4" type="2" difference="0" hardness="Strong"/>
-                    <task id="39" name="1st iteration" color="#8cb6ce" meeting="false" start="2019-11-27" duration="5" complete="0" thirdDate="2019-11-18" thirdDate-constraint="0" expand="true">
+                    <task id="39" name="1st iteration" color="#8cb6ce" meeting="false" start="2019-12-05" duration="5" complete="0" thirdDate="2019-11-18" thirdDate-constraint="0" expand="true">
                         <depend id="42" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="42" name="prosthesis tuning" meeting="false" start="2019-12-04" duration="10" complete="0" expand="true">
+                    <task id="42" name="prosthesis tuning" meeting="false" start="2019-12-12" duration="10" complete="0" expand="true">
                         <depend id="44" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="44" name="2nd iteration" meeting="false" start="2019-12-18" duration="5" complete="0" expand="true">
+                    <task id="44" name="2nd iteration" meeting="false" start="2019-12-26" duration="5" complete="0" expand="true">
                         <depend id="46" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="46" name="prosthesis" meeting="false" start="2019-12-25" duration="5" complete="0" expand="true">
+                    <task id="46" name="prosthesis" meeting="false" start="2020-01-03" duration="5" complete="0" expand="true">
                         <depend id="48" type="2" difference="0" hardness="Strong"/>
                     </task>
-                    <task id="48" name="3rd iteration" meeting="false" start="2020-01-02" duration="5" complete="0" expand="true"/>
+                    <task id="48" name="3rd iteration" meeting="false" start="2020-01-13" duration="5" complete="0" expand="true"/>
                 </task>
             </task>
-            <task id="37" name="Right leg" meeting="false" start="2020-01-10" duration="22" complete="0" expand="true">
-                <task id="83" name="Balancer Design" meeting="false" start="2020-01-10" duration="2" complete="0" expand="true">
+            <task id="37" name="Right leg" meeting="false" start="2020-01-20" duration="22" complete="0" expand="true">
+                <task id="83" name="Balancer Design" meeting="false" start="2020-01-20" duration="2" complete="0" expand="true">
                     <depend id="4" type="2" difference="0" hardness="Strong"/>
                     <depend id="80" type="2" difference="0" hardness="Strong"/>
                 </task>
-                <task id="80" name="Implementation" color="#8cb6ce" meeting="false" start="2020-01-14" duration="5" complete="0" thirdDate="2019-09-23" thirdDate-constraint="0" expand="true">
+                <task id="80" name="Implementation" color="#8cb6ce" meeting="false" start="2020-01-22" duration="5" complete="0" thirdDate="2019-09-23" thirdDate-constraint="0" expand="true">
                     <depend id="82" type="2" difference="0" hardness="Strong"/>
                 </task>
-                <task id="82" name="Validation" meeting="false" start="2020-01-21" duration="15" complete="0" expand="true"/>
+                <task id="82" name="Validation" meeting="false" start="2020-01-29" duration="15" complete="0" expand="true"/>
             </task>
         </task>
-        <task id="1" name="Marketing research" meeting="false" start="2019-09-26" duration="10" complete="0" expand="true">
+        <task id="1" name="Marketing research" meeting="false" start="2019-10-04" duration="10" complete="0" expand="true">
             <depend id="2" type="2" difference="0" hardness="Strong"/>
             <depend id="4" type="2" difference="0" hardness="Strong"/>
         </task>
-        <task id="2" name="Accelerators research" meeting="false" start="2019-10-10" duration="10" complete="0" expand="true">
+        <task id="2" name="Accelerators research" meeting="false" start="2019-10-18" duration="10" complete="0" expand="true">
             <depend id="4" type="2" difference="0" hardness="Strong"/>
         </task>
-        <task id="5" name="Invitations" meeting="false" start="2019-09-26" duration="5" complete="0" expand="true">
+        <task id="5" name="Invitations" meeting="false" start="2019-10-04" duration="5" complete="0" expand="true">
             <depend id="3" type="2" difference="0" hardness="Strong"/>
         </task>
-        <task id="3" name="Visa processing" meeting="false" start="2019-10-03" duration="60" complete="0" expand="true"/>
-        <task id="4" name="Business trip plan" meeting="false" start="2020-01-14" duration="2" complete="0" expand="true"/>
+        <task id="3" name="Visa processing" meeting="false" start="2019-10-11" duration="60" complete="0" expand="true"/>
+        <task id="4" name="Business trip plan" meeting="false" start="2020-01-22" duration="2" complete="0" expand="true"/>
     </tasks>
     <resources/>
     <allocations/>
