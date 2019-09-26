@@ -24,7 +24,7 @@
 
 #### LLD Simple Spiking Motoneuron
 
-![LLD SSM](diagram/motoNouron.png)
+![LLD SSM](diagram/motoNeuron.png)
 
 ### Deployment diagram
 
