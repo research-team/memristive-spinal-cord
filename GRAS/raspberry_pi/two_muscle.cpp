@@ -383,6 +383,9 @@ void init_network() {
 
 #ifdef DEBUG
 void save(int test_index, GroupMetadata &metadata, const string& folder){
+	if(metadata.group.group_name[0] != 'M' || metadata.group.group_name[1] != 'N')
+		return;
+
 	ofstream file;
 	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 
@@ -411,12 +414,13 @@ void save(int test_index, GroupMetadata &metadata, const string& folder){
 	cout << "Saved to: " << folder + file_name << endl;
 }
 
-void save_result() {
+void save_result(int itest) {
 	string current_path = getcwd(nullptr, 0);
 	printf("Save results to: %s \n", current_path.c_str());
 
-	for(GroupMetadata &metadata : all_groups)
-		save(0, metadata, current_path);
+	for(GroupMetadata &metadata : all_groups) {
+		save(itest, metadata, current_path);
+	}
 }
 #endif
 
@@ -456,7 +460,7 @@ void copy_data_to(GroupMetadata &metadata, const unsigned short* nrn_v_m, const 
 	#endif
 }
 
-void simulate() {
+void simulate(int itest) {
 	const unsigned int neurons_number = global_id;
 	const unsigned int synapses_number = static_cast<int>(all_synapses.size());
 	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
@@ -634,7 +638,7 @@ void simulate() {
 	simulation_t_end = chrono::system_clock::now();
 
 	#ifdef DEBUG
-	save_result();
+	save_result(itest);
 	#endif
 
 	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
@@ -644,8 +648,9 @@ void simulate() {
 
 // runner
 int main(int argc, char* argv[]) {
+	int itest = atoi(argv[1]);
 	init_network();
-	simulate();
+	simulate(itest);
 
 	return 0;
 }
