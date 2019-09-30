@@ -8,6 +8,7 @@ from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
+from analysis.functions import confidence_ellipse
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -447,14 +448,15 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	return peak_matrix, ampl_matrix
 
 
-def plot_3D_PCA(data_pack, names, save_to, correlation=False):
+def plot_3D_PCA(data_pack, names, save_to, corr_plot=False, egg_plot=False):
 	"""
 	TODO: add docstring
 	Args:
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
 		names (list of str): datasets names
 		save_to (str): save folder path
-		correlation (bool): enable or disable corelation calculating
+		corr_plot (bool): enable or disable corelation calculating
+		egg_plot (bool): enable or disable egg plot
 	"""
 	light_filename = "_".join(names[0].split("_")[1:-1])
 	# plot PCA at different point of view
@@ -462,6 +464,31 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 		volume_sum = 0
 		data_pack_xyz = []
 		new_filename = f"{light_filename}_{title.lower().replace(' ', '_')}"
+
+		if egg_plot:
+			fig, ax = plt.subplots(figsize=(10, 10))
+			labels = []
+			for coords, color, filename in data_pack:
+				xy = []
+				if "Lat" in title:
+					xy.append(coords[:, 0])
+					labels.append("Latency")
+				if "Amp" in title:
+					xy.append(coords[:, 1])
+					labels.append("Amplitudes")
+				if "Peak" in title:
+					xy.append(coords[:, 2])
+					labels.append("Peaks")
+				confidence_ellipse(xy[0], xy[1], ax, n_std=1, facecolor=color, alpha=0.1)
+				confidence_ellipse(xy[0], xy[1], ax, n_std=2, facecolor=color, alpha=0.1)
+				confidence_ellipse(xy[0], xy[1], ax, n_std=3, facecolor=color, alpha=0.1)
+				ax.scatter(xy[0], xy[1], s=10, color=color)
+			plt.xlabel(labels[0])
+			plt.ylabel(labels[1])
+			plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
+			plt.close()
+			continue
+
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
@@ -484,7 +511,7 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation, matrixA = form_ellipse(axis_points)
 			# choose -- calc correlaion or just plot PCA
-			if correlation:
+			if corr_plot:
 				# start calculus of points intersection
 				volume = (4 / 3) * np.pi * radii[0] * radii[1] * radii[2]
 				volume_sum += volume
@@ -510,7 +537,7 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 				ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
-		if correlation:
+		if corr_plot:
 			# collect all intersect point
 			points_inside = []
 			# get data of two ellipsoids: A matrix, center and points coordinates
