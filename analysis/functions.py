@@ -4,6 +4,8 @@ import numpy as np
 import h5py as hdf5
 import pylab as plt
 from sklearn.decomposition import PCA
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -36,6 +38,46 @@ def normalization(data, a=0, b=1, save_centering=False):
 		return (data - min_x) * const + a
 
 
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+	"""
+	Create a plot of the covariance confidence ellipse of *x* and *y*.
+	Args:
+		x (np.ndarray): array-like, shape (n, )
+		y (np.ndarray): array-like, shape (n, )
+		ax (matplotlib.axes.Axes): the axes object to draw the ellipse into.
+		n_std (float): the number of standard deviations to determine the ellipse's radiuses
+		facecolor:
+		**kwargs (~matplotlib.patches.Patch): properties
+	Returns:
+		matplotlib.patches.Ellipse: plot
+	"""
+	if x.size != y.size:
+		raise ValueError("x and y must be the same size")
+
+	cov = np.cov(x, y)
+	pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
+	# Using a special case to obtain the eigenvalues of this
+	# two-dimensionl dataset.
+	ell_radius_x = np.sqrt(1 + pearson)
+	ell_radius_y = np.sqrt(1 - pearson)
+	ellipse = Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2, facecolor=facecolor, **kwargs)
+
+	# Calculating the stdandard deviation of x from
+	# the squareroot of the variance and multiplying
+	# with the given number of standard deviations.
+	scale_x = np.sqrt(cov[0, 0]) * n_std
+	mean_x = np.mean(x)
+
+	# calculating the stdandard deviation of y ...
+	scale_y = np.sqrt(cov[1, 1]) * n_std
+	mean_y = np.mean(y)
+
+	transf = transforms.Affine2D().rotate_deg(45).scale(scale_x, scale_y).translate(mean_x, mean_y)
+
+	ellipse.set_transform(transf + ax.transData)
+	return ax.add_patch(ellipse)
+
+
 def read_data(filepath):
 	"""
 	ToDo add info
@@ -59,7 +101,7 @@ def read_bio_data(path):
 			path to file
 
 	Returns:
-	 	data_RMG :list
+		data_RMG :list
 			readed data from the first till the last stimulation,
 		shifted_indexes: list
 			stimulations from the zero
