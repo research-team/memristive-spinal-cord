@@ -153,64 +153,6 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def merge_extrema(minima_indexes, minima_values, maxima_indexes, maxima_values):
-	"""
-	ToDo add info
-	Args:
-		minima_indexes (np.ndarray):
-		minima_values (np.ndarray):
-		maxima_indexes (np.ndarray):
-		maxima_values (np.ndarray):
-	Returns:
-		np.ndarray:
-		np.ndarray:
-		np.ndarray:
-	"""
-	# prepare data for concatenating dots into one list (per parameter)
-
-	# who located earlier -- max or min
-	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
-	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
-
-	common_length = len(minima_indexes) + len(maxima_indexes)
-
-	merged_names = [None] * common_length
-	merged_indexes = [None] * common_length
-	merged_values = [None] * common_length
-
-	# be sure that size of [min_starts::2] be enough for filling
-	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
-		minima_indexes = minima_indexes[:-1]
-		minima_values = minima_values[:-1]
-
-	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
-		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
-		minima_values = np.append(minima_values, minima_values[-1])
-
-	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
-		maxima_indexes = maxima_indexes[:-1]
-		maxima_values = maxima_values[:-1]
-
-	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
-		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
-		maxima_values = np.append(maxima_values, maxima_values[-1])
-
-	# fill minima lists based on the precedence
-	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
-	merged_indexes[min_starts::2] = minima_indexes
-	merged_values[min_starts::2] = minima_values
-	# the same for the maxima
-	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
-	merged_indexes[max_starts::2] = maxima_indexes
-	merged_values[max_starts::2] = maxima_values
-
-	merged_names = np.array(merged_names)
-	merged_values = np.array(merged_values)
-	merged_indexes = np.array(merged_indexes).astype(int)
-
-	return merged_names, merged_indexes, merged_values
-
-
 def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
@@ -298,40 +240,6 @@ def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 				plt.show()
 
 	return latency_matrix
-
-
-def get_amp_per_exp(sliced_datasets, step_size):
-	"""
-	Function for finding latencies at each slice in normalized (!) data
-	Args:
-		sliced_datasets (np.ndarry): arrays of data
-		                      data per slice
-		               [[...], [...], [...], [...],
-		dataset number  [...], [...], [...], [...],
-		                [...], [...], [...], [...]]
-		step_size (float): data step
-	Returns:
-		np.ndarray: amplitudes values
-	"""
-	if type(sliced_datasets) is not np.ndarray:
-		raise TypeError("Non valid type of data - use only np.ndarray")
-
-	global_amp_values = []
-	l_poly_border = int(10 / step_size)
-
-	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
-	for slices_per_experiment in sliced_datasets:
-		for slice_data in slices_per_experiment:
-			# smooth data to avoid micro peaks and noise
-			smoothed_data = smooth(slice_data, 2)
-			smoothed_data[:2] = slice_data[:2]
-			smoothed_data[-2:] = slice_data[-2:]
-
-			# II. find the sum of amplitudes (integral area)
-			amplitude_sum = np.sum(np.abs(smoothed_data[l_poly_border:]))
-			global_amp_values.append(amplitude_sum)
-
-	return np.array(global_amp_values)
 
 
 def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_intervals=False, debugging=False):
@@ -426,14 +334,14 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 								plt.plot([max_index, min_index], [max_value, max_value], color='k')
 								plt.plot([min_index, min_index], [max_value, min_value], color='k')
 								plt.text(min_index, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
-					if debugging:
-						plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
-						plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
-						plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
-						plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
-						plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
-						plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
-						plt.show()
+				if debugging:
+					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
+					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
+					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
+					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
+					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
+					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
+					plt.show()
 
 	if split_by_intervals:
 		peaks_per_interval = peaks_per_interval / dataset_size
@@ -486,6 +394,7 @@ def plot_3D_PCA(data_pack, names, save_to, corr_plot=False, egg_plot=False):
 			plt.xlabel(labels[0])
 			plt.ylabel(labels[1])
 			plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
+			plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
 			plt.close()
 			continue
 
