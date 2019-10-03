@@ -8,6 +8,7 @@ from scipy.signal import argrelextrema
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
+from analysis.functions import confidence_ellipse
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -152,64 +153,6 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def merge_extrema(minima_indexes, minima_values, maxima_indexes, maxima_values):
-	"""
-	ToDo add info
-	Args:
-		minima_indexes (np.ndarray):
-		minima_values (np.ndarray):
-		maxima_indexes (np.ndarray):
-		maxima_values (np.ndarray):
-	Returns:
-		np.ndarray:
-		np.ndarray:
-		np.ndarray:
-	"""
-	# prepare data for concatenating dots into one list (per parameter)
-
-	# who located earlier -- max or min
-	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
-	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
-
-	common_length = len(minima_indexes) + len(maxima_indexes)
-
-	merged_names = [None] * common_length
-	merged_indexes = [None] * common_length
-	merged_values = [None] * common_length
-
-	# be sure that size of [min_starts::2] be enough for filling
-	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
-		minima_indexes = minima_indexes[:-1]
-		minima_values = minima_values[:-1]
-
-	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
-		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
-		minima_values = np.append(minima_values, minima_values[-1])
-
-	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
-		maxima_indexes = maxima_indexes[:-1]
-		maxima_values = maxima_values[:-1]
-
-	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
-		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
-		maxima_values = np.append(maxima_values, maxima_values[-1])
-
-	# fill minima lists based on the precedence
-	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
-	merged_indexes[min_starts::2] = minima_indexes
-	merged_values[min_starts::2] = minima_values
-	# the same for the maxima
-	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
-	merged_indexes[max_starts::2] = maxima_indexes
-	merged_values[max_starts::2] = maxima_values
-
-	merged_names = np.array(merged_names)
-	merged_values = np.array(merged_values)
-	merged_indexes = np.array(merged_indexes).astype(int)
-
-	return merged_names, merged_indexes, merged_values
-
-
 def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
@@ -297,40 +240,6 @@ def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 				plt.show()
 
 	return latency_matrix
-
-
-def get_amp_per_exp(sliced_datasets, step_size):
-	"""
-	Function for finding latencies at each slice in normalized (!) data
-	Args:
-		sliced_datasets (np.ndarry): arrays of data
-		                      data per slice
-		               [[...], [...], [...], [...],
-		dataset number  [...], [...], [...], [...],
-		                [...], [...], [...], [...]]
-		step_size (float): data step
-	Returns:
-		np.ndarray: amplitudes values
-	"""
-	if type(sliced_datasets) is not np.ndarray:
-		raise TypeError("Non valid type of data - use only np.ndarray")
-
-	global_amp_values = []
-	l_poly_border = int(10 / step_size)
-
-	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
-	for slices_per_experiment in sliced_datasets:
-		for slice_data in slices_per_experiment:
-			# smooth data to avoid micro peaks and noise
-			smoothed_data = smooth(slice_data, 2)
-			smoothed_data[:2] = slice_data[:2]
-			smoothed_data[-2:] = slice_data[-2:]
-
-			# II. find the sum of amplitudes (integral area)
-			amplitude_sum = np.sum(np.abs(smoothed_data[l_poly_border:]))
-			global_amp_values.append(amplitude_sum)
-
-	return np.array(global_amp_values)
 
 
 def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_intervals=False, debugging=False):
@@ -425,14 +334,14 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 								plt.plot([max_index, min_index], [max_value, max_value], color='k')
 								plt.plot([min_index, min_index], [max_value, min_value], color='k')
 								plt.text(min_index, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
-					if debugging:
-						plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
-						plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
-						plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
-						plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
-						plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
-						plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
-						plt.show()
+				if debugging:
+					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
+					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
+					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
+					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
+					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
+					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
+					plt.show()
 
 	if split_by_intervals:
 		peaks_per_interval = peaks_per_interval / dataset_size
@@ -447,14 +356,15 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	return peak_matrix, ampl_matrix
 
 
-def plot_3D_PCA(data_pack, names, save_to, correlation=False):
+def plot_3D_PCA(data_pack, names, save_to, corr_plot=False, egg_plot=False):
 	"""
 	TODO: add docstring
 	Args:
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
 		names (list of str): datasets names
 		save_to (str): save folder path
-		correlation (bool): enable or disable corelation calculating
+		corr_plot (bool): enable or disable corelation calculating
+		egg_plot (bool): enable or disable egg plot
 	"""
 	light_filename = "_".join(names[0].split("_")[1:-1])
 	# plot PCA at different point of view
@@ -462,6 +372,32 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 		volume_sum = 0
 		data_pack_xyz = []
 		new_filename = f"{light_filename}_{title.lower().replace(' ', '_')}"
+
+		if egg_plot:
+			fig, ax = plt.subplots(figsize=(10, 10))
+			labels = []
+			for coords, color, filename in data_pack:
+				xy = []
+				if "Lat" in title:
+					xy.append(coords[:, 0])
+					labels.append("Latency")
+				if "Amp" in title:
+					xy.append(coords[:, 1])
+					labels.append("Amplitudes")
+				if "Peak" in title:
+					xy.append(coords[:, 2])
+					labels.append("Peaks")
+				confidence_ellipse(xy[0], xy[1], ax, n_std=1, facecolor=color, alpha=0.1)
+				confidence_ellipse(xy[0], xy[1], ax, n_std=2, facecolor=color, alpha=0.1)
+				confidence_ellipse(xy[0], xy[1], ax, n_std=3, facecolor=color, alpha=0.1)
+				ax.scatter(xy[0], xy[1], s=10, color=color)
+			plt.xlabel(labels[0])
+			plt.ylabel(labels[1])
+			plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
+			plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
+			plt.close()
+			continue
+
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
 		ax = fig.add_subplot(111, projection='3d')
@@ -484,7 +420,7 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation, matrixA = form_ellipse(axis_points)
 			# choose -- calc correlaion or just plot PCA
-			if correlation:
+			if corr_plot:
 				# start calculus of points intersection
 				volume = (4 / 3) * np.pi * radii[0] * radii[1] * radii[2]
 				volume_sum += volume
@@ -510,7 +446,7 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 				ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
-		if correlation:
+		if corr_plot:
 			# collect all intersect point
 			points_inside = []
 			# get data of two ellipsoids: A matrix, center and points coordinates

@@ -6,8 +6,7 @@ import pylab as plt
 from itertools import chain
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-
-from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
+from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, confidence_ellipse
 from analysis.PCA import plot_3D_PCA, get_lat_matirx, get_peak_amp_matrix
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -290,7 +289,6 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 	peaks_pack = []
 	ampls_pack = []
 	peaks_per_interval_pack = []
-	toe_air_detected_flag = False
 
 	# process each file
 	for filepath in filepaths:
@@ -298,8 +296,6 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 		filename = ntpath.basename(filepath)
 		data_label = filename.replace('.hdf5', '')
 		log.info(folder)
-		if "toe" in folder or "air" in folder:
-			toe_air_detected_flag = True
 		# be sure that folder is exist
 		if not os.path.exists(save_to):
 			os.makedirs(save_to)
@@ -354,7 +350,7 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 			ideal_example_index = None
 
 		# form PCA data pack
-		if flags['plot_pca_flag'] or flags['plot_correlation']:
+		if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_egg_flag']]):
 			coords = np.stack((e_latencies.flatten() * step_size_to, ampls_summed.flatten(), peaks_summed.flatten()), axis=1)
 			pca_metadata = (coords, color, data_label)
 			pca_pack.append(pca_metadata)
@@ -376,8 +372,8 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 		ampls_pack.append(e_ampl_matrix)
 		peaks_pack.append(e_peaks_matrix)
 
-	if (flags['plot_pca_flag'] or flags['plot_correlation']) and not toe_air_detected_flag:
-		plot_3D_PCA(pca_pack, names, save_to=save_to, correlation=flags['plot_correlation'])
+	if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_egg_flag']]):
+		plot_3D_PCA(pca_pack, names, save_to=save_to, corr_plot=flags['plot_correlation'], egg_plot=flags['plot_egg_flag'])
 
 	if flags['plot_lat_amp_dep']:
 		plot_lat_amp_dependency(peaks_pack, ampls_pack, names, colors, step_size=step_size_to, save_to=save_to)
@@ -396,9 +392,9 @@ def for_article():
 		("foot", 21, 2, "no", 0.1),
 		("foot", 13.5, 2, "no", 0.1),
 		("foot", 6, 2, "no", 0.1),
-		("toe", 21, 2, "no", 0.1),
-		("toe", 13.5, 2, "no", 0.1),
-		("air", 13.5, 2, "no", 0.1),
+		# ("toe", 21, 2, "no", 0.1),
+		# ("toe", 13.5, 2, "no", 0.1),
+		# ("air", 13.5, 2, "no", 0.1),
 		("4pedal", 21, 4, "no", 0.25),
 		("4pedal", 13.5, 4, "no", 0.25),
 		("qpz", 13.5, 2, "", 0.1),
@@ -416,8 +412,9 @@ def for_article():
 		]
 		# control
 		flags = dict(plot_pca_flag=False,
+		             plot_egg_flag=True,    # FixMe: without combining with PCA flag or correlation flag
 		             plot_correlation=False,
-		             plot_slices_flag=True,
+		             plot_slices_flag=False,
 		             plot_lat_amp_dep=False,
 		             plot_peaks_by_intervals=False)
 
