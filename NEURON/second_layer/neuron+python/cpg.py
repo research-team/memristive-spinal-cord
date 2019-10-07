@@ -10,7 +10,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 25
 step_number = 1 # number of steps
@@ -73,8 +73,8 @@ class CPG:
             self.dict_3 = {layer: f"OM{layer + 1}_3"}
             self.dict_C = {layer: f"C{layer + 1}"}
 
-        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
-        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
+        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "delay")
+        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "delay")
 
         '''addpool'''
         for layer in range(layers):
@@ -95,11 +95,11 @@ class CPG:
             self.IP_F.append(self.dict_IP_F[layer])
 
         for layer in range(layers, extra_layers):
-            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
-            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
-            self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
-            self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
-            self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
+            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "delay")
+            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "delay")
+            self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "delay")
+            self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "delay")
+            self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "delay")
 
         self.IP_E = sum(self.IP_E, [])
         self.IP_F = sum(self.IP_F, [])
@@ -174,14 +174,14 @@ class CPG:
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.01, 2)
 
         for layer in range(layers):
-            connectcells(self.dict_1[layer], self.dict_2F[layer], 0.05, 2)
+            connectcells(self.dict_1[layer], self.dict_2F[layer], 0.05, 3)
             connectcells(self.dict_2F[layer], self.dict_1[layer], 0.05, 4)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_1[layer], self.dict_2F[layer], 0.05, 2)
             connectcells(self.dict_2F[layer], self.dict_1[layer], 0.05, 4)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.004, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.0008, 3)
         connectcells(self.OM1_0F, self.dict_1[0], 0.05, 2)
 
         '''between delays vself.Ia excitatory pools'''
@@ -189,7 +189,7 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.0002, 1)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0003, 1)
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer], self.dict_0[layer], 0.0004, 2)
 
@@ -213,23 +213,23 @@ class CPG:
         '''IP'''
         for layer in range(layers):
             '''Extensor'''
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.2, 3)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.2, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2)
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.003, 1, True)
             else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 2, True)
-            '''Flexor'''
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00015, 2, True)
             if layer > 2:
-                connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.2, 2)
+                '''Flexor'''
+                connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.3, 2)
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.3, 2)
-                connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
+                connectcells(self.dict_IP_F[layer], self.mns_F, 0.3, 2)
             else:
                 connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2)
-                connectcells(self.dict_IP_F[layer], self.mns_F, 0.1, 2)
-        
+                connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
+
         for layer in range(layers+1): 
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.05, 1)
@@ -239,7 +239,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0002, 2)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00005, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00005, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 2)
@@ -462,12 +462,15 @@ def connectcells(pre, post, weight, delay, inhtype = False):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
+                    # str nc.weight[0] = 0
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
-                nc.delay = random.gauss(delay, delay / 5)
+                    # str nc.weight[0] = random.gauss(weight, weight / 10)
                 nc.weight[0] = random.gauss(weight, weight / 10)
+                nc.delay = random.gauss(delay, delay / 5)
+
 
 def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
     ''' Connects with generator
@@ -601,7 +604,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path = str('./nr/' + name + 'r%dv%d_50pool' % (rank, version))
+            path = str('./res/' + name + 'r%dv%d_foot_25tests_15speed' % (rank, version))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")
