@@ -10,7 +10,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 25
 step_number = 1 # number of steps
@@ -73,8 +73,8 @@ class CPG:
             self.dict_3 = {layer: f"OM{layer + 1}_3"}
             self.dict_C = {layer: f"C{layer + 1}"}
 
-        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "delay")
-        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "delay")
+        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
+        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
 
         '''addpool'''
         for layer in range(layers):
@@ -95,11 +95,11 @@ class CPG:
             self.IP_F.append(self.dict_IP_F[layer])
 
         for layer in range(layers, extra_layers):
-            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "delay")
-            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "delay")
-            self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "delay")
-            self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "delay")
-            self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "delay")
+            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
+            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
+            self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
+            self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
+            self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
 
         self.IP_E = sum(self.IP_E, [])
         self.IP_F = sum(self.IP_F, [])
@@ -230,7 +230,7 @@ class CPG:
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
 
-        for layer in range(layers+1): 
+        for layer in range(layers+1):
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.05, 1)
 
@@ -322,7 +322,7 @@ class CPG:
         num: int
             neurons number in pool
         neurontype: string
-            int: interneuron 
+            int: interneuron
             delay: interneuron with 5ht
             moto: motoneuron
             aff: afferent
@@ -561,7 +561,7 @@ def motodiams(number):
     loc_stanby, scale_stanby = 44, 4
 
     x2 = np.concatenate([np.random.normal(loc=loc_active, scale=scale_active, size=active_size),
-                     np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
+                         np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
 
     return x2
 
