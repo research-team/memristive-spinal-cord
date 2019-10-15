@@ -10,9 +10,9 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 25
+versions = 3
 step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
@@ -187,9 +187,9 @@ class CPG:
         '''between delays vself.Ia excitatory pools'''
         '''extensor'''
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 1)
+            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 2)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.0003, 1)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0002, 2)
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer], self.dict_0[layer], 0.0004, 2)
 
@@ -207,22 +207,22 @@ class CPG:
         genconnect(self.ees, self.Ia_aff_F, 0.1, 2)
         genconnect(self.ees, self.dict_CV[0], 0.5, 2)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.2, 1)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.2, 1)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.12, 1)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.12, 1)
 
         '''IP'''
         for layer in range(2, 4):
-            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.007, 2)
+            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.005, 2)
             connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
         for layer in range(layers):
             '''Extensor'''
             connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.4, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2)
             if layer > 2:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.003, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
             else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00015, 2, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
             if layer > 2:
                 '''Flexor'''
                 connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.3, 2)
@@ -233,7 +233,7 @@ class CPG:
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
 
-        for layer in range(layers+1):
+        for layer in range(layers+1): 
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.05, 1)
 
@@ -242,7 +242,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 1)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0002, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00005, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00005, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 2)
@@ -325,7 +325,7 @@ class CPG:
         num: int
             neurons number in pool
         neurontype: string
-            int: interneuron
+            int: interneuron 
             delay: interneuron with 5ht
             moto: motoneuron
             aff: afferent
@@ -564,7 +564,7 @@ def motodiams(number):
     loc_stanby, scale_stanby = 44, 4
 
     x2 = np.concatenate([np.random.normal(loc=loc_active, scale=scale_active, size=active_size),
-                         np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
+                     np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
 
     return x2
 
