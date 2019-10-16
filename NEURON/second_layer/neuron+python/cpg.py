@@ -52,26 +52,26 @@ class CPG:
         self.IP_F = []
 
         for layer in range(layers):
-            self.dict_0 = {layer: f"OM{layer + 1}_0"}
-            self.dict_1 = {layer: f"OM{layer + 1}_1"}
-            self.dict_2E = {layer: f"OM{layer + 1}_2E"}
-            self.dict_2F = {layer: f"OM{layer + 1}_2F"}
-            self.dict_3 = {layer: f"OM{layer + 1}_3"}
-            self.dict_C = {layer: f"C{layer + 1}"}
+            self.dict_0 = {layer: "OM{}_0".format(layer + 1)}
+            self.dict_1 = {layer: "OM{}_1".format(layer + 1)}
+            self.dict_2E = {layer: "OM{}_2E".format(layer + 1)}
+            self.dict_2F = {layer: "OM{}_2F".format(layer + 1)}
+            self.dict_3 = {layer: "OM{}_3".format(layer + 1)}
+            self.dict_C = {layer: "C{}".format(layer + 1)}
 
         for layer in range(layers + 1):
-            self.dict_CV = {layer: f"CV{layer + 1}"}
-            self.dict_CV_1 = {layer: f"CV{layer + 1}_1"}
-            self.dict_IP_E = {layer: f"IP{layer + 1}_E"}
-            self.dict_IP_F = {layer: f"IP{layer + 1}_F"}
+            self.dict_CV = {layer: "CV{}".format(layer + 1)}
+            self.dict_CV_1 = {layer: "CV{}_1".format(layer + 1)}
+            self.dict_IP_E = {layer: "IP{}_E".format(layer + 1)}
+            self.dict_IP_F = {layer: "IP{}_F".format(layer + 1)}
 
         for layer in range(layers, extra_layers):
-            self.dict_0 = {layer: f"OM{layer + 1}_0"}
-            self.dict_1 = {layer: f"OM{layer + 1}_1"}
-            self.dict_2E = {layer: f"OM{layer + 1}_2E"}
-            self.dict_2F = {layer: f"OM{layer + 1}_2F"}
-            self.dict_3 = {layer: f"OM{layer + 1}_3"}
-            self.dict_C = {layer: f"C{layer + 1}"}
+            self.dict_0 = {layer: "OM{}_0".format(layer + 1)}
+            self.dict_1 = {layer: "OM{}_1".format(layer + 1)}
+            self.dict_2E = {layer: "OM{}_2E".format(layer + 1)}
+            self.dict_2F = {layer: "OM{}_2F".format(layer + 1)}
+            self.dict_3 = {layer: "OM{}_3".format(layer + 1)}
+            self.dict_C = {layer: "C{}".format(layer + 1)}
 
         self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
         self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
@@ -455,7 +455,6 @@ def connectcells(pre, post, weight, delay, inhtype = False):
           is this connection inhibitory?
     '''
     nsyn = random.randint(N/2, N)
-    print(nsyn)
     for i in post:
         if pc.gid_exists(i):
             for j in range(nsyn):
