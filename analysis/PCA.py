@@ -1,7 +1,11 @@
 import logging
 import numpy as np
 import pylab as plt
+import scipy.stats as st
+from colour import Color
+from matplotlib import gridspec
 import matplotlib.ticker as ticker
+from scipy.stats import gaussian_kde
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from scipy.signal import argrelextrema
@@ -11,6 +15,7 @@ from matplotlib.patches import FancyArrowPatch
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
+
 
 class Arrow3D(FancyArrowPatch):
 	def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -152,64 +157,6 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def merge_extrema(minima_indexes, minima_values, maxima_indexes, maxima_values):
-	"""
-	ToDo add info
-	Args:
-		minima_indexes (np.ndarray):
-		minima_values (np.ndarray):
-		maxima_indexes (np.ndarray):
-		maxima_values (np.ndarray):
-	Returns:
-		np.ndarray:
-		np.ndarray:
-		np.ndarray:
-	"""
-	# prepare data for concatenating dots into one list (per parameter)
-
-	# who located earlier -- max or min
-	min_starts = 0 if minima_indexes[0] < maxima_indexes[0] else 1
-	max_starts = 1 if minima_indexes[0] < maxima_indexes[0] else 0
-
-	common_length = len(minima_indexes) + len(maxima_indexes)
-
-	merged_names = [None] * common_length
-	merged_indexes = [None] * common_length
-	merged_values = [None] * common_length
-
-	# be sure that size of [min_starts::2] be enough for filling
-	if len(merged_indexes[min_starts::2]) < len(minima_indexes):
-		minima_indexes = minima_indexes[:-1]
-		minima_values = minima_values[:-1]
-
-	if len(merged_indexes[min_starts::2]) > len(minima_indexes):
-		minima_indexes = np.append(minima_indexes, minima_indexes[-1])
-		minima_values = np.append(minima_values, minima_values[-1])
-
-	if len(merged_indexes[max_starts::2]) < len(maxima_indexes):
-		maxima_indexes = maxima_indexes[:-1]
-		maxima_values = maxima_values[:-1]
-
-	if len(merged_indexes[max_starts::2]) > len(maxima_indexes):
-		maxima_indexes = np.append(maxima_indexes, maxima_indexes[-1])
-		maxima_values = np.append(maxima_values, maxima_values[-1])
-
-	# fill minima lists based on the precedence
-	merged_names[min_starts::2] = ['min'] * len(minima_indexes)
-	merged_indexes[min_starts::2] = minima_indexes
-	merged_values[min_starts::2] = minima_values
-	# the same for the maxima
-	merged_names[max_starts::2] = ['max'] * len(maxima_indexes)
-	merged_indexes[max_starts::2] = maxima_indexes
-	merged_values[max_starts::2] = maxima_values
-
-	merged_names = np.array(merged_names)
-	merged_values = np.array(merged_values)
-	merged_indexes = np.array(merged_indexes).astype(int)
-
-	return merged_names, merged_indexes, merged_values
-
-
 def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
@@ -297,40 +244,6 @@ def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 				plt.show()
 
 	return latency_matrix
-
-
-def get_amp_per_exp(sliced_datasets, step_size):
-	"""
-	Function for finding latencies at each slice in normalized (!) data
-	Args:
-		sliced_datasets (np.ndarry): arrays of data
-		                      data per slice
-		               [[...], [...], [...], [...],
-		dataset number  [...], [...], [...], [...],
-		                [...], [...], [...], [...]]
-		step_size (float): data step
-	Returns:
-		np.ndarray: amplitudes values
-	"""
-	if type(sliced_datasets) is not np.ndarray:
-		raise TypeError("Non valid type of data - use only np.ndarray")
-
-	global_amp_values = []
-	l_poly_border = int(10 / step_size)
-
-	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2])
-	for slices_per_experiment in sliced_datasets:
-		for slice_data in slices_per_experiment:
-			# smooth data to avoid micro peaks and noise
-			smoothed_data = smooth(slice_data, 2)
-			smoothed_data[:2] = slice_data[:2]
-			smoothed_data[-2:] = slice_data[-2:]
-
-			# II. find the sum of amplitudes (integral area)
-			amplitude_sum = np.sum(np.abs(smoothed_data[l_poly_border:]))
-			global_amp_values.append(amplitude_sum)
-
-	return np.array(global_amp_values)
 
 
 def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_intervals=False, debugging=False):
@@ -425,14 +338,14 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 								plt.plot([max_index, min_index], [max_value, max_value], color='k')
 								plt.plot([min_index, min_index], [max_value, min_value], color='k')
 								plt.text(min_index, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
-					if debugging:
-						plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
-						plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
-						plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
-						plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
-						plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
-						plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
-						plt.show()
+				if debugging:
+					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
+					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
+					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
+					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
+					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
+					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
+					plt.show()
 
 	if split_by_intervals:
 		peaks_per_interval = peaks_per_interval / dataset_size
@@ -447,24 +360,150 @@ def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_int
 	return peak_matrix, ampl_matrix
 
 
-def plot_3D_PCA(data_pack, names, save_to, correlation=False):
+def contour_plot(x, y, color, ax, min_max):
+	"""
+	TODO: add docstring
+	Args:
+		x:
+		y:
+		color (str):
+		ax:
+	"""
+	levels_num = 5
+	xmin, xmax, ymin, ymax = min_max
+	xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+	positions = np.vstack([xx.ravel(), yy.ravel()])
+	values = np.vstack([x, y])
+	a = st.gaussian_kde(values)(positions).T
+	z = np.reshape(a, xx.shape)
+	m = np.amax(z)
+	# form a step and levels
+	step = (np.amax(z) - np.amin(z)) / levels_num
+	levels = np.arange(0, m, step) + step
+	# convert HEX to HSL
+	clr = Color(color)
+	h, s, l = round(clr.hsl[0] * 360), round(clr.hsl[1] * 100, 1), round(clr.hsl[2] * 100, 1)
+	# generate colors for contours level
+	colors = [Color(hsl=(h / 360, s / 100, l_level / 100)).rgb for l_level in np.linspace(l, 95, len(levels))[::-1]]
+	# plot filled contour
+	cnt = ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5)
+	# change an edges of contours
+	for c in cnt.collections:
+		c.set_edgecolor("k")
+		c.set_linewidth(0.2)
+
+
+def joint_plot(data, ax, gs, min_max, **kwargs):
+	"""
+	TODO: add docstring
+	Args:
+		data (np.ndarray):
+		ax:
+		gs:
+		min_max:
+		**kwargs:
+	"""
+	xmin, xmax, ymin, ymax = min_max
+	# ax.scatter(data[:, 0], data[:, 1], color=kwargs['color'], alpha=0.6, s=5)
+	# create X-marginal (top)
+	ax_top = plt.subplot(gs[0, 0], sharex=ax)
+	ax_top.spines['top'].set_visible(False)
+	ax_top.spines['right'].set_visible(False)
+	# ax_top.hist(data[:, 0], bins=int(xmax) - int(xmin), color=kwargs['color'], density=True, alpha=0.5)
+	# create Y-marginal (right)
+	ax_right = plt.subplot(gs[1, 1], sharey=ax)
+	ax_right.spines['top'].set_visible(False)
+	ax_right.spines['right'].set_visible(False)
+	# ax_right.hist(data[:, 1], bins=int(ymax) - int(ymin), color=kwargs['color'], orientation='horizontal', density=True, alpha=0.5)
+	ax.set_xlabel(kwargs['xlabel'])
+	ax.set_ylabel(kwargs['ylabel'])
+	# bring the marginals closer to the scatter plot
+	x = np.linspace(xmin, xmax, 100)
+	y = np.linspace(ymin, ymax, 100)
+	dx = gaussian_kde(data[:, 0])(x)
+	dy = gaussian_kde(data[:, 1])(y)
+	ax_top.plot(x, dx, color=kwargs['color'])
+	ax_right.plot(dy, y, color=kwargs['color'])
+
+
+def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 	"""
 	TODO: add docstring
 	Args:
 		data_pack (list of tuple): special structure to easily work with (coords, color and label)
 		names (list of str): datasets names
 		save_to (str): save folder path
-		correlation (bool): enable or disable corelation calculating
+		corr_flag (bool): enable or disable corelation calculating
+		contour_flag (bool): enable or disable egg plot
 	"""
 	light_filename = "_".join(names[0].split("_")[1:-1])
+
+	def dat():
+		if "Lat" in title and "Amp" in title:
+			return coords[:, 0], coords[:, 1]
+		if "Amp" in title and "Peak" in title:
+			return coords[:, 1], coords[:, 2]
+		if "Lat" in title and "Peak" in title:
+			return coords[:, 0], coords[:, 2]
+
 	# plot PCA at different point of view
 	for elev, azim, title in (0, -90.1, "Lat Peak"), (0.1, 0.1, "Amp Peak"), (89.9, -90.1, "Lat Amp"):
+		labels = []
 		volume_sum = 0
 		data_pack_xyz = []
 		new_filename = f"{light_filename}_{title.lower().replace(' ', '_')}"
+		# form labels
+		if "Lat" in title:
+			labels.append("Latency")
+		if "Amp" in title:
+			labels.append("Amplitudes")
+		if "Peak" in title:
+			labels.append("Peaks")
+
+		if contour_flag:
+			minimal_x, maximal_x = np.inf, -np.inf
+			minimal_y, maximal_y = np.inf, -np.inf
+			# define grid for subplots
+			gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+			fig = plt.figure()
+			kde_ax = plt.subplot(gs[1, 0])
+			kde_ax.spines['top'].set_visible(False)
+			kde_ax.spines['right'].set_visible(False)
+			# find the minimal and maximal of the all data
+			for coords, color, filename in data_pack:
+				x, y = dat()
+				if max(x) > maximal_x:
+					maximal_x = max(x)
+				if min(x) < minimal_x:
+					minimal_x = min(x)
+				if max(y) > maximal_y:
+					maximal_y = max(y)
+				if min(y) < minimal_y:
+					minimal_y = min(y)
+
+			min_max = (minimal_x, maximal_x, minimal_y, maximal_y)
+
+			# clrs = iter(['Reds', 'Greens', 'Blues', 'Oranges'])
+			for coords, color, filename in data_pack:
+				x, y = dat()
+				data = np.stack((x, y), axis=1)
+				kwargs = {"xlabel": labels[0], "ylabel": labels[1], "color": color}
+				contour_plot(x=data[:, 0], y=data[:, 1], color=color, ax=kde_ax, min_max=min_max)
+				joint_plot(data, kde_ax, gs, min_max=min_max, **kwargs)
+
+			kde_ax.set_xlim(minimal_x, maximal_x)
+			kde_ax.set_ylim(minimal_y, maximal_y)
+			plt.tight_layout()
+			plt.show()
+			# plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
+			# plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
+			plt.close(fig)
+
+			continue
+
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
-		ax = fig.add_subplot(111, projection='3d')
+		kde_ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		for coords, color, filename in data_pack:
 			# create PCA instance and fit the model with coords
@@ -484,7 +523,7 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 			# calculate radii and rotation matrix based on axis points
 			radii, rotation, matrixA = form_ellipse(axis_points)
 			# choose -- calc correlaion or just plot PCA
-			if correlation:
+			if corr_flag:
 				# start calculus of points intersection
 				volume = (4 / 3) * np.pi * radii[0] * radii[1] * radii[2]
 				volume_sum += volume
@@ -505,12 +544,12 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 				# plot PCA vectors
 				for point_head in vectors_points:
 					arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-					ax.add_artist(arrow)
+					kde_ax.add_artist(arrow)
 				# plot cloud of points
-				ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
+				kde_ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
 				# plot ellipsoid
 				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
-		if correlation:
+		if corr_flag:
 			# collect all intersect point
 			points_inside = []
 			# get data of two ellipsoids: A matrix, center and points coordinates
@@ -544,28 +583,28 @@ def plot_3D_PCA(data_pack, names, save_to, correlation=False):
 			return
 		else:
 			# figure properties
-			ax.xaxis._axinfo['tick']['inward_factor'] = 0
-			ax.yaxis._axinfo['tick']['inward_factor'] = 0
-			ax.zaxis._axinfo['tick']['inward_factor'] = 0
+			kde_ax.xaxis._axinfo['tick']['inward_factor'] = 0
+			kde_ax.yaxis._axinfo['tick']['inward_factor'] = 0
+			kde_ax.zaxis._axinfo['tick']['inward_factor'] = 0
 
-			ax.tick_params(which='major', length=10, width=3, labelsize=50)
-			ax.tick_params(which='minor', length=4, width=2, labelsize=50)
+			kde_ax.tick_params(which='major', length=10, width=3, labelsize=50)
+			kde_ax.tick_params(which='minor', length=4, width=2, labelsize=50)
 
 			# remove one of the plane ticks to make output pdf more readable
 			if "Lat" not in title:
-				ax.set_xticks([])
-				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
-				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+				kde_ax.set_xticks([])
+				kde_ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_yticks()), integer=True))
+				kde_ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_zticks()), integer=True))
 			if "Amp" not in title:
-				ax.set_yticks([])
-				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-				ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+				kde_ax.set_yticks([])
+				kde_ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_xticks()), integer=True))
+				kde_ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_zticks()), integer=True))
 			if "Peak" not in title:
-				ax.set_zticks([])
-				ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
-				ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+				kde_ax.set_zticks([])
+				kde_ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_xticks()), integer=True))
+				kde_ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_yticks()), integer=True))
 
-			ax.view_init(elev=elev, azim=azim)
+			kde_ax.view_init(elev=elev, azim=azim)
 			fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
 			bbox = fig.bbox_inches.from_bounds(1, 1, 8, 8)
 			plt.savefig(f"{save_to}/{new_filename}.pdf", bbox_inches=bbox, dpi=250, format="pdf")

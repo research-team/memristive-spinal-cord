@@ -4,11 +4,11 @@ import logging
 import numpy as np
 import pylab as plt
 from itertools import chain
+from matplotlib import gridspec
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
-from analysis.PCA import plot_3D_PCA, get_lat_matirx, get_peak_amp_matrix
+from analysis.PCA import plot_3D_PCA, get_lat_matirx, get_peak_amp_matrix, joint_plot, contour_plot
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -179,11 +179,12 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_lat_amp_dependency(peaks_pack, amp_pack, names, colors, step_size, save_to):
+
+def plot_lat_amp_dependency(peaks_times_pack, amp_pack, names, colors, step_size, save_to):
 	"""
 	ToDo add info
 	Args:
-		peaks_pack (list): pack of peak lists for different origin of data (bio/neuron/gras/nest)
+		peaks_times_pack (list): pack of peak lists for different origin of data (bio/neuron/gras/nest)
 		amp_pack (list): pack of amplitude lists for different origin of data (bio/neuron/gras/nest)
 		names (list): filenames for different origin of data
 		step_size (float): data step size (common for all)
@@ -194,26 +195,48 @@ def plot_lat_amp_dependency(peaks_pack, amp_pack, names, colors, step_size, save
 	new_filename = f"{datasets}_{mode}_dependency.pdf"
 	flatten = chain.from_iterable
 
-	fig, ax = plt.subplots(figsize=(15, 5))
-	# plot dots for each dataset
-	for peaks, ampls, name, color in zip(peaks_pack, amp_pack, names, colors):
-		flat_peaks = np.array(list(flatten(flatten(peaks)))) * step_size
+	minimal_x, maximal_x = np.inf, -np.inf
+	minimal_y, maximal_y = np.inf, -np.inf
+	# define grid for subplots
+	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+	fig = plt.figure()
+	kde_ax = plt.subplot(gs[1, 0])
+	kde_ax.spines['top'].set_visible(False)
+	kde_ax.spines['right'].set_visible(False)
+	# find the minimal and maximal of the all data
+	for peaks_times, ampls, name, color in zip(peaks_times_pack, amp_pack, names, colors):
+		flat_times = np.array(list(flatten(flatten(peaks_times)))) * step_size
 		flat_ampls = np.array(list(flatten(flatten(ampls))))
-		m_size = 15 if "bio_" in name else 10
-		zorder = 0 if "bio_" in name else 3
-		plt.plot(flat_peaks, flat_ampls, '.', markersize=m_size, color=color, alpha=0.8, markeredgewidth=0, zorder=zorder)
+		x, y = flat_times, flat_ampls
+		if max(x) > maximal_x:
+			maximal_x = max(x)
+		if min(x) < minimal_x:
+			minimal_x = min(x)
+		if max(y) > maximal_y:
+			maximal_y = max(y)
+		if min(y) < minimal_y:
+			minimal_y = min(y)
 
-	patches = []
-	for name, color in zip(names, colors):
-		name = name.split("_")[0]
-		patches.append(mpatches.Patch(color=color, label=name))
+	min_max = (minimal_x, maximal_x, minimal_y, maximal_y)
 
-	# use article from
-	axis_article_style(ax, auto_nbins=True)
-	plt.legend(handles=patches)
+	for peaks_times, ampls, name, color in zip(peaks_times_pack, amp_pack, names, colors):
+		flat_times = np.array(list(flatten(flatten(peaks_times)))) * step_size
+		flat_ampls = np.array(list(flatten(flatten(ampls))))
+
+		x, y = flat_times, flat_ampls
+		data = np.stack((x, y), axis=1)
+		kwargs = {"xlabel": "times", "ylabel": "ampl", "color": color}
+		contour_plot(x=data[:, 0], y=data[:, 1], color=color, ax=kde_ax, min_max=min_max)
+		joint_plot(data, kde_ax, gs, min_max=min_max, **kwargs)
+
+	kde_ax.set_xlim(minimal_x, maximal_x)
+	kde_ax.set_ylim(minimal_y, maximal_y)
 	plt.tight_layout()
-	plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
-	plt.close()
+	plt.show()
+	# plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
+	# plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
+	plt.close(fig)
+
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
@@ -275,7 +298,7 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
+def __process_dataset(filepaths, save_to, flags, step_size_to=None):
 	"""
 	ToDo add info
 	Args:
@@ -290,22 +313,22 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 	peaks_pack = []
 	ampls_pack = []
 	peaks_per_interval_pack = []
-	toe_air_detected_flag = False
-
+	clrs = iter(['#A6261D', '#F2AA2E', '#287a72', '#472650'])
 	# process each file
 	for filepath in filepaths:
 		folder = ntpath.dirname(filepath)
 		filename = ntpath.basename(filepath)
 		data_label = filename.replace('.hdf5', '')
 		log.info(folder)
-		if "toe" in folder or "air" in folder:
-			toe_air_detected_flag = True
+		if step_size_to is None:
+			step_size_to = float(data_label.replace('step', '').split("_")[-1])
+
 		# be sure that folder is exist
 		if not os.path.exists(save_to):
 			os.makedirs(save_to)
 		# set color based on filename
 		if "bio" in filename:
-			color = '#A6261D'
+			color = next(clrs)
 		elif "gras" in filename:
 			color = '#287a72'
 		elif "neuron" in filename:
@@ -325,7 +348,7 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 			peaks_per_interval_pack.append(e_peaks_per_interval)
 		# process latencies, amplitudes, peaks (per dataset per slice)
 		e_latencies = get_lat_matirx(e_prepared_data, step_size_to)
-		e_peaks_matrix, e_ampl_matrix = get_peak_amp_matrix(e_prepared_data, step_size_to, e_latencies)
+		e_peaks_matrix, e_ampl_matrix = get_peak_amp_matrix(e_prepared_data, step_size_to, e_latencies, debugging=False)
 		# prepare summed presentation of data
 		peaks_summed = np.zeros((dataset_numbers, slice_numbers))
 		ampls_summed = np.zeros((dataset_numbers, slice_numbers))
@@ -354,7 +377,7 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 			ideal_example_index = None
 
 		# form PCA data pack
-		if flags['plot_pca_flag'] or flags['plot_correlation']:
+		if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_contour_flag']]):
 			coords = np.stack((e_latencies.flatten() * step_size_to, ampls_summed.flatten(), peaks_summed.flatten()), axis=1)
 			pca_metadata = (coords, color, data_label)
 			pca_pack.append(pca_metadata)
@@ -376,8 +399,8 @@ def __process_dataset(filepaths, save_to, flags, step_size_to=0.1):
 		ampls_pack.append(e_ampl_matrix)
 		peaks_pack.append(e_peaks_matrix)
 
-	if (flags['plot_pca_flag'] or flags['plot_correlation']) and not toe_air_detected_flag:
-		plot_3D_PCA(pca_pack, names, save_to=save_to, correlation=flags['plot_correlation'])
+	if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_contour_flag']]):
+		plot_3D_PCA(pca_pack, names, save_to=save_to, corr_flag=flags['plot_correlation'], contour_flag=flags['plot_contour_flag'])
 
 	if flags['plot_lat_amp_dep']:
 		plot_lat_amp_dependency(peaks_pack, ampls_pack, names, colors, step_size=step_size_to, save_to=save_to)
@@ -394,34 +417,37 @@ def for_article():
 
 	comb = [
 		("foot", 21, 2, "no", 0.1),
-		("foot", 13.5, 2, "no", 0.1),
-		("foot", 6, 2, "no", 0.1),
-		("toe", 21, 2, "no", 0.1),
-		("toe", 13.5, 2, "no", 0.1),
-		("air", 13.5, 2, "no", 0.1),
-		("4pedal", 21, 4, "no", 0.25),
-		("4pedal", 13.5, 4, "no", 0.25),
-		("qpz", 13.5, 2, "", 0.1),
-		("str", 21, 2, "no", 0.1),
-		("str", 13.5, 2, "no", 0.1),
-		("str", 6, 2, "no", 0.1),
+		# ("foot", 13.5, 2, "no", 0.1),
+		# ("foot", 6, 2, "no", 0.1),
+		# ("toe", 21, 2, "no", 0.1),
+		# ("toe", 13.5, 2, "no", 0.1),
+		# ("air", 13.5, 2, "no", 0.1),
+		# ("4pedal", 21, 4, "no", 0.25),
+		# ("4pedal", 13.5, 4, "no", 0.25),
+		# ("qpz", 13.5, 2, "", 0.1),
+		# ("str", 21, 2, "no", 0.1),
+		# ("str", 13.5, 2, "no", 0.1),
+		# ("str", 6, 2, "no", 0.1),
 	]
 
 	for c in comb:
 		compare_pack = [
-			f'/home/alex/GitHub/DATA/bio/{c[0]}/bio_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_{c[4]}step.hdf5',
-			f'/home/alex/GitHub/DATA/neuron/{c[0]}/neuron_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			f'/home/alex/GitHub/DATA/gras/{c[0]}/gras_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			f'/home/alex/GitHub/DATA/nest/{c[0]}/nest_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			f'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+			f'/home/alex/GitHub/DATA/bio/str/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
+			# f'/home/alex/GitHub/DATA/bio/{c[0]}/bio_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_{c[4]}step.hdf5',
+			# f'/home/alex/GitHub/DATA/neuron/{c[0]}/neuron_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			# f'/home/alex/GitHub/DATA/gras/{c[0]}/gras_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			# f'/home/alex/GitHub/DATA/nest/{c[0]}/nest_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
 		]
 		# control
 		flags = dict(plot_pca_flag=False,
+		             plot_contour_flag=False,
 		             plot_correlation=False,
-		             plot_slices_flag=True,
-		             plot_lat_amp_dep=False,
+		             plot_slices_flag=False,
+		             plot_lat_amp_dep=True,
 		             plot_peaks_by_intervals=False)
 
-		__process_dataset(compare_pack, f"{save_all_to}/{c[0]}", flags, c[4])
+		__process_dataset(compare_pack, f"{save_all_to}/{c[0]}", flags, None) #c[4]) / None
 
 
 def run():
