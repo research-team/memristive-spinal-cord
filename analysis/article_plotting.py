@@ -5,10 +5,13 @@ import numpy as np
 import pylab as plt
 from itertools import chain
 from matplotlib import gridspec
+from scipy.stats import ks_2samp
+from sklearn.utils import resample
 import matplotlib.patches as mpatches
+from analysis.functions import ks2d2s, peacock2
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
-from analysis.PCA import plot_3D_PCA, get_lat_matirx, get_peak_amp_matrix, joint_plot, contour_plot
+from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_area_extrema_matrix, get_all_peak_amp_per_slice
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -75,7 +78,7 @@ def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None
 		ax.yaxis.set_minor_locator(MultipleLocator(base=(ax.get_yticks()[1] - ax.get_yticks()[0]) / 2))
 
 
-def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size, folder, save_to, filename, ideal=None):
+def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, save_to, filename, best_sample):
 	"""
 	TODO: add docstring
 	Args:
@@ -83,23 +86,16 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 		flexor_data (np.ndarray): values of flexor motoneurons membrane potential
 		e_latencies (np.ndarray): extensor latencies of poly answers per slice
 		f_latencies (np.ndarray): flexor latencies of poly answers per slice
-		step_size (float): data step
-		folder (str): original folder path
+		dstep (float): data step
 		save_to (str): save folder path
 		filename (str): name of the future path
-		ideal (None or int): dataset index of a best example
+		best_sample (int of np.ndarray): dataset index or np.ndarray of a best example
 	"""
 	pattern_color = "#275B78"
-	bio_ideal_y_data = None
 	new_filename = "_".join(filename.split("_")[:-1])
-	# parsing example: bio_F_13.5cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5
-	meta = filename.split("_")
-	meta_type = meta[1].lower()
-	meta_speed = meta[2]
-	ideal_filename = f"{meta_type}_{meta_speed}"
 	# for human read plotting
 	steps_in_slice = len(extensor_data[0][0])
-	slice_in_ms = steps_in_slice * step_size
+	slice_in_ms = steps_in_slice * dstep
 	# get number of slices per muscle
 	e_slices_number = len(extensor_data[0])
 	f_slices_number = len(flexor_data[0])
@@ -116,44 +112,25 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	# form slices indexes for a pattern shadows
 	e_slices_indexes = range(e_slices_number)
 	f_slices_indexes = range(e_slices_number + 1, e_slices_number + f_slices_number + 1)
-
-	# plot an example of good pattern for bio data or median for sim data of current mode
-	if "bio_" in filename and os.path.exists(f"{folder}/{ideal_filename}"):
-		bio_ideal_y_data = []
-		# collect extensor data
-		with open(f"{folder}/{ideal_filename}") as file:
-			for d in file.readlines():
-				bio_ideal_y_data.append(list(map(float, d.split())))
-		# collect flexor_data
-		with open(f"{folder}/{ideal_filename.replace('e_', 'f_')}") as file:
-			for d in file.readlines():
-				bio_ideal_y_data.append(list(map(float, d.split())))
-		# convert list to array for more simplicity using
-		bio_ideal_y_data = np.array(bio_ideal_y_data)
-
 	# use 1:1 ratio for 6cms data and 4:3 for others
 	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in filename else (16, 12))
 	# plot latency shadow for extensor
 	ax.fill_betweenx(e_slices_indexes,
-	                 e_box_latencies[:, k_box_low] * step_size,
-	                 e_box_latencies[:, k_box_high] * step_size, color=pattern_color, alpha=0.3, zorder=3)
+	                 e_box_latencies[:, k_box_low] * dstep,
+	                 e_box_latencies[:, k_box_high] * dstep, color=pattern_color, alpha=0.3, zorder=3)
 	yticks = []
-	shared_x = np.arange(steps_in_slice) * step_size
+	shared_x = np.arange(steps_in_slice) * dstep
 	# plot fliers and median line
 	for slice_index, data in enumerate(all_splitted_per_slice_boxplots):
 		offset = slice_index + (1 if slice_index >= e_slices_number else 0)
 		# set ideal or median
-		if bio_ideal_y_data is None:
-			if ideal is None:
-				# ideal_data = data[:, k_median]
-				raise Exception("No ideal experiment!")
+		if type(best_sample) is int:
+			if slice_index >= e_slices_number:
+				ideal_data = flexor_data[best_sample][slice_index - e_slices_number]
 			else:
-				if slice_index >= e_slices_number:
-					ideal_data = flexor_data[ideal][slice_index - e_slices_number]
-				else:
-					ideal_data = extensor_data[ideal][slice_index]
+				ideal_data = extensor_data[best_sample][slice_index]
 		else:
-			ideal_data = bio_ideal_y_data[slice_index]
+			ideal_data = best_sample[slice_index]
 		data += offset
 		ideal_data += offset
 		# fliers shadow
@@ -163,10 +140,10 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 		yticks.append(ideal_data[0])
 
 	# plot pattern based on median latency per slice
-	ax.plot(e_box_latencies[:, 0] * step_size, e_slices_indexes, linewidth=5, color='#A6261D', zorder=6, alpha=1)
-
+	ax.plot(e_box_latencies[:, 0] * dstep, e_slices_indexes, linewidth=5, color='#A6261D', zorder=6, alpha=1)
+	# form ticks
 	axis_article_style(ax, axis='x')
-
+	# plot settings
 	yticklabels = [None] * slices_number
 	slice_indexes = range(1, slices_number + 1)
 	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
@@ -179,73 +156,88 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, step_size,
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-
-def plot_lat_amp_dependency(peaks_times_pack, amp_pack, names, colors, step_size, save_to):
+def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, dstep, save_to):
 	"""
 	ToDo add info
 	Args:
 		peaks_times_pack (list): pack of peak lists for different origin of data (bio/neuron/gras/nest)
-		amp_pack (list): pack of amplitude lists for different origin of data (bio/neuron/gras/nest)
+		peaks_ampls_pack (list): pack of amplitude lists for different origin of data (bio/neuron/gras/nest)
 		names (list): filenames for different origin of data
-		step_size (float): data step size (common for all)
+		colors (list): hex colors for graphics
+		dstep (float): data step size (common for all)
 		save_to (str): save folder
 	"""
+	ks_test_datas = []
+
 	mode = "_".join(names[0].split("_")[1:-1])
 	datasets = "_".join(name.split("_")[0] for name in names)
 	new_filename = f"{datasets}_{mode}_dependency.pdf"
-	flatten = chain.from_iterable
 
-	minimal_x, maximal_x = np.inf, -np.inf
-	minimal_y, maximal_y = np.inf, -np.inf
 	# define grid for subplots
 	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
 	fig = plt.figure()
 	kde_ax = plt.subplot(gs[1, 0])
 	kde_ax.spines['top'].set_visible(False)
 	kde_ax.spines['right'].set_visible(False)
-	# find the minimal and maximal of the all data
-	for peaks_times, ampls, name, color in zip(peaks_times_pack, amp_pack, names, colors):
-		flat_times = np.array(list(flatten(flatten(peaks_times)))) * step_size
-		flat_ampls = np.array(list(flatten(flatten(ampls))))
-		x, y = flat_times, flat_ampls
-		if max(x) > maximal_x:
-			maximal_x = max(x)
-		if min(x) < minimal_x:
-			minimal_x = min(x)
-		if max(y) > maximal_y:
-			maximal_y = max(y)
-		if min(y) < minimal_y:
-			minimal_y = min(y)
 
-	min_max = (minimal_x, maximal_x, minimal_y, maximal_y)
+	biggest_dsize = max(map(len, peaks_times_pack))
 
-	for peaks_times, ampls, name, color in zip(peaks_times_pack, amp_pack, names, colors):
-		flat_times = np.array(list(flatten(flatten(peaks_times)))) * step_size
-		flat_ampls = np.array(list(flatten(flatten(ampls))))
+	# 1D and 2D Kolmogorov-Smirnov test
+	for peaks_times, peaks_ampls, name, color in zip(peaks_times_pack, peaks_ampls_pack, names, colors):
+		x = peaks_times
+		y = peaks_ampls
 
-		x, y = flat_times, flat_ampls
-		data = np.stack((x, y), axis=1)
-		kwargs = {"xlabel": "times", "ylabel": "ampl", "color": color}
-		contour_plot(x=data[:, 0], y=data[:, 1], color=color, ax=kde_ax, min_max=min_max)
-		joint_plot(data, kde_ax, gs, min_max=min_max, **kwargs)
+		diff_size = biggest_dsize - len(x)
+		if diff_size != 0:
+			boot_x = resample(x, replace=True, n_samples=diff_size, random_state=1)
+			boot_y = resample(y, replace=True, n_samples=diff_size, random_state=0)
+			x = np.append(x, boot_x)
+			y = np.append(y, boot_y)
 
-	kde_ax.set_xlim(minimal_x, maximal_x)
-	kde_ax.set_ylim(minimal_y, maximal_y)
+		print(f"dsize {len(x)} (bootstrapped {diff_size} samples)")
+		ks_test_datas.append((x, y))
+
+	x1, y1 = ks_test_datas[0]
+	x2, y2 = ks_test_datas[1]
+
+	dvalue, pvalue = ks_2samp(x1, x2)
+	print(f"1D K-S peaks TIME -> D-value: {dvalue}, p-value: {pvalue}")
+
+	dvalue, pvalue = ks_2samp(y1, y2)
+	print(f"1D K-S peaks AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
+
+	dvalue, pvalue = ks2d2s(x1, y1, x2, y2)
+	print(f"2D K-S TIME/AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
+
+	d1 = np.stack((x1, y1), axis=1)
+	d2 = np.stack((x2, y2), axis=1)
+	dvalue, pvalue = peacock2(d1, d2)
+	print(f"2D peacock TIME/AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
+
+	# plot 2D
+	for data, name, color in zip(ks_test_datas, names, colors):
+		x, y = data
+		contour_plot(x=x, y=y, color=color, ax=kde_ax)
+		joint_plot(x, y, kde_ax, gs, **{"color": color})
+
+	kde_ax.set_xlabel("peak time (ms)")
+	kde_ax.set_ylabel("peak amplitude")
+	kde_ax.set_xlim(0, 25)
+	kde_ax.set_ylim(0, 2)
 	plt.tight_layout()
 	plt.show()
-	# plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
-	# plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
+	# plt.savefig(f"{save_to}/{new_filename}_kde2d.pdf", dpi=250, format="pdf")
+	# plt.savefig(f"{save_to}/{new_filename}_kde2d.png", dpi=250, format="png")
 	plt.close(fig)
 
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to):
+def plot_peaks_bar_intervals(pack_peaks_per_interval, names, save_to):
 	"""
 	ToDo add info
 	Args:
 		pack_peaks_per_interval (list of np.ndarrays): grouped datasets by different sim/bio data
-		step_size (float): data step size
 		names (list): filenames of grouped datasets
 		save_to (str): path for saving a built picture
 	"""
@@ -298,122 +290,169 @@ def plot_peaks_bar_intervals(pack_peaks_per_interval, names, step_size, save_to)
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def __process_dataset(filepaths, save_to, flags, step_size_to=None):
+def example_bio_sample(folder, filename):
+	"""
+	Return y-data of best bio sample. File must exists
+	Args:
+		folder (str): current folder with hdf5 files and best sample
+		filename (str): best sample filename
+	Returns:
+		np.ndarray: y-data of best sample
+	"""
+	meta = filename.split("_")
+	meta_type = meta[1].lower()
+	meta_speed = meta[2]
+	ideal_filename = f"{meta_type}_{meta_speed}"
+
+	if not os.path.exists(f"{folder}/{ideal_filename}"):
+		raise Exception(f"Where is best sample for bio data?! I can't find it here '{folder}'")
+
+	bio_ideal_y_data = []
+	# collect extensor data
+	with open(f"{folder}/{ideal_filename}") as file:
+		for d in file.readlines():
+			bio_ideal_y_data.append(list(map(float, d.split())))
+	# collect flexor_data
+	with open(f"{folder}/{ideal_filename.replace('e_', 'f_')}") as file:
+		for d in file.readlines():
+			bio_ideal_y_data.append(list(map(float, d.split())))
+	# convert list to array for more simplicity using
+	ideal_sample = np.array(bio_ideal_y_data)
+
+	return ideal_sample
+
+
+def example_sample(latencies_matrix, peaks_matrix, step_size):
+	"""
+	ToDo add info
+	Args:
+		latencies_matrix (np.ndarray): 
+		peaks_matrix (np.ndarray): 
+		step_size (float): data step size 
+	Returns:
+		int: index of sample
+	"""
+	ideal_example_index = 0
+	peaks_sum = np.sum(peaks_matrix, axis=1)
+	index = np.arange(len(peaks_sum))
+	merged = np.array(list(zip(index, peaks_sum)))
+	# at the top located experimental runs with the greatest number of peaks
+	sorted_by_sum = merged[merged[:, 1].argsort()][::-1]
+	for index, value in sorted_by_sum:
+		index = int(index)
+		# check difference between latencies -- how far they are from each other
+		diff = np.diff(latencies_matrix[index] * step_size, n=1)
+		# acceptable border is -3 .. 3 ms
+		if all(map(lambda x: -3 <= x <= 3, diff)):
+			ideal_example_index = index
+			break
+	return ideal_example_index
+
+
+def get_color(filename, clrs):
+	if "bio" in filename:
+		color = next(clrs)
+	elif "gras" in filename:
+		color = '#287a72'
+	elif "neuron" in filename:
+		color = '#F2AA2E'
+	elif "nest" in filename:
+		color = '#472650'
+	else:
+		raise Exception("Can't set color for data")
+	return color
+
+
+def __process_dataset(filepaths, save_to, flags, dstep_to=None):
 	"""
 	ToDo add info
 	Args:
 		filepaths (list of str): absolute paths to the files
 		save_to (str): save folder
 		flags (dict): pack of flags
-		step_size_to (float): data step size
+		dstep_to (float): data step size
 	"""
-	names = []
-	colors = []
-	pca_pack = []
-	peaks_pack = []
-	ampls_pack = []
+	ks1d_ampls = []
+	ks1d_peaks = []
+	ks1d_names = []
+	ks1d_colors = []
+	ks3d_pack = []
 	peaks_per_interval_pack = []
-	clrs = iter(['#A6261D', '#F2AA2E', '#287a72', '#472650'])
+	colors = iter(['#A6261D', '#F2AA2E', '#287a72', '#472650'])
+
+	# be sure that folder is exist
+	if not os.path.exists(save_to):
+		os.makedirs(save_to)
+
 	# process each file
 	for filepath in filepaths:
 		folder = ntpath.dirname(filepath)
-		filename = ntpath.basename(filepath)
-		data_label = filename.replace('.hdf5', '')
-		log.info(folder)
-		if step_size_to is None:
-			step_size_to = float(data_label.replace('step', '').split("_")[-1])
-
-		# be sure that folder is exist
-		if not os.path.exists(save_to):
-			os.makedirs(save_to)
+		e_filename = ntpath.basename(filepath)
+		data_label = e_filename.replace('.hdf5', '')
+		# default file's step size if dstep is not provided
+		if dstep_to is None:
+			dstep_to = float(data_label.replace('step', '').split("_")[-1])
 		# set color based on filename
-		if "bio" in filename:
-			color = next(clrs)
-		elif "gras" in filename:
-			color = '#287a72'
-		elif "neuron" in filename:
-			color = '#F2AA2E'
-		elif "nest" in filename:
-			color = '#472650'
-		else:
-			raise Exception("Can't set color for data")
-		# get extensor prepared data (centered, normalized, subsampled and sliced)
-		e_prepared_data = auto_prepare_data(folder, filename, step_size_to=step_size_to)
-		# get shape of dataset
-		dataset_numbers = len(e_prepared_data)
-		slice_numbers = len(e_prepared_data[0])
-		# form data pack for peaks per interval
-		if flags['plot_peaks_by_intervals']:
-			e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
-			peaks_per_interval_pack.append(e_peaks_per_interval)
-		# process latencies, amplitudes, peaks (per dataset per slice)
-		e_latencies = get_lat_matirx(e_prepared_data, step_size_to)
-		e_peaks_matrix, e_ampl_matrix = get_peak_amp_matrix(e_prepared_data, step_size_to, e_latencies, debugging=False)
-		# prepare summed presentation of data
-		peaks_summed = np.zeros((dataset_numbers, slice_numbers))
-		ampls_summed = np.zeros((dataset_numbers, slice_numbers))
-		# get into each array of data
-		for dataset_index in range(dataset_numbers):
-			for slice_index in range(slice_numbers):
-				peaks_summed[dataset_index][slice_index] += len(e_peaks_matrix[dataset_index][slice_index])
-				ampls_summed[dataset_index][slice_index] += sum(e_ampl_matrix[dataset_index][slice_index])
-		# find an ideal example of dataset
-		if "bio_" not in filename:
-			ideal_example_index = 0
-			peaks_sum = np.sum(peaks_summed, axis=1)
-			index = np.arange(len(peaks_sum))
-			merged = np.array(list(zip(index, peaks_sum)))
-			# at the top located experimental runs with the greatest number of peaks
-			sorted_by_sum = merged[merged[:, 1].argsort()][::-1]
-			for index, value in sorted_by_sum:
-				index = int(index)
-				# check difference between latencies -- how far they are from each other
-				diff = np.diff(e_latencies[index] * step_size_to, n=1)
-				# acceptable border is -3 .. 3 ms
-				if all(map(lambda x: -3 <= x <= 3, diff)):
-					ideal_example_index = index
-					break
-		else:
-			ideal_example_index = None
+		color = get_color(e_filename, colors)
+		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
+		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
 
-		# form PCA data pack
-		if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_contour_flag']]):
-			coords = np.stack((e_latencies.flatten() * step_size_to, ampls_summed.flatten(), peaks_summed.flatten()), axis=1)
-			pca_metadata = (coords, color, data_label)
-			pca_pack.append(pca_metadata)
+		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
+		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to)
+		flatten = chain.from_iterable
+		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
+		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
 
-		# plot slices with pattern
+		ks1d_peaks.append(times)
+		ks1d_ampls.append(ampls)
+		ks1d_names.append(e_filename)
+		ks1d_colors.append(color)
+
+		# for 3D Kolmogorod-Smirnov test (with pattern)
+		e_lat_matrix = get_lat_matrix(e_prepared_data, dstep_to)
+		e_peak_sum_matrix, e_ampl_sum_matrix = get_area_extrema_matrix(e_prepared_data, e_lat_matrix, dstep_to)
+		coords = np.stack((e_lat_matrix.flatten() * dstep_to,
+		                   e_ampl_sum_matrix.flatten(),
+		                   e_peak_sum_matrix.flatten()), axis=1)
+		ks3d_metadata = (coords, color, data_label)
+		ks3d_pack.append(ks3d_metadata)
+
+		# plot slices
 		if flags['plot_slices_flag']:
-			# get flexor prepared data (centered, normalized, subsampled and sliced)
-			flexor_filename = filename.replace('_E_', '_F_')
-			f_prepared_data = auto_prepare_data(folder, flexor_filename, step_size_to=step_size_to)
-			f_lat_per_slice = get_lat_matirx(f_prepared_data, step_size_to)
-			#
-			plot_slices(e_prepared_data, f_prepared_data,
-			            e_latencies, f_lat_per_slice, ideal=ideal_example_index,
-			            folder=folder, save_to=save_to, filename=filename, step_size=step_size_to)
+			f_filename = e_filename.replace('_E_', '_F_')
+			f_prepared_data = auto_prepare_data(folder, f_filename, dstep_to=dstep_to)
+			f_lat_per_slice = get_lat_matrix(f_prepared_data, dstep_to)
 
-		# fill for plot latency/amplitude dependency
-		colors.append(color)
-		names.append(filename)
-		ampls_pack.append(e_ampl_matrix)
-		peaks_pack.append(e_peaks_matrix)
+			# find an ideal example of dataset
+			if "bio_" in e_filename:
+				ideal_sample = example_bio_sample(folder, e_filename)
+			else:
+				ideal_sample = example_sample(e_lat_matrix, e_peak_sum_matrix, dstep_to)
 
-	if any([flags['plot_pca_flag'], flags['plot_correlation'], flags['plot_contour_flag']]):
-		plot_3D_PCA(pca_pack, names, save_to=save_to, corr_flag=flags['plot_correlation'], contour_flag=flags['plot_contour_flag'])
+			plot_slices(e_prepared_data, f_prepared_data, e_lat_matrix, f_lat_per_slice,
+			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
 
-	if flags['plot_lat_amp_dep']:
-		plot_lat_amp_dependency(peaks_pack, ampls_pack, names, colors, step_size=step_size_to, save_to=save_to)
+		# if flags['plot_peaks_by_intervals']:
+		# 	e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
+		# 	peaks_per_interval_pack.append(e_peaks_per_interval)
+
+		log.info(f"Processed '{folder}'")
+
+	if flags['plot_ks2d']:
+		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, dstep=dstep_to, save_to=save_to)
+
+	if flags['plot_ks3d'] or flags['plot_pca3d']:
+		plot_3D_PCA(ks3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
 
 	if flags['plot_peaks_by_intervals']:
-		plot_peaks_bar_intervals(peaks_per_interval_pack, names, step_size=step_size_to, save_to=save_to)
+		plot_peaks_bar_intervals(peaks_per_interval_pack, ks1d_names, save_to=save_to)
 
 
 def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_all_to = '/home/alex/GitHub/DATA/keke'
+	save_all_to = '/home/alex/GitHub/DATA/test'
 
 	comb = [
 		("foot", 21, 2, "no", 0.1),
@@ -432,22 +471,20 @@ def for_article():
 
 	for c in comb:
 		compare_pack = [
-			f'/home/alex/GitHub/DATA/bio/foot/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-			f'/home/alex/GitHub/DATA/bio/str/bio_E_6cms_40Hz_i100_2pedal_no5ht_T_0.1step.hdf5',
-			# f'/home/alex/GitHub/DATA/bio/{c[0]}/bio_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_{c[4]}step.hdf5',
-			# f'/home/alex/GitHub/DATA/neuron/{c[0]}/neuron_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			# f'/home/alex/GitHub/DATA/gras/{c[0]}/gras_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			# f'/home/alex/GitHub/DATA/nest/{c[0]}/nest_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			f'/home/alex/GitHub/DATA/bio/{c[0]}/bio_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_{c[4]}step.hdf5',
+			f'/home/alex/GitHub/DATA/neuron/{c[0]}/neuron_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			f'/home/alex/GitHub/DATA/gras/{c[0]}/gras_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			f'/home/alex/GitHub/DATA/nest/{c[0]}/nest_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
 		]
 		# control
-		flags = dict(plot_pca_flag=False,
+		flags = dict(plot_ks3d=False,
+		             plot_pca3d=False,
 		             plot_contour_flag=False,
 		             plot_correlation=False,
 		             plot_slices_flag=False,
-		             plot_lat_amp_dep=True,
+		             plot_ks2d=True,
 		             plot_peaks_by_intervals=False)
-
-		__process_dataset(compare_pack, f"{save_all_to}/{c[0]}", flags, None) #c[4]) / None
+		__process_dataset(compare_pack, f"{save_all_to}/TEST", flags, dstep_to=c[4])
 
 
 def run():

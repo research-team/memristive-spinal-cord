@@ -6,6 +6,7 @@ import pylab as plt
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
+from scipy.stats import kstwobign, pearsonr
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -127,12 +128,12 @@ def read_bio_data(path):
 	return data_RMG, shifted_indexes
 
 
-def subsampling(dataset, step_from, step_to):
+def subsampling(dataset, dstep_from, dstep_to):
 	# to convert
-	if step_from == step_to or not step_from or not step_to:
+	if dstep_from == dstep_to or not dstep_from or not dstep_to:
 		sub_step = 1
 	else:
-		sub_step = int(step_to / step_from)
+		sub_step = int(dstep_to / dstep_from)
 
 	subsampled_dataset = [data[::sub_step] for data in dataset]
 
@@ -345,13 +346,13 @@ def split_by_slices(data, slice_in_steps):
 	return np.array(splitted_per_slice)
 
 
-def auto_prepare_data(folder, filename, step_size_to=None):
+def auto_prepare_data(folder, filename, dstep_to=None):
 	"""
 	ToDo add info
 	Args:
 		folder (str):
 		filename (str):
-		step_size_to (float):
+		dstep_to (float):
 	Returns:
 		np.ndarray: prepared data for analysis
 		int: EES frequency in Hz
@@ -401,11 +402,140 @@ def auto_prepare_data(folder, filename, step_size_to=None):
 	else:
 		raise Exception("Couldn't parse filename and extract muscle name")
 	# subsampling data to the new data step
-	dataset = subsampling(dataset, step_from=step_size, step_to=step_size_to)
+	dataset = subsampling(dataset, dstep_from=step_size, dstep_to=dstep_to)
 	#
 	slice_in_ms = int(1000 / ees_hz)
-	slice_in_steps = int(slice_in_ms / step_size_to)
+	slice_in_steps = int(slice_in_ms / dstep_to)
 	# split datatest into the slices
 	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepare_data(dataset)])
 
 	return splitted_per_slice
+
+
+def peacock2(xx, yy):
+	n1 = xx.shape[0]
+	n2 = yy.shape[0]
+	n = n1 + n2
+
+	# geatest common divisor: dd
+	dd = np.gcd(n1, n2)
+	# least common multiple: L
+	L = n1 / dd * n2
+	d1 = L / n1
+	d2 = L / n2
+
+	assert xx.shape[1] == 2
+	assert yy.shape[1] == 2
+
+	def combine(a, b):
+		return np.append(a, b)
+
+	xy1 = combine(xx[:, 0], yy[:, 0])
+	xy2 = combine(xx[:, 1], yy[:, 1])
+
+	I1 = np.argsort(xy1)
+	I2 = np.argsort(xy2)
+
+	max_hnn, max_hpn, max_hnp, max_hpp = [0] * 4
+
+	for zu in xy1[I1]:
+		hnn = 0
+		hpn = 0
+
+		for v in I2:
+			if xy1[v] <= zu:
+				hnn += d1 if v < n1 else -d2
+				max_hnn = max(max_hnn, abs(hnn))
+			else:
+				hpn += d1 if v < n1 else -d2
+				max_hpn = max(max_hpn, abs(hpn))
+
+		hnp = 0
+		hpp = 0
+
+		for v in I2[::-1]:
+			if xy1[v] <= zu:
+				hnp += d1 if v < n1 else -d2
+				max_hnp = max(max_hnp, abs(hnp))
+			else:
+				hpp += d1 if v < n1 else -d2
+				max_hpp = max(max_hpp, abs(hpp))
+
+	D = max([max_hnn, max_hpn, max_hnp, max_hpp]) / L
+
+	# SF - Survival function (also defined as 1 - cdf, but sf is sometimes more accurate)
+	en = np.sqrt(n1 * n2 / (n1 + n2))
+	p = kstwobign.sf(en * D)
+
+	return D, p
+
+
+def ks2d2s(x1, y1, x2, y2):
+	'''Two-dimensional Kolmogorov-Smirnov test on two samples.
+	Parameters
+	----------
+	x1, y1 : ndarray, shape (n1, )
+		Data of sample 1.
+	x2, y2 : ndarray, shape (n2, )
+		Data of sample 2. Size of two samples can be different.
+	extra: bool, optional
+		If True, KS statistic is also returned. Default is False.
+	Returns
+	-------
+	p : float
+		Two-tailed p-value.
+	D : float, optional
+		KS statistic. Returned if keyword `extra` is True.
+	Notes
+	-----
+	This is the two-sided K-S test. Small p-values means that the two samples are significantly different. Note that the p-value is only an approximation as the analytic distribution is unkonwn. The approximation is accurate enough when N > ~20 and p-value < ~0.20 or so. When p-value > 0.20, the value may not be accurate, but it certainly implies that the two samples are not significantly different. (cf. Press 2007)
+	References
+	----------
+	Peacock, J.A. 1983, Two-Dimensional Goodness-of-Fit Testing in Astronomy, Monthly Notices of the Royal Astronomical Society, vol. 202, pp. 615-627
+	Fasano, G. and Franceschini, A. 1987, A Multidimensional Version of the Kolmogorov-Smirnov Test, Monthly Notices of the Royal Astronomical Society, vol. 225, pp. 155-170
+	Press, W.H. et al. 2007, Numerical Recipes, section 14.8
+	'''
+	assert (len(x1) == len(y1)) and (len(x2) == len(y2))
+	n1, n2 = len(x1), len(x2)
+	D = avgmaxdist(x1, y1, x2, y2)
+
+	sqen = np.sqrt(n1 * n2 / (n1 + n2))
+	r1 = pearsonr(x1, y1)[0]    # get the linear correlation coefficient for each sample
+	r2 = pearsonr(x2, y2)[0]
+	r = np.sqrt(1 - 0.5 * (r1**2 + r2**2))
+	d = D * sqen / (1 + r * (0.25 - 0.75 / sqen))
+	p = kstwobign.sf(d)
+
+	return D, p
+
+
+def avgmaxdist(x1, y1, x2, y2):
+	D1 = maxdist(x1, y1, x2, y2)
+	D2 = maxdist(x2, y2, x1, y1)
+	return (D1 + D2) / 2
+
+
+def maxdist(x1, y1, x2, y2):
+	n1 = len(x1)
+	D1 = np.empty((n1, 4))
+	for i in range(n1):
+		a1, b1, c1, d1 = quadct(x1[i], y1[i], x1, y1)
+		a2, b2, c2, d2 = quadct(x1[i], y1[i], x2, y2)
+		D1[i] = [a1 - a2, b1 - b2, c1 - c2, d1 - d2]
+
+	# re-assign the point to maximize difference,
+	# the discrepancy is significant for N < ~50
+	D1[:, 0] -= 1 / n1
+
+	dmin, dmax = -D1.min(), D1.max() + 1 / n1
+	return max(dmin, dmax)
+
+
+def quadct(x, y, xx, yy):
+	n = len(xx)
+	ix1, ix2 = xx <= x, yy <= y
+	a = np.sum(ix1 & ix2) / n
+	b = np.sum(ix1 & ~ix2) / n
+	c = np.sum(~ix1 & ix2) / n
+	d = 1 - a - b - c
+	return a, b, c, d

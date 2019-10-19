@@ -5,7 +5,6 @@ import scipy.stats as st
 from colour import Color
 from matplotlib import gridspec
 import matplotlib.ticker as ticker
-from scipy.stats import gaussian_kde
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 from scipy.signal import argrelextrema
@@ -157,7 +156,7 @@ def find_extrema(array, condition):
 	return indexes, values
 
 
-def get_lat_matirx(sliced_datasets, step_size, debugging=False):
+def get_lat_matrix(sliced_datasets, step_size, debugging=False):
 	"""
 	Function for finding latencies at each slice in normalized (!) data
 	Args:
@@ -246,121 +245,146 @@ def get_lat_matirx(sliced_datasets, step_size, debugging=False):
 	return latency_matrix
 
 
-def get_peak_amp_matrix(sliced_datasets, step_size, latencies=None, split_by_intervals=False, debugging=False):
-	"""
-	Function for finding latencies at each slice in normalized (!) data
-	Args:
-		sliced_datasets (np.ndarry): arrays of data
-		                      data per slice
-		               [[...], [...], [...], [...],
-		dataset number  [...], [...], [...], [...],
-		                [...], [...], [...], [...]]
-		step_size (float): data step
-		latencies (np.ndarray):
-		split_by_intervals (bool):
+def list3d(h, w):
+	return [[[] for _ in range(w)] for _ in range(h)]
 
-		debugging (bool): True -- will print debugging info and plot figures
+
+def get_all_peak_amp_per_slice(sliced_datasets, dstep, split_by_intervals=False, debugging=False):
+	"""
+	Finds all peaks times and amplitudes at each slice
+
+	# 1. all slices must have equal size
+	# 2.
+
+	Args:
+		sliced_datasets (np.ndarray):
+		dstep (float): data step size
+		debugging (bool): debugging flag
 	Returns:
-		np.ndarray: peaks number or intervals
+		list: 3D list of peak times, [experiment_index][slice_index][peak time]
+		list: 3D list of peak ampls, [experiment_index][slice_index][peak ampl]
 	"""
 	if type(sliced_datasets) is not np.ndarray:
 		raise TypeError("Non valid type of data - use only np.ndarray")
-	# get dataset shape
-	dataset_size = len(sliced_datasets)
-	slices_number = len(sliced_datasets[0])
-	# static borders (convert by division to steps)
-	intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]]) / step_size
-	# prepare array for fitting data
-	peaks_per_interval = np.zeros((slices_number, len(intervals)))
-	#
-	min_amplitude = 0.3
-	mono_end = int(7 / step_size)
-	mono_start = int(3 / step_size)
-	min_distance = int(0.7 / step_size)
-	max_distance = int(4 / step_size)
-	# nested loop for processong each slice in datasets
-	# or use sliced_datasets.reshape(-1, sliced_datasets.shape[2]) to make it 1D with saving order
-	peak_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)]
-	ampl_matrix = [[[] for _ in range(slices_number)] for _ in range(dataset_size)]
-	#
-	for dataset_index, slices_per_experiment in enumerate(sliced_datasets):
-		for slice_index, slice_data in enumerate(slices_per_experiment):
-			#
-			dots = []
-			vals = []
-			# smooth data (small value for smoothing only micro-peaks)
-			smoothed_data = smooth(slice_data, 2)
-			# optional variant to calculate peaks in specific intervals
-			# get all extrema
-			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
-			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
-			#
-			if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
-				continue
-			#
-			if e_minima_indexes[0] < e_maxima_indexes[0]:
-				comb = zip(e_maxima_indexes, e_minima_indexes[1:])
-			else:
-				comb = zip(e_maxima_indexes, e_minima_indexes)
-			#
-			if split_by_intervals:
-				# find pairs
-				for max_index, min_index in comb:
-					max_value = e_maxima_values[e_maxima_indexes == max_index][0]
-					min_value = e_minima_values[e_minima_indexes == min_index][0]
-					dT = min_index - max_index
-					dA = abs(max_value - min_value)
 
-					max_is_ok = max_index < mono_start or max_index > mono_end
-					min_is_ok = min_index < mono_start or min_index > mono_end
+	# form parameters for filtering peaks
+	min_ampl = 0.3
+	min_dist = int(0.7 / dstep)
+	max_dist = int(4 / dstep)
+	# interpritate shape of dataset
+	tests_count, slices_count, slice_length = sliced_datasets.shape
+	peak_per_slice_list = list3d(h=tests_count, w=slices_count)
+	ampl_per_slice_list = list3d(h=tests_count, w=slices_count)
 
-					if max_is_ok and min_is_ok and ((min_distance <= dT <= max_distance and dA >= 0.05) or dA >= min_amplitude):
-						dots += [max_index, min_index]
-				# sort pairs by intervals (use only their counts)
-				for interval_index, interval in enumerate(intervals):
-					peaks_in_interval = filter(lambda x: interval[0] <= x < interval[1], dots)
-					peaks_per_interval[slice_index][interval_index] += len(list(peaks_in_interval))
-			else:
-				for max_index, min_index in comb:
-					if max_index >= latencies[dataset_index][slice_index] and min_index >= latencies[dataset_index][slice_index]:
-						max_value = e_maxima_values[e_maxima_indexes == max_index][0]
-						min_value = e_minima_values[e_minima_indexes == min_index][0]
-						dT = min_index - max_index
-						dA = abs(max_value - min_value)
-						if (min_distance <= dT <= max_distance) and dA >= 0.05 or dA >= min_amplitude:
-							peak_matrix[dataset_index][slice_index].append(max_index)
-							ampl_matrix[dataset_index][slice_index].append(dA)
-							dots += [max_index, min_index]
-							vals += [max_value, min_value]
-							if debugging:
-								min_index *= step_size
-								max_index *= step_size
-								plt.plot([max_index, min_index], [max_value, max_value], color='k')
-								plt.plot([min_index, min_index], [max_value, min_value], color='k')
-								plt.text(min_index, max_value, f"dT: {dT * step_size:.1f}\ndA: {dA:.1f}")
-				if debugging:
-					plt.plot(np.arange(len(smoothed_data)) * step_size, smoothed_data)
-					plt.plot(np.arange(len(smoothed_data)) * step_size, np.gradient(smoothed_data), color='g')
-					plt.axvspan(xmin=mono_start * step_size, xmax=mono_end * step_size, color='r', alpha=0.3)
-					plt.plot(np.array(dots) * step_size, vals, '.', color='k', markersize=20)
-					plt.plot(e_maxima_indexes * step_size, e_maxima_values, '.', color='r', markersize=8)
-					plt.plot(e_minima_indexes * step_size, e_minima_values, '.', color='b', markersize=8)
-					plt.show()
+	# find all peaks times and amplitudes per slice
+	for experiment_index, slices_data in enumerate(sliced_datasets):
+		# combine slices into one myogram
+		y = np.array(slices_data).ravel()
+		# find all extrema
+		e_maxima_indexes, e_maxima_values = find_extrema(y, np.greater)
+		e_minima_indexes, e_minima_values = find_extrema(y, np.less)
+		# start pairing extrema from maxima
+		if e_minima_indexes[0] < e_maxima_indexes[0]:
+			comb = zip(e_maxima_indexes, e_minima_indexes[1:])
+		else:
+			comb = zip(e_maxima_indexes, e_minima_indexes)
+		# process each extrema pair
+		for max_index, min_index in comb:
+			max_value = e_maxima_values[e_maxima_indexes == max_index][0]
+			min_value = e_minima_values[e_minima_indexes == min_index][0]
+			dT = abs(max_index - min_index)
+			dA = abs(max_value - min_value)
+			# check the difference between maxima and minima
+			if (min_dist <= dT <= max_dist) and dA >= 0.05 or dA >= min_ampl:
+				slice_index = int(max_index // slice_length)
+				peak_time = max_index - slice_length * slice_index
+				peak_per_slice_list[experiment_index][slice_index].append(peak_time)
+				ampl_per_slice_list[experiment_index][slice_index].append(dA)
+
+	if debugging:
+		for experiment_index, slices_data in enumerate(sliced_datasets):
+			y = np.array(slices_data).ravel()
+			raise NotImplemented
 
 	if split_by_intervals:
+		raise NotImplemented
+		peaks_per_interval = np.zeros((slices_count, len(intervals)))
 		peaks_per_interval = peaks_per_interval / dataset_size
 		# reshape
 		c = peaks_per_interval[:, 0].copy()
 		peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
 		peaks_per_interval[:, -1] = c
 		peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
-
 		return peaks_per_interval
+
+	return peak_per_slice_list, ampl_per_slice_list
+
+
+def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=False):
+	"""
+	Finds extrema (as a peak) and sum of amplitudes after latnecy
+	Args:
+		sliced_datasets (np.ndarray):
+		latencies (np.ndarray): array of latencies for each experiment each slice
+		step_size (float): data step size
+		debugging (bool): debugging flag
+
+	Returns:
+		np.ndarray: peak_matrix - [experiment_index][slice_index] = extrema count
+		np.ndarray: ampl_matrix - [experiment_index][slice_index] = amplitude area
+	"""
+	if type(sliced_datasets) is not np.ndarray:
+		raise TypeError("Non valid type of data - use only np.ndarray")
+	# interpritate shape of dataset
+	tests_count, slices_count, slice_length = sliced_datasets.shape
+	peak_matrix = np.zeros((tests_count, slices_count))
+	ampl_matrix = np.zeros((tests_count, slices_count))
+	# form parameters for filtering peaks
+	min_ampl = 0.3
+	min_dist = int(0.7 / step_size)
+	max_dist = int(4 / step_size)
+	# find extrema and area of amplitudes at each slice
+	for experiment_index, slices_data in enumerate(sliced_datasets):
+		for slice_index, slice_data in enumerate(slices_data):
+			# smooth data (small value for smoothing only micro-peaks)
+			smoothed_data = smooth(slice_data, 2)
+			# get all extrema
+			e_maxima_indexes, e_maxima_values = find_extrema(smoothed_data, np.greater)
+			e_minima_indexes, e_minima_values = find_extrema(smoothed_data, np.less)
+			# skip calculating if number of extrema is zero
+			if len(e_maxima_indexes) == 0 or len(e_minima_indexes) == 0:
+				continue
+			# skip minima extrema if it starts before maxima -> start paring from maximal extrema
+			if e_minima_indexes[0] < e_maxima_indexes[0]:
+				e_minima_indexes = e_minima_indexes[1:]
+				e_minima_values = e_minima_values[1:]
+
+			# get minimal size of array to remove dots which will not be processed
+			min_size = min(len(e_maxima_indexes), len(e_minima_indexes))
+			# form pairs by indexes and values
+			pair_indexes = np.stack((e_maxima_indexes[:min_size], e_minima_indexes[:min_size]), axis=1)
+			pair_values = np.stack((e_maxima_values[:min_size], e_minima_values[:min_size]), axis=1)
+			# calc delta Time and Amplitude for dots in pair
+			dT = np.abs(np.diff(pair_indexes, axis=1)).ravel()
+			dA = np.abs(np.diff(pair_values, axis=1)).ravel()
+			# get latency for current slice
+			latency = int(latencies[experiment_index][slice_index])
+			# process if both dots in pair greater than latency
+			pair_gt_lat = np.all(pair_indexes >= latency, axis=1)
+			# (pair >= latency) AND ((dT in [min_dist, max_dist] AND dA is not a micro-peak) OR dA is high enough))
+			filter_mask = pair_gt_lat & (((min_dist <= dT) & (dT <= max_dist) & (dA >= 0.05)) | (dA >= min_ampl))
+			# fill the data to the matricies
+			peak_matrix[experiment_index][slice_index] = len(pair_indexes[filter_mask]) * 2
+			ampl_matrix[experiment_index][slice_index] = np.sum(np.abs(smoothed_data[latency:]))
+
+
+	if debugging:
+		raise NotImplemented
 
 	return peak_matrix, ampl_matrix
 
 
-def contour_plot(x, y, color, ax, min_max):
+def contour_plot(x, y, color, ax):
 	"""
 	TODO: add docstring
 	Args:
@@ -369,16 +393,19 @@ def contour_plot(x, y, color, ax, min_max):
 		color (str):
 		ax:
 	"""
-	levels_num = 5
-	xmin, xmax, ymin, ymax = min_max
+	levels_num = 10
+	xmin, xmax = 0, 25
+	ymin, ymax = 0, 2
 	xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 	positions = np.vstack([xx.ravel(), yy.ravel()])
 	values = np.vstack([x, y])
 	a = st.gaussian_kde(values)(positions).T
 	z = np.reshape(a, xx.shape)
 	m = np.amax(z)
+
 	# form a step and levels
-	step = (np.amax(z) - np.amin(z)) / levels_num
+	step = (np.amax(a) - np.amin(a)) / levels_num
+	# step = 0.01
 	levels = np.arange(0, m, step) + step
 	# convert HEX to HSL
 	clr = Color(color)
@@ -386,44 +413,61 @@ def contour_plot(x, y, color, ax, min_max):
 	# generate colors for contours level
 	colors = [Color(hsl=(h / 360, s / 100, l_level / 100)).rgb for l_level in np.linspace(l, 95, len(levels))[::-1]]
 	# plot filled contour
-	cnt = ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5)
+	cnt = ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=1)
 	# change an edges of contours
 	for c in cnt.collections:
 		c.set_edgecolor("k")
 		c.set_linewidth(0.2)
 
 
-def joint_plot(data, ax, gs, min_max, **kwargs):
+def joint_plot(X, Y, ax, gs, **kwargs):
 	"""
 	TODO: add docstring
 	Args:
-		data (np.ndarray):
+		X (np.ndarray):
+		Y (np.ndarray):
 		ax:
 		gs:
-		min_max:
 		**kwargs:
 	"""
-	xmin, xmax, ymin, ymax = min_max
-	# ax.scatter(data[:, 0], data[:, 1], color=kwargs['color'], alpha=0.6, s=5)
+	xmin, xmax = 0, 25
+	ymin, ymax = 0, 2
+
+	color = kwargs['color']
+
+	ax.scatter(X, Y, marker="+", color=color, s=5, zorder=3, alpha=0.4)
 	# create X-marginal (top)
 	ax_top = plt.subplot(gs[0, 0], sharex=ax)
 	ax_top.spines['top'].set_visible(False)
 	ax_top.spines['right'].set_visible(False)
-	# ax_top.hist(data[:, 0], bins=int(xmax) - int(xmin), color=kwargs['color'], density=True, alpha=0.5)
 	# create Y-marginal (right)
 	ax_right = plt.subplot(gs[1, 1], sharey=ax)
 	ax_right.spines['top'].set_visible(False)
 	ax_right.spines['right'].set_visible(False)
-	# ax_right.hist(data[:, 1], bins=int(ymax) - int(ymin), color=kwargs['color'], orientation='horizontal', density=True, alpha=0.5)
-	ax.set_xlabel(kwargs['xlabel'])
-	ax.set_ylabel(kwargs['ylabel'])
-	# bring the marginals closer to the scatter plot
-	x = np.linspace(xmin, xmax, 100)
-	y = np.linspace(ymin, ymax, 100)
-	dx = gaussian_kde(data[:, 0])(x)
-	dy = gaussian_kde(data[:, 1])(y)
-	ax_top.plot(x, dx, color=kwargs['color'])
-	ax_right.plot(dy, y, color=kwargs['color'])
+	# plot histogram top
+	bin_val, bin_pos, _ = ax_top.hist(x=X, bins=np.arange(xmin, xmax + 1, 1),
+	                                  weights=np.ones(len(X)) / len(X), color=color, alpha=0.0)
+	bin_centers = 0.5 * (bin_pos[1:] + bin_pos[:-1])
+	ax_top.plot(bin_centers, bin_val, color=kwargs['color'], linewidth=3)
+	# plot histogram right
+	bin_val, bin_pos, _ = ax_right.hist(x=Y, bins=np.arange(ymin, ymax + 0.05, 0.05),
+	                                    weights=np.ones(len(Y)) / len(Y),
+	                                    color=color, alpha=0.0, orientation="horizontal")
+	bin_centers = 0.5 * (bin_pos[1:] + bin_pos[:-1])
+	ax_right.plot(bin_val, bin_centers, color=color, linewidth=3)
+	# set percentage ticklabels
+	ax_top.yaxis.set_major_formatter(ticker.PercentFormatter(1))
+	ax_right.xaxis.set_major_formatter(ticker.PercentFormatter(1))
+	# add grid
+	ax_top.grid(which='minor', axis='x')
+	ax_right.grid(which='minor', axis='y')
+	# gaussian_kde calculation
+	# xx = np.linspace(xmin, xmax, 100)
+	# yy = np.linspace(ymin, ymax, 100)
+	# dx = st.gaussian_kde(X)(xx)
+	# dy = st.gaussian_kde(Y)(yy)
+	# ax_top.plot(x, dx, color=kwargs['color'])
+	# ax_right.plot(dy, y, color=kwargs['color'])
 
 
 def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
@@ -454,56 +498,15 @@ def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 		new_filename = f"{light_filename}_{title.lower().replace(' ', '_')}"
 		# form labels
 		if "Lat" in title:
-			labels.append("Latency")
+			labels.append("Latency of slice")
 		if "Amp" in title:
-			labels.append("Amplitudes")
+			labels.append("Area of amplitude")
 		if "Peak" in title:
-			labels.append("Peaks")
-
-		if contour_flag:
-			minimal_x, maximal_x = np.inf, -np.inf
-			minimal_y, maximal_y = np.inf, -np.inf
-			# define grid for subplots
-			gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
-			fig = plt.figure()
-			kde_ax = plt.subplot(gs[1, 0])
-			kde_ax.spines['top'].set_visible(False)
-			kde_ax.spines['right'].set_visible(False)
-			# find the minimal and maximal of the all data
-			for coords, color, filename in data_pack:
-				x, y = dat()
-				if max(x) > maximal_x:
-					maximal_x = max(x)
-				if min(x) < minimal_x:
-					minimal_x = min(x)
-				if max(y) > maximal_y:
-					maximal_y = max(y)
-				if min(y) < minimal_y:
-					minimal_y = min(y)
-
-			min_max = (minimal_x, maximal_x, minimal_y, maximal_y)
-
-			# clrs = iter(['Reds', 'Greens', 'Blues', 'Oranges'])
-			for coords, color, filename in data_pack:
-				x, y = dat()
-				data = np.stack((x, y), axis=1)
-				kwargs = {"xlabel": labels[0], "ylabel": labels[1], "color": color}
-				contour_plot(x=data[:, 0], y=data[:, 1], color=color, ax=kde_ax, min_max=min_max)
-				joint_plot(data, kde_ax, gs, min_max=min_max, **kwargs)
-
-			kde_ax.set_xlim(minimal_x, maximal_x)
-			kde_ax.set_ylim(minimal_y, maximal_y)
-			plt.tight_layout()
-			plt.show()
-			# plt.savefig(f"{save_to}/{new_filename}_egg.pdf", dpi=250, format="pdf")
-			# plt.savefig(f"{save_to}/{new_filename}_egg.png", dpi=250, format="png")
-			plt.close(fig)
-
-			continue
+			labels.append("Number of exrema")
 
 		# init 3D projection figure
 		fig = plt.figure(figsize=(10, 10))
-		kde_ax = fig.add_subplot(111, projection='3d')
+		ax = fig.add_subplot(111, projection='3d')
 		# plot each data pack
 		for coords, color, filename in data_pack:
 			# create PCA instance and fit the model with coords
@@ -529,8 +532,8 @@ def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 				volume_sum += volume
 				log.info(f"V: {volume}, {filename}")
 				# keep ellipsoid surface dots, A matrix, center
-				phi = np.linspace(0, np.pi, 600)
-				theta = np.linspace(0, 2 * np.pi, 600)
+				phi = np.linspace(0, np.pi, 200)
+				theta = np.linspace(0, 2 * np.pi, 200)
 				# cartesian coordinates that correspond to the spherical angles
 				x = radii[0] * np.outer(np.cos(theta), np.sin(phi))
 				y = radii[1] * np.outer(np.sin(theta), np.sin(phi))
@@ -540,21 +543,41 @@ def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 					for j in range(len(x)):
 						x[i, j], y[i, j], z[i, j] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + center
 				data_pack_xyz.append((matrixA, center, x.flatten(), y.flatten(), z.flatten()))
-			else:
-				# plot PCA vectors
-				for point_head in vectors_points:
-					arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
-					kde_ax.add_artist(arrow)
-				# plot cloud of points
-				kde_ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
-				# plot ellipsoid
-				plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
+			# else:
+			# plot PCA vectors
+			for point_head in vectors_points:
+				arrow = Arrow3D(*zip(center.T, point_head.T), mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+				ax.add_artist(arrow)
+			# plot cloud of points
+			ax.scatter(*coords.T, alpha=0.2, s=30, color=color)
+			# plot ellipsoid
+			plot_ellipsoid(center, radii, rotation, plot_axes=False, color=color)
+
 		if corr_flag:
 			# collect all intersect point
+			x1 = data_pack[0][0][:, 0]
+			y1 = data_pack[0][0][:, 1]
+			z1 = data_pack[0][0][:, 2]
+
+			x2 = data_pack[1][0][:, 0]
+			y2 = data_pack[1][0][:, 1]
+			z2 = data_pack[1][0][:, 2]
+
+			from analysis.ks3 import ks3
+
+			d1 = np.stack((x1, y1, z1), axis=1)
+			d2 = np.stack((x2, y2, z2), axis=1)
+
+			D = ks3(d1, d2)
+			print(f"K-S 3D: {D}")
+			print("- " * 10)
+
 			points_inside = []
+
 			# get data of two ellipsoids: A matrix, center and points coordinates
 			A1, C1, x1, y1, z1 = data_pack_xyz[0]
 			A2, C2, x2, y2, z2 = data_pack_xyz[1]
+
 			# based on stackoverflow.com/a/34385879/5891876 solution with own modernization
 			# the equation for the surface of an ellipsoid is (x-c)TA(x-c)=1.
 			# all we need to check is whether (x-c)TA(x-c) is less than 1 for each of points
@@ -579,34 +602,95 @@ def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 			pca_similarity = v_intersection / (volume_sum - v_intersection)
 			log.info(f"PCA similarity: {pca_similarity}")
 			# debugging plotting
-			# ax.scatter(*points_in.T, alpha=0.2, s=1, color='r')
-			return
-		else:
-			# figure properties
-			kde_ax.xaxis._axinfo['tick']['inward_factor'] = 0
-			kde_ax.yaxis._axinfo['tick']['inward_factor'] = 0
-			kde_ax.zaxis._axinfo['tick']['inward_factor'] = 0
+			ax.scatter(*points_inside.T, alpha=0.2, s=1, color='r')
+			# print(pca_similarity)
+			print("- " * 10)
+			# return
+		# else:
+		# figure properties
+		ax.xaxis._axinfo['tick']['inward_factor'] = 0
+		ax.yaxis._axinfo['tick']['inward_factor'] = 0
+		ax.zaxis._axinfo['tick']['inward_factor'] = 0
+		ax.set_xlabel("Latency of slice")
+		ax.set_ylabel("Area of amplitude")
+		ax.set_zlabel("Number of exrema")
 
-			kde_ax.tick_params(which='major', length=10, width=3, labelsize=50)
-			kde_ax.tick_params(which='minor', length=4, width=2, labelsize=50)
+		ax.tick_params(which='major', length=10, width=3, labelsize=20)
+		ax.tick_params(which='minor', length=4, width=2, labelsize=20)
 
-			# remove one of the plane ticks to make output pdf more readable
-			if "Lat" not in title:
-				kde_ax.set_xticks([])
-				kde_ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_yticks()), integer=True))
-				kde_ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_zticks()), integer=True))
-			if "Amp" not in title:
-				kde_ax.set_yticks([])
-				kde_ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_xticks()), integer=True))
-				kde_ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_zticks()), integer=True))
-			if "Peak" not in title:
-				kde_ax.set_zticks([])
-				kde_ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_xticks()), integer=True))
-				kde_ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(kde_ax.get_yticks()), integer=True))
+		# remove one of the plane ticks to make output pdf more readable
+		if "Lat" not in title:
+			# ax.set_xticks([])
+			ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
+			ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+		if "Amp" not in title:
+			# ax.set_yticks([])
+			ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+			ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_zticks()), integer=True))
+		if "Peak" not in title:
+			# ax.set_zticks([])
+			ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_xticks()), integer=True))
+			ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=len(ax.get_yticks()), integer=True))
 
-			kde_ax.view_init(elev=elev, azim=azim)
-			fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-			bbox = fig.bbox_inches.from_bounds(1, 1, 8, 8)
-			plt.savefig(f"{save_to}/{new_filename}.pdf", bbox_inches=bbox, dpi=250, format="pdf")
-			plt.savefig(f"{save_to}/{new_filename}.png", bbox_inches=bbox, dpi=250, format="png")
-			plt.close(fig)
+		ax.view_init(elev=elev, azim=azim)
+		fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+		bbox = fig.bbox_inches.from_bounds(1, 1, 8, 8)
+		plt.show()
+		plt.savefig(f"{save_to}/{new_filename}.pdf", bbox_inches=bbox, dpi=250, format="pdf")
+		plt.savefig(f"{save_to}/{new_filename}.png", bbox_inches=bbox, dpi=250, format="png")
+		plt.close(fig)
+
+
+def plot_kde3d(data_pack):
+	"""
+	Draws 3D KDE
+	Args:
+		data_pack:
+	"""
+	from mayavi import mlab
+	from tvtk.api import tvtk
+	from scipy.interpolate import griddata
+	from mayavi.mlab import contour3d, points3d
+	x1 = data_pack[0][0][:, 0]
+	y1 = data_pack[0][0][:, 1]
+	z1 = data_pack[0][0][:, 2]
+	x2 = data_pack[1][0][:, 0]
+	y2 = data_pack[1][0][:, 1]
+	z2 = data_pack[1][0][:, 2]
+	distribution = np.transpose(np.stack((x1, y1, z1), axis=1))
+	kde = st.gaussian_kde(distribution)
+	density1 = kde(distribution)
+
+	idx = density1.argsort()
+	dx1 = distribution[0, idx]
+	dy1 = distribution[1, idx]
+	dz1 = distribution[2, idx]
+	density1 = density1[idx]
+
+	d = np.transpose(np.stack((x2, y2, z2), axis=1))
+	kde = st.gaussian_kde(d)
+	density2 = kde(d)
+
+	idx = density2.argsort()
+	dx2 = d[0, idx]
+	dy2 = d[1, idx]
+	dz2 = d[2, idx]
+	density2 = density2[idx]
+
+	# Create some test data, 3D gaussian, 200 points
+	pts = 100j
+	R1 = np.stack((dx1, dy1, dz1), axis=1)
+	V1 = density1
+	R2 = np.stack((dx2, dy2, dz2), axis=1)
+	V2 = density2
+	# Create the grid to interpolate on
+	X1, Y1, Z1 = np.mgrid[min(dx1):max(dx1):pts, min(dy1):max(dy1):pts, min(dz1):max(dz1):pts]
+	X2, Y2, Z2 = np.mgrid[min(dx2):max(dx2):pts, min(dy2):max(dy2):pts, min(dz2):max(dz2):pts]
+	# Interpolate the data
+	F1 = griddata(R1, V1, (X1, Y1, Z1))
+	# points3d(x1, y1, z1)
+	contour3d(F1, contours=6, opacity=0.3, colormap='Reds')
+	F2 = griddata(R2, V2, (X2, Y2, Z2))
+	# points3d(x2, y2, z2)
+	contour3d(F2, contours=6, opacity=0.3, colormap='Greens')
+	mlab.show()
