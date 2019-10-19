@@ -10,9 +10,9 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 125 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 3
+versions = 1
 step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
@@ -20,6 +20,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
+v = int(sys.argv[4])
 
 exnclist = []
 inhnclist = []
@@ -606,7 +607,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path = str('./res/' + name + 'r%dv%d_foot_25tests_15speed' % (rank, version))
+            path = str('./res/' + name + 'r%dv%d_foot_25tests_15speed' % (rank, v))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")
