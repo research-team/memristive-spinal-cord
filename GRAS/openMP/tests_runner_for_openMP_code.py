@@ -3,8 +3,8 @@ import logging
 import subprocess
 import numpy as np
 import h5py as hdf5
-from shadows_boxplot import plot_shadows_boxplot
-from matrix_solution.plot_results_1 import run
+from GRAS.shadows_boxplot import plot_shadows_boxplot
+from GRAS.plot_results_1 import run
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -15,12 +15,12 @@ tests_number, cms, ees, inh, ped, ht5, save_all = range(7)
 
 def run_tests(build_folder, args):
 	"""
-	Run N-times cpp builded CUDA file via bash commands
+	Run N-times cpp builded openMP file via bash commands
 	Args:
 		build_folder (str): where cpp file is placed
 		args (dict): special args for building properly simulation
 	"""
-	buildname = "build"
+	# buildname = "build"
 	assert args[ped] in [2, 4]
 	assert args[ht5] in [0, 1]
 	assert 0 <= args[inh] <= 100
