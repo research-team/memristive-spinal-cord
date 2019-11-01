@@ -43,11 +43,11 @@ const int LEG_STEPS = 1;             // [step] number of full cycle steps
 const float SIM_STEP = 0.025;        // [s] simulation step
 
 // stuff variables
-const int syn_outdegree = 54;        // synapse number outgoing from one neuron
+const int syn_outdegree = 27;        // synapse number outgoing from one neuron
 const int neurons_in_ip = 196;       // number of neurons in interneuronal pool
 const int neurons_in_aff_ip = 196;   // number of neurons in interneuronal pool
 const int neurons_in_moto = 169;     // motoneurons number
-const int neurons_in_group = 20;     // number of neurons in a group
+const int neurons_in_group = 40;     // number of neurons in a group
 const int neurons_in_afferent = 120; // number of neurons in afferent
 
 // neuron parameters
@@ -600,7 +600,7 @@ void connect_fixed_outdegree(const Group& pre_neurons,
 	 */
 
 	 // number of neurons
-	int N = 40;
+	int N = neurons_in_group;
 
 	// connect neurons with uniform distribution and normal distributon for syn delay and syn_weight
     random_device r;
@@ -659,35 +659,35 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	Group CD4 = form_group("CD4", 1);
 	Group CD5 = form_group("CD5", 1);
 
-	Group OM1_0 = form_group("OM1_0", 40);
-	Group OM1_1 = form_group("OM1_1", 40);
-	Group OM1_2_E = form_group("OM1_2_E", 40);
-	Group OM1_2_F = form_group("OM1_2_F", 40);
-	Group OM1_3 = form_group("OM1_3", 40);
+	Group OM1_0 = form_group("OM1_0");
+	Group OM1_1 = form_group("OM1_1");
+	Group OM1_2_E = form_group("OM1_2_E");
+	Group OM1_2_F = form_group("OM1_2_F");
+	Group OM1_3 = form_group("OM1_3");
 
-	Group OM2_0 = form_group("OM2_0", 40);
-	Group OM2_1 = form_group("OM2_1", 40);
-	Group OM2_2_E = form_group("OM2_2_E", 40);
-	Group OM2_2_F = form_group("OM2_2_F", 40);
-	Group OM2_3 = form_group("OM2_3", 40);
+	Group OM2_0 = form_group("OM2_0");
+	Group OM2_1 = form_group("OM2_1");
+	Group OM2_2_E = form_group("OM2_2_E");
+	Group OM2_2_F = form_group("OM2_2_F");
+	Group OM2_3 = form_group("OM2_3");
 
-	Group OM3_0 = form_group("OM3_0", 40);
-	Group OM3_1 = form_group("OM3_1", 40);
-	Group OM3_2_E = form_group("OM3_2_E", 40);
-	Group OM3_2_F = form_group("OM3_2_F", 40);
-	Group OM3_3 = form_group("OM3_3", 40);
+	Group OM3_0 = form_group("OM3_0");
+	Group OM3_1 = form_group("OM3_1");
+	Group OM3_2_E = form_group("OM3_2_E");
+	Group OM3_2_F = form_group("OM3_2_F");
+	Group OM3_3 = form_group("OM3_3");
 
-	Group OM4_0 = form_group("OM4_0", 40);
-	Group OM4_1 = form_group("OM4_1", 40);
-	Group OM4_2_E = form_group("OM4_2_E", 40);
-	Group OM4_2_F = form_group("OM4_2_F", 40);
-	Group OM4_3 = form_group("OM4_3", 40);
+	Group OM4_0 = form_group("OM4_0");
+	Group OM4_1 = form_group("OM4_1");
+	Group OM4_2_E = form_group("OM4_2_E");
+	Group OM4_2_F = form_group("OM4_2_F");
+	Group OM4_3 = form_group("OM4_3");
 
-	Group OM5_0 = form_group("OM5_0", 40);
-	Group OM5_1 = form_group("OM5_1", 40);
-	Group OM5_2_E = form_group("OM5_2_E", 40);
-	Group OM5_2_F = form_group("OM5_2_F", 40);
-	Group OM5_3 = form_group("OM5_3", 40);
+	Group OM5_0 = form_group("OM5_0");
+	Group OM5_1 = form_group("OM5_1");
+	Group OM5_2_E = form_group("OM5_2_E");
+	Group OM5_2_F = form_group("OM5_2_F");
+	Group OM5_3 = form_group("OM5_3");
 
 	Group MN_E = form_group("MN_E", neurons_in_moto);
 	Group MN_F = form_group("MN_F", neurons_in_moto);
@@ -713,29 +713,6 @@ void init_network(float inh_coef, int pedal, int has5ht) {
     connect_fixed_outdegree(E2, E3, 0.5, 200, syn_outdegree);
     connect_fixed_outdegree(E3, E4, 0.5, 200, syn_outdegree);
     connect_fixed_outdegree(E4, E5, 0.5, 200, syn_outdegree);
-
-//    // OM3
-//    connect_one_to_all(CV1, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV2, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV3, OM3_0, 0.5, 0.2 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV4, OM3_0, 0.5, 0.2 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV5, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV5, OM3_3, 0.5, 8);
-//
-//    // OM4
-//    connect_one_to_all(CV1, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV2, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV3, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV4, OM4_0, 0.5, 0.2 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV5, OM4_0, 0.5, 0.2 * quadru_coef * sero_coef);
-//
-//    // OM5
-//    connect_one_to_all(CV2, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV3, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV4, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV5, OM5_0, 0.5, 0.2 * quadru_coef * sero_coef);
-
-
 
     /// OM 1
     // input from EES group 1
@@ -765,15 +742,15 @@ void init_network(float inh_coef, int pedal, int has5ht) {
     connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 0.0006);
     // output to IP
     connect_fixed_outdegree(OM1_2_E, eIP_E, 3, 0.009 * 10, neurons_in_ip); // * 3 // d = 1.5
-//    connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
+    connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
 
 //    /// OM2
 //    // input from sensory
 //    connect_one_to_all(CV1, OM2_0, 0.5, 0.001 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV2, OM2_0, 0.5, 0.1 * quadru_coef * sero_coef);
-//    connect_one_to_all(CV3, OM2_0, 0.5, 0.1 * quadru_coef * sero_coef);
 //    connect_one_to_all(CV4, OM2_0, 0.5, 0.001 * quadru_coef * sero_coef);
 //    connect_one_to_all(CV5, OM1_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV2, OM2_0, 0.5, 0.1 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV3, OM2_0, 0.5, 0.1 * quadru_coef * sero_coef);
 //    connect_one_to_all(CV4, OM2_3, 0.5, 8);
 //    connect_one_to_all(CV5, OM2_3, 0.5, 8);
 //    // [inhibition]
@@ -795,8 +772,17 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 //    connect_fixed_outdegree(OM2_2_E, eIP_E, 1, 0.009 * 10, neurons_in_ip); // 5 // 8
 //    connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 0.005 * 3, neurons_in_ip);
 
+
+//    // OM3
+//    connect_one_to_all(CV1, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV2, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV5, OM3_0, 0.5, 0.0001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV3, OM3_0, 0.5, 0.2 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV4, OM3_0, 0.5, 0.2 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV5, OM3_3, 0.5, 8);
+//
 //    /// OM 3
-    // input from EES group 3
+//    // input from EES group 3
 //    connect_fixed_outdegree(E3, OM3_0, 4, 80); // 1.4
 //    // inner connectomes
 //    connect_fixed_outdegree(OM3_0, OM3_1, 1, 50);
@@ -816,8 +802,15 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 //    connect_fixed_outdegree(OM3_2_E, eIP_E, 6, 0.008 * 10, neurons_in_ip); // 7 - 8
 //    connect_fixed_outdegree(OM3_2_F, eIP_F, 4, 0.005 * 10, neurons_in_ip);
 
-    /// OM 4
-    // input from EES group 4
+
+//    // OM4
+//    connect_one_to_all(CV1, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV2, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV3, OM4_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV4, OM4_0, 0.5, 0.2 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV5, OM4_0, 0.5, 0.2 * quadru_coef * sero_coef);
+//    /// OM 4
+//    // input from EES group 4
 //    connect_fixed_outdegree(E4, OM4_0, 4, 100); // 1.4
 //    // inner connectomes
 //    connect_fixed_outdegree(OM4_0, OM4_1, 3, 25);
@@ -836,7 +829,12 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 //    // output to IP
 //    connect_fixed_outdegree(OM4_2_E, eIP_E, 8, 0.008 * 10, neurons_in_ip); // 7
 //    connect_fixed_outdegree(OM4_2_F, eIP_F, 4, 0.005 * 10, neurons_in_ip);
-//
+
+//    // OM5
+//    connect_one_to_all(CV2, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV3, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV4, OM5_0, 0.5, 0.001 * quadru_coef * sero_coef);
+//    connect_one_to_all(CV5, OM5_0, 0.5, 0.2 * quadru_coef * sero_coef);
 //    /// OM 5
 //    // input from EES group 5
 //    connect_fixed_outdegree(E5, OM5_0, 4, 120); // 1.4
@@ -897,6 +895,15 @@ void init_network(float inh_coef, int pedal, int has5ht) {
     connect_fixed_outdegree(R_F, MN_F, 1, -0.01, neurons_in_moto);
     connect_fixed_outdegree(R_F, R_E, 1, -0.1);
 }
+
+//void save_d(float *arr, int n) {
+//    ofstream file;
+//    file.open("/home/yuliya/Desktop/f/d.txt");
+//    for (unsigned int sim_iter = 0; sim_iter < n; sim_iter++)
+//        file << arr[sim_iter] << " ";
+//    file << endl;
+//    file.close();
+//}
 
 void save(int test_index, GroupMetadata &metadata, const string& folder){
 	/**
@@ -1040,6 +1047,8 @@ void bimodal_distr_for_moto_neurons(float *nrn_diameter) {
 
     int standby_size_extensor = (int)(nrn_number_extensor * standby_percent / 100);
     int standby_size_flexor = (int)(nrn_number_flexor * standby_percent / 100);
+    int active_size_extensor = nrn_number_extensor - standby_size_extensor;
+    int active_size_flexor = nrn_number_flexor - standby_size_flexor;
 
     random_device r1;
     default_random_engine generator1(r1());
@@ -1049,17 +1058,17 @@ void bimodal_distr_for_moto_neurons(float *nrn_diameter) {
     default_random_engine generator2(r2());
     normal_distribution<float> g2(loc_standby, scale_standby);
 
-    for (int i = MN_E_start; i < MN_E_start + standby_size_extensor; i++) {
+    for (int i = MN_E_start; i < MN_E_start + active_size_extensor; i++) {
         nrn_diameter[i] = g1(generator1);
     }
-    for (int i = MN_E_start + standby_size_extensor; i <= MN_E_end; i++) {
+    for (int i = MN_E_start + active_size_extensor; i <= MN_E_end; i++) {
         nrn_diameter[i] = g2(generator2);
     }
 
-    for (int i = MN_F_start; i < MN_F_start + standby_size_flexor; i++) {
+    for (int i = MN_F_start; i < MN_F_start + active_size_flexor; i++) {
         nrn_diameter[i] = g1(generator1);
     }
-    for (int i = MN_F_start + standby_size_flexor; i <= MN_F_end; i++) {
+    for (int i = MN_F_start + active_size_flexor; i <= MN_F_end; i++) {
         nrn_diameter[i] = g2(generator2);
     }
 
@@ -1120,6 +1129,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	                          ms_to_step(2 * skin_stim_time),
 	                          ms_to_step(3 * skin_stim_time),
 	                          ms_to_step(5 * skin_stim_time)};
+
 	int end_C_spiking[5] = {ms_to_step(skin_stim_time - 0.1),
 	                        ms_to_step(2 * skin_stim_time - 0.1),
 	                        ms_to_step(3 * skin_stim_time - 0.1),
@@ -1153,7 +1163,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
     init_array<float>(CV5_spikes_ms, len, 0);
 
     rand_normal_init_array<int>(nrn_ref_time, neurons_number, (int)(3 / SIM_STEP), (int)(0.4 / SIM_STEP));  // neuron ref time, aprx interval is (1.8, 4.2)
-//	rand_normal_init_array<float>(nrn_c_m, neurons_number, 200, 6); // membrane capacity (185, 215)
 	rand_normal_init_array<float>(nrn_threshold, neurons_number, -50, 0.4); // neurons threshold (-51.2, -48.8)
 
     random_device r_s;
@@ -1171,13 +1180,11 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
         CV4_spikes_ms[i] = static_cast<int>((distribution(generator_s) - 1) * 25);
     }
 
-
     int CV1_spikes[SIM_TIME_IN_STEPS];
     int CV2_spikes[SIM_TIME_IN_STEPS];
     int CV3_spikes[SIM_TIME_IN_STEPS];
     int CV4_spikes[SIM_TIME_IN_STEPS];
     int CV5_spikes[SIM_TIME_IN_STEPS];
-
 
     init_array<int>(CV1_spikes, SIM_TIME_IN_STEPS, 0);
     init_array<int>(CV2_spikes, SIM_TIME_IN_STEPS, 0);
@@ -1288,6 +1295,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
         nrn_g_L[i] = S * 0.02;
     }
 
+//    save_d(nrn_diameter, neurons_number);
 
 	// synapse variables
 	auto *synapses_pre_nrn_id = (int *) malloc(datasize<int>(synapses_number));
@@ -1371,7 +1379,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
     cudaMalloc(&gpu_spikes_CV3, datasize<int>(SIM_TIME_IN_STEPS));
     cudaMalloc(&gpu_spikes_CV4, datasize<int>(SIM_TIME_IN_STEPS));
     cudaMalloc(&gpu_spikes_CV5, datasize<int>(SIM_TIME_IN_STEPS));
-
 
     // copy data from CPU to GPU
 	memcpyHtD<float>(gpu_nrn_n, nrn_n, neurons_number);
