@@ -251,17 +251,11 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	Group iIP_F = form_group("iIP_F", neurons_in_ip);
 
 	/// connectomes
-	connect_fixed_outdegree(EES, E1, 1, 500);
-	connect_fixed_outdegree(E1, E2, 1, 200);
-	connect_fixed_outdegree(E2, E3, 1, 200);
-	connect_fixed_outdegree(E3, E4, 1, 200);
-	connect_fixed_outdegree(E4, E5, 1, 200);
-
-	connect_one_to_all(CV1, iIP_E, 0.5, 50);
-	connect_one_to_all(CV2, iIP_E, 0.5, 50);
-	connect_one_to_all(CV3, iIP_E, 0.5, 50);
-	connect_one_to_all(CV4, iIP_E, 0.5, 50);
-	connect_one_to_all(CV5, iIP_E, 0.5, 50);
+	connect_fixed_outdegree(EES, E1, 1, 50);
+	connect_fixed_outdegree(E1, E2, 1, 20);
+	connect_fixed_outdegree(E2, E3, 1, 20);
+	connect_fixed_outdegree(E3, E4, 1, 20);
+	connect_fixed_outdegree(E4, E5, 1, 20);
 
 	connect_one_to_all(CV1, iIP_E, 0.5, 5);
 	connect_one_to_all(CV2, iIP_E, 0.5, 5);
@@ -271,32 +265,30 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 	/// OM 1
 	// input from EES group 1
-	connect_one_to_all(CV1, OM1_0, 1.5, 0.2 * quadru_coef * sero_coef); //02
-	connect_one_to_all(CV2, OM1_0, 1, 0.25 * quadru_coef * sero_coef);//01
-	//    connect_one_to_all(CV3, OM1_0, 0.5, 0.001 * quadru_coef * sero_coef);
-	//    connect_one_to_all(CV4, OM1_0, 0.5, 0.001 * quadru_coef * sero_coef);
+	connect_one_to_all(CV1, OM1_0, 0.5, 0.2);
+	connect_one_to_all(CV2, OM1_0, 0.5, 0.2);
 	// [inhibition]
 	connect_one_to_all(CV3, OM1_3, 0.5, 0.2);
-	connect_one_to_all(CV4, OM1_3, 0.5, 0.5);
-	connect_one_to_all(CV5, OM1_3, 0.5, 0.9);
+	connect_one_to_all(CV4, OM1_3, 0.5, 0.2);
+	connect_one_to_all(CV5, OM1_3, 0.5, 0.2);
 	// E1
-	connect_fixed_outdegree(E1, OM1_0, 1, 100); // 90
-	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 0.2, 5);//6
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 0.5, 0.09 );//*2
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 0.09);
-	connect_fixed_outdegree(OM1_1, OM1_3, 1, 0.009); // 0.9
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 0.001);//00000003
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 0.001);//00000001
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 0.009 );//*4
-	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.008 );//*2
-	connect_fixed_outdegree(OM1_3, OM1_1, 0.3, -0.3 * inh_coef);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -0.1* inh_coef);
-	connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -0.1 * inh_coef);
-	// output to OM2
-	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 1);
-	// output to IP
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1.5, 0.08 * 3);
+	connect_fixed_outdegree(E1, OM1_0, 1, 20);
+//	// inner connectomes
+	connect_fixed_outdegree(OM1_0, OM1_1, 0.2, 1);//6
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 0.5, 0.1 );//*2
+//	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 0.09);
+//	connect_fixed_outdegree(OM1_1, OM1_3, 1, 0.009); // 0.9
+//	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 0.001);//00000003
+//	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 0.001);//00000001
+//	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 0.009 );//*4
+//	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.008 );//*2
+//	connect_fixed_outdegree(OM1_3, OM1_1, 0.3, -0.3 * inh_coef);
+//	connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -0.1* inh_coef);
+//	connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -0.1 * inh_coef);
+//	// output to OM2
+//	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 1);
+//	// output to IP
+//	connect_fixed_outdegree(OM1_2_E, eIP_E, 1.5, 0.08 * 3);
 	//    connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
 
 	// /// OM 2
@@ -406,39 +398,39 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 
 	/// reflex arc
-	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -0.001);
-	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -0.001);
-
-	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.005);
-	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.005);
-	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.005);
-	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -0.005);
-
-	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
-	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
-
-	connect_fixed_outdegree(eIP_E, MN_E, 0.5, 2.3);
-	connect_fixed_outdegree(eIP_F, MN_F, 5, 8);
-
-	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 2);
-	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 2);
-
-	connect_fixed_outdegree(Ia_E_pool, MN_F, 2, -0.8); // -4
-	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -0.01);
-	connect_fixed_outdegree(Ia_F_pool, MN_E, 2, -0.6);
-	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -0.01);
-
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 3.5, 4.5);
-	connect_fixed_outdegree(Ia_F_aff, MN_F, 3.5, 6);
-
-	connect_fixed_outdegree(MN_E, R_E, 2, 0.1);
-	connect_fixed_outdegree(MN_F, R_F, 2, 0.1);
-
-	connect_fixed_outdegree(R_E, MN_E, 1, -0.005);
-	connect_fixed_outdegree(R_E, R_F, 1, -0.1);
-
-	connect_fixed_outdegree(R_F, MN_F, 1, -0.01);
-	connect_fixed_outdegree(R_F, R_E, 1, -0.1);
+//	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -0.001);
+//	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -0.001);
+//
+//	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.005);
+//	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.005);
+//	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.005);
+//	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -0.005);
+//
+//	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
+//	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
+//
+//	connect_fixed_outdegree(eIP_E, MN_E, 0.5, 2.3);
+//	connect_fixed_outdegree(eIP_F, MN_F, 5, 8);
+//
+//	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 2);
+//	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 2);
+//
+//	connect_fixed_outdegree(Ia_E_pool, MN_F, 2, -0.8); // -4
+//	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -0.01);
+//	connect_fixed_outdegree(Ia_F_pool, MN_E, 2, -0.6);
+//	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -0.01);
+//
+//	connect_fixed_outdegree(Ia_E_aff, MN_E, 3.5, 4.5);
+//	connect_fixed_outdegree(Ia_F_aff, MN_F, 3.5, 6);
+//
+//	connect_fixed_outdegree(MN_E, R_E, 2, 0.1);
+//	connect_fixed_outdegree(MN_F, R_F, 2, 0.1);
+//
+//	connect_fixed_outdegree(R_E, MN_E, 1, -0.005);
+//	connect_fixed_outdegree(R_E, R_F, 1, -0.1);
+//
+//	connect_fixed_outdegree(R_F, MN_F, 1, -0.01);
+//	connect_fixed_outdegree(R_F, R_E, 1, -0.1);
 
 	/*connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -10, neurons_in_ip);
 	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -10, neurons_in_ip);
@@ -706,7 +698,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		nrn_diameter[i] = 5;
 
 	// fill array of diameters for Ia_aff neurons
-	for (int i = 1465; i < 1705; i++)
+	for (int i = 1947; i < 2186; i++)
 		nrn_diameter[i] = d_Ia_aff_distr(gen);
 
 	// fill C_m, g_Na, g_K, g_L arrays
@@ -718,7 +710,6 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			nrn_c_m[i] = S * 0.02;
 		else
 			nrn_c_m[i] = S * 0.01;
-
 
 		nrn_g_K[i] = S * 3.0;
 		nrn_g_L[i] = S * 0.02;
@@ -759,6 +750,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	bool EES_activated;
 	int shift_time_by_step = 0;
 	int decrease_lvl_Ia_spikes;
+	int shifted_iter_time = 0;
 
 	simulation_t_start = chrono::system_clock::now();
 
@@ -794,10 +786,10 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 				C0_early_activated = true;
 		}
 
-		int shifted_iter_time = sim_iter - shift_time_by_step;
-
 		// update local iter (warning: can be resetted at C0/C1 activation)
 		local_iter++;
+
+		shifted_iter_time = sim_iter - shift_time_by_step;
 
 		if ((begin_C_spiking[0] <= shifted_iter_time) && (shifted_iter_time < end_C_spiking[0])) CV1_activated = true;
 		if ((begin_C_spiking[1] <= shifted_iter_time) && (shifted_iter_time < end_C_spiking[1])) CV2_activated = true;
@@ -834,7 +826,8 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			nrn_has_spike[tid] = false;
 
 			// generating spikes for EES
-			if (tid < 50 && EES_activated) nrn_has_spike[tid] = true;
+			if (tid < 50 && EES_activated)
+				nrn_has_spike[tid] = true;
 			// iIP_F
 			if (C0_activated && C0_early_activated && 3267 <= tid && tid <= 3462 && (sim_iter % 10 == 0))
 				nrn_has_spike[3267 + static_cast<int>(neurons_in_ip * standard_uniform(generator))] = true;
@@ -904,6 +897,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			// re-calculate conductance
 			nrn_g_exc[tid] += -nrn_g_exc[tid] / tau_syn_exc * SIM_STEP;
 			nrn_g_inh[tid] += -nrn_g_inh[tid] / tau_syn_inh * SIM_STEP;
+
 			// check the Voltage borders
 			if (nrn_v_m[tid] > 100)
 				nrn_v_m[tid] = 100;
