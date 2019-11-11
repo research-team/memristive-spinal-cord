@@ -162,7 +162,7 @@ class V3(Functions):
 
         def connect_to_moto(weight):
             self.connect_fixed_outdegree(eIP_E_0, MN_E, 0.5, weight, int(neurons_in_moto_extensor / 3))
-            self.connect_fixed_outdegree(eIP_E_1, MN_E, 1, weight * 1.2, int(neurons_in_moto_extensor / 3))
+            self.connect_fixed_outdegree(eIP_E_1, MN_E, 1.5, weight * 1.3, int(neurons_in_moto_extensor / 3))
 
         # self.connect_fixed_outdegree(eIP_E_2, MN_E, 0.7, weight, int(neurons_in_moto_extensor))
 
@@ -172,18 +172,18 @@ class V3(Functions):
         # self.connect_fixed_outdegree(eIP_E_6, MN_E, 4, weight, int(neurons_in_moto_extensor))
 
         # extensor
-        coef = 0.86
-        delay_coef = 1
+        coef = 0.85
+        delay_coef = 0.85
 
         coef2 = 0.4
 
         connect_to_ip(OM1_2_E, 18 * coef2, 0.5)
         connect_to_ip(OM2_2_E, 16.5 * coef2, 1.25)
         connect_to_ip(OM3_2_E, 13 * coef2, 1.75)
-        connect_to_ip(OM4_2_E, 14 * coef2, 2.5)
-        connect_to_ip(OM5_2_E, 15 * coef2, 3.5)
+        connect_to_ip(OM4_2_E, 15 * coef2, 2.5)
+        connect_to_ip(OM5_2_E, 16 * coef2, 3.2)
 
-        coef3 = 1.3
+        coef3 = 1
         connect_to_moto(30 * coef3)
 
         # self.connect_fixed_outdegree(OM1_2_E, eIP_E, 0.5, 18 * coef2, neurons_in_ip)
@@ -349,7 +349,7 @@ class V3(Functions):
         self.connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip)
         self.connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -10, neurons_in_ip)
         self.connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip)
-        self.connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 30, neurons_in_moto_extensor)
+        self.connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 20, neurons_in_moto_extensor)
 
         self.connect_fixed_outdegree(R_E, R_F, 2, -1)
         self.connect_fixed_outdegree(R_F, R_E, 2, -1)
@@ -357,7 +357,7 @@ class V3(Functions):
 
 if __name__ == "__main__":
     parameters = Parameters()
-    parameters.tests = 10
+    parameters.tests = 25
     parameters.steps = 1
     parameters.cms = 21
     parameters.EES = 40
