@@ -190,13 +190,14 @@ class Functions:
 			nest.SetStatus([gid], params)
 
 		target_groups = [
-			# "OM1_0", "OM1_1", "OM1_2_E", "OM1_2_F", "OM1_3",
-			# "OM2_0", "OM2_1", "OM2_2_E", "OM2_2_F", "OM2_3",
-			# "OM3_0", "OM3_1", "OM3_2_E", "OM3_2_F", "OM3_3",
-			# "OM4_0", "OM4_1", "OM4_2_E", "OM4_2_F", "OM4_3",
-			# "OM5_0", "OM5_1", "OM5_2_E", "OM5_2_F", "OM5_3",
+			# "OM1_2_E",  # "OM1_0", "OM1_1", "OM1_2_F", "OM1_3",
+			# "OM2_2_E",  # "OM2_0", "OM2_1", "OM2_2_F", "OM2_3",
+			# "OM3_2_E",  # "OM3_0", "OM3_1", "OM3_2_F", "OM3_3",
+			# "OM4_2_E",  # "OM4_0", "OM4_1", "OM4_2_F", "OM4_3",
+			# "OM5_2_E",  # "OM5_0", "OM5_1", "OM5_2_F", "OM5_3",
 			# "iIP_E", "iIP_F",
-			# "eIP_E", "eIP_F",
+			# "eIP_E_0", "eIP_E_1", "eIP_E_2", "eIP_E_3", "eIP_E_4", "eIP_E_5", "eIP_E_6", "eIP_F",
+			# "eIP_E",
 			# "Ia_E_aff", "Ia_F_aff", "Ia_E_pool", "Ia_F_pool",
 			"MN_E", "MN_F",
 			# "R_E", "R_F"
@@ -296,24 +297,13 @@ class Functions:
 		self.cv_generators.append(spike_generator)
 
 	def __connect(self, pre_ids, post_ids, syn_delay, syn_weight, conn_spec, no_distr):
-
-		def create_low_high(mean, sigma, probability):
-			res = sigma * (-2 * math.log((2 * math.pi * probability ** 2 * sigma ** 2) ** 0.5, math.e)) ** 0.5
-			low = mean - res
-			high = mean + res
-			return low, high
-
-		weight_low, weight_high = create_low_high(syn_weight, abs(syn_weight) / 5, 0.001)
-
 		delay_distr = {"distribution": "normal",
 		               "mu": float(syn_delay),
 		               "sigma": float(syn_delay) / 5}
 
-		weight_distr = {"distribution": "normal_clipped",
+		weight_distr = {"distribution": "normal",
 		                "mu": float(syn_weight),
 		                "sigma": abs(syn_weight) / 5,
-		                "low": float(weight_low),
-		                "high": float(weight_high)
 		                }
 		# initialize synapse specification
 
