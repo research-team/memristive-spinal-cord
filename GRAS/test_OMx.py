@@ -157,8 +157,8 @@ def run():
 		t = time.ctime()
 		pathnew = f"/home/kseniia/Desktop/OM1/{t}"
 		os.makedirs(pathnew)
-		path = "/home/kseniia/Desktop/memristive-spinal-cord-21b254b0ab8d5e24a01be62ede06d82d08c147fa/GRAS/dat"
-		source = f'/home/kseniia/Desktop/memristive-spinal-cord-21b254b0ab8d5e24a01be62ede06d82d08c147fa/GRAS/openmp.cpp'
+		path = "/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/dat"
+		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/openmp.cpp'
 		target = f"/home/kseniia/Desktop/OM1/{t}"
 		copy(source, target)
 
