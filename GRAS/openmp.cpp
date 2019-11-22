@@ -263,28 +263,28 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_one_to_all(CV4, iIP_E, 0.5, 5);
 	connect_one_to_all(CV5, iIP_E, 0.5, 5);
 
-/// OM 1
+	/// OM 1
 	// input from EES group 1
-	connect_one_to_all(CV1, OM1_0, 0.5, 27 * quadru_coef * sero_coef );//02
-    connect_one_to_all(CV2, OM1_0, 5, 100 * quadru_coef * sero_coef );
+	connect_one_to_all(CV1, OM1_0, 0.0002, 1);//02
+    connect_one_to_all(CV2, OM1_0, 0.0005, 1 );
 	// [inhibition]
-	connect_one_to_all(CV3, OM1_3, 0.5, 80);
-	connect_one_to_all(CV4, OM1_3, 0.5, 0.001);
-	connect_one_to_all(CV5, OM1_3, 0.5, 0.001);
+	connect_one_to_all(CV3, OM1_3, 0.5, 0.2);
+	connect_one_to_all(CV4, OM1_3, 0.5, 0.2);
+	connect_one_to_all(CV5, OM1_3, 0.5, 0.2);
 	// E1
-	connect_fixed_outdegree(E1, OM1_0, 1, 0.0001);
+	connect_fixed_outdegree(E1, OM1_0, 1, 1.001);
 //	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 3, 1000);//6
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 6, 1000);//*2
-	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 10);
-	connect_fixed_outdegree(OM1_1, OM1_3, 7, 0.000100); // 0.9
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 0.00010);//00000003
-	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 0.0001);//00000001
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 0.00010 );//*4
-	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.0001 );//*2
-	connect_fixed_outdegree(OM1_3, OM1_1, 3, -0.0001 * inh_coef);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -74.91* inh_coef);
-	connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -0.001 * inh_coef);
+	connect_fixed_outdegree(OM1_0, OM1_1, 3, 10);//6
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 15.0001);//*2
+	// connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 10);
+	connect_fixed_outdegree(OM1_1, OM1_3, 1, 10.0001); // 0.9
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 10.0001);//00000003
+	// connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 10.0001);//00000001
+	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 10.00010 );//*4
+	//connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.0001 );//*2
+	connect_fixed_outdegree(OM1_3, OM1_1, 10, -10.0001 * inh_coef);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 15.5, -10.001* inh_coef);
+	//connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -50.001 * inh_coef);
 	// output to OM2
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 1);
 	// output to IP
@@ -292,10 +292,6 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 
 
-
-
-//    connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
-//   connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
 	// /// OM 2
 	// // input from EES group 2
 	// connect_fixed_outdegree(E2, OM2_0, 2, 0.2);
@@ -983,3 +979,8 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
+
+
+
+
+
