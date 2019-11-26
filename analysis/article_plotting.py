@@ -13,6 +13,8 @@ from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_area_extrema_matrix, get_all_peak_amp_per_slice
 
+flatten = chain.from_iterable
+
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
 
@@ -114,10 +116,11 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	f_slices_indexes = range(e_slices_number + 1, e_slices_number + f_slices_number + 1)
 	# use 1:1 ratio for 6cms data and 4:3 for others
 	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in filename else (16, 12))
-	# plot latency shadow for extensor
-	ax.fill_betweenx(e_slices_indexes,
-	                 e_box_latencies[:, k_box_low] * dstep,
-	                 e_box_latencies[:, k_box_high] * dstep, color=pattern_color, alpha=0.3, zorder=3)
+	if "STR" not in filename:
+		# plot latency shadow for extensor
+		ax.fill_betweenx(e_slices_indexes,
+		                 e_box_latencies[:, k_box_low] * dstep,
+		                 e_box_latencies[:, k_box_high] * dstep, color=pattern_color, alpha=0.3, zorder=3)
 	yticks = []
 	shared_x = np.arange(steps_in_slice) * dstep
 	# plot fliers and median line
@@ -156,7 +159,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, dstep, save_to):
+def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to):
 	"""
 	ToDo add info
 	Args:
@@ -164,7 +167,6 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, dstep, save_to)
 		peaks_ampls_pack (list): pack of amplitude lists for different origin of data (bio/neuron/gras/nest)
 		names (list): filenames for different origin of data
 		colors (list): hex colors for graphics
-		dstep (float): data step size (common for all)
 		save_to (str): save folder
 	"""
 	ks_test_datas = []
@@ -180,45 +182,43 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, dstep, save_to)
 	kde_ax.spines['top'].set_visible(False)
 	kde_ax.spines['right'].set_visible(False)
 
-	biggest_dsize = max(map(len, peaks_times_pack))
-
-	# 1D and 2D Kolmogorov-Smirnov test
 	for peaks_times, peaks_ampls, name, color in zip(peaks_times_pack, peaks_ampls_pack, names, colors):
 		x = peaks_times
 		y = peaks_ampls
-
-		diff_size = biggest_dsize - len(x)
-		if diff_size != 0:
-			boot_x = resample(x, replace=True, n_samples=diff_size, random_state=1)
-			boot_y = resample(y, replace=True, n_samples=diff_size, random_state=0)
-			x = np.append(x, boot_x)
-			y = np.append(y, boot_y)
-
-		print(f"dsize {len(x)} (bootstrapped {diff_size} samples)")
 		ks_test_datas.append((x, y))
 
 	x1, y1 = ks_test_datas[0]
 	x2, y2 = ks_test_datas[1]
 
+	print(f"N1 {len(x1)}")
+	print(f"N2 {len(x2)}")
+
 	dvalue, pvalue = ks_2samp(x1, x2)
-	print(f"1D K-S peaks TIME -> D-value: {dvalue}, p-value: {pvalue}")
+	en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
+	pvalue = kstwobign.sf(en * dvalue)
+	print(f"1D K-S peaks TIME\nD-value: {dvalue}\np-value: {pvalue}")
 
 	dvalue, pvalue = ks_2samp(y1, y2)
-	print(f"1D K-S peaks AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
-
-	dvalue, pvalue = ks2d2s(x1, y1, x2, y2)
-	print(f"2D K-S TIME/AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
+	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
+	pvalue = kstwobign.sf(en * dvalue)
+	print(f"1D K-S peaks AMPL\nD-value: {dvalue}\np-value: {pvalue}")
 
 	d1 = np.stack((x1, y1), axis=1)
 	d2 = np.stack((x2, y2), axis=1)
 	dvalue, pvalue = peacock2(d1, d2)
-	print(f"2D peacock TIME/AMPLITUDE -> D-value: {dvalue}, p-value: {pvalue}")
+	print(f"2D peacock TIME/AMPL\nD-value: {dvalue}\np-value: {pvalue}")
+
+	d1_area = ConvexHull(d1).area
+	d2_area = ConvexHull(d2).area
+
+	zorders = [3, 0 if d1_area < d2_area else 0, 3]
 
 	# plot 2D
-	for data, name, color in zip(ks_test_datas, names, colors):
+	counts_h, counts_v = 0, 0
+	for data, name, color, zorder in zip(ks_test_datas, names, colors, zorders):
 		x, y = data
-		contour_plot(x=x, y=y, color=color, ax=kde_ax)
-		joint_plot(x, y, kde_ax, gs, **{"color": color})
+		contour_plot(x=x, y=y, color=color, ax=kde_ax, zorder=zorder)
+		counts_h, counts_v = joint_plot(x, y, kde_ax, gs, counts_h, counts_v, **{"color": color})
 
 	kde_ax.set_xlabel("peak time (ms)")
 	kde_ax.set_ylabel("peak amplitude")
@@ -305,7 +305,10 @@ def example_bio_sample(folder, filename):
 	ideal_filename = f"{meta_type}_{meta_speed}"
 
 	if not os.path.exists(f"{folder}/{ideal_filename}"):
-		raise Exception(f"Where is best sample for bio data?! I can't find it here '{folder}'")
+		# raise Exception(f"Where is best sample for bio data?! I can't find it here '{folder}'")
+		ideal_sample = np.array([[0] * 250 for _ in range(22)])
+
+		return ideal_sample
 
 	bio_ideal_y_data = []
 	# collect extensor data
@@ -363,14 +366,14 @@ def get_color(filename, clrs):
 	return color
 
 
-def __process_dataset(filepaths, save_to, flags, dstep_to=None):
+def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	"""
 	ToDo add info
 	Args:
 		filepaths (list of str): absolute paths to the files
 		save_to (str): save folder
 		flags (dict): pack of flags
-		dstep_to (float): data step size
+		convert_dstep_to (float or None): data step size
 	"""
 	ks1d_ampls = []
 	ks1d_peaks = []
@@ -378,7 +381,7 @@ def __process_dataset(filepaths, save_to, flags, dstep_to=None):
 	ks1d_colors = []
 	ks3d_pack = []
 	peaks_per_interval_pack = []
-	colors = iter(['#A6261D', '#F2AA2E', '#287a72', '#472650'])
+	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
 	# be sure that folder is exist
 	if not os.path.exists(save_to):
@@ -390,16 +393,17 @@ def __process_dataset(filepaths, save_to, flags, dstep_to=None):
 		e_filename = ntpath.basename(filepath)
 		data_label = e_filename.replace('.hdf5', '')
 		# default file's step size if dstep is not provided
-		if dstep_to is None:
-			dstep_to = float(data_label.replace('step', '').split("_")[-1])
+		if convert_dstep_to is None:
+			dstep_to = parse_filename(e_filename)[-1]
+		else:
+			dstep_to = convert_dstep_to
 		# set color based on filename
 		color = get_color(e_filename, colors)
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
 		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
-
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
 		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to)
-		flatten = chain.from_iterable
+
 		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
 
@@ -407,15 +411,15 @@ def __process_dataset(filepaths, save_to, flags, dstep_to=None):
 		ks1d_ampls.append(ampls)
 		ks1d_names.append(e_filename)
 		ks1d_colors.append(color)
-
-		# for 3D Kolmogorod-Smirnov test (with pattern)
-		e_lat_matrix = get_lat_matrix(e_prepared_data, dstep_to)
-		e_peak_sum_matrix, e_ampl_sum_matrix = get_area_extrema_matrix(e_prepared_data, e_lat_matrix, dstep_to)
-		coords = np.stack((e_lat_matrix.flatten() * dstep_to,
-		                   e_ampl_sum_matrix.flatten(),
-		                   e_peak_sum_matrix.flatten()), axis=1)
-		ks3d_metadata = (coords, color, data_label)
-		ks3d_pack.append(ks3d_metadata)
+		#
+		# # for 3D Kolmogorod-Smirnov test (with pattern)
+		# e_lat_matrix = get_lat_matrix(e_prepared_data, dstep_to)
+		# e_peak_sum_matrix, e_ampl_sum_matrix = get_area_extrema_matrix(e_prepared_data, e_lat_matrix, dstep_to)
+		# coords = np.stack((e_lat_matrix.flatten() * dstep_to,
+		#                    e_ampl_sum_matrix.flatten(),
+		#                    e_peak_sum_matrix.flatten()), axis=1)
+		# ks3d_metadata = (coords, color, data_label)
+		# ks3d_pack.append(ks3d_metadata)
 
 		# plot slices
 		if flags['plot_slices_flag']:
@@ -439,10 +443,10 @@ def __process_dataset(filepaths, save_to, flags, dstep_to=None):
 		log.info(f"Processed '{folder}'")
 
 	if flags['plot_ks2d']:
-		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, dstep=dstep_to, save_to=save_to)
+		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, save_to=save_to)
 
-	if flags['plot_ks3d'] or flags['plot_pca3d']:
-		plot_3D_PCA(ks3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
+	# if flags['plot_ks3d'] or flags['plot_pca3d']:
+	# 	plot_3D_PCA(ks3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
 
 	if flags['plot_peaks_by_intervals']:
 		plot_peaks_bar_intervals(peaks_per_interval_pack, ks1d_names, save_to=save_to)
@@ -452,39 +456,37 @@ def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_all_to = '/home/alex/GitHub/DATA/test'
+	save_all_to = '/home/alex/GitHub/DATA/keke'
 
 	comb = [
 		("foot", 21, 2, "no", 0.1),
 		# ("foot", 13.5, 2, "no", 0.1),
-		# ("foot", 6, 2, "no", 0.1),
+		# # ("foot", 6, 2, "no", 0.1),
 		# ("toe", 21, 2, "no", 0.1),
 		# ("toe", 13.5, 2, "no", 0.1),
 		# ("air", 13.5, 2, "no", 0.1),
-		# ("4pedal", 21, 4, "no", 0.25),
-		# ("4pedal", 13.5, 4, "no", 0.25),
-		# ("qpz", 13.5, 2, "", 0.1),
-		# ("str", 21, 2, "no", 0.1),
+		# # ("4pedal", 21, 4, "no", 0.25),
+		# # ("4pedal", 13.5, 4, "no", 0.25),
+		# # ("qpz", 13.5, 2, "", 0.1),
+		# # ("str", 21, 2, "no", 0.1),
 		# ("str", 13.5, 2, "no", 0.1),
 		# ("str", 6, 2, "no", 0.1),
 	]
 
 	for c in comb:
 		compare_pack = [
-			f'/home/alex/GitHub/DATA/bio/{c[0]}/bio_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_{c[4]}step.hdf5',
-			f'/home/alex/GitHub/DATA/neuron/{c[0]}/neuron_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			f'/home/alex/GitHub/DATA/gras/{c[0]}/gras_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
-			f'/home/alex/GitHub/DATA/nest/{c[0]}/nest_E_{c[1]}cms_40Hz_i100_{c[2]}pedal_{c[3]}5ht_T_0.025step.hdf5',
+			'/home/alex/BIO/bio_E_PLT_13.5cms_40Hz_2pedal_0.1step.hdf5',
+			'/home/alex/BIO/bio_E_QPZ_13.5cms_40Hz_2pedal_0.1step.hdf5',
 		]
-		# control
+
 		flags = dict(plot_ks3d=False,
 		             plot_pca3d=False,
 		             plot_contour_flag=False,
 		             plot_correlation=False,
-		             plot_slices_flag=True,
-		             # plot_ks2d=True,
+		             plot_slices_flag=False,
+		             plot_ks2d=True,
 		             plot_peaks_by_intervals=False)
-		__process_dataset(compare_pack, f"{save_all_to}/TEST", flags, dstep_to=c[4])
+		__process_dataset(compare_pack, f"{save_all_to}/TEST", flags, convert_dstep_to=None)
 
 
 def run():
