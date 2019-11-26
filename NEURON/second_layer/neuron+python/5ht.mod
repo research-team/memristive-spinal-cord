@@ -8,7 +8,7 @@ NEURON {
 UNITS{
 	(pA) = (picoamp)
 	(molar) = (1/liter)
-	(nM) = (nanomolar)
+	(uM) = (micromolar)
 	(mV) = (millivolt)
 	(pS) = (picosiemens)
 }
@@ -47,16 +47,15 @@ PARAMETER {
 	d42 = 1.5  
 
 
-	gmax = 1 (pS)	: conductivity     
-	Ev = 20 (mV) 
-	
+	gmax = 0.31 (pS)	: conductivity     
+	Ev = 28 (mV) 	
 }
 
 ASSIGNED {
 	v (mV)	: voltage	
-	i (nA)	: current
+	i (pA)	: current
 	g  (pS)	: conductance 	
-    serotonin (nM) : concentration
+    serotonin (uM) : concentration
     k1 (/s)   : binding
     k2 (/s)   : binding
     k3 (/s)   : binding
@@ -87,8 +86,8 @@ INITIAL {
 
 BREAKPOINT {
 	SOLVE kstates METHOD sparse
-	g = gmax*Re
-	i = g * (v - Ev)
+	g = gmax*(Ol+Oi+Ob)
+	i = (1e-3) * g * (v - Ev)
 }
 
 KINETIC kstates{

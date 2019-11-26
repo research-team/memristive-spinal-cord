@@ -481,8 +481,8 @@ def for_article():
 		             plot_pca3d=False,
 		             plot_contour_flag=False,
 		             plot_correlation=False,
-		             plot_slices_flag=False,
-		             plot_ks2d=True,
+		             plot_slices_flag=True,
+		             # plot_ks2d=True,
 		             plot_peaks_by_intervals=False)
 		__process_dataset(compare_pack, f"{save_all_to}/TEST", flags, dstep_to=c[4])
 

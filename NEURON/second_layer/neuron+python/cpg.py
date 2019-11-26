@@ -1,5 +1,10 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='logs.log',
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.DEBUG)
+logging.info("let's get it started")
 import numpy as np
 from neuron import h
 h.load_file('nrngui.hoc')
@@ -10,7 +15,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 125 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
 step_number = 1 # number of steps
@@ -20,7 +25,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-v = int(sys.argv[4])
+#v = int(sys.argv[4])
 
 exnclist = []
 inhnclist = []
@@ -607,7 +612,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path = str('./res/' + name + 'r%dv%d_foot_25tests_15speed' % (rank, v))
+            path = str('./res/' + name + 'r%dv%d_%dtests_%dspeed' % (rank, version, versions, speed))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")
@@ -644,15 +649,17 @@ if __name__ == '__main__':
 
     for i in range(versions):
         cpg_ex = CPG(speed, ees_fr, 100, step_number, layers, extra_layers, N)
+        logging.info("created")
         motorecorders = []
         for group in cpg_ex.motogroups:
             motorecorders.append(spike_record(group[k_nrns], i))
-        # affrecorders = []
-        # for group in cpg_ex.affgroups:
-        #   affrecorders.append(spike_record(group[k_nrns], i))
-        # recorders = []
-        # for group in cpg_ex.groups:
-        #   recorders.append(spike_record(group[k_nrns], i))
+        affrecorders = []
+        for group in cpg_ex.affgroups:
+          affrecorders.append(spike_record(group[k_nrns], i))
+        recorders = []
+        for group in cpg_ex.groups:
+          recorders.append(spike_record(group[k_nrns], i))
+        logging.info("added recorders")
 
         print("- " * 10, "\nstart")
         prun(speed, step_number)
@@ -660,8 +667,10 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        # for group, recorder in zip(cpg_ex.groups, recorders):
-        #   spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
+        for group, recorder in zip(cpg_ex.groups, recorders):
+          spikeout(group[k_nrns], group[k_name], i, recorder)
+        logging.info("recorded")
+
     finish()
