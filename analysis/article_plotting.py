@@ -6,9 +6,10 @@ import pylab as plt
 from itertools import chain
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
-from sklearn.utils import resample
+from scipy.stats import kstwobign
+from scipy.spatial import ConvexHull
 import matplotlib.patches as mpatches
-from analysis.functions import ks2d2s, peacock2
+from analysis.functions import peacock2, parse_filename
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_area_extrema_matrix, get_all_peak_amp_per_slice
@@ -139,11 +140,12 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 		# fliers shadow
 		ax.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7, zorder=3)
 		# ideal pattern
-		ax.plot(shared_x, ideal_data, color='k', linewidth=3, zorder=4)
+		ax.plot(shared_x, ideal_data, color='k', linewidth=1, zorder=4)
 		yticks.append(ideal_data[0])
 
-	# plot pattern based on median latency per slice
-	ax.plot(e_box_latencies[:, 0] * dstep, e_slices_indexes, linewidth=5, color='#A6261D', zorder=6, alpha=1)
+	if "STR" not in filename:
+		# plot pattern based on median latency per slice
+		ax.plot(e_box_latencies[:, 0] * dstep, e_slices_indexes, linewidth=5, color='#A6261D', zorder=6, alpha=1)
 	# form ticks
 	axis_article_style(ax, axis='x')
 	# plot settings
@@ -154,7 +156,8 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	plt.yticks(yticks, yticklabels, fontsize=50)
 	plt.xlim(0, slice_in_ms)
 	plt.tight_layout()
-	plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
+	plt.show()
+	# plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
 
@@ -329,9 +332,9 @@ def example_sample(latencies_matrix, peaks_matrix, step_size):
 	"""
 	ToDo add info
 	Args:
-		latencies_matrix (np.ndarray): 
-		peaks_matrix (np.ndarray): 
-		step_size (float): data step size 
+		latencies_matrix (np.ndarray):
+		peaks_matrix (np.ndarray):
+		step_size (float): data step size
 	Returns:
 		int: index of sample
 	"""
