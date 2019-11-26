@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import logging
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -7,22 +8,26 @@ from scipy.signal import argrelextrema
 from scipy import stats
 import scipy.io as sio
 
+# constants
+time = 236170
+muscle = "SOL L     "
+logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
+logger = logging.getLogger()
 mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
 
 
 for i in sorted(mat_contents.keys()):
-	print(i)
-	print(mat_contents[i])
-	print(len(mat_contents[i]))
+	logger.info(i)
+	logger.info(mat_contents[i])
+	logger.info(len(mat_contents[i]))
 
 starts = mat_contents['datastart']
 ends = mat_contents['dataend']
-print(ends-starts)
+logger.info(ends-starts)
 data = mat_contents['data'][0]
 titles = mat_contents['titles']
-print(len(data))
-time = 236170
-muscle = "SOL L     "
+logger.info(len(data))
+
 
 for i in range(14,16):
 	start = starts[:,i]
