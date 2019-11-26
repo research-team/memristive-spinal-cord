@@ -158,7 +158,7 @@ def run():
 		pathnew = f"/home/kseniia/Desktop/OM1/{t}"
 		os.makedirs(pathnew)
 		path = "/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/dat"
-		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/openmp.cpp'
+		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/two_muscle_sim.cu'
 		target = f"/home/kseniia/Desktop/OM1/{t}"
 		copy(source, target)
 

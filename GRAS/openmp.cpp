@@ -265,32 +265,31 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 	/// OM 1
 	// input from EES group 1
-	connect_one_to_all(CV1, OM1_0, 0.0002, 1);//02
-    connect_one_to_all(CV2, OM1_0, 0.0005, 1 );
+	connect_one_to_all(CV1, OM1_0, 0.5, 0.2);
+	connect_one_to_all(CV2, OM1_0, 0.5, 0.2);
 	// [inhibition]
 	connect_one_to_all(CV3, OM1_3, 0.5, 0.2);
 	connect_one_to_all(CV4, OM1_3, 0.5, 0.2);
 	connect_one_to_all(CV5, OM1_3, 0.5, 0.2);
 	// E1
-	connect_fixed_outdegree(E1, OM1_0, 1, 1.001);
+	connect_fixed_outdegree(E1, OM1_0, 1, 20);
 //	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 3, 10);//6
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 15.0001);//*2
-	// connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 10);
-	connect_fixed_outdegree(OM1_1, OM1_3, 1, 10.0001); // 0.9
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 10.0001);//00000003
-	// connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 10.0001);//00000001
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 10.00010 );//*4
-	//connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.0001 );//*2
-	connect_fixed_outdegree(OM1_3, OM1_1, 10, -10.0001 * inh_coef);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 15.5, -10.001* inh_coef);
-	//connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -50.001 * inh_coef);
+	connect_fixed_outdegree(OM1_0, OM1_1, 0.2, 1);//6
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 0.5, 0.1 );//*2
+	connect_fixed_outdegree(OM1_1, OM1_2_F, 1, 0.09);
+	connect_fixed_outdegree(OM1_1, OM1_3, 1, 0.009); // 0.9
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 0.001);//00000003
+	connect_fixed_outdegree(OM1_2_F, OM1_1, 2.5, 0.001);//00000001
+	connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 0.009 );//*4
+	connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.008 );//*2
+	connect_fixed_outdegree(OM1_3, OM1_1, 0.3, -999 * inh_coef);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -0.1* inh_coef);
+	connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -0.1 * inh_coef);
 	// output to OM2
 	connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 1);
 	// output to IP
 	connect_fixed_outdegree(OM1_2_E, eIP_E, 1.5, 0.08 * 3);
-
-
+//	connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.009 * 6, neurons_in_ip);
 
 	// /// OM 2
 	// // input from EES group 2
@@ -576,10 +575,10 @@ void bimodal_distr_for_moto_neurons(float *nrn_diameter) {
 	random_device r1;
 	default_random_engine gen(r1());
 
-	int loc_active = 57;
-	int scale_active = 6;
-	int loc_standby = 27;
-	int scale_standby = 3;
+	int loc_standby = 44;
+	int scale_standby = 4;
+	int loc_active = 27;
+	int scale_active = 3;
 
 	int standby_percent = 70;
 	int MN_E_beg = 1557;
@@ -807,7 +806,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		/** ================================================= **/
 		/** ==================N E U R O N S================== **/
 		/** ================================================= **/
-#pragma omp parallel for num_threads(4) default(shared)
+		#pragma omp parallel for num_threads(4) default(shared)
 		for (unsigned int tid = 0; tid < neurons_number; tid++) {
 			// Ia aff extensor/flexor, control spike number of Ia afferent by resetting neuron current
 			if (1947 <= tid && tid <= 2186) {
@@ -930,7 +929,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		/** ================================================= **/
 		/** ==================S Y N A P S E================== **/
 		/** ================================================= **/
-#pragma omp parallel for num_threads(4) shared(nrn_v_m, nrn_has_spike, synapses_pre_nrn_id, synapses_post_nrn_id, synapses_delay, synapses_delay_timer, synapses_weight)
+		#pragma omp parallel for num_threads(4) shared(nrn_v_m, nrn_has_spike, synapses_pre_nrn_id, synapses_post_nrn_id, synapses_delay, synapses_delay_timer, synapses_weight)
 		for (unsigned int tid = 0; tid < synapses_number; tid++) {
 			// add synaptic delay if neuron has spike
 			if (synapses_delay_timer[tid] == -1 && nrn_has_spike[synapses_pre_nrn_id[tid]]) {
@@ -940,10 +939,10 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			if (synapses_delay_timer[tid] == 0) {
 				// post neuron ID = synapses_post_nrn_id[tid][syn_id], thread-safe (!)
 				if (synapses_weight[tid] >= 0) {
-#pragma omp atomic
+					#pragma omp atomic
 					nrn_g_exc[synapses_post_nrn_id[tid]] += synapses_weight[tid];
 				} else {
-#pragma omp atomic
+					#pragma omp atomic
 					nrn_g_inh[synapses_post_nrn_id[tid]] -= synapses_weight[tid];
 				}
 				// make synapse timer a "free" for next spikes
@@ -979,8 +978,3 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
-
-
-
-
-
