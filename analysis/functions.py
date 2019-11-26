@@ -6,7 +6,7 @@ import pylab as plt
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
-from scipy.stats import kstwobign, pearsonr
+from scipy.stats import kstwobign
 
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
@@ -87,8 +87,12 @@ def read_data(filepath):
 	Returns:
 		np.ndarray: data
 	"""
+	data_by_test = []
 	with hdf5.File(filepath, 'r') as file:
-		data_by_test = [test_values[:] for test_values in file.values()]
+		for test_names, test_values in file.items():
+			#if "#8_112309_quip" not in test_names: # not in ["#8_112309_quip_BIPEDAL_burst10_Ton_21.fig", "#8_112309_quip_BIPEDAL_burst3_Ton_14.fig", "#8_112309_quip_BIPEDAL_burst4_Ton_15.fig",  "#8_112309_quip_BIPEDAL_burst6_Ton_17.fig",  "#8_112309_quip_BIPEDAL_burst7_Ton_18.fig",  "#8_112309_quip_BIPEDAL_burst9_Ton_20.fig"]:
+			data_by_test.append(test_values[:])
+			# data_by_test = [test_values[:] for test_values in file.values()]
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
 	return np.array(data_by_test)
@@ -137,10 +141,7 @@ def subsampling(dataset, dstep_from, dstep_to):
 
 	subsampled_dataset = [data[::sub_step] for data in dataset]
 
-	# check if all lengths are equal
-	if len(set(map(len, subsampled_dataset))) <= 1:
-		return np.array(subsampled_dataset)
-	raise Exception("Length of slices not equal!")
+	return np.array(subsampled_dataset)
 
 
 def extract_data(path, beg=None, end=None):
@@ -157,19 +158,10 @@ def extract_data(path, beg=None, end=None):
 		beg = 0
 	if end is None:
 		end = int(10e6)
-	'''
-	FixMe: temporary debugging
-	a = read_data(path)[:, beg:end]
-	print(beg, end)
-	slice_length = int(int(1000 / 100) / 0.025)
-	for k in a:
-		plt.plot(range(beg, end), k)
-	for i in range(beg, end + 1, slice_length):
-		plt.axvline(x=i)
-	plt.xticks(range(beg, end + 1, slice_length))
-	plt.show()
-	'''
-	return read_data(path)[:, beg:end]
+
+	array = [data[beg:end] for data in read_data(path)]
+
+	return array
 
 
 def draw_vector(p0, p1, color):
@@ -223,7 +215,7 @@ def center_data_by_line(y_points, debugging=False):
 
 	# manually build the counter-clockwise rotation matrix
 	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-	                            [np.sin(arccos), np.cos(arccos)]])
+								[np.sin(arccos), np.cos(arccos)]])
 	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
 	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
 	# center the rotated point cloud at (0, 0)
@@ -346,7 +338,29 @@ def split_by_slices(data, slice_in_steps):
 	return np.array(splitted_per_slice)
 
 
-def auto_prepare_data(folder, filename, dstep_to=None):
+def parse_filename(filename):
+	"""
+	Example filename: bio_E_PLT_13.5cms_40Hz_2pedal_0.1step
+
+	Args:
+		filename (str):
+
+	Returns:
+
+	"""
+	meta = filename.split("_")
+	source = meta[0]
+	muscle = meta[1]
+	mode = meta[2]
+	speed = meta[3].replace("cms", "")
+	rate = int(meta[4].replace("Hz", ""))
+	pedal = meta[5].replace("pedal", "")
+	stepsize = float(meta[6].replace("step.hdf5", ""))
+
+	return source, muscle, mode, speed, rate, pedal, stepsize
+
+
+def auto_prepare_data(folder, filename, dstep_to, debugging=False):
 	"""
 	ToDo add info
 	Args:
@@ -359,65 +373,138 @@ def auto_prepare_data(folder, filename, dstep_to=None):
 	"""
 	log.info(f"prepare {filename}")
 
-	# map of cms <-> number of slices
-	e_slices_number = {'6': 30, '15': 12, '13.5': 12, '21': 6}
+	slices_number_dict = {
+		("PLT", '21'): (6, 5),
+		("PLT", '13.5'): (12, 5),
+		("PLT", '6'): (30, 5),
+		("TOE", '21'): (4, 4),
+		("TOE", '13.5'): (8, 4),
+		("AIR", '13.5'): (5, 4),
+		("QPZ", '13.5'): (12, 5),
+		("STR", '21'): (6, 5),
+		("STR", '13.5'): (12, 5),
+		("STR", '6'): (30, 5),
+	}
 
 	# extract common meta info from the filename
-	ees_hz = int(filename[:filename.find('Hz')].split('_')[-1])
+	source, muscle, mode, speed, ees_hz, pedal, dstep = parse_filename(filename)
+
 	if ees_hz not in [5] + list(range(10, 101, 10)):
 		raise Exception("EES frequency not in allowed list")
 
-	speed = filename[:filename.find('cms')].split('_')[-1]
-	if speed not in ("6", "13.5", "15", "21"):
+	if speed not in ("6", "13.5", "21"):
 		raise Exception("Speed not in allowed list")
 
-	step_size = float(filename[:filename.find('step')].split('_')[-1])
-	if step_size not in (0.025, 0.1, 0.25):
+	if dstep not in (0.025, 0.1, 0.25):
 		raise Exception("Step size not in allowed list")
 
-	standard_slice_length_in_steps = int(25 / step_size)
-	filepath = f"{folder}/{filename}"
+	e_slices_number, f_slices_number = slices_number_dict[(mode, speed)]
+	slice_in_ms = int(1000 / ees_hz)
+	slice_in_steps = int(slice_in_ms / dstep_to)
+	standard_slice_length_in_steps = int(25 / dstep)
+	abs_filepath = f"{folder}/{filename}"
 
 	# extract data of extensor
-	if '_E_' in filename:
+	if muscle == "E":
+		full_size = int(e_slices_number * 25 / dstep_to)
 		# extract dataset based on slice numbers (except biological data)
-		if 'bio_' in filename:
-			dataset = extract_data(filepath)
+		if source == "bio":
+			dataset = extract_data(abs_filepath)
 		else:
 			e_begin = 0
-			e_end = e_begin + standard_slice_length_in_steps * e_slices_number[speed]
+			e_end = e_begin + standard_slice_length_in_steps * e_slices_number
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, e_begin, e_end)
+			dataset = extract_data(abs_filepath, e_begin, e_end)
 	# extract data of flexor
-	elif '_F_' in filename:
+	elif muscle == "F":
+		full_size = int(f_slices_number * 25 / dstep_to)
 		# preapre flexor data
-		if 'bio_' in filename:
-			dataset = extract_data(filepath)
+		if source == "bio":
+			dataset = extract_data(abs_filepath)
 		else:
-			f_begin = standard_slice_length_in_steps * e_slices_number[speed]
-			f_end = f_begin + (7 if '4pedal' in filename else 5) * standard_slice_length_in_steps
+			f_begin = standard_slice_length_in_steps * e_slices_number
+			f_end = f_begin + (7 if pedal == "4" else 5) * standard_slice_length_in_steps
 			# use native funcion for get needful data
-			dataset = extract_data(filepath, f_begin, f_end)
+			dataset = extract_data(abs_filepath, f_begin, f_end)
 	# in another case
 	else:
 		raise Exception("Couldn't parse filename and extract muscle name")
+
 	# subsampling data to the new data step
-	dataset = subsampling(dataset, dstep_from=step_size, dstep_to=dstep_to)
+	dataset = subsampling(dataset, dstep_from=dstep, dstep_to=dstep_to)
+	# prepare data and fill zeroes where not enough slices
+	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset)])
+
+	# mean
+	# for d in np.array([split_by_slices(d, slice_in_steps) for d in prepared_data]):
+	# 	for i, s in enumerate(d):
+	# 		plt.plot(s + i * 0.2, color='gray')
 	#
-	slice_in_ms = int(1000 / ees_hz)
-	slice_in_steps = int(slice_in_ms / dstep_to)
+	# prepared_data = np.mean(prepared_data, axis=0)
+	# splitted_per_slice = np.array([split_by_slices(prepared_data, slice_in_steps)])
+	#
+	# for i, d in enumerate(splitted_per_slice[0]):
+	# 	plt.plot(d + i * 0.2, color='r', linewidth='2')
+	# plt.xlim(0, len(splitted_per_slice[0][0]))
+	# plt.show()
+
 	# split datatest into the slices
-	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepare_data(dataset)])
+	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepared_data])
 
 	return splitted_per_slice
+
+
+def optimized_peacock2(xx, yy):
+	n1 = xx.shape[0]
+	n2 = yy.shape[0]
+
+	# greatest common divisor: dd
+	dd = np.gcd(n1, n2)
+	# least common multiple: L
+	L = n1 / dd * n2
+	d1 = L / n1
+	d2 = L / n2
+
+	assert xx.shape[1] == 2
+	assert yy.shape[1] == 2
+
+	def combine(a, b):
+		return np.append(a, b)
+
+	xy1 = combine(xx[:, 0], yy[:, 0])
+	xy2 = combine(xx[:, 1], yy[:, 1])
+
+	I1 = np.argsort(xy1)
+	I2 = np.argsort(xy2)
+
+	I2_lt_n1 = np.where(I2 < n1, d1, -d2)
+
+	max_hnn_M, max_hpn_M, max_hnp_M, max_hpp_M = 0, 0, 0, 0
+
+	for zu in xy1[I1]:
+		# hnn
+		hnn_M = np.where(xy1[I2] <= zu, I2_lt_n1, 0)
+		max_hnn_M = max(np.max((np.abs(np.cumsum(hnn_M)), np.abs(hnn_M))), max_hnn_M)
+		# hpn
+		hpn_M = np.where(xy1[I2] > zu, I2_lt_n1, 0)
+		max_hpn_M = max(np.max((np.abs(np.cumsum(hpn_M)), np.abs(hpn_M))), max_hpn_M)
+		# hnp
+		hnp_M = np.where(xy1[I2][::-1] <= zu, I2_lt_n1, 0)
+		max_hnp_M = max(np.max((np.abs(np.cumsum(hnp_M)), np.abs(hnp_M))), max_hnp_M)
+		# hpp
+		hpp_M = np.where(xy1[I2][::-1] > zu, I2_lt_n1, 0)
+		max_hpp_M = max(np.max((np.abs(np.cumsum(hpp_M)), np.abs(hpp_M))), max_hpp_M)
+
+	D = max([max_hnn_M, max_hpn_M, max_hnp_M, max_hpp_M]) / L
+
+	return NotImplemented
 
 
 def peacock2(xx, yy):
 	n1 = xx.shape[0]
 	n2 = yy.shape[0]
-	n = n1 + n2
 
-	# geatest common divisor: dd
+	# greatest common divisor: dd
 	dd = np.gcd(n1, n2)
 	# least common multiple: L
 	L = n1 / dd * n2
@@ -463,79 +550,8 @@ def peacock2(xx, yy):
 
 	D = max([max_hnn, max_hpn, max_hnp, max_hpp]) / L
 
-	# SF - Survival function (also defined as 1 - cdf, but sf is sometimes more accurate)
+	# p-value calculating
 	en = np.sqrt(n1 * n2 / (n1 + n2))
-	p = kstwobign.sf(en * D)
+	prob = kstwobign.sf(en * D)
 
-	return D, p
-
-
-def ks2d2s(x1, y1, x2, y2):
-	'''Two-dimensional Kolmogorov-Smirnov test on two samples.
-	Parameters
-	----------
-	x1, y1 : ndarray, shape (n1, )
-		Data of sample 1.
-	x2, y2 : ndarray, shape (n2, )
-		Data of sample 2. Size of two samples can be different.
-	extra: bool, optional
-		If True, KS statistic is also returned. Default is False.
-	Returns
-	-------
-	p : float
-		Two-tailed p-value.
-	D : float, optional
-		KS statistic. Returned if keyword `extra` is True.
-	Notes
-	-----
-	This is the two-sided K-S test. Small p-values means that the two samples are significantly different. Note that the p-value is only an approximation as the analytic distribution is unkonwn. The approximation is accurate enough when N > ~20 and p-value < ~0.20 or so. When p-value > 0.20, the value may not be accurate, but it certainly implies that the two samples are not significantly different. (cf. Press 2007)
-	References
-	----------
-	Peacock, J.A. 1983, Two-Dimensional Goodness-of-Fit Testing in Astronomy, Monthly Notices of the Royal Astronomical Society, vol. 202, pp. 615-627
-	Fasano, G. and Franceschini, A. 1987, A Multidimensional Version of the Kolmogorov-Smirnov Test, Monthly Notices of the Royal Astronomical Society, vol. 225, pp. 155-170
-	Press, W.H. et al. 2007, Numerical Recipes, section 14.8
-	'''
-	assert (len(x1) == len(y1)) and (len(x2) == len(y2))
-	n1, n2 = len(x1), len(x2)
-	D = avgmaxdist(x1, y1, x2, y2)
-
-	sqen = np.sqrt(n1 * n2 / (n1 + n2))
-	r1 = pearsonr(x1, y1)[0]    # get the linear correlation coefficient for each sample
-	r2 = pearsonr(x2, y2)[0]
-	r = np.sqrt(1 - 0.5 * (r1**2 + r2**2))
-	d = D * sqen / (1 + r * (0.25 - 0.75 / sqen))
-	p = kstwobign.sf(d)
-
-	return D, p
-
-
-def avgmaxdist(x1, y1, x2, y2):
-	D1 = maxdist(x1, y1, x2, y2)
-	D2 = maxdist(x2, y2, x1, y1)
-	return (D1 + D2) / 2
-
-
-def maxdist(x1, y1, x2, y2):
-	n1 = len(x1)
-	D1 = np.empty((n1, 4))
-	for i in range(n1):
-		a1, b1, c1, d1 = quadct(x1[i], y1[i], x1, y1)
-		a2, b2, c2, d2 = quadct(x1[i], y1[i], x2, y2)
-		D1[i] = [a1 - a2, b1 - b2, c1 - c2, d1 - d2]
-
-	# re-assign the point to maximize difference,
-	# the discrepancy is significant for N < ~50
-	D1[:, 0] -= 1 / n1
-
-	dmin, dmax = -D1.min(), D1.max() + 1 / n1
-	return max(dmin, dmax)
-
-
-def quadct(x, y, xx, yy):
-	n = len(xx)
-	ix1, ix2 = xx <= x, yy <= y
-	a = np.sum(ix1 & ix2) / n
-	b = np.sum(ix1 & ~ix2) / n
-	c = np.sum(~ix1 & ix2) / n
-	d = 1 - a - b - c
-	return a, b, c, d
+	return D, prob
