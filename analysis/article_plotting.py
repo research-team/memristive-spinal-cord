@@ -3,6 +3,7 @@ import ntpath
 import logging
 import numpy as np
 import pylab as plt
+from scipy import stats
 from itertools import chain
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
@@ -162,7 +163,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to):
+def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to, additional_tests=False):
 	"""
 	ToDo add info
 	Args:
@@ -206,10 +207,48 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to):
 	pvalue = kstwobign.sf(en * dvalue)
 	print(f"1D K-S peaks AMPL\nD-value: {dvalue}\np-value: {pvalue}")
 
+	if additional_tests:
+		# mann-whitneyu
+		statistica, p_value = stats.mannwhitneyu(x1, x2)
+		print("Mann-Whitneyu test peaks TIME p-value", p_value)
+
+		statistica, p_value = stats.mannwhitneyu(y1, y2)
+		print("Mann-Whitneyu test peaks AMPL p-value: ", p_value)
+
+		# wilcoxon
+		statistica, p_value = stats.wilcoxon(x1, x2)
+		print("Wilcoxon test peaks TIME p-value: ", p_value)
+
+		statistica, p_value = stats.wilcoxon(y1, y2)
+		print("Wilcoxon test peaks AMPL p-value: ", p_value)
+		plt.close()
+		plt.figure()
+		# for TIME
+		x = np.sort(x1)
+		y = np.arange(len(x)) / float(len(x))
+		plt.plot(x, y)
+
+		x = np.sort(x2)
+		y = np.arange(len(x)) / float(len(x))
+		plt.plot(x, y)
+		plt.show()
+		plt.close()
+
+		# for AMPL
+		x = np.sort(y1)
+		y = np.arange(len(x)) / float(len(x))
+		plt.plot(x, y)
+
+		x = np.sort(y2)
+		y = np.arange(len(x)) / float(len(x))
+		plt.plot(x, y)
+		plt.show()
+
 	d1 = np.stack((x1, y1), axis=1)
 	d2 = np.stack((x2, y2), axis=1)
-	dvalue, pvalue = peacock2(d1, d2)
-	print(f"2D peacock TIME/AMPL\nD-value: {dvalue}\np-value: {pvalue}")
+
+	# dvalue, pvalue = peacock2(d1, d2)
+	# print(f"2D peacock TIME/AMPL\nD-value: {dvalue}\np-value: {pvalue}")
 
 	d1_area = ConvexHull(d1).area
 	d2_area = ConvexHull(d2).area
@@ -414,15 +453,6 @@ def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		ks1d_ampls.append(ampls)
 		ks1d_names.append(e_filename)
 		ks1d_colors.append(color)
-		#
-		# # for 3D Kolmogorod-Smirnov test (with pattern)
-		# e_lat_matrix = get_lat_matrix(e_prepared_data, dstep_to)
-		# e_peak_sum_matrix, e_ampl_sum_matrix = get_area_extrema_matrix(e_prepared_data, e_lat_matrix, dstep_to)
-		# coords = np.stack((e_lat_matrix.flatten() * dstep_to,
-		#                    e_ampl_sum_matrix.flatten(),
-		#                    e_peak_sum_matrix.flatten()), axis=1)
-		# ks3d_metadata = (coords, color, data_label)
-		# ks3d_pack.append(ks3d_metadata)
 
 		# plot slices
 		if flags['plot_slices_flag']:
@@ -459,29 +489,18 @@ def for_article():
 	"""
 	TODO: add docstring
 	"""
-	save_all_to = '/home/alex/GitHub/DATA/keke'
+	save_all_to = 'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\neuron_test'
 
 	comb = [
 		("foot", 21, 2, "no", 0.1),
-		# ("foot", 13.5, 2, "no", 0.1),
-		# # ("foot", 6, 2, "no", 0.1),
-		# ("toe", 21, 2, "no", 0.1),
-		# ("toe", 13.5, 2, "no", 0.1),
-		# ("air", 13.5, 2, "no", 0.1),
-		# # ("4pedal", 21, 4, "no", 0.25),
-		# # ("4pedal", 13.5, 4, "no", 0.25),
-		# # ("qpz", 13.5, 2, "", 0.1),
-		# # ("str", 21, 2, "no", 0.1),
-		# ("str", 13.5, 2, "no", 0.1),
-		# ("str", 6, 2, "no", 0.1),
 	]
 
 	for c in comb:
 		compare_pack = [
-			'/home/alex/BIO/bio_E_PLT_13.5cms_40Hz_2pedal_0.1step.hdf5',
-			'/home/alex/BIO/bio_E_QPZ_13.5cms_40Hz_2pedal_0.1step.hdf5',
+			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\neuron_e_for_k_s\\neuron_E_PLT_13.5cms_40Hz_2pedal_0.025step.hdf5',
+			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\hdf5\\bio_E_STR_13.5cms_40Hz_2pedal_0.1step.hdf5',
 		]
-
+		# control
 		flags = dict(plot_ks3d=False,
 		             plot_pca3d=False,
 		             plot_contour_flag=False,
@@ -489,7 +508,7 @@ def for_article():
 		             plot_slices_flag=False,
 		             plot_ks2d=True,
 		             plot_peaks_by_intervals=False)
-		__process_dataset(compare_pack, f"{save_all_to}/TEST", flags, convert_dstep_to=None)
+		__process_dataset(compare_pack, f"{save_all_to}\\TEST", flags, convert_dstep_to=0.1)
 
 
 def run():
