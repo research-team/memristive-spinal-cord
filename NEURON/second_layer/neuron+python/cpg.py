@@ -17,7 +17,7 @@ nhost = int(pc.nhost())
 #param
 speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 3
+versions = 1
 step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
@@ -196,7 +196,7 @@ class CPG:
 
         connectcells(self.dict_CV[0], self.OM1_0E, 0.0002, 2)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.0004, 2)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00037, 1)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -248,8 +248,8 @@ class CPG:
 
         '''C1'''
         connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0002, 1)
-        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00005, 2)
-        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00005, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 2)
 
         '''C2'''
@@ -260,23 +260,23 @@ class CPG:
         connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001, 2)
 
         '''C3'''
-        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0004, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0006, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 3)
+        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0003, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00065, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 2)
 
         '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.0003, 3)
-        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.0004, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.0003, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035, 2)
+        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045, 2)
+        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035, 2)
+        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00045, 2)
         connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001, 2)
         connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 2)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0002, 3)
-        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00001, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00045, 2)
+        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0003, 2)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1)
@@ -532,8 +532,8 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM2, OM1, 0.05, 4)
     connectcells(OM2, OM3, 0.002, 3)
     connectcells(OM1, OM3, 0.002, 3)
-    connectcells(OM3, OM2, 0.09, 3, True)
-    connectcells(OM3, OM1, 0.09, 3, True)
+    connectcells(OM3, OM2, 0.04, 3, True)
+    connectcells(OM3, OM1, 0.04, 3, True)
 
 
 
@@ -628,7 +628,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
-    tstop = (7 * speed + 125) * step_number
+    tstop = 7 * speed #+ 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
     pc.psolve(tstop)
