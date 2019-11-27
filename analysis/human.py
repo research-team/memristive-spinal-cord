@@ -14,7 +14,9 @@ time = 236170
 muscle = "SOL L     "
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
+#mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
 mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
+
 
 for i in sorted(mat_contents.keys()):
     logger.info(i)
@@ -46,7 +48,7 @@ for i in range(14, 16):
         d = data[int(s):int(e)] + 5 * k
         if len(d) == 0:
             d = np.array([0] * 200) + 5 * k
-        plt.plot(np.arange(len(d)) * 0.025, d)
+        plt.plot(np.arange(len(d)) * 0.25, d)
         yticks.append(d[0])
         k += 1
     plt.yticks(yticks, titles)
