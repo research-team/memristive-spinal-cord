@@ -1,4 +1,4 @@
-:SOMA
+: SOMA
 
 : Marco Capogrosso & Emanuele Formento
 :
@@ -25,7 +25,6 @@ NEURON {
 	RANGE tau_p, tau_m, tau_h, tau_n, tau_mc, tau_hc
 }
 
-
 UNITS {
 	(mA) = (milliamp)
 	(mV) = (millivolt)
@@ -40,9 +39,9 @@ PARAMETER {
 	gcaL = 0.0001  (mho/cm2)
 	gcak = 0.3  (mho/cm2)
 	ca0 = 2  
-	ena     = 50.0  (mV)
-	ek      = -80.0 (mV)
-	el	= -70.0 (mV)
+	ena = 50.0  (mV)
+	ek = -80.0 (mV)
+	el = -70.0 (mV)
 	dt              (ms)
 	v               (mV)
 	amA = 0.4
@@ -51,8 +50,8 @@ PARAMETER {
 	bmA = 0.4
 	bmB = 32
 	bmC = 5
-	R=8.314472
-	F=96485.34
+	R = 8.314472
+	F = 96485.34
 }
 
 STATE {
@@ -84,8 +83,8 @@ ASSIGNED {
 BREAKPOINT {
 	SOLVE states METHOD cnexp
 	ina = gnabar * m*m*m*h*(v - ena)
-	ikrect   = gkrect *n*n*n*n*(v - ek)   :stesso ek di sotto
-	il   = gl * (v - el)
+	ikrect = gkrect *n*n*n*n*(v - ek)   :stesso ek di sotto
+	il = gl * (v - el)
 	Eca = ((1000*R*309.15)/(2*F))*log(ca0/cai)
 	icaN = gcaN*mc*mc*hc*(v-Eca)
 	icaL = gcaL*p*(v-Eca)
@@ -112,13 +111,12 @@ INITIAL {
 	h = h_inf
 	p = p_inf
 	n = n_inf
-	mc=mc_inf
-	hc=hc_inf
+	mc = mc_inf
+	hc = hc_inf
 	cai = 0.0001
 }
 
-PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
-	  
+PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2  
 	 
 	:FAST SODIUM
 	:m
@@ -129,25 +127,23 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 	:h
 	tau_h = 30 / (Exp((v+60)/15) + Exp(-(v+60)/16))
 	h_inf = 1 / (1 + Exp((v+65)/7))
-
 	
 	:DELAYED RECTIFIER POTASSIUM 
 	tau_n = 5 / (Exp((v+50)/40) + Exp(-(v+50)/50))
 	n_inf = 1 / (1 + Exp(-(v+38)/15))
 
 	:CALCIUM DYNAMICS
-        :N-type
+    :N-type
 	tau_mc = 15
 	mc_inf = 1/(1+Exp(-(v+32)/5))
 	tau_hc = 50
 	hc_inf =  1/(1+Exp((v+50)/5))
 	
 	:L-type
-	tau_p=400
-	p_inf=1/(1+Exp(-(v+55.8)/3.7))
+	tau_p = 400
+	p_inf = 1/(1+Exp(-(v+55.8)/3.7))
 
 }
-
 
 FUNCTION alpham(x) {
 	if (fabs((x+amB)/amC) < 1e-6) {
@@ -156,8 +152,6 @@ FUNCTION alpham(x) {
 		alpham = (amA*(x+amB)) / (1 - Exp(-(x+amB)/amC))
 	}
 }
-
-
 
 FUNCTION betam(x) {
 	if (fabs((x+bmB)/bmC) < 1e-6) {
