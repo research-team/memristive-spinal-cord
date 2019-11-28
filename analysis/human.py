@@ -33,14 +33,23 @@ data = mat_contents['data'][0]
 titles = mat_contents['titles']
 logger.info(len(data))
 
-#for i in range(14, 16):
-for i in range(1):
-    start = starts[:, i]
-    end = ends[:, i]
-    # plt.subplot(len(starts), 1, (i+1))
-    k = 0
-    yticks = []
+def draw_channels(start, end, titles, k =0, yticks = []):
+    logger.info("channels")
     for s, e, t in zip(start, end, titles):
+        # channels
+        d = data[int(s):int(e)] + 5 * k
+        if len(d) == 0:
+            d = np.array([0] * 200) + 5 * k
+        plt.plot(np.arange(len(d)) * 0.25, d)
+        yticks.append(d[0])
+        k += 1
+    plt.yticks(yticks, titles)
+    plt.show()
+
+def draw_slices(start, end, titles):
+    logger.info("slices")
+    for s, e, t in zip(start, end, titles):
+        # slices
         if t == muscle:
             logger.info("muscle is here")
             d = data[int(s):int(e)] # + 2 *k
@@ -50,13 +59,16 @@ for i in range(1):
                 p = d[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
                 plt.plot(np.arange(len(p)) * 0.25, p)
         plt.show()
-    #     d = data[int(s):int(e)] + 5 * k
-    #     if len(d) == 0:
-    #         d = np.array([0] * 200) + 5 * k
-    #     plt.plot(np.arange(len(d)) * 0.25, d)
-    #     yticks.append(d[0])
-    #     k += 1
-    # plt.yticks(yticks, titles)
-    plt.show()
+
+
+#for i in range(14, 16):
+for i in range(1):
+    start = starts[:, i]
+    end = ends[:, i]
+    # plt.subplot(len(starts), 1, (i+1))
+    k = 0
+    yticks = []
+    # draw_slices(start, end, titles)
+    draw_channels(start, end, titles)
     # plt.savefig('./graphs/05.29-07-R23-R-AS{}.png'.format(i))
     plt.clf()
