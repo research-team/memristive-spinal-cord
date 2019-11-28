@@ -14,6 +14,7 @@ time = 5010
 period = 50
 #muscle = "SOL L     "
 muscle = "SOL L    "
+slice_height = 0.1
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 #mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
@@ -41,13 +42,13 @@ for i in range(1):
     yticks = []
     for s, e, t in zip(start, end, titles):
         if t == muscle:
-        	logger.info("YES")
-        	d = data[int(s):int(e)] # + 2 *k
-        	logger.info(len(d))
-        	f = 0
-        	for i in range(12):
-        		p = d[time*4+i*period*4:time*4+(i+1)*period*4] + 0.2 *i
-        		plt.plot(np.arange(len(p)) * 0.25, p)
+            logger.info("muscle is here")
+            d = data[int(s):int(e)] # + 2 *k
+            logger.info(len(d))
+            f = 0
+            for i in range(12):
+                p = d[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
+                plt.plot(np.arange(len(p)) * 0.25, p)
         plt.show()
     #     d = data[int(s):int(e)] + 5 * k
     #     if len(d) == 0:
