@@ -197,14 +197,19 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to, additi
 	print(f"N1 {len(x1)}")
 	print(f"N2 {len(x2)}")
 
+	crit = kstwobign.isf(0.05) #* np.sqrt(len(x1) + len(x2) / (len(x1) * len(x2)))
+	print(f"Critical constant {crit}")
+
 	dvalue, pvalue = ks_2samp(x1, x2)
 	en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
 	pvalue = kstwobign.sf(en * dvalue)
+	print(f"dvalue * en = {dvalue * en}")
 	print(f"1D K-S peaks TIME\nD-value: {dvalue}\np-value: {pvalue}")
 
 	dvalue, pvalue = ks_2samp(y1, y2)
 	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
 	pvalue = kstwobign.sf(en * dvalue)
+	print(f"dvalue * en = {dvalue * en}")
 	print(f"1D K-S peaks AMPL\nD-value: {dvalue}\np-value: {pvalue}")
 
 	if additional_tests:
@@ -498,7 +503,7 @@ def for_article():
 	for c in comb:
 		compare_pack = [
 			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\neuron_e_for_k_s\\neuron_E_PLT_13.5cms_40Hz_2pedal_0.025step.hdf5',
-			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\hdf5\\bio_E_STR_13.5cms_40Hz_2pedal_0.1step.hdf5',
+			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\hdf5\\bio_E_PLT_13.5cms_40Hz_2pedal_0.1step.hdf5',
 		]
 		# control
 		flags = dict(plot_ks3d=False,
