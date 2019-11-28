@@ -15,8 +15,8 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-ees_fr = 40 # frequency of EES
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+ees_fr = 20 # frequency of EES
 versions = 1
 step_number = 1 # number of steps
 layers = 5  # default
@@ -352,7 +352,7 @@ class CPG:
                 cell = motoneuron(diams[i])
                 self.motoneurons.append(cell)
             elif neurontype.lower() == "aff":
-                cell = bioaff(random.randint(2, 10))
+                cell = bioaff()
                 self.afferents.append(cell)
             else:
                 cell = interneuron(delaytype)
@@ -460,7 +460,6 @@ def connectcells(pre, post, weight, delay, inhtype = False):
           is this connection inhibitory?
     '''
     nsyn = random.randint(N/2, N)
-    print(nsyn)
     for i in post:
         if pc.gid_exists(i):
             for j in range(nsyn):
@@ -534,8 +533,6 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM1, OM3, 0.002, 3)
     connectcells(OM3, OM2, 0.04, 3, True)
     connectcells(OM3, OM1, 0.04, 3, True)
-
-
 
 def spike_record(pool, version):
     ''' Records spikes from gids
@@ -628,7 +625,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
-    tstop = 7 * speed #+ 125) * step_number
+    tstop = (7 * speed + 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
     pc.psolve(tstop)
