@@ -11,5 +11,7 @@ This is original biological model based on works of Igor Lavrov and it was propo
 
 ##1 muscle validation experiment 
 
-1. Experimentator puts shoes with insole controller on 
-1. Insole controller attached to 
+1. Experimentator puts shoes with insole controller on corresponding foot.
+1. Insole controller attached to the CPG implementation device.
+1. CPG device is attached to stimulator via DAC.
+1. 
