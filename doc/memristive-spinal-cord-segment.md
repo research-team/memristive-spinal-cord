@@ -8,3 +8,8 @@ This is original biological model based on works of Igor Lavrov and it was propo
 
 ## Electronic model 
 
+
+##1 muscle validation experiment 
+
+1. Experimentator puts shoes with insole controller on 
+1. Insole controller attached to 
