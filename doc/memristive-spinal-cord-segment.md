@@ -23,6 +23,7 @@ Healthy volunteer sitting or with BWS system.
 
 1. Relax the examined foot.
 1. Balance the weight over the relaxed foot - heel.
+1. Adjust the frequency EES and amplitude of CPG for maximum effectiveness and comfort.
 1. Record the reaction of the examined muscle as electrical activity the angle and the feeling of extension/contraction of the muscle.
 1. Balance the weight over the examined foot towards toe in 3-5 steps.
 1. Record the reaction of the examined muscle as electrical activity the angle and the feeling of extension/contraction of the muscle. 
