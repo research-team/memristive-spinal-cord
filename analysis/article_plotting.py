@@ -3,14 +3,13 @@ import ntpath
 import logging
 import numpy as np
 import pylab as plt
-from scipy import stats
 from itertools import chain
+from importlib import reload
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
-from analysis.functions import peacock2, parse_filename
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
+from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice
 
 flatten = chain.from_iterable
@@ -161,7 +160,18 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_to, additional_tests=False):
+def short_name(name):
+	"""
+	Args:
+		name (str):
+	Returns:
+	"""
+	source, muscle, mode, speed, rate, pedal, stepsize = parse_filename(name)
+
+	return f"{source}_{muscle}_{speed}_{pedal}ped"
+
+
+def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_size, save_to, additional_tests=False):
 	"""
 	ToDo add info
 	Args:
@@ -172,17 +182,22 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_t
 		save_to (str): save folder
 	"""
 	# calc the critical constant to comapre with D-value * en
-	crit = kstwobign.isf(0.05)
+	crit = kstwobign.isf(0.01)
 	# prepare filename
-	mode = "_".join(names[0].split("_")[1:-1])
-	datasets = "_".join(name.split("_")[0] for name in names)
-	new_filename = f"{datasets}_{mode}_kstest.pdf"
+	new_filename = f"{'='.join(map(short_name, names))}"
+	# set new parameters for logging
+	reload(logging)
+	logging.basicConfig(filename=f"{save_to}/{new_filename}.log",
+	                    filemode='a',
+	                    format='%(message)s',
+	                    level=logging.DEBUG)
+
 	# unpack the data
 	x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
 	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
 	assert len(x1) == len(y1) and len(x2) == len(y2)
-	log.info(f"N1 {len(x1)}")
-	log.info(f"N2 {len(x2)}")
+	logging.info(f"N1 {len(x1)}")
+	logging.info(f"N2 {len(x2)}")
 	# calc the "en"
 	en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
 
@@ -190,47 +205,37 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_t
 	dvalue, _ = ks_2samp(x1, x2)
 	den = dvalue * en
 	pvalue = kstwobign.sf(en * dvalue)
-	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	log.info(f"1D K-S peaks TIME\n"
-	         f"D-value: {dvalue}\n"
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	logging.info(f"1D K-S peaks TIME\n"
+	         f"D-value: {dvalue:.5f}\n"
 	         f"p-value: {pvalue}")
-	log.info("- " * 10)
+	logging.info("- " * 10)
 
 	# 1D peak amplitudes analysis
 	dvalue, _ = ks_2samp(y1, y2)
 	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
 	den = dvalue * en
 	pvalue = kstwobign.sf(den)
-	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	log.info(f"1D K-S peaks AMPL\n"
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	logging.info(f"1D K-S peaks AMPL\n"
 	         f"D-value: {dvalue:.5f}\n"
 	         f"p-value: {pvalue}")
-	log.info("- " * 10)
+	logging.info("- " * 10)
 
-	if additional_tests:
-		# mann-whitneyu
-		stat, p_value = stats.mannwhitneyu(x1, x2)
-		print(f"Mann-Whitneyu test peaks TIME stat {stat} p-value {p_value}")
-		stat, p_value = stats.mannwhitneyu(y1, y2)
-		print(f"Mann-Whitneyu test peaks AMPL stat {stat} p-value {p_value}")
-		# wilcoxon
-		stat, p_value = stats.wilcoxon(x1, x2)
-		print(f"Mann-Whitneyu test peaks TIME stat {stat} p-value {p_value}")
-		stat, p_value = stats.wilcoxon(y1, y2)
-		print(f"Mann-Whitneyu test peaks AMPL stat {stat} p-value {p_value}")
+	# for TIME
+	plt.figure()
+	for x, color, name in zip(peaks_times_pack, colors, names):
+		plt.plot(np.sort(x), np.arange(len(x)) / len(x), color, label=name)
+	plt.legend()
+	plt.savefig(f"{save_to}/{new_filename}_1Dtimes.png", dpi=250, format="png")
+	plt.close()
 
-		# for TIME
-		plt.figure()
-		plt.plot(np.sort(x1), np.arange(len(x1)) / float(len(x1)))
-		plt.plot(np.sort(x2), np.arange(len(x2)) / float(len(x2)))
-		plt.show()
-		plt.close()
-
-		# for AMPL
-		plt.figure()
-		plt.plot(np.sort(y1), np.arange(len(y1)) / float(len(y1)))
-		plt.plot(np.sort(y2), np.arange(len(y2)) / float(len(y2)))
-		plt.show()
+	# for AMPL
+	plt.figure()
+	for y, color, name in zip(peaks_ampls_pack, colors, names):
+		plt.plot(np.sort(y), np.arange(len(y)) / len(y), color)
+	plt.savefig(f"{save_to}/{new_filename}_1Dampls.png", dpi=250, format="png")
+	plt.close()
 
 	# 2D peak times/amplitudes analysis
 	d1 = np.stack((x1, y1), axis=1)
@@ -238,11 +243,11 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_t
 	dvalue, _ = peacock2(d1, d2)
 	den = dvalue * en
 	pvalue = kstwobign.sf(den)
-	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	log.info(f"2D peacock TIME/AMPL\n"
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	logging.info(f"2D peacock TIME/AMPL\n"
 	         f"D-value: {dvalue:.5f}\n"
 	         f"p-value: {pvalue}")
-	log.info("- " * 10)
+	logging.info("- " * 10)
 
 	# define grid for subplots
 	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
@@ -252,22 +257,25 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_t
 	kde_ax.spines['right'].set_visible(False)
 
 	# 2D joint plot
+	i = 0
 	z_prev = np.zeros(1)
-	for x, y, name, color in zip([x1, x2], [y1, y2], names, colors):
+	for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
 		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders)
 		joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders)
+		kde_ax.text(0.05, 0.95 - i, f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}",
+		            transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
+		# break
+		i += 0.05
 
 	kde_ax.set_xlabel("peak time (ms)")
 	kde_ax.set_ylabel("peak amplitude")
 	kde_ax.set_xlim(borders[0], borders[1])
 	kde_ax.set_ylim(borders[2], borders[3])
 	plt.tight_layout()
-	plt.show()
-	# plt.savefig(f"{save_to}/{new_filename}_kde2d.pdf", dpi=250, format="pdf")
-	# plt.savefig(f"{save_to}/{new_filename}_kde2d.png", dpi=250, format="png")
+	plt.savefig(f"{save_to}/{new_filename}_kde2d.png", dpi=250, format="png")
 	plt.close(fig)
 
-	log.info(f"saved to {save_to}/{new_filename}")
+	logging.info(f"saved to {save_to}")
 
 
 def plot_peaks_bar_intervals(pack_peaks_per_interval, names, save_to):
@@ -417,6 +425,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks1d_names = []
 	ks1d_colors = []
 	pca3d_pack = []
+	packs_size = []
 	peaks_per_interval_pack = []
 	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
@@ -429,6 +438,8 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		borders[1] = 8
 	if flags['ks_analyse'] == "poly":
 		borders[0] = 8
+	if type(flags['ks_analyse']) is list:
+		borders[0], borders[1] = flags['ks_analyse']
 
 	# process each file
 	for filepath in filepaths:
@@ -446,6 +457,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
 		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders)
+		packs_size.append(len(e_peak_times_per_slice))
 		# flatten all data of the list
 		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
@@ -477,7 +489,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		log.info(f"Processed '{folder}'")
 
 	if flags['plot_ks2d']:
-		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, save_to=save_to)
+		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, packs_size, save_to=save_to)
 
 	if flags['plot_pca3d']:
 		plot_3D_PCA(pca3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
