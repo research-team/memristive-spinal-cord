@@ -8,12 +8,10 @@ from itertools import chain
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
-from scipy.spatial import ConvexHull
-import matplotlib.patches as mpatches
 from analysis.functions import peacock2, parse_filename
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots
-from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_area_extrema_matrix, get_all_peak_amp_per_slice
+from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice
 
 flatten = chain.from_iterable
 
@@ -163,7 +161,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	log.info(f"saved to {save_to}/{new_filename}")
 
 
-def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to, additional_tests=False):
+def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, save_to, additional_tests=False):
 	"""
 	ToDo add info
 	Args:
@@ -173,11 +171,78 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to, additi
 		colors (list): hex colors for graphics
 		save_to (str): save folder
 	"""
-	ks_test_datas = []
-
+	# calc the critical constant to comapre with D-value * en
+	crit = kstwobign.isf(0.05)
+	# prepare filename
 	mode = "_".join(names[0].split("_")[1:-1])
 	datasets = "_".join(name.split("_")[0] for name in names)
-	new_filename = f"{datasets}_{mode}_dependency.pdf"
+	new_filename = f"{datasets}_{mode}_kstest.pdf"
+	# unpack the data
+	x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
+	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
+	assert len(x1) == len(y1) and len(x2) == len(y2)
+	log.info(f"N1 {len(x1)}")
+	log.info(f"N2 {len(x2)}")
+	# calc the "en"
+	en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
+
+	# 1D peak times analysis
+	dvalue, _ = ks_2samp(x1, x2)
+	den = dvalue * en
+	pvalue = kstwobign.sf(en * dvalue)
+	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	log.info(f"1D K-S peaks TIME\n"
+	         f"D-value: {dvalue}\n"
+	         f"p-value: {pvalue}")
+	log.info("- " * 10)
+
+	# 1D peak amplitudes analysis
+	dvalue, _ = ks_2samp(y1, y2)
+	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
+	den = dvalue * en
+	pvalue = kstwobign.sf(den)
+	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	log.info(f"1D K-S peaks AMPL\n"
+	         f"D-value: {dvalue:.5f}\n"
+	         f"p-value: {pvalue}")
+	log.info("- " * 10)
+
+	if additional_tests:
+		# mann-whitneyu
+		stat, p_value = stats.mannwhitneyu(x1, x2)
+		print(f"Mann-Whitneyu test peaks TIME stat {stat} p-value {p_value}")
+		stat, p_value = stats.mannwhitneyu(y1, y2)
+		print(f"Mann-Whitneyu test peaks AMPL stat {stat} p-value {p_value}")
+		# wilcoxon
+		stat, p_value = stats.wilcoxon(x1, x2)
+		print(f"Mann-Whitneyu test peaks TIME stat {stat} p-value {p_value}")
+		stat, p_value = stats.wilcoxon(y1, y2)
+		print(f"Mann-Whitneyu test peaks AMPL stat {stat} p-value {p_value}")
+
+		# for TIME
+		plt.figure()
+		plt.plot(np.sort(x1), np.arange(len(x1)) / float(len(x1)))
+		plt.plot(np.sort(x2), np.arange(len(x2)) / float(len(x2)))
+		plt.show()
+		plt.close()
+
+		# for AMPL
+		plt.figure()
+		plt.plot(np.sort(y1), np.arange(len(y1)) / float(len(y1)))
+		plt.plot(np.sort(y2), np.arange(len(y2)) / float(len(y2)))
+		plt.show()
+
+	# 2D peak times/amplitudes analysis
+	d1 = np.stack((x1, y1), axis=1)
+	d2 = np.stack((x2, y2), axis=1)
+	dvalue, _ = peacock2(d1, d2)
+	den = dvalue * en
+	pvalue = kstwobign.sf(den)
+	log.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
+	log.info(f"2D peacock TIME/AMPL\n"
+	         f"D-value: {dvalue:.5f}\n"
+	         f"p-value: {pvalue}")
+	log.info("- " * 10)
 
 	# define grid for subplots
 	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
@@ -186,91 +251,16 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, save_to, additi
 	kde_ax.spines['top'].set_visible(False)
 	kde_ax.spines['right'].set_visible(False)
 
-	for peaks_times, peaks_ampls, name, color in zip(peaks_times_pack, peaks_ampls_pack, names, colors):
-		x = peaks_times
-		y = peaks_ampls
-		ks_test_datas.append((x, y))
-
-	x1, y1 = ks_test_datas[0]
-	x2, y2 = ks_test_datas[1]
-
-	print(f"N1 {len(x1)}")
-	print(f"N2 {len(x2)}")
-
-	crit = kstwobign.isf(0.05) #* np.sqrt(len(x1) + len(x2) / (len(x1) * len(x2)))
-	print(f"Critical constant {crit}")
-
-	dvalue, pvalue = ks_2samp(x1, x2)
-	en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
-	pvalue = kstwobign.sf(en * dvalue)
-	print(f"dvalue * en = {dvalue * en}")
-	print(f"1D K-S peaks TIME\nD-value: {dvalue}\np-value: {pvalue}")
-
-	dvalue, pvalue = ks_2samp(y1, y2)
-	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
-	pvalue = kstwobign.sf(en * dvalue)
-	print(f"dvalue * en = {dvalue * en}")
-	print(f"1D K-S peaks AMPL\nD-value: {dvalue}\np-value: {pvalue}")
-
-	if additional_tests:
-		# mann-whitneyu
-		statistica, p_value = stats.mannwhitneyu(x1, x2)
-		print("Mann-Whitneyu test peaks TIME p-value", p_value)
-
-		statistica, p_value = stats.mannwhitneyu(y1, y2)
-		print("Mann-Whitneyu test peaks AMPL p-value: ", p_value)
-
-		# wilcoxon
-		statistica, p_value = stats.wilcoxon(x1, x2)
-		print("Wilcoxon test peaks TIME p-value: ", p_value)
-
-		statistica, p_value = stats.wilcoxon(y1, y2)
-		print("Wilcoxon test peaks AMPL p-value: ", p_value)
-		plt.close()
-		plt.figure()
-		# for TIME
-		x = np.sort(x1)
-		y = np.arange(len(x)) / float(len(x))
-		plt.plot(x, y)
-
-		x = np.sort(x2)
-		y = np.arange(len(x)) / float(len(x))
-		plt.plot(x, y)
-		plt.show()
-		plt.close()
-
-		# for AMPL
-		x = np.sort(y1)
-		y = np.arange(len(x)) / float(len(x))
-		plt.plot(x, y)
-
-		x = np.sort(y2)
-		y = np.arange(len(x)) / float(len(x))
-		plt.plot(x, y)
-		plt.show()
-
-	d1 = np.stack((x1, y1), axis=1)
-	d2 = np.stack((x2, y2), axis=1)
-
-	# dvalue, pvalue = peacock2(d1, d2)
-	# print(f"2D peacock TIME/AMPL\nD-value: {dvalue}\np-value: {pvalue}")
-
-	d1_area = ConvexHull(d1).area
-	d2_area = ConvexHull(d2).area
-
-	zorders = [3, 0 if d1_area < d2_area else 0, 3]
-
-	# plot 2D
-	counts_h, counts_v = 0, 0
-	for data, name, color, zorder in zip(ks_test_datas, names, colors, zorders):
-		x, y = data
-		contour_plot(x=x, y=y, color=color, ax=kde_ax, zorder=zorder)
-		counts_h, counts_v = joint_plot(x, y, kde_ax, gs, counts_h, counts_v, **{"color": color})
+	# 2D joint plot
+	z_prev = np.zeros(1)
+	for x, y, name, color in zip([x1, x2], [y1, y2], names, colors):
+		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders)
+		joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders)
 
 	kde_ax.set_xlabel("peak time (ms)")
 	kde_ax.set_ylabel("peak amplitude")
-	kde_ax.set_xlim(0, 25)
-	kde_ax.set_ylim(0, 2)
+	kde_ax.set_xlim(borders[0], borders[1])
+	kde_ax.set_ylim(borders[2], borders[3])
 	plt.tight_layout()
 	plt.show()
 	# plt.savefig(f"{save_to}/{new_filename}_kde2d.pdf", dpi=250, format="pdf")
@@ -413,7 +403,7 @@ def get_color(filename, clrs):
 	return color
 
 
-def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
+def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	"""
 	ToDo add info
 	Args:
@@ -426,13 +416,19 @@ def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks1d_peaks = []
 	ks1d_names = []
 	ks1d_colors = []
-	ks3d_pack = []
+	pca3d_pack = []
 	peaks_per_interval_pack = []
 	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
 	# be sure that folder is exist
 	if not os.path.exists(save_to):
 		os.makedirs(save_to)
+	# form borders of the data [xmin, xmax, ymin, ymax]
+	borders = [0, 25, 0, 1.5]
+	if flags['ks_analyse'] == "mono":
+		borders[1] = 8
+	if flags['ks_analyse'] == "poly":
+		borders[0] = 8
 
 	# process each file
 	for filepath in filepaths:
@@ -449,11 +445,11 @@ def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
 		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
-		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to)
-
+		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders)
+		# flatten all data of the list
 		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
-
+		# form packs
 		ks1d_peaks.append(times)
 		ks1d_ampls.append(ampls)
 		ks1d_names.append(e_filename)
@@ -474,51 +470,17 @@ def __process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			plot_slices(e_prepared_data, f_prepared_data, e_lat_matrix, f_lat_per_slice,
 			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
 
-		# if flags['plot_peaks_by_intervals']:
-		# 	e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
-		# 	peaks_per_interval_pack.append(e_peaks_per_interval)
+		if flags['plot_peaks_by_intervals']:
+			e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
+			peaks_per_interval_pack.append(e_peaks_per_interval)
 
 		log.info(f"Processed '{folder}'")
 
 	if flags['plot_ks2d']:
-		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, save_to=save_to)
+		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, save_to=save_to)
 
-	# if flags['plot_ks3d'] or flags['plot_pca3d']:
-	# 	plot_3D_PCA(ks3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
+	if flags['plot_pca3d']:
+		plot_3D_PCA(pca3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
 
 	if flags['plot_peaks_by_intervals']:
 		plot_peaks_bar_intervals(peaks_per_interval_pack, ks1d_names, save_to=save_to)
-
-
-def for_article():
-	"""
-	TODO: add docstring
-	"""
-	save_all_to = 'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\neuron_test'
-
-	comb = [
-		("foot", 21, 2, "no", 0.1),
-	]
-
-	for c in comb:
-		compare_pack = [
-			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\neuron_e_for_k_s\\neuron_E_PLT_13.5cms_40Hz_2pedal_0.025step.hdf5',
-			'C:\\Users\\Ангелина\\Documents\\GitHub\\memristive-spinal-cord\\hdf5\\bio_E_PLT_13.5cms_40Hz_2pedal_0.1step.hdf5',
-		]
-		# control
-		flags = dict(plot_ks3d=False,
-		             plot_pca3d=False,
-		             plot_contour_flag=False,
-		             plot_correlation=False,
-		             plot_slices_flag=False,
-		             plot_ks2d=True,
-		             plot_peaks_by_intervals=False)
-		__process_dataset(compare_pack, f"{save_all_to}\\TEST", flags, convert_dstep_to=0.1)
-
-
-def run():
-	for_article()
-
-
-if __name__ == "__main__":
-	run()

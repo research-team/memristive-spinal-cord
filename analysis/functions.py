@@ -90,8 +90,8 @@ def read_data(filepath):
 	data_by_test = []
 	with hdf5.File(filepath, 'r') as file:
 		for test_names, test_values in file.items():
-			#if "#8_112309_quip" not in test_names: # not in ["#8_112309_quip_BIPEDAL_burst10_Ton_21.fig", "#8_112309_quip_BIPEDAL_burst3_Ton_14.fig", "#8_112309_quip_BIPEDAL_burst4_Ton_15.fig",  "#8_112309_quip_BIPEDAL_burst6_Ton_17.fig",  "#8_112309_quip_BIPEDAL_burst7_Ton_18.fig",  "#8_112309_quip_BIPEDAL_burst9_Ton_20.fig"]:
-			data_by_test.append(test_values[:])
+			if "#8_112309_quip" not in test_names: # not in ["#8_112309_quip_BIPEDAL_burst10_Ton_21.fig", "#8_112309_quip_BIPEDAL_burst3_Ton_14.fig", "#8_112309_quip_BIPEDAL_burst4_Ton_15.fig",  "#8_112309_quip_BIPEDAL_burst6_Ton_17.fig",  "#8_112309_quip_BIPEDAL_burst7_Ton_18.fig",  "#8_112309_quip_BIPEDAL_burst9_Ton_20.fig"]:
+				data_by_test.append(test_values[:])
 			# data_by_test = [test_values[:] for test_values in file.values()]
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
@@ -215,7 +215,7 @@ def center_data_by_line(y_points, debugging=False):
 
 	# manually build the counter-clockwise rotation matrix
 	rotation_matrix = np.array([[np.cos(arccos), -np.sin(arccos)],
-								[np.sin(arccos), np.cos(arccos)]])
+	                            [np.sin(arccos), np.cos(arccos)]])
 	# apply rotation to each row of 'array_dots' (@ is a matrix multiplication)
 	rotated_dots_2D = (rotation_matrix @ dots_2D.T).T
 	# center the rotated point cloud at (0, 0)

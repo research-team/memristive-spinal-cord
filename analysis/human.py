@@ -41,7 +41,7 @@ slice_height = 0.1
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 #mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
-mat_contents = sio.loadmat('../../04.29-07-R22-R-2+4-13+15-20Hz-4.mat')
+mat_contents = sio.loadmat('../../01.29-07-R11-L-2+4-13+15-20Hz-4.mat')
 
 for i in sorted(mat_contents.keys()):
     logger.info(i)
@@ -56,13 +56,15 @@ titles = mat_contents['titles']
 logger.info(len(data))
 
 # constants
-#start_time = 5010
+#start_time = 5005
 #start_time = 8810
 start_time = 14110
 period = 50
 #muscle_channel = "SOL L     "
-muscle_channel = "SOL L    "
+#muscle_channel = "SOL L    "
 #muscle_channel = "SOL R    "
+#muscle_channel = 'TA L     '
+muscle_channel = 'TA R     '
 #muscle_channel = "Art short"
 
 #for i in range(14, 16):

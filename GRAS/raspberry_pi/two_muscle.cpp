@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 #include <omp.h>
 #include <cstdio>
 #include <cmath>
@@ -6,12 +6,21 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <thread>
 #include <string>
 // for file writing
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+
+#include "l502api.h"
+#include "e502api.h"
+
+#define TCP_CONNECTION_TOUT 5000
+#define OUT_SIGNAL_SIZE 2000
+#define OUT_BLOCK_SIZE 256
+#define SEND_TOUT 500
 
 using namespace std;
 
@@ -28,7 +37,7 @@ const int neurons_in_aff_ip = 25;    // number of neurons in interneuronal pool
 const int neurons_in_afferent = 15;  // number of neurons in afferent
 
 const unsigned short skin_stim_time = 25;
-const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS;
+const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS * 20;
 const unsigned int SIM_TIME_IN_STEPS = (unsigned int)(T_simulation / SIM_STEP);
 
 class Group {
@@ -39,6 +48,99 @@ public:
 	unsigned int id_end{};
 	unsigned short group_size{};
 };
+
+static uint32_t get_all_devrec(t_x502_devrec **pdevrec_list, uint32_t *ip_addr_list, unsigned ip_cnt) {
+	/* Функция находит все подключенные модули по интерфейсам PCI-Express и USB и
+	 * сохраняет записи о этих устройствах в выделенный массив.
+	 * Также создаются записи по переданным IP-адресам модулей и добавляются в конец массива.
+	 * Указатель на выделенный массив, который должен быть потом очищен, сохраняется
+	 * в pdevrec_list, а количество действительных элементов (память которых должна
+	 * быть в дальнейшем освобождена с помощью X502_FreeDevRecordList()) возвращается
+	 * как результат функции */
+    int32_t fnd_devcnt = 0;
+    uint32_t pci_devcnt = 0;
+    uint32_t usb_devcnt = 0;
+
+    t_x502_devrec *rec_list = NULL;
+
+    // получаем количество подключенных устройств по интерфейсам PCI и USB
+    L502_GetDevRecordsList(NULL, 0, 0, &pci_devcnt);
+    E502_UsbGetDevRecordsList(NULL, 0, 0, &usb_devcnt);
+
+    if ((pci_devcnt + usb_devcnt + ip_cnt) != 0) {
+        // выделяем память для массива для сохранения найденного количества записей
+        rec_list = (t_x502_devrec*) malloc((pci_devcnt + usb_devcnt + ip_cnt) * sizeof(t_x502_devrec));
+
+        if (rec_list != NULL) {
+            unsigned i;
+            // получаем записи о модулях L502, но не больше pci_devcnt
+            if (pci_devcnt!=0) {
+                int32_t res = L502_GetDevRecordsList(&rec_list[fnd_devcnt], pci_devcnt, 0, NULL);
+                if (res >= 0) {
+                    fnd_devcnt += res;
+                }
+            }
+            // добавляем записи о модулях E502, подключенных по USB, в конец массива
+            if (usb_devcnt!=0) {
+                int32_t res = E502_UsbGetDevRecordsList(&rec_list[fnd_devcnt], usb_devcnt, 0, NULL);
+                if (res >= 0) {
+                    fnd_devcnt += res;
+                }
+            }
+
+            // создаем записи для переданного массива ip-адресов
+            for (i=0; i < ip_cnt; i++) {
+                if (E502_MakeDevRecordByIpAddr(&rec_list[fnd_devcnt], ip_addr_list[i],0, TCP_CONNECTION_TOUT) == X502_ERR_OK) {
+                    fnd_devcnt++;
+                }
+            }
+        }
+    }
+
+    if (fnd_devcnt != 0) {
+        // если создана хотя бы одна запись, то сохраняем указатель на выделенный массив
+        *pdevrec_list = rec_list;
+    } else {
+        *pdevrec_list = NULL;
+        free(rec_list);
+    }
+
+    return fnd_devcnt;
+}
+
+
+static t_x502_hnd dev_open() {
+    t_x502_hnd hnd = NULL;
+    uint32_t fnd_devcnt;
+    t_x502_devrec *devrec_list = NULL;
+    uint32_t *ip_addr_list = NULL;
+    uint32_t ip_cnt = 0;
+
+    // получаем список модулей для выбора
+    fnd_devcnt = get_all_devrec(&devrec_list, ip_addr_list, ip_cnt);
+
+	if (devrec_list[0].iface != X502_IFACE_ETH)
+        printf("Сер. номер: %s\n", devrec_list[0].serial);
+    else
+        printf("Адрес: %s\n", devrec_list[0].location);
+	
+	// создаем описатель
+    hnd = X502_Create();
+    if (hnd==NULL) {
+        fprintf(stderr, "Ошибка создания описателя модуля!");
+    } else {
+        // устанавливаем связь с модулем по записи
+        int32_t err = X502_OpenByDevRecord(hnd, &devrec_list[0]);
+        if (err != X502_ERR_OK) {
+            fprintf(stderr, "Ошибка установления связи с модулем: %s!", X502_GetErrorString(err));
+            X502_Free(hnd);
+            hnd = NULL;
+        }
+    }
+    // освобождение ресурсов действительных записей из списка
+    X502_FreeDevRecordList(devrec_list, fnd_devcnt);
+    return hnd;
+}
 
 // struct for human-readable initialization of connectomes
 struct SynapseMetadata {
@@ -232,20 +334,20 @@ void init_network() {
 	// inner connectomes
 	connect(OM1_0, OM1_1, 1, 2000);
 	connect(OM1_1, OM1_2_E, 1, 1500);
-	connect(OM1_1, OM1_2_F, 1, 27);
+	connect(OM1_1, OM1_2_F, 1, 1000);
 	connect(OM1_1, OM1_3, 1, 400);
 	connect(OM1_2_E, OM1_1, 2.5, 1500);
-	connect(OM1_2_F, OM1_1, 2.5, 27);
+	connect(OM1_2_F, OM1_1, 2.5, 1000);
 	connect(OM1_2_E, OM1_3, 1, 400);
 	connect(OM1_2_F, OM1_3, 1, 4);
 	connect(OM1_3, OM1_1, 2, -1000);
 	connect(OM1_3, OM1_2_E, 0.5, -1000);
-	connect(OM1_3, OM1_2_F, 2, -3);
+	connect(OM1_3, OM1_2_F, 2, -3000);
 	// output to OM2
-	connect(OM1_2_F, OM2_2_F, 4, 30);
+	connect(OM1_2_F, OM2_2_F, 3, 3000);
 	// output to IP
 	connect(OM1_2_E, eIP_E, 2, 1500, neurons_in_ip);
-	connect(OM1_2_F, eIP_F, 4, 5, neurons_in_ip);
+	connect(OM1_2_F, eIP_F, 1, 1500, neurons_in_ip);
 
 	/// OM 2
 	// input from EES group 2
@@ -269,10 +371,10 @@ void init_network() {
 	connect(OM2_3, OM2_2_E, 0.5, -1000);
 	connect(OM2_3, OM2_2_F, 2, -3);
 	// output to OM3
-	connect(OM2_2_F, OM3_2_F, 4, 30);
+	connect(OM2_2_F, OM3_2_F, 4, 3000);
 	// output to IP
 	connect(OM2_2_E, eIP_E, 2, 1500, neurons_in_ip);
-	connect(OM2_2_F, eIP_F, 4, 5, neurons_in_ip);
+	connect(OM2_2_F, eIP_F, 2, 1500, neurons_in_ip);
 
 	/// OM 3
 	// input from EES group 3
@@ -295,10 +397,10 @@ void init_network() {
 	connect(OM3_3, OM3_2_E, 0.5, -1000);
 	connect(OM3_3, OM3_2_F, 2, -3);
 	// output to OM3
-	connect(OM3_2_F, OM4_2_F, 4, 30);
+	connect(OM3_2_F, OM4_2_F, 4, 3000);
 	// output to IP
 	connect(OM3_2_E, eIP_E, 2, 1500, neurons_in_ip);
-	connect(OM3_2_F, eIP_F, 4, 5, neurons_in_ip);
+	connect(OM3_2_F, eIP_F, 4, 1500, neurons_in_ip);
 
 	/// OM 4
 	// input from EES group 4
@@ -319,10 +421,10 @@ void init_network() {
 	connect(OM4_3, OM4_2_E, 0.5, -1000);
 	connect(OM4_3, OM4_2_F, 2, -3);
 	// output to OM4
-	connect(OM4_2_F, OM5_2_F, 4, 30);
+	connect(OM4_2_F, OM5_2_F, 4, 3000);
 	// output to IP
 	connect(OM4_2_E, eIP_E, 2, 1500, neurons_in_ip);
-	connect(OM4_2_F, eIP_F, 4, 5, neurons_in_ip);
+	connect(OM4_2_F, eIP_F, 4, 1500, neurons_in_ip);
 
 	/// OM 5
 	// input from EES group 5
@@ -343,7 +445,7 @@ void init_network() {
 	connect(OM5_3, OM5_2_F, 2, -3);
 	// output to IP
 	connect(OM5_2_E, eIP_E, 1, 1500, neurons_in_ip);
-	connect(OM5_2_F, eIP_F, 4, 5, neurons_in_ip);
+	connect(OM5_2_F, eIP_F, 4, 1500, neurons_in_ip);
 
 	/// reflex arc
 	connect(iIP_E, eIP_F, 0.5, -10, neurons_in_ip);
@@ -358,7 +460,7 @@ void init_network() {
 	connect(EES, Ia_F_aff, 1, 2000);
 
 	connect(eIP_E, MN_E, 2, 400, neurons_in_moto);
-	connect(eIP_F, MN_F, 5, 8, neurons_in_moto);
+	connect(eIP_F, MN_F, 2, 400, neurons_in_moto);
 
 	connect(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
 	connect(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
@@ -461,9 +563,57 @@ void copy_data_to(GroupMetadata &metadata, const unsigned short* nrn_v_m, const 
 }
 
 void simulate(int itest) {
+	/** ===================================== **/
+	/** ===================================== **/
+	int32_t err = 0;
+    uint32_t ver;
+    t_x502_hnd hnd = NULL;
+
+    // получаем версию библиотеки
+    ver = X502_GetLibraryVersion();
+    printf("Верисия библиотеки: %d.%d.%d\n", (ver >> 24)&0xFF, (ver>>16)&0xFF, (ver>>8)&0xFF);
+
+    // получение списка устройств и выбор, с каким будем работать
+    hnd = dev_open();
+
+    // если успешно выбрали модуль и установили с ним связь - продолжаем работу
+    if (hnd != NULL) {
+        // получаем информацию
+        t_x502_info info;
+        err = X502_GetDevInfo(hnd, &info);
+        if (err != X502_ERR_OK) {
+            fprintf(stderr, "Ошибка получения серийного информации о модуле: %s!", X502_GetErrorString(err));
+        } else {
+            // выводим полученную информацию
+            printf("Серийный номер          : %s\n", info.serial);
+            printf("Наличие ЦАП             : %s\n", info.devflags & X502_DEVFLAGS_DAC_PRESENT ? "Да" : "Нет");
+            printf("Наличие BlackFin        : %s\n", info.devflags & X502_DEVFLAGS_BF_PRESENT ? "Да" : "Нет");
+            printf("Наличие гальваноразвязки: %s\n", info.devflags & X502_DEVFLAGS_GAL_PRESENT ? "Да" : "Нет");
+            printf("Индустриальное исп.     : %s\n", info.devflags & X502_DEVFLAGS_INDUSTRIAL ? "Да" : "Нет");
+            printf("Наличие интерф. PCI/PCIe: %s\n", info.devflags & X502_DEVFLAGS_IFACE_SUPPORT_PCI ? "Да" : "Нет");
+            printf("Наличие интерф. USB     : %s\n", info.devflags & X502_DEVFLAGS_IFACE_SUPPORT_USB ? "Да" : "Нет");
+            printf("Наличие интерф. Ethernet: %s\n", info.devflags & X502_DEVFLAGS_IFACE_SUPPORT_ETH ? "Да" : "Нет");
+            printf("Версия ПЛИС             : %d.%d\n", (info.fpga_ver >> 8) & 0xFF, info.fpga_ver & 0xFF);
+            printf("Версия PLDA             : %d\n", info.plda_ver);
+            if (info.mcu_firmware_ver != 0) {
+                printf("Версия прошивки ARM     : %d.%d.%d.%d\n",
+                       (info.mcu_firmware_ver >> 24) & 0xFF,
+                       (info.mcu_firmware_ver >> 16) & 0xFF,
+                       (info.mcu_firmware_ver >>  8) & 0xFF,
+                       info.mcu_firmware_ver & 0xFF);
+            }
+        }
+    } else {
+        exit(100);
+    }
+    /** ===================================== **/
+	/** ===================================== **/
+
+
 	const unsigned int neurons_number = global_id;
 	const unsigned int synapses_number = static_cast<int>(all_synapses.size());
-	chrono::time_point<chrono::system_clock> simulation_t_start, simulation_t_end;
+	const auto frame_time = chrono::microseconds(150);
+	chrono::time_point<chrono::system_clock> iter_t_start, iter_t_end, simulation_t_start, simulation_t_end;
 	// calculate spike frequency and C0/C1 activation time in steps
 	auto ees_spike_each_step = (unsigned int)(1000 / 40 / SIM_STEP);
 	auto steps_activation_C0 = (unsigned int)(5 * 25 / SIM_STEP);
@@ -530,16 +680,34 @@ void simulate(int itest) {
 	default_random_engine generator(r());
 	uniform_real_distribution<float> standard_uniform(0, 1);
 
+	float e_volt_sum = 0;
+	float f_volt_sum = 0;
+
 	printf("START THE MAIN SIMULATION LOOP\n");
 
 	simulation_t_start = chrono::system_clock::now();
 
 	// the main simulation loop
 	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++) {
+		
+		iter_t_start = chrono::system_clock::now();
+
 		#ifdef DEBUG
 		for (GroupMetadata &metadata : all_groups)
 			copy_data_to(metadata, V_m, nrn_has_spike, sim_iter);
 		#endif
+
+		// summarize voltages of motoneurons
+		e_volt_sum = 0;
+		f_volt_sum = 0;
+		for (auto i = 470; i <= 494; i++)
+    		e_volt_sum += V_m[i];
+		for (auto i = 495; i <= 519; i++)
+    		f_volt_sum += V_m[i];
+		// send to DAC
+		X502_AsyncOutDac(hnd, X502_DAC_CH1, (e_volt_sum / 25 - 20000), X502_DAC_FLAGS_CALIBR);
+		X502_AsyncOutDac(hnd, X502_DAC_CH2, (f_volt_sum / 25 - 20000), X502_DAC_FLAGS_CALIBR);
+
 		CV1_activated = false;
 		CV2_activated = false;
 		CV3_activated = false;
@@ -634,14 +802,33 @@ void simulate(int itest) {
 			if (syn_delay_timer[tid] > 0)
 				syn_delay_timer[tid]--;
 		}
+
+		// stop measure time
+		iter_t_end = std::chrono::system_clock::now();
+
+		// get time difference
+		auto elapsed = chrono::duration_cast<chrono::microseconds>(iter_t_end - iter_t_start);
+		// wait if we are so fast
+		if (elapsed < frame_time) {
+			this_thread::sleep_for(frame_time - elapsed);
+		}
 	} // end of the simulation iteration loop
+
+	// reset V to 0
+    err = X502_AsyncOutDac(hnd, X502_DAC_CH1, 0, X502_DAC_FLAGS_VOLT);
+
 	simulation_t_end = chrono::system_clock::now();
+	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
 
 	#ifdef DEBUG
 	save_result(itest);
 	#endif
 
-	auto sim_time_diff = chrono::duration_cast<chrono::milliseconds>(simulation_t_end - simulation_t_start).count();
+	// закрываем связь с модулем
+    X502_Close(hnd);
+    // освобождаем описатель
+    X502_Free(hnd);
+	
 	printf("Elapsed %li ms (measured) | T_sim = %d ms\n", sim_time_diff, T_simulation);
 	printf("%s x%f\n", 1.0 * T_simulation / sim_time_diff > 1? "faster" : "slower", (float)T_simulation / sim_time_diff);
 }
@@ -649,6 +836,7 @@ void simulate(int itest) {
 // runner
 int main(int argc, char* argv[]) {
 	int itest = atoi(argv[1]);
+
 	init_network();
 	simulate(itest);
 

@@ -249,7 +249,7 @@ def list3d(h, w):
 	return [[[] for _ in range(w)] for _ in range(h)]
 
 
-def get_all_peak_amp_per_slice(sliced_datasets, dstep, split_by_intervals=False, debugging=False):
+def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, split_by_intervals=False, debugging=False):
 	"""
 	Finds all peaks times and amplitudes at each slice
 
@@ -298,9 +298,9 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, split_by_intervals=False,
 			if (min_dist <= dT <= max_dist) and dA >= 0.05 or dA >= min_ampl:
 				slice_index = int(max_index // slice_length)
 				peak_time = max_index - slice_length * slice_index
-				# if peak_time <= 8 / dstep:
-				peak_per_slice_list[experiment_index][slice_index].append(peak_time)
-				ampl_per_slice_list[experiment_index][slice_index].append(dA)
+				if borders[0] <= peak_time * dstep <= borders[1]:
+					peak_per_slice_list[experiment_index][slice_index].append(peak_time)
+					ampl_per_slice_list[experiment_index][slice_index].append(dA)
 
 	# if debugging:
 	# 	for experiment_index, slices_data in enumerate(sliced_datasets):
@@ -388,18 +388,21 @@ def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=Fal
 	return peak_matrix, ampl_matrix
 
 
-def contour_plot(x, y, color, ax, zorder):
+def contour_plot(x, y, color, ax, z_prev, borders):
 	"""
 	TODO: add docstring
 	Args:
 		x:
 		y:
-		color (str):
+		color:
 		ax:
+		z_prev:
+		borders:
+	Returns:
+		np.ndarray:
 	"""
 	levels_num = 10
-	xmin, xmax = 0, 25
-	ymin, ymax = 0, 2
+	xmin, xmax, ymin, ymax = borders
 	# form a mesh grid
 	xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 	# re-present grid in 1D and pair them as (x1, y1 ...)
@@ -421,14 +424,24 @@ def contour_plot(x, y, color, ax, zorder):
 	# generate colors for contours level from HSL (normalized) to RGB (normalized)
 	colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 	# plot filled contour
+	if len(z_prev) == 1:
+		zorder = 0
+	else:
+		gt = z.ravel() > z_prev.ravel()
+		fullsize = len(gt)
+		gt = gt[gt == True]
+		truesize = len(gt)
+		zorder = -5 if truesize / fullsize * 100 > 50 else 5
 	cnt = ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5, zorder=zorder)
 	# change an edges of contours
 	for c in cnt.collections:
 		c.set_edgecolor(color)
 		c.set_linewidth(1)
 
+	return z
 
-def joint_plot(X, Y, ax, gs, prev_counts_h, prev_counts_v, **kwargs):
+
+def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	"""
 	TODO: add docstring
 	Args:
@@ -436,13 +449,11 @@ def joint_plot(X, Y, ax, gs, prev_counts_h, prev_counts_v, **kwargs):
 		Y (np.ndarray):
 		ax:
 		gs:
+		borders:
 		**kwargs:
 	"""
-	xmin, xmax = 0, 25
-	ymin, ymax = 0, 2
 	color = kwargs['color']
-	bins_h = np.arange(xmin, xmax + 1, 1)
-	bins_v = np.arange(ymin, ymax + 0.05, 0.05)
+	xmin, xmax, ymin, ymax = borders
 	# ax.scatter(X, Y, marker="+", color=color, s=5, zorder=3, alpha=0.4)
 
 	# create X-marginal (top)
@@ -454,24 +465,6 @@ def joint_plot(X, Y, ax, gs, prev_counts_h, prev_counts_v, **kwargs):
 	ax_right.spines['top'].set_visible(False)
 	ax_right.spines['right'].set_visible(False)
 
-	# # plot histogram top
-	# counts_v, edges_v, bars_v = ax_top.hist(x=X, bins=bins_h, color=color, lw=0.5, ec='k')
-	# # set the zorder per columns
-	# if type(prev_counts_v) is not int:
-	# 	x2_bigger = counts_v > prev_counts_v
-	# 	for b1, oo in zip(bars_v, x2_bigger):
-	# 		b1.set_zorder(b1.get_zorder() + (-1 if oo else 1))
-	# # plot histogram right
-	# counts_h, edges_h, bars_h = ax_right.hist(x=Y, bins=bins_v, color=color, lw=0.5, ec='k', orientation="horizontal")
-	# # set the zorder per columns
-	# if type(prev_counts_h) is not int:
-	# 	x2_bigger = counts_h > prev_counts_h
-	# 	for b1, oo in zip(bars_h, x2_bigger):
-	# 		b1.set_zorder(b1.get_zorder() + (-1 if oo else 1))
-
-	# set percentage ticklabels
-	# ax_top.yaxis.set_major_formatter()
-	# ax_right.xaxis.set_major_formatter()
 	# add grid
 	ax_top.grid(which='minor', axis='x')
 	ax_right.grid(which='minor', axis='y')
@@ -480,10 +473,8 @@ def joint_plot(X, Y, ax, gs, prev_counts_h, prev_counts_v, **kwargs):
 	yy = np.linspace(ymin, ymax, 100)
 	dx = st.gaussian_kde(X)(xx)
 	dy = st.gaussian_kde(Y)(yy)
-	ax_top.plot(xx, dx, color=kwargs['color'])
-	ax_right.plot(dy, yy, color=kwargs['color'])
-
-	return 0, 0
+	ax_top.plot(xx, dx, color=color)
+	ax_right.plot(dy, yy, color=color)
 
 
 def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
