@@ -145,7 +145,7 @@ class interneuron(object):
     nc: NEURON NetCon
         connection between neurons
     '''
-    nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
+    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
     nc.threshold = 10
     return nc
 

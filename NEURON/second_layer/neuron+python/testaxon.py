@@ -57,13 +57,19 @@ def show_output(v_vec, t_vec):
     pyplot.ylabel('mV')
 
 if __name__ == '__main__':
-    cell = bioaff(100)
-    branch_vec, t_vec = set_recording_vectors(cell.node[len(cell.node)-1])
+    cell = bioaff()
+    branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
     soma_vec, t_vec = set_recording_vectors(cell.soma)
-    stim = h.IClamp(cell.soma(1))
-    stim.delay = 150
-    stim.dur = 5
-    stim.amp = 0.5
+    stim = h.NetStim()
+    stim.number = 10
+    stim.start = 150
+    ncstim = h.NetCon(stim, cell.synlistex[0])
+    ncstim.delay = 1
+    ncstim.weight[0] = 0.5
+    # stim = h.IClamp(cell.axonL.node[len(cell.axonL.node)-1](0.5))
+    # stim.delay = 150
+    # stim.dur = 5
+    # stim.amp = 0.1
     # print("Number of model - ",cell.numofmodel)
     for sec in h.allsec():
         h.psection(sec=sec)

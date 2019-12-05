@@ -20,13 +20,13 @@ class motoneuron(object):
   def __init__(self, diam):
     #print 'construct ', self
     #create axon
-    self.axon = axon(50)
+    # self.axon = axon(50)
     self.diam = diam
     self.topol()
     self.subsets()
     self.geom()
     self.biophys()
-    # self.geom_nseg()
+    self.geom_nseg()
     self.synlistinh = []
     self.synlistex = []
     self.synapses()
@@ -42,9 +42,10 @@ class motoneuron(object):
     '''
     self.soma = h.Section(name='soma', cell=self)
     self.dend = h.Section(name='dend', cell= self)
+    self.axon = h.Section(name='axon', cell= self)
     self.dend.connect(self.soma(1))
-    self.axon.node[0].connect(self.soma(1))
-    #self.basic_shape()  
+    self.axon.connect(self.soma(1))
+    self.basic_shape()  
 
   def basic_shape(self):
     '''
@@ -60,11 +61,11 @@ class motoneuron(object):
     h.pt3dadd(15, 0, 0, 1)
     h.pt3dadd(215, 0, 0, 1)
     h.pop_section()
-    # self.axon.push()
-    # h.pt3dclear()
-    # h.pt3dadd(0, 0, 0, 1)
-    # h.pt3dadd(-150, 0, 0, 1)
-    # h.pop_section()
+    self.axon.push()
+    h.pt3dclear()
+    h.pt3dadd(0, 0, 0, 1)
+    h.pt3dadd(-150, 0, 0, 1)
+    h.pop_section()
 
   def subsets(self):
     '''
@@ -82,15 +83,15 @@ class motoneuron(object):
     self.soma.L = self.soma.diam = self.diam # microns
     self.dend.L = 200 # microns
     self.dend.diam = 1 # microns
-    # self.axon.L = 150 # microns
-    # self.axon.diam = 1 # microns
+    self.axon.L = 150 # microns
+    self.axon.diam = 1 # microns
 
-  # def geom_nseg(self):
-  #   '''
-  #   Calculates numder of segments in section
-  #   '''
-  #   for sec in self.all:
-  #     sec.nseg = int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
+  def geom_nseg(self):
+    '''
+    Calculates numder of segments in section
+    '''
+    for sec in self.all:
+      sec.nseg = int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
 
   def biophys(self):
     '''
@@ -111,13 +112,13 @@ class motoneuron(object):
     self.dend.Ra = 200 # Ra ohm cm - membrane resistance
     self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
 
-    # self.axon.insert('hh')
-    # self.axon.gnabar_hh = 0.5
-    # self.axon.gkbar_hh = 0.1
-    # self.axon.gl_hh = 0.01
-    # self.axon.el_hh = -70 
-    # self.axon.Ra = 70 # Ra ohm cm - membrane resistance
-    # self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
+    self.axon.insert('hh')
+    self.axon.gnabar_hh = 0.5
+    self.axon.gkbar_hh = 0.1
+    self.axon.gl_hh = 0.01
+    self.axon.el_hh = -70 
+    self.axon.Ra = 70 # Ra ohm cm - membrane resistance
+    self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
 
   def position(self, x, y, z):
     '''
