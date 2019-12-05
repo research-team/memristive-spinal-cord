@@ -19,8 +19,8 @@ class bioaff(object):
   '''
   def __init__(self):
     #create axon
-    self.axonL = axon(50)
-    self.axonR = axon(20)
+    self.axonL = axon(random.randint(30, 70))
+    self.axonR = axon(random.randint(5, 15))
     self.topol()
     self.subsets()
     self.geom()
@@ -40,7 +40,7 @@ class bioaff(object):
     '''
     self.soma = h.Section(name='soma', cell=self)
     self.axonR.node[0].connect(self.soma(1))
-    self.axonL.node[self.axonL.axonnodes-1].connect(self.soma(1))
+    self.axonL.node[0].connect(self.soma(1))
 
     #self.basic_shape()  
 
@@ -57,7 +57,7 @@ class bioaff(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = 10 # microns
+    self.soma.L = self.soma.diam = random.uniform(15, 35) # microns
     h.define_shape()
 
   def biophys(self):
@@ -86,28 +86,28 @@ class bioaff(object):
     nc: NEURON NetCon
         connection between neurons
     '''
-    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.soma(0.5)._ref_v, target, sec = self.soma)
     nc.threshold = 10
     return nc
 
   def synapses(self):
     #for sec in self.axonL.node:
-    for i in range(5):
+    for i in range(3):
       for j in range(50): 
-        s = h.ExpSyn(self.axonL.node[i](0.5)) # Excitatory
+        s = h.ExpSyn(self.axonL.node[len(self.axonL.node)-1-i](0.5)) # Excitatory
         s.tau = 0.1
         s.e = 50
-        self.synlistex.append(s)
-        s = h.Exp2Syn(self.axonL.node[i](0.5)) # Inhibitory
-        s.tau1 = 1.5
-        s.tau2 = 2
-        s.e = -80
-        self.synlistinh.append(s)  
+        self.synlistex.append(s)  
+        s = h.ExpSyn(self.axonR.node[i+1](0.5)) # Excitatory
+        s.tau = 0.1
+        s.e = 50
+        self.synlistees.append(s)
     for i in range(200): 
-      s = h.ExpSyn(self.soma(0.5)) # Excitatory
-      s.tau = 0.1
-      s.e = 50
-      self.synlistees.append(s)
+      s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
+      s.tau1 = 1.5
+      s.tau2 = 2
+      s.e = -80
+      self.synlistinh.append(s)
       
   def is_art(self):
     return 0
