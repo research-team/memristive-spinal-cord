@@ -2,7 +2,7 @@
 
 ## Biological model
 
-![Memristive spinal cord biological model](../images/spinal-cord-diagram/spinal-cord-diagram.png)
+![Memristive spinal cord biological model](https://raw.githubusercontent.com/research-team/memristive-spinal-cord/master/doc/diagram/cpg_FE_combined.png)
 
 This is original biological model based on works of Igor Lavrov and it was proposed based on biological experiments (add references here), 
 
