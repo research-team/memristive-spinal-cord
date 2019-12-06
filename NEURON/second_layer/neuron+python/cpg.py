@@ -195,28 +195,28 @@ class CPG:
         '''between delays vself.Ia excitatory pools'''
         '''extensor'''
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.3, 3)
+            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.3, 5)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.0002, 3)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0002, 5)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00025, 3)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00025, 5)
 
         '''inhibitory projections'''
         '''extensor'''
         for layer in range(2, layers):
             if layer > 3:
                 for i in range(layer - 2):
-                    connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.5, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
             else:
                 for i in range(layer - 1):
-                    connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.5, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.5, 3)
-        genconnect(self.ees, self.Ia_aff_F, 0.5, 3)
-        genconnect(self.ees, self.dict_CV[0], 0.5, 3)
+        genconnect(self.ees, self.Ia_aff_E, 0.5, 5)
+        genconnect(self.ees, self.Ia_aff_F, 0.5, 5)
+        genconnect(self.ees, self.dict_CV[0], 0.5, 5)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.5, 3)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.5, 3)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.5, 5)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.5, 5)
 
         '''IP'''
         # for layer in range(2, 4):
@@ -225,8 +225,8 @@ class CPG:
         for layer in range(layers):
             '''Extensor'''
             #connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 5)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 5)
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
             else:
@@ -243,7 +243,7 @@ class CPG:
 
         for layer in range(layers+1): 
             '''skin inputs'''
-            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.5, 3)
+            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.5, 5)
 
         connectcells(self.IP_F, self.Ia_aff_F, 0.0001, 2, True)
 
@@ -265,7 +265,7 @@ class CPG:
         '''C3'''
         connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 3)
         connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0003, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00035, 3)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00045, 3)
         connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002, 3)
         connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 3)
 
@@ -278,8 +278,8 @@ class CPG:
         connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 3)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0003, 3)
-        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0003, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0005, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0005, 3)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1)
@@ -397,7 +397,7 @@ class CPG:
         stim = h.NetStim()
         stim.number = nums
         if r:
-            stim.start = random.uniform(start, start + 10)
+            stim.start = random.uniform(start, start + 5)
             stim.noise = 0.1
         else:
             stim.start = start
@@ -534,8 +534,8 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM2, OM1, 0.05, 4)
     connectcells(OM2, OM3, 0.002, 3)
     connectcells(OM1, OM3, 0.002, 3)
-    connectcells(OM3, OM2, 0.04, 3, True)
-    connectcells(OM3, OM1, 0.04, 3, True)
+    connectcells(OM3, OM2, 0.04, 1, True)
+    connectcells(OM3, OM1, 0.04, 1, True)
 
 def spike_record(pool, version):
     ''' Records spikes from gids

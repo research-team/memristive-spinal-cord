@@ -19,7 +19,7 @@ class bioaff(object):
   '''
   def __init__(self):
     #create axon
-    self.axonL = axon(random.randint(30, 70))
+    self.axonL = axon(random.randint(50, 100))
     self.axonR = axon(random.randint(5, 15))
     self.topol()
     self.subsets()
