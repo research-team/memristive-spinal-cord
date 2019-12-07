@@ -570,15 +570,6 @@ def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
 			y2 = data_pack[1][0][:, 1]
 			z2 = data_pack[1][0][:, 2]
 
-			from analysis.ks3 import ks3
-			print("start ks processing")
-			d1 = np.stack((x1, y1, z1), axis=1)
-			d2 = np.stack((x2, y2, z2), axis=1)
-
-			D = ks3(d1, d2)
-			print(f"K-S 3D: {D}")
-			print("- " * 10)
-
 			points_inside = []
 
 			# get data of two ellipsoids: A matrix, center and points coordinates

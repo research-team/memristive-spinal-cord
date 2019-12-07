@@ -10,7 +10,7 @@ from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename, subsampling
-from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice
+from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice, get_area_extrema_matrix
 
 flatten = chain.from_iterable
 
@@ -495,6 +495,16 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		# flatten all data of the list
 		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
+
+		if flags['plot_pca3d']:
+			# process latencies, amplitudes, peaks (per dataset per slice)
+			e_latencies = get_lat_matrix(e_prepared_data, dstep_to)
+			e_peaks, e_amplitudes = get_area_extrema_matrix(e_prepared_data, e_latencies, dstep_to)
+			coords_meta = (np.stack((e_latencies.ravel() * dstep_to,
+			                         e_amplitudes.ravel(),
+			                         e_peaks.ravel()), axis=1), next(colors), filepath)
+			pca3d_pack.append(coords_meta)
+
 		# form packs
 		ks1d_peaks.append(times)
 		ks1d_ampls.append(ampls)
@@ -520,9 +530,9 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
 			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
 
-		if flags['plot_peaks_by_intervals']:
-			e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
-			peaks_per_interval_pack.append(e_peaks_per_interval)
+		# if flags['plot_peaks_by_intervals']:
+		# 	e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
+		# 	peaks_per_interval_pack.append(e_peaks_per_interval)
 
 		log.info(f"Processed '{folder}'")
 
