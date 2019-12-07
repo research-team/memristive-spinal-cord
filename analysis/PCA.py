@@ -432,11 +432,8 @@ def contour_plot(x, y, color, ax, z_prev, borders):
 		gt = gt[gt == True]
 		truesize = len(gt)
 		zorder = -5 if truesize / fullsize * 100 > 50 else 5
-	cnt = ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5, zorder=zorder)
-	# change an edges of contours
-	for c in cnt.collections:
-		c.set_edgecolor(color)
-		c.set_linewidth(1)
+	ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
+	ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5, zorder=zorder)
 
 	return z
 
@@ -454,7 +451,7 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	"""
 	color = kwargs['color']
 	xmin, xmax, ymin, ymax = borders
-	# ax.scatter(X, Y, marker="+", color=color, s=5, zorder=3, alpha=0.4)
+	# ax.scatter(X, Y, marker=".", color=color, s=50, zorder=-5, alpha=0.5)
 
 	# create X-marginal (top)
 	ax_top = plt.subplot(gs[0, 0], sharex=ax)
@@ -475,6 +472,9 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	dy = st.gaussian_kde(Y)(yy)
 	ax_top.plot(xx, dx, color=color)
 	ax_right.plot(dy, yy, color=color)
+
+	ax_top.set_yticks([])
+	ax_right.set_xticks([])
 
 
 def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):

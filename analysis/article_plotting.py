@@ -9,7 +9,7 @@ from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename
+from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename, subsampling
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice
 
 flatten = chain.from_iterable
@@ -93,7 +93,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 		best_sample (int of np.ndarray): dataset index or np.ndarray of a best example
 	"""
 	pattern_color = "#275B78"
-	new_filename = "_".join(filename.split("_")[:-1])
+	new_filename = short_name(filename)
 	# for human read plotting
 	steps_in_slice = len(extensor_data[0][0])
 	slice_in_ms = steps_in_slice * dstep
@@ -153,9 +153,9 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 		yticklabels[i] = slice_indexes[i]
 	plt.yticks(yticks, yticklabels, fontsize=50)
 	plt.xlim(0, slice_in_ms)
+	plt.suptitle(filename, fontsize=30)
 	plt.tight_layout()
-	plt.show()
-	# plt.savefig(f"{save_to}/{new_filename}.pdf", dpi=250, format="pdf")
+	plt.savefig(f"{save_to}/{filename}_slices.png", dpi=250, format="png")
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
 
@@ -196,6 +196,7 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
 	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
 	assert len(x1) == len(y1) and len(x2) == len(y2)
+
 	logging.info(f"N1 {len(x1)}")
 	logging.info(f"N2 {len(x2)}")
 	# calc the "en"
@@ -205,10 +206,10 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	dvalue, _ = ks_2samp(x1, x2)
 	den = dvalue * en
 	pvalue = kstwobign.sf(en * dvalue)
-	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	logging.info(f"1D K-S peaks TIME\n"
-	         f"D-value: {dvalue:.5f}\n"
-	         f"p-value: {pvalue}")
+	logging.info("1D K-S peaks TIME")
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
+	             f"D-value: {dvalue:.5f}\n"
+	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
 	# 1D peak amplitudes analysis
@@ -216,10 +217,10 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
 	den = dvalue * en
 	pvalue = kstwobign.sf(den)
-	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	logging.info(f"1D K-S peaks AMPL\n"
-	         f"D-value: {dvalue:.5f}\n"
-	         f"p-value: {pvalue}")
+	logging.info("1D K-S peaks AMPL")
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
+	             f"D-value: {dvalue:.5f}\n"
+	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
 	# for TIME
@@ -243,10 +244,10 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	dvalue, _ = peacock2(d1, d2)
 	den = dvalue * en
 	pvalue = kstwobign.sf(den)
-	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})")
-	logging.info(f"2D peacock TIME/AMPL\n"
-	         f"D-value: {dvalue:.5f}\n"
-	         f"p-value: {pvalue}")
+	logging.info(f"2D peacock TIME/AMPL\n")
+	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
+	             f"D-value: {dvalue:.5f}\n"
+	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
 	# define grid for subplots
@@ -259,13 +260,50 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	# 2D joint plot
 	i = 0
 	z_prev = np.zeros(1)
+
+	z = []
 	for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
 		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders)
+		z.append(z_prev)
 		joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders)
 		kde_ax.text(0.05, 0.95 - i, f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}",
 		            transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
 		# break
 		i += 0.05
+
+	if additional_tests:
+		from colour import Color
+		plt.close()
+		fig = plt.figure()
+		ax = fig.gca(projection='3d')
+		xmin, xmax, ymin, ymax = borders
+		xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+
+		for zdata, clr in zip(z, colors):
+			levels_num = 10
+			h_norm, s_norm, l_norm = Color(clr).hsl
+			# make an gradient based on number of levels
+			light_gradient = np.linspace(l_norm, 0.95, levels_num)[::-1]
+			# generate colors for contours level from HSL (normalized) to RGB (normalized)
+			colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
+			# find an index of the maximal element
+			m = np.amax(zdata)
+			# form a step and levels
+			step = (np.amax(zdata) - np.amin(zdata)) / levels_num
+			levels = np.arange(0, m, step) + step
+
+			ax.plot_surface(xx, yy, zdata, linewidth=0, alpha=0.2, color=clr)
+			ax.plot_wireframe(xx, yy, zdata, linewidth=0.2, color=clr)
+
+			ax.contour(xx, yy, zdata, zdir='z', offset=0, linewidths=0.5, levels=levels, colors=clr)
+			ax.contourf(xx, yy, zdata, zdir='z', offset=0, levels=levels, colors=colors, alpha=0.5)
+
+			xmaaa = np.max(zdata, axis=1)
+			ymaaa = np.max(zdata, axis=0)
+			ax.plot(np.linspace(xmin, xmax, len(xmaaa)), [1.5] * len(xmaaa), xmaaa, color=clr)
+			ax.plot([8] * len(ymaaa), np.linspace(ymin, ymax, len(ymaaa)), ymaaa,  color=clr)
+
+		plt.show()
 
 	kde_ax.set_xlabel("peak time (ms)")
 	kde_ax.set_ylabel("peak amplitude")
@@ -344,24 +382,21 @@ def example_bio_sample(folder, filename):
 	Returns:
 		np.ndarray: y-data of best sample
 	"""
-	meta = filename.split("_")
-	meta_type = meta[1].lower()
-	meta_speed = meta[2]
-	ideal_filename = f"{meta_type}_{meta_speed}"
+	best_samplse_filename = f"{folder}/best_samples/{filename.replace('.hdf5', '')}"
+	print(best_samplse_filename)
 
-	if not os.path.exists(f"{folder}/{ideal_filename}"):
+	if not os.path.exists(best_samplse_filename):
 		# raise Exception(f"Where is best sample for bio data?! I can't find it here '{folder}'")
 		ideal_sample = np.array([[0] * 250 for _ in range(22)])
-
 		return ideal_sample
 
 	bio_ideal_y_data = []
 	# collect extensor data
-	with open(f"{folder}/{ideal_filename}") as file:
+	with open(best_samplse_filename) as file:
 		for d in file.readlines():
 			bio_ideal_y_data.append(list(map(float, d.split())))
 	# collect flexor_data
-	with open(f"{folder}/{ideal_filename.replace('e_', 'f_')}") as file:
+	with open(best_samplse_filename.replace('e_', 'f_')) as file:
 		for d in file.readlines():
 			bio_ideal_y_data.append(list(map(float, d.split())))
 	# convert list to array for more simplicity using
@@ -445,7 +480,6 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	for filepath in filepaths:
 		folder = ntpath.dirname(filepath)
 		e_filename = ntpath.basename(filepath)
-		data_label = e_filename.replace('.hdf5', '')
 		# default file's step size if dstep is not provided
 		if convert_dstep_to is None:
 			dstep_to = parse_filename(e_filename)[-1]
@@ -471,15 +505,19 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		if flags['plot_slices_flag']:
 			f_filename = e_filename.replace('_E_', '_F_')
 			f_prepared_data = auto_prepare_data(folder, f_filename, dstep_to=dstep_to)
+			e_lat_per_slice = get_lat_matrix(e_prepared_data, dstep_to)
 			f_lat_per_slice = get_lat_matrix(f_prepared_data, dstep_to)
 
 			# find an ideal example of dataset
 			if "bio_" in e_filename:
 				ideal_sample = example_bio_sample(folder, e_filename)
 			else:
-				ideal_sample = example_sample(e_lat_matrix, e_peak_sum_matrix, dstep_to)
+				ideal_sample = example_sample(times, ampls, dstep_to)
 
-			plot_slices(e_prepared_data, f_prepared_data, e_lat_matrix, f_lat_per_slice,
+			*etc, dstep = parse_filename(e_filename)
+			ideal_sample = subsampling(ideal_sample, dstep, dstep_to)
+
+			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
 			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
 
 		if flags['plot_peaks_by_intervals']:
