@@ -41,7 +41,7 @@ slice_height = 0.1
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 #mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
-mat_contents = sio.loadmat('../../01.29-07-R11-L-2+4-13+15-20Hz-4.mat')
+mat_contents = sio.loadmat('../../04.29-07-R22-R-2+4-13+15-20Hz-4.mat')
 
 for i in sorted(mat_contents.keys()):
     logger.info(i)
@@ -74,7 +74,7 @@ for i in range(1):
     # plt.subplot(len(starts), 1, (i+1))
     k = 0
     yticks = []
-    #draw_channels(start, end, titles)
-    draw_slices(start, end, titles, start_time, period, muscle_channel)
+    draw_channels(start, end, titles)
+    #draw_slices(start, end, titles, start_time, period, muscle_channel)
     # plt.savefig('./graphs/05.29-07-R23-R-AS{}.png'.format(i))
     plt.clf()
