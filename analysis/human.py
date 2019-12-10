@@ -34,14 +34,15 @@ def draw_slices(start, end, titles, time, period, muscle):
             for i in range(12):
                 p = d[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
                 plt.plot(np.arange(len(p)) * 0.25, p)
-        plt.show()
+        plt.savefig('../graphs/SOL_L/SOL_time{}.png'.format(time))
+        # plt.show()
 
 #Start it up!
 slice_height = 0.1
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 #mat_contents = sio.loadmat('../../RITM 14Ch + GND.mat')
-mat_contents = sio.loadmat('../../04.29-07-R22-R-2+4-13+15-20Hz-4.mat')
+mat_contents = sio.loadmat('../04.29-07-R22-R-2+4-13+15-20Hz-4.mat')
 
 for i in sorted(mat_contents.keys()):
     logger.info(i)
@@ -58,13 +59,13 @@ logger.info(len(data))
 # constants
 #start_time = 5005
 #start_time = 8810
-start_time = 14110
+start_time = 10160
 period = 50
 #muscle_channel = "SOL L     "
-#muscle_channel = "SOL L    "
-#muscle_channel = "SOL R    "
+muscle_channel = "SOL L    "
+# muscle_channel = "RF L     "
 #muscle_channel = 'TA L     '
-muscle_channel = 'TA R     '
+# muscle_channel = 'TA R     '
 #muscle_channel = "Art short"
 
 #for i in range(14, 16):
@@ -74,7 +75,7 @@ for i in range(1):
     # plt.subplot(len(starts), 1, (i+1))
     k = 0
     yticks = []
-    draw_channels(start, end, titles)
-    #draw_slices(start, end, titles, start_time, period, muscle_channel)
+    # draw_channels(start, end, titles)
+    draw_slices(start, end, titles, start_time, period, muscle_channel)
     # plt.savefig('./graphs/05.29-07-R23-R-AS{}.png'.format(i))
     plt.clf()

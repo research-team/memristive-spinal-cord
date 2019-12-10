@@ -53,14 +53,14 @@ ASSIGNED {
 
 
 BREAKPOINT {
-	SOLVE states
+	SOLVE states METHOD cnexp
 	ina = gnabar * m*m*m*h * (v - ena)
 	ik  = gkbar * n*n*n*n * (v - ek)
 }
 
 
 DERIVATIVE states {  
-	evaluate_fct(v)
+	evaluate_fct(v) 
 	m' = (m_inf - m) / tau_m
 	h' = (h_inf - h) / tau_h
 	n' = (n_inf - n) / tau_n
