@@ -17,7 +17,7 @@ nhost = int(pc.nhost())
 #param
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 20 # frequency of EES
-versions = 1
+versions = 25
 step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
@@ -199,7 +199,7 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.3, 5)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.0003, 5)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00035, 5)
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 5)
 
@@ -253,7 +253,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00035, 3)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0004, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 3)
@@ -276,12 +276,12 @@ class CPG:
         connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035, 5)
         connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045, 5)
         connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035, 5)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00045, 5)
+        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 5)
         connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001, 5)
         connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 5)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00035, 5)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0003, 5)
         connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025, 5)
 
         '''C=1 Extensor'''
@@ -532,13 +532,13 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.05, 4)
-    connectcells(OM1, OM2, 0.05, 4)
+    connectcells(OM0, OM1, 0.05, 5)
+    connectcells(OM1, OM2, 0.05, 3)
     connectcells(OM2, OM1, 0.05, 4)
-    connectcells(OM2, OM3, 0.002, 4)
-    connectcells(OM1, OM3, 0.002, 4)
-    connectcells(OM3, OM2, 0.04, 2, True)
-    connectcells(OM3, OM1, 0.04, 2, True)
+    connectcells(OM2, OM3, 0.0005, 3)
+    connectcells(OM1, OM3, 0.0005, 3)
+    connectcells(OM3, OM2, 0.04, 1, True)
+    connectcells(OM3, OM1, 0.04, 1, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.01, 3)
@@ -661,12 +661,12 @@ if __name__ == '__main__':
         motorecorders = []
         for group in cpg_ex.motogroups:
             motorecorders.append(spike_record(group[k_nrns], i))
-        affrecorders = []
-        for group in cpg_ex.affgroups:
-          affrecorders.append(spike_record(group[k_nrns], i))
-        recorders = []
-        for group in cpg_ex.groups:
-          recorders.append(spike_record(group[k_nrns], i))
+        # affrecorders = []
+        # for group in cpg_ex.affgroups:
+        #   affrecorders.append(spike_record(group[k_nrns], i))
+        # recorders = []
+        # for group in cpg_ex.groups:
+        #   recorders.append(spike_record(group[k_nrns], i))
         logging.info("added recorders")
 
         print("- " * 10, "\nstart")
@@ -675,10 +675,10 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.affgroups, affrecorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.groups, recorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.groups, recorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
         logging.info("recorded")
 
     finish()
