@@ -203,17 +203,17 @@ class CPG:
 
         connectcells(self.dict_CV[0], self.OM1_0E, 0.00025, 1)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 1)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00033, 1)
 
         '''inhibitory projections'''
         '''extensor'''
         for layer in range(2, layers):
             if layer > 3:
                 for i in range(layer - 2):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 2)
             else:
                 for i in range(layer - 1):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 2)
 
         genconnect(self.ees, self.Ia_aff_E, 0.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 0.5, 1)
@@ -246,7 +246,7 @@ class CPG:
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
 
-        for layer in range(layers+1): 
+        for layer in range(layers+1):
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.5, 5)
 
@@ -255,7 +255,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00035, 1)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00025, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 1)
@@ -283,7 +283,7 @@ class CPG:
         connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 2)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.0003, 2)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025, 2)
         connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025, 2)
 
         '''C=1 Extensor'''
@@ -338,7 +338,7 @@ class CPG:
         num: int
             neurons number in pool
         neurontype: string
-            int: interneuron 
+            int: interneuron
             delay: interneuron with 5ht
             moto: motoneuron
             aff: afferent
@@ -484,7 +484,7 @@ def connectcells(pre, post, weight, delay, inhtype = False):
                     exnclist.append(nc)
                     # str nc.weight[0] = random.gauss(weight, weight / 10)
                 nc.weight[0] = random.gauss(weight, weight / 10)
-                nc.delay = random.gauss(delay, delay / 5)
+                nc.delay = random.gauss(delay, delay / 7)
 
 
 def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
@@ -537,10 +537,10 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 0.05, 1)
     connectcells(OM1, OM2, 0.05, 2)
     connectcells(OM2, OM1, 0.05, 4)
-    connectcells(OM2, OM3, 0.0005, 3)
-    connectcells(OM1, OM3, 0.0005, 3)
-    connectcells(OM3, OM2, 0.04, 1, True)
-    connectcells(OM3, OM1, 0.04, 1, True)
+    connectcells(OM2, OM3, 0.0002, 3)
+    connectcells(OM1, OM3, 0.0001, 3)
+    connectcells(OM3, OM2, 0.08, 1, True)
+    connectcells(OM3, OM1, 0.08, 1, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.01, 2)
@@ -652,7 +652,7 @@ def finish():
 if __name__ == '__main__':
     '''
     cpg_ex: cpg
-        topology of central pattern generation + reflex arc 
+        topology of central pattern generation + reflex arc
     '''
     k_nrns = 0
     k_name = 1
