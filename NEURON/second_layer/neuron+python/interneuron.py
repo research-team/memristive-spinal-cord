@@ -9,7 +9,7 @@ class interneuron(object):
   Interneuron class with parameters:
     delay: bool
       Does it have 5ht receptors?
-      -Yes: True 
+      -Yes: True
       -No: False
     soma: NEURON Section (creates by topol())
     dend: NEURON Section (creates by topol())
@@ -19,14 +19,14 @@ class interneuron(object):
     synlistex: list (creates by synapses())
       list of excitatory synapses
     synlistees: list (creates by synapses())
-      list of excitatory synapses for connection with generators 
+      list of excitatory synapses for connection with generators
     x, y, z: int
       3D coordinates (isn't used)
     diffs: list
       list of diffusion mechanisms (NEURON staff)
     recs: list
       list of receptors mechanisms (NEURON staff)
-  '''  
+  '''
   def __init__(self, delay):
     self.delay = delay
     self.diffs = []
@@ -48,7 +48,7 @@ class interneuron(object):
 
   def topol(self):
     '''
-    Creates sections soma, dend, axon and connects them 
+    Creates sections soma, dend, axon and connects them
     if it's delay creates section dend[]: array
     '''
     self.soma = h.Section(name='soma', cell=self)
@@ -64,7 +64,7 @@ class interneuron(object):
     '''
     self.all = h.SectionList()
     for sec in h.allsec():
-      self.all.append(sec=sec)    
+      self.all.append(sec=sec)
 
   def geom(self):
     '''
@@ -85,7 +85,7 @@ class interneuron(object):
 
   def biophys(self):
     '''
-    Adds channels and their parameters 
+    Adds channels and their parameters
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
@@ -96,7 +96,7 @@ class interneuron(object):
     self.soma.gnabar_hh = 0.4
     self.soma.gkbar_hh = 0.01
     self.soma.gl_hh = 0.002
-    self.soma.el_hh = -70 
+    self.soma.el_hh = -70
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     self.dend.Ra = 100 # Ra ohm cm - membrane resistance
@@ -112,7 +112,7 @@ class interneuron(object):
       diff.tx1 = 10+(diff.h/70)*1000
       h.setpointer(diff._ref_serotonin, 'serotonin', rec)
       self.diffs.append(diff)
-      self.recs.append(rec)  
+      self.recs.append(rec)
     else:
       self.dend.insert('pas')
       self.dend.g_pas = 0.0002
@@ -123,8 +123,8 @@ class interneuron(object):
 
   def position(self, x, y, z):
     '''
-    NEURON staff 
-    Adds 3D position 
+    NEURON staff
+    Adds 3D position
     '''
     soma.push()
     for i in range(h.n3d()):
@@ -134,12 +134,12 @@ class interneuron(object):
 
   def connect2target(self, target):
     '''
-    NEURON staff 
-    Adds presynapses 
+    NEURON staff
+    Adds presynapses
     Parameters
     ----------
     target: NEURON cell
-        target neuron 
+        target neuron
     Returns
     -------
     nc: NEURON NetCon
@@ -151,22 +151,22 @@ class interneuron(object):
 
   def synapses(self):
     '''
-    Adds synapses 
+    Adds synapses
     '''
-    for i in range(200): 
+    for i in range(200):
       s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50
       self.synlistex.append(s)
       s = h.Exp2Syn(self.dend(0.5)) # Inhibitory
-      s.tau1 = 1.5
-      s.tau2 = 2
+      s.tau1 = 2
+      s.tau2 = 3
       s.e = -80
-      self.synlistinh.append(s)  
+      self.synlistinh.append(s)
       s = h.ExpSyn(self.dend(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50
-      self.synlistees.append(s)  
+      self.synlistees.append(s)
 
   def is_art(self):
     return 0

@@ -203,17 +203,17 @@ class CPG:
 
         connectcells(self.dict_CV[0], self.OM1_0E, 0.00025, 1)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00033, 1)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 1)
 
         '''inhibitory projections'''
         '''extensor'''
         for layer in range(2, layers):
             if layer > 3:
                 for i in range(layer - 2):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 2)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.2, 1)
             else:
                 for i in range(layer - 1):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.05, 2)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.2, 1)
 
         genconnect(self.ees, self.Ia_aff_E, 0.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 0.5, 1)
@@ -223,14 +223,14 @@ class CPG:
         connectcells(self.Ia_aff_F, self.mns_F, 0.5, 2)
 
         '''IP'''
-        # for layer in range(2, 4):
-        #     connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.005, 2)
-        #     connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
+        for layer in range(2, 4):
+            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.005, 2)
+            connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
         for layer in range(layers):
             '''Extensor'''
-            #connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
             connectinsidenucleus(self.dict_IP_E[layer])
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 2)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.4, 2)
             connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2)
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
@@ -255,7 +255,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00025, 1)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 1)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 1)
@@ -477,14 +477,16 @@ def connectcells(pre, post, weight, delay, inhtype = False):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
+                    nc.delay = random.gauss(delay, delay / 5)
                     # str nc.weight[0] = 0
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
+                    nc.delay = random.gauss(delay, delay / 7)
                     # str nc.weight[0] = random.gauss(weight, weight / 10)
                 nc.weight[0] = random.gauss(weight, weight / 10)
-                nc.delay = random.gauss(delay, delay / 7)
+
 
 
 def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
@@ -534,13 +536,13 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.05, 1)
+    connectcells(OM0, OM1, 0.05, 2)
     connectcells(OM1, OM2, 0.05, 2)
     connectcells(OM2, OM1, 0.05, 4)
     connectcells(OM2, OM3, 0.0002, 3)
     connectcells(OM1, OM3, 0.0001, 3)
-    connectcells(OM3, OM2, 0.08, 1, True)
-    connectcells(OM3, OM1, 0.08, 1, True)
+    connectcells(OM3, OM2, 0.8, 1, True)
+    connectcells(OM3, OM1, 0.8, 1, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.01, 2)
