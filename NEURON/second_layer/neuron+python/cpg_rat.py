@@ -249,43 +249,43 @@ class CPG:
 
         for layer in range(layers+1):
             '''skin inputs'''
-            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.1, 5)
+            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.1*k*speed, 5)
 
         connectcells(self.IP_F, self.Ia_aff_F, 0.0001, 2, True)
 
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 2)
-        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 2)
-        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 2)
-        connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 2)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003*k*speed, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
 
         '''C2'''
-        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0001, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00045, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00015, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001, 2)
+        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0001*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00045*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00015*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001*k*speed, 2)
 
         '''C3'''
-        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0005, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.00035, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 2)
+        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0005*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.00035*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001*k*speed, 2)
 
         '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035, 3)
-        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 3)
-        connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035*k*speed, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045*k*speed, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035*k*speed, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004*k*speed, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001*k*speed, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001*k*speed, 3)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025, 3)
-        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025*k*speed, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025*k*speed, 3)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1)
