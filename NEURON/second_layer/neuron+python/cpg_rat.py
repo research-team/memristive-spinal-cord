@@ -15,7 +15,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 25
 step_number = 1 # number of steps
@@ -25,6 +25,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
+k = 0.03
 
 exnclist = []
 inhnclist = []
@@ -201,19 +202,19 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.3, 3)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00025, 1)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00025, 2)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 1)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 2)
 
         '''inhibitory projections'''
         '''extensor'''
         for layer in range(2, layers):
             if layer > 3:
                 for i in range(layer - 2):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.2, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
             else:
                 for i in range(layer - 1):
-                    connectcells(self.dict_C[layer], self.dict_3[i], 0.2, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
 
         genconnect(self.ees, self.Ia_aff_E, 0.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 0.5, 1)
@@ -224,18 +225,18 @@ class CPG:
 
         '''IP'''
         for layer in range(2, 4):
-            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.005, 2)
-            connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
+            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], 0.35, 2)
+            connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], 0.35, 2)
         for layer in range(layers):
             '''Extensor'''
             connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
             connectinsidenucleus(self.dict_IP_E[layer])
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.4, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 2)
             if layer > 2:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
             else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 1, True)
             if layer > 2:
                 '''Flexor'''
                 connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.3, 2)
@@ -248,43 +249,43 @@ class CPG:
 
         for layer in range(layers+1):
             '''skin inputs'''
-            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.5, 5)
+            connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.1, 5)
 
         connectcells(self.IP_F, self.Ia_aff_F, 0.0001, 2, True)
 
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 1)
-        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 1)
-        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 1)
-        connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 1)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001, 2)
+        connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001, 2)
 
         '''C2'''
-        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0001, 1)
-        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035, 1)
-        connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00045, 1)
-        connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00015, 1)
-        connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001, 1)
+        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0001, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00045, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00015, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001, 2)
 
         '''C3'''
-        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 1)
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045, 1)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0005, 1)
-        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.00035, 1)
-        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 1)
+        connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0005, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.00035, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001, 2)
 
         '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035, 2)
-        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045, 2)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035, 2)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 2)
-        connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001, 2)
-        connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 2)
+        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00045, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.0004, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001, 3)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025, 2)
-        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025, 2)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.00025, 3)
 
         '''C=1 Extensor'''
         connectcells(self.IP_E, self.iIP_E, 0.8, 1)
@@ -477,15 +478,15 @@ def connectcells(pre, post, weight, delay, inhtype = False):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
-                    nc.delay = random.gauss(delay, delay / 5)
-                    # str nc.weight[0] = 0
+                    # nc.delay = random.gauss(delay, delay / 5)
+                    # nc.weight[0] = 0
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
-                    nc.delay = random.gauss(delay, delay / 7)
-                    # str nc.weight[0] = random.gauss(weight, weight / 10)
+                nc.delay = random.gauss(delay, delay / 7)
                 nc.weight[0] = random.gauss(weight, weight / 10)
+                #nc.weight[0] = random.gauss(weight, weight / 10)
 
 
 
@@ -536,16 +537,16 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.05, 2)
-    connectcells(OM1, OM2, 0.05, 2)
-    connectcells(OM2, OM1, 0.05, 4)
-    connectcells(OM2, OM3, 0.0002, 3)
-    connectcells(OM1, OM3, 0.0001, 3)
+    connectcells(OM0, OM1, 0.5, 2)
+    connectcells(OM1, OM2, 0.5, 2)
+    connectcells(OM2, OM1, 0.5, 4)
+    connectcells(OM2, OM3, 0.00005, 3)
+    connectcells(OM1, OM3, 0.00005, 3)
     connectcells(OM3, OM2, 0.8, 1, True)
     connectcells(OM3, OM1, 0.8, 1, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.01, 2)
+    connectcells(nucleus, nucleus, 0.1, 2)
 
 def spike_record(pool, version):
     ''' Records spikes from gids
@@ -624,7 +625,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path = str('./res/' + name + 'r%dv%d_%dtests_%dspeed' % (rank, version, versions, speed))
+            path = str('./res/' + name + 'r%dv%d_%dtests_%dspeed_PLT' % (rank, version, versions, speed))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")
