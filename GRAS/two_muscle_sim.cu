@@ -44,6 +44,9 @@ const float V_adj = -63.0;           // adjusts threshold to around -50 mV
 const float g_bar = 1000;            // [nS] the maximal possible conductivity
 
 
+
+const int neurons_in_moto = 200;
+
 class Group {
 public:
 	Group() = default;
@@ -479,7 +482,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	//connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 0.1);
 	// output to IP
 	connect_fixed_outdegree(OM1_2_E, eIP_E, 1, 0.1, neurons_in_ip); //16
-	//connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 0.1, neurons_in_ip);
+	//connect_fixed_outdegree(OM1_2_F, eIP_F, 4, 1, neurons_in_ip);
 
 
 	
@@ -591,39 +594,41 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 //	connect_fixed_outdegree(OM5_2_F, eIP_F, 4, 5, neurons_in_ip);
 //
 //	/// reflex arc
-//	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -10, neurons_in_ip);
-//	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -10, neurons_in_ip);
 //
-//	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.1, neurons_in_ip);
-//	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.1, neurons_in_ip);
-//	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.1, neurons_in_ip);
-//	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -0.1, neurons_in_ip);
+	//connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.1, neurons_in_ip);
+	//connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.1, neurons_in_ip);
+	//connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.1, neurons_in_ip);	
+	//connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -0.1, neurons_in_ip);
+
 //
-//	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
-//	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
+	connect_fixed_outdegree(EES, Ia_E_aff, 1, 500);
+
+	connect_fixed_outdegree(EES, Ia_F_aff, 1, 500);
 //
-//	connect_fixed_outdegree(eIP_E, MN_E, 0.5, 2.3, neurons_in_moto); // 2.2
-//	connect_fixed_outdegree(eIP_F, MN_F, 5, 8, neurons_in_moto);
+	connect_fixed_outdegree(eIP_E, MN_E, 0.5, 2.3, neurons_in_moto); // 2.2
+	connect_fixed_outdegree(eIP_F, MN_F, 5, 8, neurons_in_moto);
 //
-//	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
-//	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 10, neurons_in_ip);
+	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 10, neurons_in_ip);
 //
-//	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -4, neurons_in_ip);
-//	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip);
-//	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
-//	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip);
+	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -4, neurons_in_ip);
+	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip);
+	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
+	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip);
 //
-//	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 8, neurons_in_moto);
-//	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 6, neurons_in_moto);
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 8, neurons_in_moto);
+	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 6, neurons_in_moto);
 //
-//	connect_fixed_outdegree(MN_E, R_E, 2, 1);
-//	connect_fixed_outdegree(MN_F, R_F, 2, 1);
+	connect_fixed_outdegree(MN_E, R_E, 2, 1);
+	connect_fixed_outdegree(MN_F, R_F, 2, 1);
 //
-//	connect_fixed_outdegree(R_E, MN_E, 2, -0.5, neurons_in_moto);
-//	connect_fixed_outdegree(R_E, R_F, 2, -1);
+	connect_fixed_outdegree(R_E, MN_E, 2, -0.5, neurons_in_moto);
+	connect_fixed_outdegree(R_E, R_F, 2, -1);
 //
-//	connect_fixed_outdegree(R_F, MN_F, 2, -0.5, neurons_in_moto);
-//	connect_fixed_outdegree(R_F, R_E, 2, -1);
+	connect_fixed_outdegree(R_F, MN_F, 2, -0.5, neurons_in_moto);
+	connect_fixed_outdegree(R_F, R_E, 2, -1);
 }
 
 void save(int test_index, GroupMetadata &metadata, const string& folder){

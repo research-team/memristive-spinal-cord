@@ -77,7 +77,7 @@ def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, p
 
 				Y = [-v - V_rest for v in voltage[chunk_start:chunk_end]]
 				X = [x * step for x in range(len(Y))]
-				shifted_y = [y + 50 * slice_index for y in Y]
+				shifted_y = [y + 10 * slice_index for y in Y]
 
 				plt.plot(X, shifted_y, linewidth=0.7, color='r')
 
