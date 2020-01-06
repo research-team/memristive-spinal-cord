@@ -59,7 +59,7 @@ def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, p
 	for name, voltage, g_e, g_i, s in zip(names, voltages, g_exc, g_inh, spikes):
 		if plot_only and name != plot_only:
 			continue
-		if not("OM1" in name or "MN_E" in name or "MN_F" in name): #or "MN_E" in name or "MN_F" in name
+		if not("OM1" in name or "MN_E" in name or "MN_F" in name or "OM2" in name): #or "MN_E" in name or "MN_F" in name
 			continue
 			
 		sim_time = int(len(voltage) * step)
@@ -155,15 +155,15 @@ def run():
 		nuclei = sys.argv[2]
 	else:
 		t = time.ctime()
-		pathnew = f"/home/kseniia/Desktop/OM1/{t}"
+		pathnew = f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}"
 		os.makedirs(pathnew)
 		path = "/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/dat"
 		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/two_muscle_sim.cu'
-		target = f"/home/kseniia/Desktop/OM1/{t}"
+		target = f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}"
 		copy(source, target)
 
 	#plot(skin_stim_time, *read_data(path), step=step, save_to=f"{path}/OM5/results/", plot_only=nuclei) #must change path! /OMx/
-	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1/{t}", plot_only=nuclei) #must change path! /OMx/
+	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}", plot_only=nuclei) #must change path! /OMx/
 	
 	
 
