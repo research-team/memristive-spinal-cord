@@ -15,7 +15,7 @@ class motoneuron(object):
     synlistex: list (creates by synapses())
       list of excitatory synapses
     x, y, z: int
-      3D coordinates 
+      3D coordinates
   '''
   def __init__(self, diam):
     #print 'construct ', self
@@ -38,14 +38,14 @@ class motoneuron(object):
 
   def topol(self):
     '''
-    Creates sections soma, dend, axon and connects them 
+    Creates sections soma, dend, axon and connects them
     '''
     self.soma = h.Section(name='soma', cell=self)
     self.dend = h.Section(name='dend', cell= self)
     self.axon = h.Section(name='axon', cell= self)
     self.dend.connect(self.soma(1))
     self.axon.connect(self.soma(1))
-    self.basic_shape()  
+    self.basic_shape()
 
   def basic_shape(self):
     '''
@@ -95,19 +95,19 @@ class motoneuron(object):
 
   def biophys(self):
     '''
-    Adds channels and their parameters 
+    Adds channels and their parameters
     '''
     self.soma.insert('motoneuron')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
-    self.soma.cm = random.gauss(2, 0.1) # cm uf/cm2 - membrane capacitance  
+    self.soma.cm = random.gauss(2, 0.1) # cm uf/cm2 - membrane capacitance
     if self.diam > 40:
       self.soma.gnabar_motoneuron = 0.4
       self.soma.gl_motoneuron = 0.01
     else:
       self.soma.gnabar_motoneuron = 0.055
       self.soma.gl_motoneuron = 0.0002
-    ''' 
+    '''
     self.soma.insert('pas')
     self.soma.g_pas = 0.002
     self.soma.e_pas = -80
@@ -122,14 +122,14 @@ class motoneuron(object):
     self.axon.gnabar_hh = 0.5
     self.axon.gkbar_hh = 0.1
     self.axon.gl_hh = 0.01
-    self.axon.el_hh = -70 
+    self.axon.el_hh = -70
     self.axon.Ra = 70 # Ra ohm cm - membrane resistance
-    self.axon.cm = 2 # cm uf/cm2 - membrane capacitance   
+    self.axon.cm = 2 # cm uf/cm2 - membrane capacitance
 
   def position(self, x, y, z):
     '''
-    NEURON staff 
-    Adds 3D position 
+    NEURON staff
+    Adds 3D position
     '''
     soma.push()
     for i in range(h.n3d()):
@@ -139,12 +139,12 @@ class motoneuron(object):
 
   def connect2target(self, target):
     '''
-    NEURON staff 
-    Adds presynapses 
+    NEURON staff
+    Adds presynapses
     Parameters
     ----------
     target: NEURON cell
-        target neuron 
+        target neuron
     Returns
     -------
     nc: NEURON NetCon
@@ -156,9 +156,9 @@ class motoneuron(object):
 
   def synapses(self):
     '''
-    Adds synapses 
+    Adds synapses
     '''
-    for i in range(200): 
+    for i in range(200):
       s = h.ExpSyn(self.soma(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50
@@ -167,7 +167,7 @@ class motoneuron(object):
       s.tau1 = 1
       s.tau2 = 1.5
       s.e = -80
-      self.synlistinh.append(s)    
+      self.synlistinh.append(s)
 
   def is_art(self):
     return 0

@@ -93,9 +93,9 @@ class interneuron(object):
 
     self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.4
-    self.soma.gkbar_hh = 0.01
-    self.soma.gl_hh = 0.002
+    self.soma.gnabar_hh = 0.2
+    self.soma.gkbar_hh = 0.04
+    self.soma.gl_hh = 0.0002
     self.soma.el_hh = -70
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
