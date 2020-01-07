@@ -59,7 +59,7 @@ def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, p
 	for name, voltage, g_e, g_i, s in zip(names, voltages, g_exc, g_inh, spikes):
 		if plot_only and name != plot_only:
 			continue
-		if not("OM1" in name or "MN_E" in name or "MN_F" in name or "OM2" in name): #or "MN_E" in name or "MN_F" in name
+		if not("OM1" in name or "MN_E" in name or "MN_F" in name ): #or "MN_E" in name or "MN_F" in name or "OM2" in name
 			continue
 			
 		sim_time = int(len(voltage) * step)
@@ -77,7 +77,7 @@ def plot(skin_stim_time, names, voltages, g_exc, g_inh, spikes, step, save_to, p
 
 				Y = [-v - V_rest for v in voltage[chunk_start:chunk_end]]
 				X = [x * step for x in range(len(Y))]
-				shifted_y = [y + 10 * slice_index for y in Y]
+				shifted_y = [y + 5 * slice_index for y in Y]
 
 				plt.plot(X, shifted_y, linewidth=0.7, color='r')
 
@@ -155,15 +155,15 @@ def run():
 		nuclei = sys.argv[2]
 	else:
 		t = time.ctime()
-		pathnew = f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}"
+		pathnew = f"/home/kseniia/Desktop/OM1-2/7_JAN/{t}"
 		os.makedirs(pathnew)
 		path = "/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/dat"
 		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/two_muscle_sim.cu'
-		target = f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}"
+		target = f"/home/kseniia/Desktop/OM1-2/7_JAN/{t}"
 		copy(source, target)
 
 	#plot(skin_stim_time, *read_data(path), step=step, save_to=f"{path}/OM5/results/", plot_only=nuclei) #must change path! /OMx/
-	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1-2/6_DEC/{t}", plot_only=nuclei) #must change path! /OMx/
+	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1-2/7_JAN/{t}", plot_only=nuclei) #must change path! /OMx/
 	
 	
 
