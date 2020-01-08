@@ -206,32 +206,32 @@ class CPG:
         for layer in range(2, layers):
             if layer > 3:
                 for i in range(layer - 2):
-                    connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.5, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
             else:
                 for i in range(layer - 1):
-                    connectcells(self.dict_CV_1[layer], self.dict_3[i], 0.5, 1)
+                    connectcells(self.dict_C[layer], self.dict_3[i], 0.5, 1)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.1, 2)
-        genconnect(self.ees, self.Ia_aff_F, 0.1, 2)
+        genconnect(self.ees, self.Ia_aff_E, 0.5, 2)
+        genconnect(self.ees, self.Ia_aff_F, 0.5, 2)
         genconnect(self.ees, self.dict_CV[0], 0.5, 2)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.12, 1)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.12, 1)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.3, 1)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.3, 1)
 
         '''IP'''
         for layer in range(2, 4):
-            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.005, 2)
+            connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.05, 2)
             connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
         for layer in range(layers):
             '''Extensor'''
             connectinsidenucleus(self.dict_IP_E[layer])
             connectinsidenucleus(self.dict_1[layer])
             connectinsidenucleus(self.dict_2E[layer])
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.3, 3)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.3, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.3, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.4, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 2)
             if layer > 2:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
             else:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
             if layer > 2:
@@ -515,7 +515,7 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
                     syn = target.synlistees[j]
                 nc = pc.gid_connect(gen_gid, syn)
                 stimnclist.append(nc)
-                nc.delay = random.gauss(delay, delay / 5)
+                nc.delay = random.gauss(delay, delay / 6)
                 nc.weight[0] = random.gauss(weight, weight / 10)
 
 def createmotif(OM0, OM1, OM2, OM3):
@@ -541,7 +541,7 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM3, OM1, 0.04, 3, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.05, 5)
+    connectcells(nucleus, nucleus, 0.05, 4)
 
 def spike_record(pool, version):
     ''' Records spikes from gids
@@ -634,7 +634,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
-    tstop = 7 * speed#(7 * speed + 125) * step_number
+    tstop = (7 * speed + 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
     pc.psolve(tstop)
