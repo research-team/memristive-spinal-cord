@@ -171,6 +171,18 @@ def short_name(name):
 	return f"{source}_{muscle}_{speed}_{pedal}ped"
 
 
+def ecdf(sample):
+	# convert sample to a numpy array, if it isn't already
+	sample = np.array(sample)
+	# find the unique values and their corresponding counts
+	quantiles, counts = np.unique(sample, return_counts=True)
+	# take the cumulative sum of the counts and divide by the sample size to
+	# get the cumulative probabilities between 0 and 1
+	cumul_prob = np.cumsum(counts).astype(np.double) / sample.size
+
+	return quantiles, cumul_prob
+
+
 def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_size, save_to, additional_tests=False):
 	"""
 	ToDo add info
@@ -212,6 +224,20 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
+	# for TIMES
+	plt.figure()
+	i = 0
+	for x, color, name in zip(peaks_times_pack, colors, names):
+		qe, pe = ecdf(x)
+		plt.plot(qe, pe, color, label=name)
+		plt.text(0, 1 - i, f"STD: {np.std(x):.3}, MED: {np.median(x):.3}", verticalalignment='top', color=color,
+		         fontsize=10)
+		i += 0.05
+	plt.text(0, 1 - i, f"D: {dvalue:.3}", verticalalignment='top', fontsize=10)
+	plt.savefig(f"{save_to}/{new_filename}_1Dampls.png", dpi=250, format="png")
+	plt.show()
+	plt.close()
+
 	# 1D peak amplitudes analysis
 	dvalue, _ = ks_2samp(y1, y2)
 	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
@@ -223,19 +249,17 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
-	# for TIME
-	plt.figure()
-	for x, color, name in zip(peaks_times_pack, colors, names):
-		plt.plot(np.sort(x), np.arange(len(x)) / len(x), color, label=name)
-	plt.legend()
-	plt.savefig(f"{save_to}/{new_filename}_1Dtimes.png", dpi=250, format="png")
-	plt.close()
-
 	# for AMPL
 	plt.figure()
+	i = 0
 	for y, color, name in zip(peaks_ampls_pack, colors, names):
-		plt.plot(np.sort(y), np.arange(len(y)) / len(y), color)
+		qe, pe = ecdf(y)
+		plt.plot(qe, pe, color, label=name)
+		plt.text(0, 1 - i, f"STD: {np.std(y):.3}, MED: {np.median(y):.3}", verticalalignment='top', color=color, fontsize=10)
+		i += 0.05
+	plt.text(0, 1 - i, f"D: {dvalue:.3}", verticalalignment='top', fontsize=10)
 	plt.savefig(f"{save_to}/{new_filename}_1Dampls.png", dpi=250, format="png")
+	plt.show()
 	plt.close()
 
 	# 2D peak times/amplitudes analysis
@@ -251,25 +275,24 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	logging.info("- " * 10)
 
 	# define grid for subplots
-	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
-	fig = plt.figure()
-	kde_ax = plt.subplot(gs[1, 0])
+	gs = gridspec.GridSpec(3, 3, width_ratios=[1, 6, 1], height_ratios=[1, 5, 1], wspace=0.3)
+	fig = plt.figure(figsize=(10, 10))
+	kde_ax = plt.subplot(gs[1, 1])
 	kde_ax.spines['top'].set_visible(False)
 	kde_ax.spines['right'].set_visible(False)
 
 	# 2D joint plot
-	i = 0
+	i = 1
 	z_prev = np.zeros(1)
-
 	z = []
 	for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
 		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders)
 		z.append(z_prev)
-		joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders)
-		kde_ax.text(0.05, 0.95 - i, f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}",
+		joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": i}, borders=borders)
+		kde_ax.text(0.05, 0.95 - i * 0.05, f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}",
 		            transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
 		# break
-		i += 0.05
+		i += 1
 
 	if additional_tests:
 		from colour import Color
@@ -309,8 +332,10 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	kde_ax.set_ylabel("peak amplitude")
 	kde_ax.set_xlim(borders[0], borders[1])
 	kde_ax.set_ylim(borders[2], borders[3])
+
 	plt.tight_layout()
 	plt.savefig(f"{save_to}/{new_filename}_kde2d.png", dpi=250, format="png")
+	plt.show()
 	plt.close(fig)
 
 	logging.info(f"saved to {save_to}")
@@ -522,10 +547,10 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			if "bio_" in e_filename:
 				ideal_sample = example_bio_sample(folder, e_filename)
 			else:
-				ideal_sample = example_sample(times, ampls, dstep_to)
+				ideal_sample = 0    # example_sample(times, ampls, dstep_to)
 
-			*etc, dstep = parse_filename(e_filename)
-			ideal_sample = subsampling(ideal_sample, dstep, dstep_to)
+			# *etc, dstep = parse_filename(e_filename)
+			# ideal_sample = subsampling(ideal_sample, dstep, dstep_to)
 
 			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
 			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)

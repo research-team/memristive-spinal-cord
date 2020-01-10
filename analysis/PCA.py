@@ -28,6 +28,21 @@ class Arrow3D(FancyArrowPatch):
 		FancyArrowPatch.draw(self, renderer)
 
 
+def recolor(boxplot_elements, color, fill_color):
+	"""
+	Add colors to bars (setup each element)
+	Args:
+		boxplot_elements (dict): components of the boxplot
+		color (str): HEX color of outside lines
+		fill_color (str): HEX color of filling
+	"""
+	for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+		plt.setp(boxplot_elements[element], color=color, linewidth=1)
+	plt.setp(boxplot_elements["fliers"], markeredgecolor=color)
+	for patch in boxplot_elements['boxes']:
+		patch.set(facecolor=fill_color)
+
+
 def form_ellipse(P):
 	""" Form the ellipsoid based on all points
 	Here, P is a numpy array of points:
@@ -450,17 +465,38 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 		**kwargs:
 	"""
 	color = kwargs['color']
+	pos = kwargs['pos']
 	xmin, xmax, ymin, ymax = borders
 	# ax.scatter(X, Y, marker=".", color=color, s=50, zorder=-5, alpha=0.5)
 
 	# create X-marginal (top)
-	ax_top = plt.subplot(gs[0, 0], sharex=ax)
+	ax_top = plt.subplot(gs[0, 1], sharex=ax)
 	ax_top.spines['top'].set_visible(False)
 	ax_top.spines['right'].set_visible(False)
 	# create Y-marginal (right)
-	ax_right = plt.subplot(gs[1, 1], sharey=ax)
+	ax_right = plt.subplot(gs[1, 2], sharey=ax)
 	ax_right.spines['top'].set_visible(False)
 	ax_right.spines['right'].set_visible(False)
+
+	ax_left = plt.subplot(gs[1, 0])
+	ax_left.spines['top'].set_visible(False)
+	ax_left.spines['right'].set_visible(False)
+
+	ax_bottom = plt.subplot(gs[2, 1])
+	ax_bottom.spines['top'].set_visible(False)
+	ax_bottom.spines['right'].set_visible(False)
+
+	flierprops = dict(marker='.', markersize=1, linestyle='none')
+
+	bxt = ax_left.boxplot(Y, positions=[pos * 10], widths=3, patch_artist=True, flierprops=flierprops)
+	recolor(bxt, 'k', color)
+	ax_left.set_ylim([ymin, ymax])
+	ax_left.set_xticks([])
+
+	bxt = ax_bottom.boxplot(X, positions=[pos], widths=0.4, vert=False, patch_artist=True, flierprops=flierprops)
+	recolor(bxt, 'k', color)
+	ax_bottom.set_xlim([xmin, xmax])
+	ax_bottom.set_yticks([])
 
 	# add grid
 	ax_top.grid(which='minor', axis='x')
