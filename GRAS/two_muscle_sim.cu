@@ -462,7 +462,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_one_to_all(CV1, OM1_0, 1, 3 * quadru_coef * sero_coef);
 	connect_one_to_all(CV2, OM1_0, 5, 15 * quadru_coef * sero_coef);
     // [inhibition]
-    connect_one_to_all(CV3, OM1_3, 0.005, 12);
+    connect_one_to_all(CV3, OM1_3, 0.005, 5);
     connect_one_to_all(CV4, OM1_3, 0.5, 1);
     connect_one_to_all(CV5, OM1_3, 0.5, 1);
     
@@ -476,7 +476,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
     connect_fixed_outdegree(OM1_2_E, OM1_3, 1, 0.000008);
     //connect_fixed_outdegree(OM1_2_F, OM1_3, 1, 0.0008 * 2);
     connect_fixed_outdegree(OM1_3, OM1_1, 0.5, -0.04 * inh_coef);
-    connect_fixed_outdegree(OM1_3, OM1_2_E, 0.5, -0.04 * inh_coef);
+    connect_fixed_outdegree(OM1_3, OM1_2_E, 0.00005, -0.02 * inh_coef);
     //connect_fixed_outdegree(OM1_3, OM1_2_F, 0.5, -0.000002 * inh_coef);
     // output to OM2
     //connect_fixed_outdegree(OM1_2_F, OM2_2_F, 4, 0.006);
@@ -490,35 +490,36 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 
 
+
 	
 	
 
 	/// OM 2
 	// input from EES group 2
-/*	connect_fixed_outdegree(E2, OM2_0, 2, 0.01);
+	connect_fixed_outdegree(E2, OM2_0, 2, 0.01);
 		// input from sensory [CV]
 	connect_one_to_all(CV2, OM2_0, 0.5, 5 * quadru_coef * sero_coef);
-	connect_one_to_all(CV3, OM2_0, 0.5, 5 * quadru_coef * sero_coef);
+	connect_one_to_all(CV3, OM2_0, 3, 7 * quadru_coef * sero_coef);
 	// [inhibition]
-	connect_one_to_all(CV4, OM2_3, 1, 0);
-	connect_one_to_all(CV5, OM2_3, 1, 0);
+	connect_one_to_all(CV4, OM2_3, 1, 2);
+	connect_one_to_all(CV5, OM2_3, 1, 1);
 	// inner connectomes
-	connect_fixed_outdegree(OM2_0, OM2_1, 1, 1);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 0);
-	connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 0);
-	connect_fixed_outdegree(OM2_1, OM2_3, 1, 0.1);
-	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 0);
-	connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 0);
-	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 0);
-	connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 0);
-	connect_fixed_outdegree(OM2_3, OM2_1, 1, -1 * inh_coef);
-	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -1 * inh_coef);
-	connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -0 * inh_coef); //-70
+	connect_fixed_outdegree(OM2_0, OM2_1, 1, 0.05);
+	connect_fixed_outdegree(OM2_1, OM2_2_E, 5, 0.5);
+	//connect_fixed_outdegree(OM2_1, OM2_2_F, 1, 0);
+	connect_fixed_outdegree(OM2_1, OM2_3, 1, 1);
+	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 0.001);
+	//connect_fixed_outdegree(OM2_2_F, OM2_1, 2.5, 0);
+	connect_fixed_outdegree(OM2_2_E, OM2_3, 1, 10);
+	//connect_fixed_outdegree(OM2_2_F, OM2_3, 1, 0);
+	connect_fixed_outdegree(OM2_3, OM2_1, 1, -0.003 * inh_coef);
+	connect_fixed_outdegree(OM2_3, OM2_2_E, 1, -0.01 * inh_coef);
+	//connect_fixed_outdegree(OM2_3, OM2_2_F, 1, -0 * inh_coef); //-70
 	// output to OM3
 	//connect_fixed_outdegree(OM2_2_F, OM3_2_F, 4, 30);
 	// output to IP
-	//connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 8, neurons_in_ip); // 5
-	//connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 5, neurons_in_ip);*/
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 2, 8, neurons_in_ip); // 5
+	//connect_fixed_outdegree(OM2_2_F, eIP_F, 4, 5, neurons_in_ip);
 //
 //	/// OM 3
 //	// input from EES group 3
@@ -652,7 +653,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 
 	connect_fixed_outdegree(Ia_E_pool, MN_F, 1, -4, neurons_in_ip);
 	connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip);
-	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -4, neurons_in_ip);
+	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -0.4, neurons_in_ip);
 	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip);
 
 	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 8, neurons_in_moto);
@@ -661,7 +662,7 @@ void init_network(float inh_coef, int pedal, int has5ht) {
 	connect_fixed_outdegree(MN_E, R_E, 2, 1);
 	connect_fixed_outdegree(MN_F, R_F, 2, 1);
 
-	connect_fixed_outdegree(R_E, MN_E, 2, -0.5, neurons_in_moto);
+	connect_fixed_outdegree(R_E, MN_E, 2, -0.05, neurons_in_moto);
 	connect_fixed_outdegree(R_E, R_F, 2, -1);
 
 	connect_fixed_outdegree(R_F, MN_F, 2, -0.5, neurons_in_moto);
