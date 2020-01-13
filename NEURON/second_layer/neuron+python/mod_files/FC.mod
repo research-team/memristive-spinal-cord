@@ -21,8 +21,8 @@ UNITS {
 }
 
 PARAMETER {
-	gnabar	= .003 	(mho/cm2)
-	gkbar	= .005 	(mho/cm2)
+	gnabar	= 0.3 	(mho/cm2)
+	gkbar	= 0.05 	(mho/cm2)
 
 	ena	= 50	(mV)
 	ek	= -90	(mV)
@@ -59,8 +59,8 @@ BREAKPOINT {
 }
 
 
-DERIVATIVE states {  
-	evaluate_fct(v) 
+DERIVATIVE states {
+	evaluate_fct(v)
 	m' = (m_inf - m) / tau_m
 	h' = (h_inf - h) / tau_h
 	n' = (n_inf - n) / tau_n
@@ -82,12 +82,12 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b
 
 	a = 0.128 * exp((17-v)/18)
 	b = 4 / ( 1 + exp((40-v)/5) )
-	tau_h = 1 / (a + b) 
+	tau_h = 1 / (a + b)
 	h_inf = a / (a + b)
 
 	a = 0.032 * (15-v) / ( exp((15-v)/5) - 1)
 	b = 0.5 * exp((10-v)/40)
-	tau_n = 1 / (a + b) 
+	tau_n = 1 / (a + b)
 	n_inf = a / (a + b)
 
 	m_exp = 1 - exp(-dt/tau_m)

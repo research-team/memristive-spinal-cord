@@ -70,7 +70,7 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(3, 8) # microns
+    self.soma.L = self.soma.diam = random.randint(5, 10) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
@@ -91,15 +91,18 @@ class interneuron(object):
     for sec in self.all:
       sec.cm = random.gauss(1, 0.05) # cm uf/cm2 - membrane capacitance
 
-    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
+    self.soma.Ra = 70 # Ra ohm cm - membrane resistance
     self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.2
+    self.soma.gnabar_hh = 0.12
     self.soma.gkbar_hh = 0.04
-    self.soma.gl_hh = 0.0002
+    self.soma.gl_hh = 0.002
     self.soma.el_hh = -70
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     self.dend.Ra = 100 # Ra ohm cm - membrane resistance
+    self.dend.insert('pas')
+    self.dend.g_pas = 0.0002
+    self.dend.e_pas = -70
 
     if self.delay:
       distance = random.uniform(30, 1500)
