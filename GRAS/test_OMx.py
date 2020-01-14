@@ -155,15 +155,15 @@ def run():
 		nuclei = sys.argv[2]
 	else:
 		t = time.ctime()
-		pathnew = f"/home/kseniia/Desktop/OM1-2/13_JAN/{t}"
+		pathnew = f"/home/kseniia/Desktop/OM1-2/14_JAN/{t}"
 		os.makedirs(pathnew)
 		path = "/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/dat"
 		source = f'/home/kseniia/Documents/neu/memristive-spinal-cord/GRAS/two_muscle_sim.cu'
-		target = f"/home/kseniia/Desktop/OM1-2/13_JAN/{t}"
+		target = f"/home/kseniia/Desktop/OM1-2/14_JAN/{t}"
 		copy(source, target)
 
 	#plot(skin_stim_time, *read_data(path), step=step, save_to=f"{path}/OM5/results/", plot_only=nuclei) #must change path! /OMx/
-	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1-2/13_JAN/{t}", plot_only=nuclei) #must change path! /OMx/
+	plot(skin_stim_time, *read_data(path), step=step, save_to=f"/home/kseniia/Desktop/OM1-2/14_JAN/{t}", plot_only=nuclei) #must change path! /OMx/
 	
 	
 
