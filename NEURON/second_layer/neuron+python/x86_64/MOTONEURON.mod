@@ -1,1 +1,0 @@
-../MOTONEURON.mod

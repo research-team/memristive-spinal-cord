@@ -8,7 +8,8 @@ NEURON {
 	SUFFIX fastchannels
 	USEION na READ ena WRITE ina
 	USEION k READ ek WRITE ik
-	RANGE gnabar, gkbar, vtraub
+	NONSPECIFIC_CURRENT il
+	RANGE gnabar, gkbar, vtraub, gl, el
 	RANGE m_inf, h_inf, n_inf
 	RANGE tau_m, tau_h, tau_n
 	RANGE m_exp, h_exp, n_exp
@@ -23,12 +24,16 @@ UNITS {
 PARAMETER {
 	gnabar	= 0.3 	(mho/cm2)
 	gkbar	= 0.05 	(mho/cm2)
+	gl = 0.0003 (S/cm2)
+	el = -70 (mV)
 
 	ena	= 50	(mV)
 	ek	= -90	(mV)
 	celsius = 36    (degC)
 	dt              (ms)
 	v               (mV)
+	V_adj = -63 		(mV)
+	V_mem           (mV)
 }
 
 STATE {
@@ -56,6 +61,7 @@ BREAKPOINT {
 	SOLVE states METHOD cnexp
 	ina = gnabar * m*m*m*h * (v - ena)
 	ik  = gkbar * n*n*n*n * (v - ek)
+	il = gl * (v - el)
 }
 
 
@@ -75,18 +81,20 @@ INITIAL {
 
 PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b
 
-	a = 0.32 * (13-v) / ( exp((13-v)/4) - 1)
-	b = 0.28 * (v-40) / ( exp((v-40)/5) - 1)
+	V_mem = v - V_adj
+
+	a = 0.32 * (13-V_mem) / ( exp((13-V_mem)/4) - 1)
+	b = 0.28 * (V_mem-40) / ( exp((V_mem-40)/5) - 1)
 	tau_m = 1 / (a + b)
 	m_inf = a / (a + b)
 
-	a = 0.128 * exp((17-v)/18)
-	b = 4 / ( 1 + exp((40-v)/5) )
+	a = 0.128 * exp((17-V_mem)/18)
+	b = 4 / ( 1 + exp((40-V_mem)/5) )
 	tau_h = 1 / (a + b)
 	h_inf = a / (a + b)
 
-	a = 0.032 * (15-v) / ( exp((15-v)/5) - 1)
-	b = 0.5 * exp((10-v)/40)
+	a = 0.032 * (15-V_mem) / ( exp((15-V_mem)/5) - 1)
+	b = 0.5 * exp((10-V_mem)/40)
 	tau_n = 1 / (a + b)
 	n_inf = a / (a + b)
 

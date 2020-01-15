@@ -5,13 +5,14 @@ import matplotlib.pyplot as pyplot
 import math
 #neuron.load_mechanisms("./mod")
 from bioaff import bioaff
+from interneuron import interneuron
 
 def set_recording_vectors(compartment):
     ''' recording voltage
     Parameters
     ----------
     compartment: NEURON section
-        compartment for recording 
+        compartment for recording
     Returns
     -------
     v_vec: h.Vector()
@@ -26,7 +27,7 @@ def set_recording_vectors(compartment):
     return v_vec, t_vec
 
 def simulate(cell, tstop=300, vinit=-70):
-    ''' simulation control 
+    ''' simulation control
     Parameters
     ----------
     cell: NEURON cell
@@ -41,7 +42,7 @@ def simulate(cell, tstop=300, vinit=-70):
     h.run()
 
 def show_output(v_vec, t_vec):
-    ''' show graphs 
+    ''' show graphs
     Parameters
     ----------
     v_vec: h.Vector()
@@ -57,8 +58,8 @@ def show_output(v_vec, t_vec):
     pyplot.ylabel('mV')
 
 if __name__ == '__main__':
-    cell = bioaff()
-    branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
+    cell = interneuron(False)
+    # branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
     soma_vec, t_vec = set_recording_vectors(cell.soma)
     stim = h.NetStim()
     stim.number = 10
@@ -74,6 +75,6 @@ if __name__ == '__main__':
     for sec in h.allsec():
         h.psection(sec=sec)
     simulate(cell)
-    show_output(branch_vec, t_vec)
+    # show_output(branch_vec, t_vec)
     show_output(soma_vec, t_vec)
     pyplot.show()

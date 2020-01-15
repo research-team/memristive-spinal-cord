@@ -1,5 +1,5 @@
 TITLE Modified Hill-Mashima muscle model
- 
+
 UNITS {}
 
 NEURON {
@@ -9,7 +9,7 @@ NEURON {
 	RANGE Kse, A, Fc, F
 	RANGE xm_init, xm, xce_init, xce
 	USEION mg READ mgi VALENCE 2
-	USEION cl READ cli
+	USEION cl READ cli VALENCE -1
 }
 
 PARAMETER {
@@ -34,16 +34,16 @@ STATE {
 ASSIGNED {
 	F
 	Fc
-	mgi		
-	cli		
+	mgi
+	cli
 }
 
 BREAKPOINT { LOCAL d_xm, d_xce, d_se
-	A = mgi	
-	xm = cli	
+	A = mgi
+	xm = cli
 
 	SOLVE state_hill METHOD cnexp
-		
+
 	F = p0*Kse*xse(xm, xce)
 }
 
@@ -56,16 +56,16 @@ FUNCTION xse (x, y) { LOCAL d_xm, d_xce, d_se
 	d_xm = xm - xm_init
 	d_xce = xce - xce_init
 	d_se = d_xm - d_xce
-	
-	if (d_se <= 0) {xse = 0} 
+
+	if (d_se <= 0) {xse = 0}
 	else {xse = d_se}
 }
 
-FUNCTION g (x) { 
+FUNCTION g (x) {
 	g = exp(-((x-g1)/g2)^2)
 }
 
-FUNCTION dxdt (x, xc) {LOCAL gain_length 
+FUNCTION dxdt (x, xc) {LOCAL gain_length
 	if (x <= xc) {
 		dxdt = (10^-3)*(-b0*(xc-x))/(x+a0*xc/p0)
 	} else {
@@ -79,5 +79,5 @@ INITIAL {
 	A = 0
 	xm = xm_init
 	xce = xce_init
-	F=1e-5     
+	F=1e-5
 }

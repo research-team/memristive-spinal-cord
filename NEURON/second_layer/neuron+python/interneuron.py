@@ -91,12 +91,12 @@ class interneuron(object):
     for sec in self.all:
       sec.cm = random.gauss(1, 0.05) # cm uf/cm2 - membrane capacitance
 
-    self.soma.Ra = 70 # Ra ohm cm - membrane resistance
-    self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.12
-    self.soma.gkbar_hh = 0.04
-    self.soma.gl_hh = 0.002
-    self.soma.el_hh = -70
+    self.soma.Ra = 100 # Ra ohm cm - membrane resistance
+    self.soma.insert('fastchannels')
+    self.soma.gnabar_fastchannels = 0.2
+    self.soma.gkbar_fastchannels = 0.04
+    self.soma.gl_fastchannels = 0.0004
+    self.soma.el_fastchannels = -70
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     self.dend.Ra = 100 # Ra ohm cm - membrane resistance
