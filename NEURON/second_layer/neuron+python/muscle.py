@@ -56,6 +56,8 @@ class muscle(object):
     self.muscle.insert('pas')
     self.muscle.g_pas = 0.002
 
+    rec = h.xm(self.muscle(0.5))
+
     self.muscle.insert('CaSP')
     self.muscle.insert('fHill')
 

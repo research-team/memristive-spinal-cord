@@ -9,7 +9,7 @@ NEURON {
 	RANGE Kse, A, Fc, F
 	RANGE xm_init, xm, xce_init, xce
 	USEION mg READ mgi VALENCE 2
-	USEION cl READ cli VALENCE -1
+	USEION cl READ cli VALENCE 1
 }
 
 PARAMETER {
