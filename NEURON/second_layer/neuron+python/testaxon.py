@@ -6,6 +6,7 @@ import math
 #neuron.load_mechanisms("./mod")
 from bioaff import bioaff
 from interneuron import interneuron
+from motoneuron import motoneuron
 
 def set_recording_vectors(compartment):
     ''' recording voltage
@@ -26,7 +27,7 @@ def set_recording_vectors(compartment):
     t_vec.record(h._ref_t)
     return v_vec, t_vec
 
-def simulate(cell, tstop=300, vinit=-70):
+def simulate(cell, tstop=600, vinit=-70):
     ''' simulation control
     Parameters
     ----------
@@ -50,6 +51,8 @@ def show_output(v_vec, t_vec):
     t_vec: h.Vector()
         recorded time
     '''
+    t_vec = list(t_vec)[100:]
+    v_vec = list(v_vec)[100:]
     dend_plot = pyplot.plot(t_vec, v_vec)
     # f = open('./res.txt', 'w')
     # for v in list(v_vec):
@@ -58,15 +61,21 @@ def show_output(v_vec, t_vec):
     pyplot.ylabel('mV')
 
 if __name__ == '__main__':
-    cell = interneuron(False)
+    cell = motoneuron(40)
     # branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
-    soma_vec, t_vec = set_recording_vectors(cell.soma)
+    soma_vec, t_vec = set_recording_vectors(cell.muscle.muscle_unit)
     stim = h.NetStim()
     stim.number = 10
-    stim.start = 150
+    stim.start = 10
     ncstim = h.NetCon(stim, cell.synlistex[0])
     ncstim.delay = 1
     ncstim.weight[0] = 0.5
+    stim2 = h.NetStim()
+    stim2.number = 10
+    stim2.start = 300
+    ncstim2 = h.NetCon(stim2, cell.synlistex[1])
+    ncstim2.delay = 1
+    ncstim2.weight[0] = 0.5
     # stim = h.IClamp(cell.axonL.node[len(cell.axonL.node)-1](0.5))
     # stim.delay = 150
     # stim.dur = 5
