@@ -10,7 +10,13 @@ from ks_comparing import ks_data_test
 
 
 class Individual:
-    gen_length = 232  # weights and delays
+    gen_length = 178  # weights and delays
+
+    def __eq__(self, other):
+        return self.pvalue == other.pvalue
+
+    def __gt__(self, other):
+        return self.pvalue > other.pvalue
 
     def __init__(self):
         self.pvalue = 0
@@ -40,33 +46,54 @@ class Population:
         for i in range(10):
             individual = Individual()
 
-            # init weights
-            # (E1, E2, E3, E4, E5 -- OMs)
+            # EES, E1, E2, E3, E4, E5
             for j in range(0, 5):
+                individual.gen.append(self.format(random.uniform(0.1, 250)))
+
+            # CV 1-5 to iIP_E
+            for j in range(5, 10):
+                individual.gen.append(self.format(random.uniform(0.1, 50)))
+
+            # iIP_E to eIP_E,F
+            for j in range(10, 12):
+                individual.gen.append(self.format(random.uniform(0.0001, 30)))
+
+            # iIP_E to OM1~5F
+            for j in range(12, 16):
+                individual.gen.append(self.format(random.uniform(0.0001, 5)))
+
+            # eIP_E,F to MN_E,F
+            for j in range(16, 18):
                 individual.gen.append(self.format(random.uniform(0.0001, 10)))
 
-            # CVs -- OMs_0
-            for j in range(5, 14):
-                individual.gen.append(self.format(random.uniform(0.0001, 1)))
-
-            # CVs -- OMs_3
-            for j in range(14, 20):
-                individual.gen.append(self.format(random.uniform(0.0001, 1)))
-
-            # inner connectomes
-            for j in range(20, 89):
-                individual.gen.append(self.format(random.uniform(0.0001, 20)))
-
-            # reflex arc
-            for j in range(89, 94):
-                individual.gen.append(self.format(random.uniform(0.0001, 20)))
-
-            for j in range(94, 116):
+            for j in range(18, 32):
                 individual.gen.append(self.format(random.uniform(0.0001, 20)))
 
             # init delays
-            for j in range(116, individual.gen_length):
+            for j in range(32, 64):
                 individual.gen.append(self.format(random.uniform(0.2, 10)))
+
+
+            # # init weights
+            # # (E1, E2, E3, E4, E5 -- OMs)
+            # for j in range(0, 5):
+            #     individual.gen.append(self.format(random.uniform(0.0001, 10)))
+            #
+            # # CVs -- OMs_0
+            # for j in range(5, 14):
+            #     individual.gen.append(self.format(random.uniform(0.0001, 1)))
+            #
+            # # CVs -- OMs_3
+            # for j in range(14, 20):
+            #     individual.gen.append(self.format(random.uniform(0.0001, 1)))
+            #
+            # # inner connectomes
+            # for j in range(20, 89):
+            #     individual.gen.append(self.format(random.uniform(0.0001, 20)))
+            #
+            # # init delays
+            # for j in range(89, individual.gen_length):
+            #     individual.gen.append(self.format(random.uniform(0.2, 10)))
 
             self.population.append(individual)
 
@@ -78,23 +105,19 @@ class Fitness:
     def calculate_fitness(individual):
         individual.dvalue, individual.pvalue = ks_data_test(Data.path_to_bio_data, Data.path_to_test_data)
 
-    # calculate fitness function for each individual in population
-    # @staticmethod
-    # def calculate_fitness_for_population(population):
-    #     for individual in population.population:
-    #         Fitness.calculate_fitness(individual, bio_data)
-
     # choose best value of fitness function for population
     @staticmethod
     def best_fitness(population):
-        best = -1
-        individ = Individual()
-        for individual in population.population:
-            if individual.pvalue > best:
-                best = individual.pvalue
-                individ = individual
 
-        return individ
+        # best = -1
+        # individ = Individual()
+        # for individual in population.population:
+        #     if individual.pvalue > best:
+        #         best = individual.pvalue
+        #         individ = individual
+
+        # return individ
+        return max(population.population)
 
 
 class Breeding:
@@ -200,17 +223,6 @@ class Evolution:
         # if new will be worst
         new_population.add_individual(individual_1)
         new_population.add_individual(individual_2)
-
-        new_population.add_individual(individual_1)
-        new_population.add_individual(individual_2)
-
-        # Breeding.mutation(individual_1)
-        # Breeding.mutation(individual_2)
-        #
-        # individual_1_new, individual_2_new = Breeding.crossover(individual_1, individual_2)
-        #
-        # new_population.add_individual(individual_1_new)
-        # new_population.add_individual(individual_2_new)
 
         return new_population
 
