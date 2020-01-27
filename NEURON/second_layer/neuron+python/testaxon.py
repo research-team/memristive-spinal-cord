@@ -27,7 +27,7 @@ def set_recording_vectors(compartment):
     t_vec.record(h._ref_t)
     return v_vec, t_vec
 
-def simulate(cell, tstop=600, vinit=-70):
+def simulate(cell, tstop=1000, vinit=-70):
     ''' simulation control
     Parameters
     ----------
@@ -62,18 +62,26 @@ def show_output(v_vec, t_vec):
 
 if __name__ == '__main__':
     cell = motoneuron(40)
+    aff = bioaff()
     # branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
-    soma_vec, t_vec = set_recording_vectors(cell.muscle.muscle_unit)
     stim = h.NetStim()
     stim.number = 10
     stim.start = 10
     ncstim = h.NetCon(stim, cell.synlistex[0])
     ncstim.delay = 1
     ncstim.weight[0] = 0.5
-    stim2 = h.NetStim()
-    stim2.number = 10
-    stim2.start = 300
-    ncstim2 = h.NetCon(stim2, cell.synlistex[1])
+    stim3 = h.NetStim()
+    stim3.number = 10
+    stim3.start = 500
+    ncstim3 = h.NetCon(stim3, cell.synlistex[2])
+    ncstim3.delay = 1
+    ncstim3.weight[0] = 0.5
+    # dummy = h.Section(name='dummy')
+    stim2 = h.IaGenerator(0.5)
+    stim2.number = 1000000
+    h.setpointer(cell.muscle.muscle_unit(0.5)._ref_F_fHill, 'fhill', stim2)
+    soma_vec, t_vec = set_recording_vectors(aff.soma)
+    ncstim2 = h.NetCon(stim2, aff.synlistex[1])
     ncstim2.delay = 1
     ncstim2.weight[0] = 0.5
     # stim = h.IClamp(cell.axonL.node[len(cell.axonL.node)-1](0.5))

@@ -25,7 +25,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.017
+k = 0.015
 
 exnclist = []
 inhnclist = []
@@ -535,8 +535,8 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 0.5, 3)
     connectcells(OM1, OM2, 0.5, 3)
     connectcells(OM2, OM1, 0.5, 4)
-    connectcells(OM2, OM3, 0.0008, 3)
-    connectcells(OM1, OM3, 0.0004, 3)
+    connectcells(OM2, OM3, 0.01, 3)
+    connectcells(OM1, OM3, 0.0005, 3)
     connectcells(OM3, OM2, 0.8, 2, True)
     connectcells(OM3, OM1, 0.8, 2, True)
 
