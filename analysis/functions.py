@@ -90,9 +90,9 @@ def read_data(filepath):
 	data_by_test = []
 	with hdf5.File(filepath, 'r') as file:
 		for test_names, test_values in file.items():
-			if "#8_112309_quip" not in test_names: # not in ["#8_112309_quip_BIPEDAL_burst10_Ton_21.fig", "#8_112309_quip_BIPEDAL_burst3_Ton_14.fig", "#8_112309_quip_BIPEDAL_burst4_Ton_15.fig",  "#8_112309_quip_BIPEDAL_burst6_Ton_17.fig",  "#8_112309_quip_BIPEDAL_burst7_Ton_18.fig",  "#8_112309_quip_BIPEDAL_burst9_Ton_20.fig"]:
-				data_by_test.append(test_values[:])
-			# data_by_test = [test_values[:] for test_values in file.values()]
+			if "#8_112309_quip" not in test_names:
+				if len(test_values[:]) != 0:
+					data_by_test.append(test_values[:])
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
 	return np.array(data_by_test)
@@ -305,7 +305,7 @@ def get_boxplots(sliced_datasets):
 	return splitted_boxplots
 
 
-def prepare_data(dataset):
+def prepare_data(dataset, with_centering=False):
 	"""
 	Center the data set, then normalize it and return
 	Args:
@@ -315,7 +315,10 @@ def prepare_data(dataset):
 	"""
 	prepared_data = []
 	for data_per_test in dataset:
-		centered_data = center_data_by_line(data_per_test)
+		if with_centering:
+			centered_data = center_data_by_line(data_per_test)
+		else:
+			centered_data = data_per_test
 		normalized_data = normalization(centered_data, save_centering=True)
 		prepared_data.append(normalized_data)
 	return np.array(prepared_data)
@@ -433,21 +436,7 @@ def auto_prepare_data(folder, filename, dstep_to, debugging=False):
 	# subsampling data to the new data step
 	dataset = subsampling(dataset, dstep_from=dstep, dstep_to=dstep_to)
 	# prepare data and fill zeroes where not enough slices
-	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset)])
-
-	# mean
-	# for d in np.array([split_by_slices(d, slice_in_steps) for d in prepared_data]):
-	# 	for i, s in enumerate(d):
-	# 		plt.plot(s + i * 0.2, color='gray')
-	#
-	# prepared_data = np.mean(prepared_data, axis=0)
-	# splitted_per_slice = np.array([split_by_slices(prepared_data, slice_in_steps)])
-	#
-	# for i, d in enumerate(splitted_per_slice[0]):
-	# 	plt.plot(d + i * 0.2, color='r', linewidth='2')
-	# plt.xlim(0, len(splitted_per_slice[0][0]))
-	# plt.show()
-
+	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, with_centering=source == "bio")])
 	# split datatest into the slices
 	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepared_data])
 

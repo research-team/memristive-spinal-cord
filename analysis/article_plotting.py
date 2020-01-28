@@ -8,6 +8,7 @@ from importlib import reload
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
+import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename, subsampling
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice, get_area_extrema_matrix
@@ -90,7 +91,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 		dstep (float): data step
 		save_to (str): save folder path
 		filename (str): name of the future path
-		best_sample (int of np.ndarray): dataset index or np.ndarray of a best example
+		best_sample (int or np.ndarray or list): dataset index or np.ndarray of a best example
 	"""
 	pattern_color = "#275B78"
 	new_filename = short_name(filename)
@@ -183,6 +184,50 @@ def ecdf(sample):
 	return quantiles, cumul_prob
 
 
+def plot_kde_peaks_slices(peaks_times_pack, peaks_slices_pack, names, colors, packs_size, save_to):
+	"""
+	ToDo add info
+	Args:
+		peaks_times_pack (list): pack of peaks
+		peaks_slices_pack (list): pack of slices number
+		names (list): filenames for different origin of data
+		colors (list): hex colors for graphics
+		save_to (str): save folder
+	"""
+	# unpack the data
+	for x, y, color, name, pack_size in zip(peaks_times_pack, peaks_slices_pack, colors, names, packs_size):
+		# x - peak time
+		# y - slice index
+		# shift slice index to be human readable [1...N]
+		y += 1
+		# define grid for subplots
+		gs = gridspec.GridSpec(2, 2, width_ratios=[5, 1], height_ratios=[1, 3], wspace=0.3)
+		fig = plt.figure(figsize=(16, 9))
+		kde_ax = plt.subplot(gs[1, 0])
+		kde_ax.spines['top'].set_visible(False)
+		kde_ax.spines['right'].set_visible(False)
+
+		# 2D joint plot
+		borders = 0, 25, 1, max(y)
+		contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0], borders=borders, levels_num=15)
+		joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": 0}, borders=borders, with_boxplot=False)
+		log_text = f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}"
+		# kde_ax.text(0.05, 0.95, log_text, transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
+		logging.info(log_text)
+
+		kde_ax.set_xlabel("peak time (ms)")
+		kde_ax.set_ylabel("slice index")
+		kde_ax.set_xlim(borders[0], borders[1])
+		kde_ax.set_ylim(borders[2], borders[3])
+
+		plt.tight_layout()
+		new_filename = short_name(name)
+		plt.savefig(f"{save_to}/{new_filename}_kde_peak_slice.pdf", dpi=250, format="pdf")
+		plt.show()
+		plt.close(fig)
+
+		logging.info(f"saved to {save_to}")
+
 def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_size, save_to, additional_tests=False):
 	"""
 	ToDo add info
@@ -197,17 +242,62 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	crit = kstwobign.isf(0.01)
 	# prepare filename
 	new_filename = f"{'='.join(map(short_name, names))}"
-	# set new parameters for logging
-	reload(logging)
-	logging.basicConfig(filename=f"{save_to}/{new_filename}.log",
-	                    filemode='a',
-	                    format='%(message)s',
-	                    level=logging.DEBUG)
+	# # set new parameters for logging
+	# reload(logging)
+	# logging.basicConfig(filename=f"{save_to}/{new_filename}.log",
+	#                     filemode='a',
+	#                     format='%(message)s',
+	#                     level=logging.DEBUG)
 
 	# unpack the data
 	x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
 	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
 	assert len(x1) == len(y1) and len(x2) == len(y2)
+
+
+	fig, axes = plt.subplots(nrows=2, ncols=3)
+	for data1, data2, row in ([x1, x2, 0], [y1, y2, 1]):
+		# plot the CDF (not scaled)
+		axes[row, 0].set_title("not scaled CDF")
+		label = f"STD: {np.std(data1):.3}, MED: {np.median(data1):.3}"
+		axes[row, 0].plot(sorted(data1), np.linspace(0, 1, len(data1)), color=colors[0], label=label)
+		label = f"STD: {np.std(data2):.3}, MED: {np.median(data2):.3}"
+		axes[row, 0].plot(sorted(data2), np.linspace(0, 1, len(data2)), color=colors[1], label=label)
+		if row == 0:
+			axes[row, 0].set_xlabel("Time (ms)")
+		else:
+			axes[row, 0].set_xlabel("Amplitude")
+		axes[row, 0].set_ylabel("Probability")
+		axes[row, 0].legend(fontsize=9)
+
+		# plot the CDF (scaled) with D-value line
+		binEdges = np.hstack([-np.inf, np.sort(np.concatenate([data1, data2])), np.inf])
+		binCounts1 = np.histogram(data1, binEdges)[0]
+		binCounts2 = np.histogram(data2, binEdges)[0]
+		sampleCDF1 = np.cumsum(binCounts1, dtype=float) / np.sum(binCounts1)
+		sampleCDF2 = np.cumsum(binCounts2, dtype=float) / np.sum(binCounts2)
+		deltaCDF = np.abs(sampleCDF1 - sampleCDF2)
+		maxDind = np.argmax(deltaCDF)
+
+		KSstatistic = np.max(deltaCDF)
+
+		axes[row, 1].set_title("scaled CDF")
+		axes[row, 1].plot(sampleCDF1)
+		axes[row, 1].plot(sampleCDF2)
+		axes[row, 1].plot([maxDind, maxDind], [sampleCDF1[maxDind], sampleCDF2[maxDind]], color='k', ls='--')
+		axes[row, 1].set_xlabel("Dots")
+		axes[row, 1].set_ylabel("Probability")
+
+		# delta CDF
+		deltaCDF = sampleCDF1 - sampleCDF2
+		axes[row, 2].set_title(f"scaled CDF diff (D={KSstatistic:.5f})")
+		axes[row, 2].axhline(y=max(deltaCDF), ls='--')
+		axes[row, 2].axhline(y=min(deltaCDF), ls='--')
+		axes[row, 2].plot(deltaCDF)
+		axes[row, 2].set_xlabel("Dots")
+
+	plt.show()
+	plt.close(fig)
 
 	logging.info(f"N1 {len(x1)}")
 	logging.info(f"N2 {len(x2)}")
@@ -224,20 +314,6 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
-	# for TIMES
-	plt.figure()
-	i = 0
-	for x, color, name in zip(peaks_times_pack, colors, names):
-		qe, pe = ecdf(x)
-		plt.plot(qe, pe, color, label=name)
-		plt.text(0, 1 - i, f"STD: {np.std(x):.3}, MED: {np.median(x):.3}", verticalalignment='top', color=color,
-		         fontsize=10)
-		i += 0.05
-	plt.text(0, 1 - i, f"D: {dvalue:.3}", verticalalignment='top', fontsize=10)
-	plt.savefig(f"{save_to}/{new_filename}_1Dampls.png", dpi=250, format="png")
-	plt.show()
-	plt.close()
-
 	# 1D peak amplitudes analysis
 	dvalue, _ = ks_2samp(y1, y2)
 	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
@@ -248,19 +324,6 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	             f"D-value: {dvalue:.5f}\n"
 	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
-
-	# for AMPL
-	plt.figure()
-	i = 0
-	for y, color, name in zip(peaks_ampls_pack, colors, names):
-		qe, pe = ecdf(y)
-		plt.plot(qe, pe, color, label=name)
-		plt.text(0, 1 - i, f"STD: {np.std(y):.3}, MED: {np.median(y):.3}", verticalalignment='top', color=color, fontsize=10)
-		i += 0.05
-	plt.text(0, 1 - i, f"D: {dvalue:.3}", verticalalignment='top', fontsize=10)
-	plt.savefig(f"{save_to}/{new_filename}_1Dampls.png", dpi=250, format="png")
-	plt.show()
-	plt.close()
 
 	# 2D peak times/amplitudes analysis
 	d1 = np.stack((x1, y1), axis=1)
@@ -285,14 +348,15 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	i = 1
 	z_prev = np.zeros(1)
 	z = []
+	label_pathes = []
 	for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
-		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders)
+		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=10)
 		z.append(z_prev)
-		joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": i}, borders=borders)
-		kde_ax.text(0.05, 0.95 - i * 0.05, f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}",
-		            transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
-		# break
+		joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": i}, borders=borders, with_boxplot=True)
+
 		i += 1
+		label_text = f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}"
+		label_pathes.append(mpatches.Patch(color=color, label=label_text))
 
 	if additional_tests:
 		from colour import Color
@@ -328,6 +392,7 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 
 		plt.show()
 
+	kde_ax.legend(handles=label_pathes)
 	kde_ax.set_xlabel("peak time (ms)")
 	kde_ax.set_ylabel("peak amplitude")
 	kde_ax.set_xlim(borders[0], borders[1])
@@ -483,6 +548,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks1d_ampls = []
 	ks1d_peaks = []
 	ks1d_names = []
+	ks1d_slices = []
 	ks1d_colors = []
 	pca3d_pack = []
 	packs_size = []
@@ -515,7 +581,16 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
 		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
-		e_peak_times_per_slice, e_peak_ampls_per_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders)
+		if flags['kde_peak_slice']:
+			e_peak_times_per_slice, e_peak_ampls_per_slice, e_peak_num_slice = \
+				get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders, return_peaks_slice=True)
+			# flatten all data of the list
+			peak_slices = np.array(list(flatten(flatten(e_peak_num_slice))))
+			ks1d_slices.append(peak_slices)
+		else:
+			e_peak_times_per_slice, e_peak_ampls_per_slice = \
+				get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders)
+
 		packs_size.append(len(e_peak_times_per_slice))
 		# flatten all data of the list
 		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
@@ -542,24 +617,22 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			f_prepared_data = auto_prepare_data(folder, f_filename, dstep_to=dstep_to)
 			e_lat_per_slice = get_lat_matrix(e_prepared_data, dstep_to)
 			f_lat_per_slice = get_lat_matrix(f_prepared_data, dstep_to)
-
 			# find an ideal example of dataset
-			if "bio_" in e_filename:
-				ideal_sample = example_bio_sample(folder, e_filename)
-			else:
-				ideal_sample = 0    # example_sample(times, ampls, dstep_to)
-
+			# if "bio_" in e_filename:
+			# 	ideal_sample = example_bio_sample(folder, e_filename)
+			# else:
+			# 	ideal_sample = 0    # example_sample(times, ampls, dstep_to)
 			# *etc, dstep = parse_filename(e_filename)
 			# ideal_sample = subsampling(ideal_sample, dstep, dstep_to)
+			ideal_sample = list(e_prepared_data[0]) + list(f_prepared_data[0])
 
 			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
 			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
 
-		# if flags['plot_peaks_by_intervals']:
-		# 	e_peaks_per_interval = get_peak_amp_matrix(e_prepared_data, step_size_to, split_by_intervals=True)
-		# 	peaks_per_interval_pack.append(e_peaks_per_interval)
-
 		log.info(f"Processed '{folder}'")
+
+	if flags['kde_peak_slice']:
+		plot_kde_peaks_slices(ks1d_peaks, ks1d_slices, ks1d_names, ks1d_colors, packs_size, save_to=save_to)
 
 	if flags['plot_ks2d']:
 		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, packs_size, save_to=save_to)

@@ -264,7 +264,7 @@ def list3d(h, w):
 	return [[[] for _ in range(w)] for _ in range(h)]
 
 
-def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, split_by_intervals=False, debugging=False):
+def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_slice=False, debugging=False):
 	"""
 	Finds all peaks times and amplitudes at each slice
 
@@ -274,6 +274,8 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, split_by_interva
 	Args:
 		sliced_datasets (np.ndarray):
 		dstep (float): data step size
+		borders (list): time borders for searching peaks
+		return_peaks_slice (bool): additional return of peak slice index (at which slice peak is located)
 		debugging (bool): debugging flag
 	Returns:
 		list: 3D list of peak times, [experiment_index][slice_index][peak time]
@@ -290,6 +292,7 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, split_by_interva
 	tests_count, slices_count, slice_length = sliced_datasets.shape
 	peak_per_slice_list = list3d(h=tests_count, w=slices_count)
 	ampl_per_slice_list = list3d(h=tests_count, w=slices_count)
+	peak_slice_num_list = list3d(h=tests_count, w=slices_count)
 
 	# find all peaks times and amplitudes per slice
 	for experiment_index, slices_data in enumerate(sliced_datasets):
@@ -316,22 +319,20 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, split_by_interva
 				if borders[0] <= peak_time * dstep <= borders[1]:
 					peak_per_slice_list[experiment_index][slice_index].append(peak_time)
 					ampl_per_slice_list[experiment_index][slice_index].append(dA)
+					peak_slice_num_list[experiment_index][slice_index].append(slice_index)
 
-	# if debugging:
-	# 	for experiment_index, slices_data in enumerate(sliced_datasets):
-	# 		y = np.array(slices_data).ravel()
-	# 		raise NotImplemented
-
-	if split_by_intervals:
+	if debugging:
 		raise NotImplemented
-		peaks_per_interval = np.zeros((slices_count, len(intervals)))
-		peaks_per_interval = peaks_per_interval / dataset_size
-		# reshape
-		c = peaks_per_interval[:, 0].copy()
-		peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
-		peaks_per_interval[:, -1] = c
-		peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
-		return peaks_per_interval
+		# peaks_per_interval = np.zeros((slices_count, len(intervals)))
+		# peaks_per_interval = peaks_per_interval / dataset_size
+		# # reshape
+		# c = peaks_per_interval[:, 0].copy()
+		# peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
+		# peaks_per_interval[:, -1] = c
+		# peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
+
+	if return_peaks_slice:
+		return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
 
 	return peak_per_slice_list, ampl_per_slice_list
 
@@ -403,7 +404,7 @@ def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=Fal
 	return peak_matrix, ampl_matrix
 
 
-def contour_plot(x, y, color, ax, z_prev, borders):
+def contour_plot(x, y, color, ax, z_prev, borders, levels_num):
 	"""
 	TODO: add docstring
 	Args:
@@ -416,7 +417,6 @@ def contour_plot(x, y, color, ax, z_prev, borders):
 	Returns:
 		np.ndarray:
 	"""
-	levels_num = 10
 	xmin, xmax, ymin, ymax = borders
 	# form a mesh grid
 	xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
@@ -447,8 +447,10 @@ def contour_plot(x, y, color, ax, z_prev, borders):
 		gt = gt[gt == True]
 		truesize = len(gt)
 		zorder = -5 if truesize / fullsize * 100 > 50 else 5
+
 	ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
 	ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5, zorder=zorder)
+	# ax.scatter(x, y, s=0.1, color=color)
 
 	return z
 
@@ -467,36 +469,44 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	color = kwargs['color']
 	pos = kwargs['pos']
 	xmin, xmax, ymin, ymax = borders
-	# ax.scatter(X, Y, marker=".", color=color, s=50, zorder=-5, alpha=0.5)
 
-	# create X-marginal (top)
-	ax_top = plt.subplot(gs[0, 1], sharex=ax)
-	ax_top.spines['top'].set_visible(False)
-	ax_top.spines['right'].set_visible(False)
-	# create Y-marginal (right)
-	ax_right = plt.subplot(gs[1, 2], sharey=ax)
-	ax_right.spines['top'].set_visible(False)
-	ax_right.spines['right'].set_visible(False)
+	if kwargs['with_boxplot']:
+		# create X-marginal (top)
+		ax_top = plt.subplot(gs[0, 1], sharex=ax)
+		ax_top.spines['top'].set_visible(False)
+		ax_top.spines['right'].set_visible(False)
+		# create Y-marginal (right)
+		ax_right = plt.subplot(gs[1, 2], sharey=ax)
+		ax_right.spines['top'].set_visible(False)
+		ax_right.spines['right'].set_visible(False)
 
-	ax_left = plt.subplot(gs[1, 0])
-	ax_left.spines['top'].set_visible(False)
-	ax_left.spines['right'].set_visible(False)
+		ax_left = plt.subplot(gs[1, 0])
+		ax_left.spines['top'].set_visible(False)
+		ax_left.spines['right'].set_visible(False)
 
-	ax_bottom = plt.subplot(gs[2, 1])
-	ax_bottom.spines['top'].set_visible(False)
-	ax_bottom.spines['right'].set_visible(False)
+		ax_bottom = plt.subplot(gs[2, 1])
+		ax_bottom.spines['top'].set_visible(False)
+		ax_bottom.spines['right'].set_visible(False)
 
-	flierprops = dict(marker='.', markersize=1, linestyle='none')
+		flierprops = dict(marker='.', markersize=1, linestyle='none')
 
-	bxt = ax_left.boxplot(Y, positions=[pos * 10], widths=3, patch_artist=True, flierprops=flierprops)
-	recolor(bxt, 'k', color)
-	ax_left.set_ylim([ymin, ymax])
-	ax_left.set_xticks([])
+		bxt = ax_left.boxplot(Y, positions=[pos * 10], widths=3, patch_artist=True, flierprops=flierprops)
+		recolor(bxt, 'k', color)
+		ax_left.set_ylim([ymin, ymax])
+		ax_left.set_xticks([])
 
-	bxt = ax_bottom.boxplot(X, positions=[pos], widths=0.4, vert=False, patch_artist=True, flierprops=flierprops)
-	recolor(bxt, 'k', color)
-	ax_bottom.set_xlim([xmin, xmax])
-	ax_bottom.set_yticks([])
+		bxt = ax_bottom.boxplot(X, positions=[pos], widths=0.4, vert=False, patch_artist=True, flierprops=flierprops)
+		recolor(bxt, 'k', color)
+		ax_bottom.set_xlim([xmin, xmax])
+		ax_bottom.set_yticks([])
+	else:
+		ax_top = plt.subplot(gs[0, 0], sharex=ax)
+		ax_top.spines['top'].set_visible(False)
+		ax_top.spines['right'].set_visible(False)
+		# create Y-marginal (right)
+		ax_right = plt.subplot(gs[1, 1], sharey=ax)
+		ax_right.spines['top'].set_visible(False)
+		ax_right.spines['right'].set_visible(False)
 
 	# add grid
 	ax_top.grid(which='minor', axis='x')
