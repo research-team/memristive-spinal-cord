@@ -35,7 +35,7 @@ INITIAL {
 	on = 0
 	y = 0
   t0 = start
-  v0 = 10
+  v0 = 20
   freq = 50
   fhill0 = 0
 	interval = 1000/freq
@@ -62,13 +62,15 @@ PROCEDURE init_sequence(t(ms)) {
 
 FUNCTION invl(t (ms)) (ms) {
   if (fhill > fhill0){
-    vel = v0 + 0.005*fhill*(t-t0) + 0.000025*fhill*(t-t0)*(t-t0)
+    vel = v0 + 0.005*fhill*(t-t0) + 0.00015*fhill*(t-t0)*(t-t0)
+    if (vel < 0){vel = 1}
   }else{
     vel = v0 - 0.02*fhill*(t-t0) - 0.0004*fhill*(t-t0)*(t-t0)
+    if (vel < 0){vel = 1}
   }
   v0 = vel
   fhill0 = fhill
-  mean = 1000/vel :+ fhill*(t-t0)*(t-t0))
+  mean = 1000/vel
   t0 = t
 	if (noise == 0) {
 		invl = mean

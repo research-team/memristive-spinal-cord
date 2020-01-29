@@ -70,7 +70,7 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(5, 10) # microns
+    self.soma.L = self.soma.diam = random.randint(5, 15) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns

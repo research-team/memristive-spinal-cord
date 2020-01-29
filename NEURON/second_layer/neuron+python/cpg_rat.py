@@ -25,7 +25,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.015
+k = 0.017
 
 exnclist = []
 inhnclist = []
@@ -197,9 +197,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 2)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00028, 2)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0003, 3)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00033, 3)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 3)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -228,7 +228,7 @@ class CPG:
             # connectinsidenucleus(self.dict_1[layer])
             connectinsidenucleus(self.dict_2E[layer])
             connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.5, 3)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 2)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.5, 3)
             connectcells(self.dict_IP_E[layer], self.mns_E, 0.5, 3)
             if layer > 2:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0015, 1, True)
@@ -253,7 +253,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00025*k*speed, 2)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0003*k*speed, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
@@ -533,15 +533,15 @@ def createmotif(OM0, OM1, OM2, OM3):
           list of self.OM3 pool gids
     '''
     connectcells(OM0, OM1, 0.5, 3)
-    connectcells(OM1, OM2, 0.5, 3)
-    connectcells(OM2, OM1, 0.5, 4)
-    connectcells(OM2, OM3, 0.01, 3)
-    connectcells(OM1, OM3, 0.0005, 3)
+    connectcells(OM1, OM2, 0.05, 3)
+    connectcells(OM2, OM1, 0.05, 4)
+    connectcells(OM2, OM3, 0.005, 3)
+    connectcells(OM1, OM3, 0.0004, 3)
     connectcells(OM3, OM2, 0.8, 2, True)
     connectcells(OM3, OM1, 0.8, 2, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.1, 3)
+    connectcells(nucleus, nucleus, 0.1, 2)
 
 def spike_record(pool, version):
     ''' Records spikes from gids

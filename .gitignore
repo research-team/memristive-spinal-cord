@@ -10,6 +10,8 @@ GRAS/dat
 NEST/second_level/results/*
 NEST/dat
 
+NEURON/second_layer/neuron+python/x86_64/*
+
 *.dat
 *.pdf
 *.zip
