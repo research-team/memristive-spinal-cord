@@ -17,8 +17,8 @@ nhost = int(pc.nhost())
 #param
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 25
-step_number = 1 # number of steps
+versions = 1
+step_number = 25 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -155,7 +155,7 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(speed * 7 + i * (speed * 7 + 125), cfr, (125/c_int), False))
+            self.C_0.append(self.addgener(speed * 7 + i * (speed * 7 + 125), cfr, (125/c_int - 1), False))
 
         # self.C_0.append(self.addgener(1, cfr, (speed / c_int -1)))
 
@@ -231,7 +231,7 @@ class CPG:
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.03*(10-layer), 3)
             connectcells(self.dict_IP_E[layer], self.mns_E, 0.03*(10-layer), 3)
             if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0017, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0015, 1, True)
             # else:
             #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00001, 1, True)
             if layer > 2:
@@ -515,7 +515,7 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
                     syn = target.synlistees[j]
                 nc = pc.gid_connect(gen_gid, syn)
                 stimnclist.append(nc)
-                nc.delay = random.gauss(delay, delay / 5)
+                nc.delay = random.gauss(delay, delay / 7)
                 nc.weight[0] = random.gauss(weight, weight / 10)
 
 def createmotif(OM0, OM1, OM2, OM3):
