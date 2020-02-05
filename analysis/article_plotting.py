@@ -521,6 +521,30 @@ def example_sample(latencies_matrix, peaks_matrix, step_size):
 			break
 	return ideal_example_index
 
+def get_pvalue(y1, y2):
+	dvalue, _ = ks_2samp(y1, y2)
+	en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
+	den = dvalue * en
+	pvalue = kstwobign.sf(den)
+	return pvalue
+
+def ks_plus_benjamin(times, ampls, packs_size):
+	p_values_times = []
+	p_values_ampls = []
+	if len(times[1]) > len(times[0]):
+		times_1, ampls_1 = random.choices(times[1], k=len(times[0])), random.choices(ampls[1], k=len(ampls[0]))
+		times_0, ampls_0 = times[0], ampls[0]
+	else:
+		times_0, ampls_0 = random.choices(times[0], k=len(times[1])), random.choices(ampls[0], k=len(ampls[1]))
+		times_1, ampls_1 = times[1], ampls[1]
+	for time0, amp0 in zip(times_0, ampls_0):
+		for time1, amp1 in zip(times_1, ampls_1):
+			p_values_times.append(get_pvalue(np.array(list(flatten(time0))),np.array(list(flatten(time1)))))
+			p_values_ampls.append(get_pvalue(np.array(list(flatten(amp0))),np.array(list(flatten(amp1)))))
+
+	print(len(p_values_ampls))
+	print(p_values_ampls)
+	print(p_values_times)
 
 def get_color(filename, clrs):
 	if "bio" in filename:
@@ -636,6 +660,9 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 
 	if flags['plot_ks2d']:
 		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, packs_size, save_to=save_to)
+
+	if flags['plot_ks_b']:
+		ks_plus_benjamin(ks_b_times, ks_b_ampls)
 
 	if flags['plot_pca3d']:
 		plot_3D_PCA(pca3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])
