@@ -576,6 +576,8 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks1d_colors = []
 	pca3d_pack = []
 	packs_size = []
+	ks_b_ampls = []
+	ks_b_times = []
 	peaks_per_interval_pack = []
 	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
@@ -634,6 +636,9 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		ks1d_ampls.append(ampls)
 		ks1d_names.append(e_filename)
 		ks1d_colors.append(color)
+
+		ks_b_times.append(e_peak_times_per_slice)
+		ks_b_ampls.append(e_peak_ampls_per_slice)
 
 		# plot slices
 		if flags['plot_slices_flag']:
