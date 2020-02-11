@@ -17,8 +17,8 @@ nhost = int(pc.nhost())
 #param
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
-versions = 1
-step_number = 25 # number of steps
+versions = 3
+step_number = 10 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -197,9 +197,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00035, 3)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00023, 2)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 3)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00025, 3)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -211,38 +211,45 @@ class CPG:
                 for i in range(layer - 1):
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.8, 1)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.65, 2)
+        genconnect(self.ees, self.Ia_aff_E, 0.5, 2)
         genconnect(self.ees, self.Ia_aff_F, 0.5, 2)
         genconnect(self.ees, self.dict_CV[0], 0.5, 3)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.65, 2)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.65, 2)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.3, 2)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.3, 2)
 
         '''IP'''
         for layer in range(2, 4):
             connectcells(self.dict_IP_E[layer - 1], self.dict_IP_E[layer], layer*0.1, 2)
             connectcells(self.dict_IP_F[layer - 1], self.dict_IP_F[layer], layer*0.01, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.015*(7-layer), 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.015*(7-layer), 3)
+            connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.015*(7-layer), 3)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.015*(7-layer), 3)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.035*(7-layer), 3)
         for layer in range(layers):
             '''Extensor'''
             connectinsidenucleus(self.dict_IP_E[layer])
             # connectinsidenucleus(self.dict_1[layer])
             connectinsidenucleus(self.dict_2E[layer])
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.03*(10-layer), 3)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.03*(10-layer), 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.03*(10-layer), 3)
-            if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0015, 1, True)
-            # else:
-            #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00001, 1, True)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.35, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.35, 3)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.35, 3)
+            if layer > 2:
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.001, 1, True)
+            else:
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 1, True)
             if layer > 2:
                 '''Flexor'''
-                connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.3, 2)
-                connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.3, 2)
-                connectcells(self.dict_IP_F[layer], self.mns_F, 0.3, 2)
+                connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.5, 2)
+                connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.5, 2)
+                connectcells(self.dict_IP_F[layer], self.mns_F, 0.5, 2)
             else:
                 connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.1, 2)
                 connectcells(self.dict_IP_F[layer], self.mns_F, 0.2, 2)
+            connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.0008, 1, True)
+
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -302,7 +309,7 @@ class CPG:
         '''C=0 Flexor'''
         connectcells(self.iIP_F, self.IP_E, 0.99, 1, True)
         connectcells(self.iIP_F, self.iIP_E, 0.99, 1, True)
-        connectcells(self.C_0, self.Ia_aff_E, 0.09, 1, True)
+        connectcells(self.C_0, self.Ia_aff_E, 0.99, 1, True)
         connectcells(self.C_0, self.IP_E, 0.99, 1, True)
         connectcells(self.C_0, self.iIP_F, 0.5, 1)
 
@@ -475,12 +482,12 @@ def connectcells(pre, post, weight, delay, inhtype = False):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
-                    # str nc.weight[0] = 0
+                    # nc.weight[0] = 0
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
-                    # str nc.weight[0] = random.gauss(weight, weight / 10)
+                    # nc.weight[0] = random.gauss(weight, weight / 10)
                 nc.weight[0] = random.gauss(weight, weight / 10)
                 nc.delay = random.gauss(delay, delay / 9)
 

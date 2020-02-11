@@ -156,7 +156,7 @@ class interneuron(object):
     '''
     Adds synapses
     '''
-    for i in range(200):
+    for i in range(20):
       s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50

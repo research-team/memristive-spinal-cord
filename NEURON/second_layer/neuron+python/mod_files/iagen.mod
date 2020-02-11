@@ -35,8 +35,8 @@ INITIAL {
 	on = 0
 	y = 0
   t0 = start
-  v0 = 20
-  freq = 50
+  v0 = 50
+  freq = 80
   fhill0 = 0
 	interval = 1000/freq
 	if (noise < 0) {

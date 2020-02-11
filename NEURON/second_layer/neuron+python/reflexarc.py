@@ -69,8 +69,8 @@ class RA:
         '''ees'''
         self.ees = self.addgener(1, ees_fr, 10000, False)
 
-        self.C1 = self.addgener(3, 200, 15)
-        self.C0 = self.addgener(105, 200, 15)
+        self.C1 = self.addgener(50, 200, 15)
+        self.C0 = self.addgener(150, 200, 15)
 
         self.Iagener_E = self.addIagener(self.mns_E)
         self.Iagener_F = self.addIagener(self.mns_F)
@@ -78,26 +78,26 @@ class RA:
         genconnect(self.ees, self.Ia_aff_E, 0.65, 2)
         genconnect(self.ees, self.Ia_aff_F, 0.5, 2)
         genconnect(self.Iagener_E, self.Ia_aff_E, 0.5, 2)
-        genconnect(self.Iagener_E, self.Ia_aff_F, 0.5, 2)
+        genconnect(self.Iagener_F, self.Ia_aff_F, 0.5, 2)
 
         connectcells(self.Ia_aff_E, self.mns_E, 0.65, 2)
         connectcells(self.Ia_aff_F, self.mns_F, 0.65, 2)
-        genconnect(self.C1, self.mns_E, 0.5, 2)
-        genconnect(self.C0, self.mns_F, 0.5, 2)
-        genconnect(self.C1, self.mns_F, 0.8, 2, True)
-        genconnect(self.C0, self.mns_E, 0.8, 2, True)
+        genconnect(self.C1, self.mns_E, 0.5, 3)
+        genconnect(self.C0, self.mns_F, 0.5, 3)
+        genconnect(self.C1, self.Ia_aff_F, 0.8, 1, True)
+        genconnect(self.C0, self.Ia_aff_E, 0.8, 1, True)
 
         '''reflex arc'''
-        connectcells(self.Ia_aff_E, self.Ia_E, 0.8, 1)
+        connectcells(self.Ia_aff_E, self.Ia_E, 0.08, 1)
         connectcells(self.mns_E, self.R_E, 0.00025, 1)
         connectcells(self.Ia_E, self.mns_F, 0.08, 1, True)
-        connectcells(self.R_E, self.mns_E, 0.005, 1, True)
+        connectcells(self.R_E, self.mns_E, 0.0005, 1, True)
         connectcells(self.R_E, self.Ia_E, 0.001, 1, True)
 
-        connectcells(self.Ia_aff_F, self.Ia_F, 0.8, 1)
+        connectcells(self.Ia_aff_F, self.Ia_F, 0.08, 1)
         connectcells(self.mns_F, self.R_F, 0.0004, 1)
         connectcells(self.Ia_F, self.mns_E, 0.04, 1, True)
-        connectcells(self.R_F, self.mns_F, 0.005, 1, True)
+        connectcells(self.R_F, self.mns_F, 0.0005, 1, True)
         connectcells(self.R_F, self.Ia_F, 0.001, 1, True)
 
         connectcells(self.R_E, self.R_F, 0.04, 1, True)
@@ -181,6 +181,7 @@ class RA:
         else:
             stim.noise = 0.0
         stim.interval = 1000 / freq
+        stim.start = start
         #skinstim.noise = 0.1
         self.stims.append(stim)
         while pc.gid_exists(gid) != 0:
@@ -239,7 +240,7 @@ def connectcells(pre, post, weight, delay, inhtype = False):
       inhtype: bool
           is this connection inhibitory?
     '''
-    nsyn = random.randint(30, 50)
+    nsyn = random.randint(3, 5)
     for i in post:
         if pc.gid_exists(i):
             for j in range(nsyn):
@@ -278,7 +279,7 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False):
       inhtype: bool
           is this connection inhibitory?
     '''
-    nsyn = random.randint(30, 50)
+    nsyn = random.randint(3, 5)
     for i in afferents_gids:
         if pc.gid_exists(i):
             for j in range(nsyn):
@@ -376,7 +377,7 @@ def spikeout(pool, name, v_vec):
         pc.barrier()
 
 
-def prun(t=200):
+def prun(t=300):
     ''' simulation control
     Parameters
     ----------
