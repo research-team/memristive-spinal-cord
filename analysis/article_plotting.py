@@ -8,9 +8,10 @@ from importlib import reload
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from scipy.stats import kstwobign
+from statsmodels.stats.multitest import multipletests
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-from analysis.functions import auto_prepare_data, get_boxplots, calc_boxplots, peacock2, parse_filename, subsampling
+from analysis.functions import auto_prepare_data, get_boxplots, parse_filename, subsampling
 from analysis.PCA import plot_3D_PCA, get_lat_matrix, joint_plot, contour_plot, get_all_peak_amp_per_slice, get_area_extrema_matrix
 
 flatten = chain.from_iterable
@@ -80,20 +81,21 @@ def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None
 		ax.yaxis.set_minor_locator(MultipleLocator(base=(ax.get_yticks()[1] - ax.get_yticks()[0]) / 2))
 
 
-def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, save_to, filename, best_sample):
+def plot_slices(extensor_data, flexor_data, dstep, save_to, filename, best_sample, **kwargs):
 	"""
 	TODO: add docstring
 	Args:
 		extensor_data (np.ndarray): values of extensor motoneurons membrane potential
 		flexor_data (np.ndarray): values of flexor motoneurons membrane potential
-		e_latencies (np.ndarray): extensor latencies of poly answers per slice
-		f_latencies (np.ndarray): flexor latencies of poly answers per slice
-		dstep (float): data step
+		dstep (float): data step size
 		save_to (str): save folder path
 		filename (str): name of the future path
 		best_sample (int or np.ndarray or list): dataset index or np.ndarray of a best example
+		kwargs:
+			e_peak_times_per_slice
+			e_peak_ampls_per_slice
+			e_peak_num_slice
 	"""
-	pattern_color = "#275B78"
 	new_filename = short_name(filename)
 	# for human read plotting
 	steps_in_slice = len(extensor_data[0][0])
@@ -102,25 +104,18 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	e_slices_number = len(extensor_data[0])
 	f_slices_number = len(flexor_data[0])
 	slices_number = e_slices_number + f_slices_number
-	colors = iter(['#287a72', '#f2aa2e', '#472650'] * slices_number)
-	# calc boxplots of latencies per slice (reshape 1D array to 2D based on experiments number)
-	e_box_latencies = np.array([calc_boxplots(dots) for dots in e_latencies.T])
-	f_box_latencies = np.array([calc_boxplots(dots) for dots in f_latencies.T])
+	kde_color = "#287a72"
+	shadow_color = "#472650"
+
 	# calc boxplots of original data
 	e_splitted_per_slice_boxplots = get_boxplots(extensor_data)
 	f_splitted_per_slice_boxplots = get_boxplots(flexor_data)
 	# combine data into one list
 	all_splitted_per_slice_boxplots = list(e_splitted_per_slice_boxplots) + list(f_splitted_per_slice_boxplots)
-	# form slices indexes for a pattern shadows
-	e_slices_indexes = range(e_slices_number)
-	f_slices_indexes = range(e_slices_number + 1, e_slices_number + f_slices_number + 1)
+
 	# use 1:1 ratio for 6cms data and 4:3 for others
 	fig, ax = plt.subplots(figsize=(20, 20) if "6cms" in filename else (16, 12))
-	if "STR" not in filename:
-		# plot latency shadow for extensor
-		ax.fill_betweenx(e_slices_indexes,
-		                 e_box_latencies[:, k_box_low] * dstep,
-		                 e_box_latencies[:, k_box_high] * dstep, color=pattern_color, alpha=0.3, zorder=3)
+
 	yticks = []
 	shared_x = np.arange(steps_in_slice) * dstep
 	# plot fliers and median line
@@ -134,20 +129,22 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 				ideal_data = extensor_data[best_sample][slice_index]
 		else:
 			ideal_data = best_sample[slice_index]
-		data += offset
-		ideal_data += offset
+		data += offset + 1
+		ideal_data += offset + 1
 		# fliers shadow
-		ax.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=next(colors), alpha=0.7, zorder=3)
+		ax.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low], color=shadow_color, alpha=0.7, zorder=3)
 		# ideal pattern
 		ax.plot(shared_x, ideal_data, color='k', linewidth=1, zorder=4)
 		yticks.append(ideal_data[0])
 
-	if "STR" not in filename:
-		# plot pattern based on median latency per slice
-		ax.plot(e_box_latencies[:, 0] * dstep, e_slices_indexes, linewidth=5, color='#A6261D', zorder=6, alpha=1)
+	if all(k in kwargs for k in ['flatten_times', 'flatten_num_slices']):
+		x = kwargs['flatten_times']
+		y = kwargs['flatten_num_slices']
+		borders = 0, slice_in_ms, 0, e_slices_number + 1
+		contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15)
 	# form ticks
 	axis_article_style(ax, axis='x')
-	# plot settings
+	# yticks setting
 	yticklabels = [None] * slices_number
 	slice_indexes = range(1, slices_number + 1)
 	for i in [0, -1, int(1 / 3 * slices_number), int(2 / 3 * slices_number)]:
@@ -157,6 +154,7 @@ def plot_slices(extensor_data, flexor_data, e_latencies, f_latencies, dstep, sav
 	plt.suptitle(filename, fontsize=30)
 	plt.tight_layout()
 	plt.savefig(f"{save_to}/{filename}_slices.png", dpi=250, format="png")
+	plt.show()
 	plt.close()
 	log.info(f"saved to {save_to}/{new_filename}")
 
@@ -326,16 +324,16 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	logging.info("- " * 10)
 
 	# 2D peak times/amplitudes analysis
-	d1 = np.stack((x1, y1), axis=1)
-	d2 = np.stack((x2, y2), axis=1)
-	dvalue, _ = peacock2(d1, d2)
-	den = dvalue * en
-	pvalue = kstwobign.sf(den)
-	logging.info(f"2D peacock TIME/AMPL\n")
-	logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
-	             f"D-value: {dvalue:.5f}\n"
-	             f"p-value: {pvalue}")
-	logging.info("- " * 10)
+	# d1 = np.stack((x1, y1), axis=1)
+	# d2 = np.stack((x2, y2), axis=1)
+	# dvalue, _ = peacock2(d1, d2)
+	# den = dvalue * en
+	# pvalue = kstwobign.sf(den)
+	# logging.info(f"2D peacock TIME/AMPL\n")
+	# logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
+	#              f"D-value: {dvalue:.5f}\n"
+	#              f"p-value: {pvalue}")
+	# logging.info("- " * 10)
 
 	# define grid for subplots
 	gs = gridspec.GridSpec(3, 3, width_ratios=[1, 6, 1], height_ratios=[1, 5, 1], wspace=0.3)
@@ -528,23 +526,33 @@ def get_pvalue(y1, y2):
 	pvalue = kstwobign.sf(den)
 	return pvalue
 
-def ks_plus_benjamin(times, ampls, packs_size):
+def ks_plus_benjamin(times, ampls, slices, dstep):
 	p_values_times = []
 	p_values_ampls = []
 	if len(times[1]) > len(times[0]):
-		times_1, ampls_1 = random.choices(times[1], k=len(times[0])), random.choices(ampls[1], k=len(ampls[0]))
+		indexes = np.random.randint(0, len(times[1]), len(times[0]))
 		times_0, ampls_0 = times[0], ampls[0]
+		times_1, ampls_1 = [times[1][i] for i in indexes], [ampls[1][i] for i in indexes]
 	else:
-		times_0, ampls_0 = random.choices(times[0], k=len(times[1])), random.choices(ampls[0], k=len(ampls[1]))
+		indexes = np.random.randint(0, len(times[0]), len(times[1]))
+		times_0, ampls_0 = [times[0][i] for i in indexes], [ampls[0][i] for i in indexes]
 		times_1, ampls_1 = times[1], ampls[1]
+
 	for time0, amp0 in zip(times_0, ampls_0):
 		for time1, amp1 in zip(times_1, ampls_1):
-			p_values_times.append(get_pvalue(np.array(list(flatten(time0))),np.array(list(flatten(time1)))))
-			p_values_ampls.append(get_pvalue(np.array(list(flatten(amp0))),np.array(list(flatten(amp1)))))
+			t0, t1 = np.array(list(flatten(time0))) * dstep, np.array(list(flatten(time1))) * dstep
+			a0, a1 = np.array(list(flatten(amp0))), np.array(list(flatten(amp1)))
+			p_values_times.append(get_pvalue(t0, t1))
+			p_values_ampls.append(get_pvalue(a0, a1))
 
-	print(len(p_values_ampls))
-	print(p_values_ampls)
-	print(p_values_times)
+	print("p-value TIMES (before):", p_values_times)
+	p_values_times = multipletests(p_values_times, alpha=0.05, method='fdr_bh')[1]
+	print("p-value TIMES (after):", p_values_times)
+
+	print("p-value AMPLS (before):", p_values_ampls)
+	p_values_ampls = multipletests(p_values_ampls, alpha=0.05, method='fdr_bh')[1]
+	print("p-value AMPLS (after):", p_values_ampls)
+
 
 def get_color(filename, clrs):
 	if "bio" in filename:
@@ -575,9 +583,12 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks1d_slices = []
 	ks1d_colors = []
 	pca3d_pack = []
+
 	packs_size = []
 	ks_b_ampls = []
 	ks_b_times = []
+	ks_b_slices = []
+
 	peaks_per_interval_pack = []
 	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
@@ -607,20 +618,11 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
 		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
-		if flags['kde_peak_slice']:
-			e_peak_times_per_slice, e_peak_ampls_per_slice, e_peak_num_slice = \
-				get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders, return_peaks_slice=True)
-			# flatten all data of the list
-			peak_slices = np.array(list(flatten(flatten(e_peak_num_slice))))
-			ks1d_slices.append(peak_slices)
-		else:
-			e_peak_times_per_slice, e_peak_ampls_per_slice = \
-				get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders)
-
-		packs_size.append(len(e_peak_times_per_slice))
+		e_peak_times_per_slice, e_peak_ampls_per_slice, e_peak_num_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders, return_peaks_slice=True)
 		# flatten all data of the list
-		times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
-		ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
+		flatten_times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
+		flatten_ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
+		flatten_num_slices = np.array(list(flatten(flatten(e_peak_num_slice))))
 
 		if flags['plot_pca3d']:
 			# process latencies, amplitudes, peaks (per dataset per slice)
@@ -632,13 +634,16 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			pca3d_pack.append(coords_meta)
 
 		# form packs
-		ks1d_peaks.append(times)
-		ks1d_ampls.append(ampls)
+		ks1d_peaks.append(flatten_times)
+		ks1d_ampls.append(flatten_ampls)
+		ks1d_slices.append(flatten_num_slices)
 		ks1d_names.append(e_filename)
 		ks1d_colors.append(color)
+		packs_size.append(len(e_peak_times_per_slice))
 
 		ks_b_times.append(e_peak_times_per_slice)
 		ks_b_ampls.append(e_peak_ampls_per_slice)
+		ks_b_slices.append(e_peak_num_slice)
 
 		# plot slices
 		if flags['plot_slices_flag']:
@@ -653,10 +658,16 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 			# 	ideal_sample = 0    # example_sample(times, ampls, dstep_to)
 			# *etc, dstep = parse_filename(e_filename)
 			# ideal_sample = subsampling(ideal_sample, dstep, dstep_to)
-			ideal_sample = list(e_prepared_data[0]) + list(f_prepared_data[0])
+			best_sample = list(e_prepared_data[0]) + list(f_prepared_data[0])
 
-			plot_slices(e_prepared_data, f_prepared_data, e_lat_per_slice, f_lat_per_slice,
-			            best_sample=ideal_sample, save_to=save_to, filename=e_filename, dstep=dstep_to)
+			struct = dict(flatten_times=flatten_times,
+			              flatten_num_slices=flatten_num_slices,
+			              best_sample=best_sample,
+			              save_to=save_to,
+			              filename=e_filename,
+			              dstep=dstep_to)
+
+			plot_slices(e_prepared_data, f_prepared_data, **struct)
 
 		log.info(f"Processed '{folder}'")
 
@@ -667,7 +678,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, packs_size, save_to=save_to)
 
 	if flags['plot_ks_b']:
-		ks_plus_benjamin(ks_b_times, ks_b_ampls)
+		ks_plus_benjamin(ks_b_times, ks_b_ampls, ks_b_slices, dstep=convert_dstep_to)
 
 	if flags['plot_pca3d']:
 		plot_3D_PCA(pca3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])

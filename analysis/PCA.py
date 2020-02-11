@@ -449,7 +449,7 @@ def contour_plot(x, y, color, ax, z_prev, borders, levels_num):
 		zorder = -5 if truesize / fullsize * 100 > 50 else 5
 
 	ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-	ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.5, zorder=zorder)
+	ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=zorder)
 	# ax.scatter(x, y, s=0.1, color=color)
 
 	return z

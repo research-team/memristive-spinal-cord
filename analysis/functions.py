@@ -90,8 +90,11 @@ def read_data(filepath):
 	data_by_test = []
 	with hdf5.File(filepath, 'r') as file:
 		for test_names, test_values in file.items():
-			if "#8_112309_quip" not in test_names:
-				if len(test_values[:]) != 0:
+			if len(test_values[:]) != 0:
+				if "bio" in filepath:
+					if "#3_1125" in test_names:
+						data_by_test.append(test_values[:])
+				else:
 					data_by_test.append(test_values[:])
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
@@ -318,8 +321,14 @@ def prepare_data(dataset, with_centering=False):
 		if with_centering:
 			centered_data = center_data_by_line(data_per_test)
 		else:
-			centered_data = data_per_test
+			centered_data = data_per_test - data_per_test[0]
+
 		normalized_data = normalization(centered_data, save_centering=True)
+		# plt.plot(normalized_data, label="norm")
+		# plt.plot(normalization(center_data_by_line(data_per_test), save_centering=True), label="norm with centering")
+		# plt.legend()
+		# plt.show()
+
 		prepared_data.append(normalized_data)
 	return np.array(prepared_data)
 
@@ -434,6 +443,8 @@ def auto_prepare_data(folder, filename, dstep_to, debugging=False):
 		raise Exception("Couldn't parse filename and extract muscle name")
 
 	# subsampling data to the new data step
+	# plt.plot(dataset[0])
+	# plt.show()
 	dataset = subsampling(dataset, dstep_from=dstep, dstep_to=dstep_to)
 	# prepare data and fill zeroes where not enough slices
 	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, with_centering=source == "bio")])
