@@ -7,7 +7,7 @@ from itertools import chain
 from importlib import reload
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
-from scipy.stats import kstwobign
+from scipy.stats import kstwobign, anderson_ksamp
 from statsmodels.stats.multitest import multipletests
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
@@ -252,7 +252,6 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
 	assert len(x1) == len(y1) and len(x2) == len(y2)
 
-
 	fig, axes = plt.subplots(nrows=2, ncols=3)
 	for data1, data2, row in ([x1, x2, 0], [y1, y2, 1]):
 		# plot the CDF (not scaled)
@@ -323,38 +322,45 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	             f"p-value: {pvalue}")
 	logging.info("- " * 10)
 
-	# 2D peak times/amplitudes analysis
-	# d1 = np.stack((x1, y1), axis=1)
-	# d2 = np.stack((x2, y2), axis=1)
-	# dvalue, _ = peacock2(d1, d2)
-	# den = dvalue * en
-	# pvalue = kstwobign.sf(den)
-	# logging.info(f"2D peacock TIME/AMPL\n")
-	# logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
-	#              f"D-value: {dvalue:.5f}\n"
-	#              f"p-value: {pvalue}")
-	# logging.info("- " * 10)
-
 	# define grid for subplots
-	gs = gridspec.GridSpec(3, 3, width_ratios=[1, 6, 1], height_ratios=[1, 5, 1], wspace=0.3)
-	fig = plt.figure(figsize=(10, 10))
-	kde_ax = plt.subplot(gs[1, 1])
+	gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+	fig = plt.figure(figsize=(8, 6))
+	kde_ax = plt.subplot(gs[1, 0])
 	kde_ax.spines['top'].set_visible(False)
 	kde_ax.spines['right'].set_visible(False)
 
 	# 2D joint plot
-	i = 1
 	z_prev = np.zeros(1)
-	z = []
 	label_pathes = []
+	z = []
 	for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
-		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=10)
+		z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=15)
 		z.append(z_prev)
-		joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": i}, borders=borders, with_boxplot=True)
-
-		i += 1
-		label_text = f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}"
+		t, r = joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders, with_boxplot=False)
+		label_text = f"packs={pack_size}, per pack={int(len(x) / pack_size)}"
 		label_pathes.append(mpatches.Patch(color=color, label=label_text))
+
+		axis_article_style(t, axis='x')
+		axis_article_style(r, axis='y')
+
+		t.set_xticklabels([])
+		r.set_yticklabels([])
+
+		t.set_xlim(borders[0], borders[1])
+		r.set_ylim(borders[2], borders[3])
+
+	axis_article_style(kde_ax, axis='both')
+
+	kde_ax.legend(handles=label_pathes, fontsize=17)
+	kde_ax.set_xlim(borders[0], borders[1])
+	kde_ax.set_ylim(borders[2], borders[3])
+
+	plt.tight_layout()
+	plt.savefig(f"{save_to}/{new_filename}_kde2d.pdf", dpi=250, format="pdf")
+	plt.show()
+	plt.close(fig)
+
+	logging.info(f"saved to {save_to}")
 
 	if additional_tests:
 		from colour import Color
@@ -389,19 +395,6 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 			ax.plot([8] * len(ymaaa), np.linspace(ymin, ymax, len(ymaaa)), ymaaa,  color=clr)
 
 		plt.show()
-
-	kde_ax.legend(handles=label_pathes)
-	kde_ax.set_xlabel("peak time (ms)")
-	kde_ax.set_ylabel("peak amplitude")
-	kde_ax.set_xlim(borders[0], borders[1])
-	kde_ax.set_ylim(borders[2], borders[3])
-
-	plt.tight_layout()
-	plt.savefig(f"{save_to}/{new_filename}_kde2d.png", dpi=250, format="png")
-	plt.show()
-	plt.close(fig)
-
-	logging.info(f"saved to {save_to}")
 
 
 def plot_peaks_bar_intervals(pack_peaks_per_interval, names, save_to):

@@ -467,16 +467,16 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 		**kwargs:
 	"""
 	color = kwargs['color']
-	pos = kwargs['pos']
 	xmin, xmax, ymin, ymax = borders
 
 	if kwargs['with_boxplot']:
+		pos = kwargs['pos']
 		# create X-marginal (top)
-		ax_top = plt.subplot(gs[0, 1], sharex=ax)
+		ax_top = plt.subplot(gs[0, 1])
 		ax_top.spines['top'].set_visible(False)
 		ax_top.spines['right'].set_visible(False)
 		# create Y-marginal (right)
-		ax_right = plt.subplot(gs[1, 2], sharey=ax)
+		ax_right = plt.subplot(gs[1, 2])
 		ax_right.spines['top'].set_visible(False)
 		ax_right.spines['right'].set_visible(False)
 
@@ -500,11 +500,11 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 		ax_bottom.set_xlim([xmin, xmax])
 		ax_bottom.set_yticks([])
 	else:
-		ax_top = plt.subplot(gs[0, 0], sharex=ax)
+		ax_top = plt.subplot(gs[0, 0])
 		ax_top.spines['top'].set_visible(False)
 		ax_top.spines['right'].set_visible(False)
 		# create Y-marginal (right)
-		ax_right = plt.subplot(gs[1, 1], sharey=ax)
+		ax_right = plt.subplot(gs[1, 1])
 		ax_right.spines['top'].set_visible(False)
 		ax_right.spines['right'].set_visible(False)
 
@@ -521,6 +521,8 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 
 	ax_top.set_yticks([])
 	ax_right.set_xticks([])
+
+	return ax_top, ax_right
 
 
 def plot_3D_PCA(data_pack, names, save_to, corr_flag=False, contour_flag=False):
