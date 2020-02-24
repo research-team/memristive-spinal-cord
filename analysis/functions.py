@@ -79,7 +79,7 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
 	return ax.add_patch(ellipse)
 
 
-def read_data(filepath):
+def read_data(filepath, rat):
 	"""
 	ToDo add info
 	Args:
@@ -91,13 +91,14 @@ def read_data(filepath):
 	with hdf5.File(filepath, 'r') as file:
 		for test_names, test_values in file.items():
 			if len(test_values[:]) != 0:
-				if "bio" in filepath:
-					if "#3_1125" in test_names:
-						data_by_test.append(test_values[:])
-				else:
+				if rat is None:
 					data_by_test.append(test_values[:])
+				else:
+					if f"#{rat}" in test_names:
+						data_by_test.append(test_values[:])
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
+	log.info(f"{len(data_by_test)} packs in rat #{rat} inside of {filepath}")
 	return np.array(data_by_test)
 
 
@@ -147,7 +148,7 @@ def subsampling(dataset, dstep_from, dstep_to):
 	return np.array(subsampled_dataset)
 
 
-def extract_data(path, beg=None, end=None):
+def extract_data(path, rat, beg=None, end=None):
 	"""
 	ToDo add info
 	Args:
@@ -162,7 +163,7 @@ def extract_data(path, beg=None, end=None):
 	if end is None:
 		end = int(10e6)
 
-	array = [data[beg:end] for data in read_data(path)]
+	array = [data[beg:end] for data in read_data(path, rat)]
 
 	return array
 
@@ -308,7 +309,7 @@ def get_boxplots(sliced_datasets):
 	return splitted_boxplots
 
 
-def prepare_data(dataset, with_centering=False):
+def prepare_data(dataset, filename):
 	"""
 	Center the data set, then normalize it and return
 	Args:
@@ -318,17 +319,15 @@ def prepare_data(dataset, with_centering=False):
 	"""
 	prepared_data = []
 	for data_per_test in dataset:
-		if with_centering:
+		if "bio" in filename:
 			centered_data = center_data_by_line(data_per_test)
+		elif "nest" in filename:
+			# FixMe: NEST has a special centering
+			centered_data = data_per_test - 67.5
 		else:
 			centered_data = data_per_test - data_per_test[0]
 
 		normalized_data = normalization(centered_data, save_centering=True)
-		# plt.plot(normalized_data, label="norm")
-		# plt.plot(normalization(center_data_by_line(data_per_test), save_centering=True), label="norm with centering")
-		# plt.legend()
-		# plt.show()
-
 		prepared_data.append(normalized_data)
 	return np.array(prepared_data)
 
@@ -372,7 +371,7 @@ def parse_filename(filename):
 	return source, muscle, mode, speed, rate, pedal, stepsize
 
 
-def auto_prepare_data(folder, filename, dstep_to, debugging=False):
+def auto_prepare_data(folder, filename, dstep_to, debugging=False, rat=None):
 	"""
 	ToDo add info
 	Args:
@@ -421,23 +420,23 @@ def auto_prepare_data(folder, filename, dstep_to, debugging=False):
 		full_size = int(e_slices_number * 25 / dstep_to)
 		# extract dataset based on slice numbers (except biological data)
 		if source == "bio":
-			dataset = extract_data(abs_filepath)
+			dataset = extract_data(abs_filepath, rat=rat)
 		else:
 			e_begin = 0
 			e_end = e_begin + standard_slice_length_in_steps * e_slices_number
 			# use native funcion for get needful data
-			dataset = extract_data(abs_filepath, e_begin, e_end)
+			dataset = extract_data(abs_filepath, rat, e_begin, e_end)
 	# extract data of flexor
 	elif muscle == "F":
 		full_size = int(f_slices_number * 25 / dstep_to)
 		# preapre flexor data
 		if source == "bio":
-			dataset = extract_data(abs_filepath)
+			dataset = extract_data(abs_filepath, rat=rat)
 		else:
 			f_begin = standard_slice_length_in_steps * e_slices_number
 			f_end = f_begin + (7 if pedal == "4" else 5) * standard_slice_length_in_steps
 			# use native funcion for get needful data
-			dataset = extract_data(abs_filepath, f_begin, f_end)
+			dataset = extract_data(abs_filepath, rat, f_begin, f_end)
 	# in another case
 	else:
 		raise Exception("Couldn't parse filename and extract muscle name")
@@ -447,7 +446,7 @@ def auto_prepare_data(folder, filename, dstep_to, debugging=False):
 	# plt.show()
 	dataset = subsampling(dataset, dstep_from=dstep, dstep_to=dstep_to)
 	# prepare data and fill zeroes where not enough slices
-	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, with_centering=source == "bio")])
+	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, filename)])
 	# split datatest into the slices
 	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepared_data])
 

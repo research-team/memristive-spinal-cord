@@ -3,10 +3,12 @@ import ntpath
 import logging
 import numpy as np
 import pylab as plt
+import scipy.stats as st
 from itertools import chain
 from importlib import reload
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
+from rpy2.robjects.packages import STAP
 from scipy.stats import kstwobign, anderson_ksamp
 from statsmodels.stats.multitest import multipletests
 import matplotlib.patches as mpatches
@@ -248,6 +250,7 @@ def plot_ks2d(peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_
 	#                     level=logging.DEBUG)
 
 	# unpack the data
+	xmin, xmax, ymin, ymax = borders
 	x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
 	x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
 	assert len(x1) == len(y1) and len(x2) == len(y2)
@@ -519,32 +522,126 @@ def get_pvalue(y1, y2):
 	pvalue = kstwobign.sf(den)
 	return pvalue
 
-def ks_plus_benjamin(times, ampls, slices, dstep):
-	p_values_times = []
-	p_values_ampls = []
-	if len(times[1]) > len(times[0]):
-		indexes = np.random.randint(0, len(times[1]), len(times[0]))
-		times_0, ampls_0 = times[0], ampls[0]
-		times_1, ampls_1 = [times[1][i] for i in indexes], [ampls[1][i] for i in indexes]
-	else:
-		indexes = np.random.randint(0, len(times[0]), len(times[1]))
-		times_0, ampls_0 = [times[0][i] for i in indexes], [ampls[0][i] for i in indexes]
-		times_1, ampls_1 = times[1], ampls[1]
 
-	for time0, amp0 in zip(times_0, ampls_0):
-		for time1, amp1 in zip(times_1, ampls_1):
+
+def kde_test(x1, y1, x2, y2):
+	r_fct_string = f"""  
+	KDE_test <- function(){{
+		library("ks")
+		x1 <- c({str(list(x1))[1:-1]})
+		y1 <- c({str(list(y1))[1:-1]})
+		x2 <- c({str(list(x2))[1:-1]})
+		y2 <- c({str(list(y2))[1:-1]})
+		mat1 <- matrix(c(x1, y1), nrow=length(x1))
+		mat2 <- matrix(c(x2, y2), nrow=length(x2))
+
+		res_time <- kde.test(x1=x1, x2=x2)$pvalue
+		res_ampl <- kde.test(x1=y1, x2=y2)$pvalue
+		res_2d <- kde.test(x1=mat1, x2=mat2)$pvalue
+
+        return(c(res_time, res_ampl, res_2d))
+	}}
+	"""
+	r_pkg = STAP(r_fct_string, "r_pkg")
+	return np.asarray(r_pkg.KDE_test())
+
+def ad_test(a, b):
+	reject_at = 0
+	significance_levels = [25, 10, 5, 2.5, 1]
+	statistic, critical_values, ad_pvalue = anderson_ksamp([a, b])
+	for percent, level in zip(significance_levels, critical_values):
+		if statistic > level:
+			reject_at = percent
+	return ad_pvalue, reject_at
+
+
+def kde_r_test(times, ampls, borders, fs, save_to, dstep):
+	r1 = fs[0]
+	r2 = fs[1] # source, rat, mode, speed
+	name1 = f"{r1[0]}_{r1[2]}_{r1[3]}"
+	name2 = f"{r2[0]}_{r2[2]}_{r2[3]}"
+	save_to = f"{save_to}/{name1} and {name2}/{r1[1]} {r2[1]}"
+
+	if not os.path.exists(save_to):
+		os.makedirs(save_to)
+
+	dat = []
+	# 0 times kde, 1 ampls kde, 2 2d kde
+	steps_number = 0
+	for time0, amp0 in zip(times[0], ampls[0]):
+		for time1, amp1 in zip(times[1], ampls[1]):
 			t0, t1 = np.array(list(flatten(time0))) * dstep, np.array(list(flatten(time1))) * dstep
 			a0, a1 = np.array(list(flatten(amp0))), np.array(list(flatten(amp1)))
-			p_values_times.append(get_pvalue(t0, t1))
-			p_values_ampls.append(get_pvalue(a0, a1))
 
-	print("p-value TIMES (before):", p_values_times)
-	p_values_times = multipletests(p_values_times, alpha=0.05, method='fdr_bh')[1]
-	print("p-value TIMES (after):", p_values_times)
+			if len(t0) < 5 or len(t1) < 5:
+				continue
 
-	print("p-value AMPLS (before):", p_values_ampls)
-	p_values_ampls = multipletests(p_values_ampls, alpha=0.05, method='fdr_bh')[1]
-	print("p-value AMPLS (after):", p_values_ampls)
+			kde_pval_t, kde_pval_a, kde_pval_2d = kde_test(t0, a0, t1, a1)
+			dat.append([kde_pval_t, kde_pval_a, kde_pval_2d])
+
+			gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+			fig = plt.figure(figsize=(8, 6))
+			title_ax = plt.subplot(gs[0, 1])
+			title_ax.text(0.5, 0.5, f"T: {kde_pval_t:.3f}\nA: {kde_pval_a:.3f}\n2D: {kde_pval_2d:.3f}",
+			        horizontalalignment='center',
+			        verticalalignment='center',
+			        fontsize=18, transform=title_ax.transAxes)
+			for spine in ['top', 'right', 'left', 'bottom']:
+				title_ax.spines[spine].set_visible(False)
+			title_ax.set_xticks([])
+			title_ax.set_yticks([])
+
+			kde_ax = plt.subplot(gs[1, 0])
+			kde_ax.spines['top'].set_visible(False)
+			kde_ax.spines['right'].set_visible(False)
+
+			# 2D joint plot
+			z = []
+			label_pathes = []
+			z_prev = np.zeros(1)
+			#
+			for x, y, name, color in zip([t0, t1], [a0, a1], [name1, name2], ['#A6261D', '#472650']):
+				z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=15)
+				z.append(z_prev)
+				t, r = joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders, with_boxplot=False)
+				label_pathes.append(mpatches.Patch(color=color, label=f"{name}"))
+
+				t.set_xticklabels([])
+				r.set_yticklabels([])
+
+				t.set_xlim(borders[0], borders[1])
+				r.set_ylim(borders[2], borders[3])
+
+			kde_ax.legend(handles=label_pathes, fontsize=17)
+			kde_ax.set_xlim(borders[0], borders[1])
+			kde_ax.set_ylim(borders[2], borders[3])
+
+			plt.tight_layout()
+			plt.savefig(f"{save_to}/{steps_number}.png", format="png")
+			plt.close(fig)
+
+			steps_number += 1
+
+	dat = np.array(dat)
+	a = f"T: median p-value={np.median(dat[0, :]):.3f}. Passed steps: ({len(dat[0, :] >= 0.05) / len(dat) * 100:.2f}%)"
+	b = f"A: median p-value={np.median(dat[1, :]):.3f}. Passed steps: ({len(dat[1, :] >= 0.05) / len(dat) * 100:.2f}%)"
+	c = f"2D: median p-value={np.median(dat[2, :]):.3f}. Passed steps: ({len(dat[2, :] >= 0.05) / len(dat) * 100:.2f}%)"
+	log.info(a)
+	log.info(b)
+	log.info(c)
+
+	fig = plt.figure(figsize=(5, 5))
+	plt.suptitle(f"{a}\n{b}\n{c}", fontsize=10)
+	plt.boxplot([k[0] for k in dat], positions=[0], widths=0.8)
+	plt.boxplot([k[1] for k in dat], positions=[1], widths=0.8)
+	plt.boxplot([k[2] for k in dat], positions=[2], widths=0.8)
+	plt.xticks([0, 1, 2], ["times", "ampls", "kde2d"])
+	plt.savefig(f"{save_to}/pval_boxplot.png", format="png")
+	plt.close(fig)
+
+	with open(f"{save_to}/stat", 'w') as file:
+		for t, a, d2 in dat:
+			file.write(f"{t:.5f}\t{a:.5f}\t{d2:.5f}\n")
 
 
 def get_color(filename, clrs):
@@ -561,11 +658,11 @@ def get_color(filename, clrs):
 	return color
 
 
-def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
+def process_dataset(pack, save_to, flags, convert_dstep_to=None):
 	"""
 	ToDo add info
 	Args:
-		filepaths (list of str): absolute paths to the files
+		pack (list): absolute paths to the files an rats' ID
 		save_to (str): save folder
 		flags (dict): pack of flags
 		convert_dstep_to (float or None): data step size
@@ -582,6 +679,8 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 	ks_b_times = []
 	ks_b_slices = []
 
+	flag_tail = False
+	short_filenames = []
 	peaks_per_interval_pack = []
 	colors = iter(['#A6261D', '#472650', '#287a72', '#F2AA2E'])
 
@@ -594,24 +693,29 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		borders[1] = 8
 	if flags['ks_analyse'] == "poly":
 		borders[0] = 8
+	if flags['ks_analyse'] == 'poly_tail':
+		flag_tail = True
+		borders[0] = 8
+		borders[1] = 28
 	if type(flags['ks_analyse']) is list:
 		borders[0], borders[1] = flags['ks_analyse']
-
 	# process each file
-	for filepath in filepaths:
+	for filepath, rat in pack:
 		folder = ntpath.dirname(filepath)
 		e_filename = ntpath.basename(filepath)
+		source, muscle, mode, speed, rate, pedal, stepsize = parse_filename(e_filename)
+		short_filenames.append((source, rat, mode, speed))
 		# default file's step size if dstep is not provided
 		if convert_dstep_to is None:
-			dstep_to = parse_filename(e_filename)[-1]
+			dstep_to = stepsize
 		else:
 			dstep_to = convert_dstep_to
 		# set color based on filename
 		color = get_color(e_filename, colors)
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
-		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to)
+		e_prepared_data = auto_prepare_data(folder, e_filename, dstep_to=dstep_to, rat=rat)
 		# for 1D or 2D Kolmogorod-Smirnov test (without pattern)
-		e_peak_times_per_slice, e_peak_ampls_per_slice, e_peak_num_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders, return_peaks_slice=True)
+		e_peak_times_per_slice, e_peak_ampls_per_slice, e_peak_num_slice = get_all_peak_amp_per_slice(e_prepared_data, dstep_to, borders, tails=flag_tail)
 		# flatten all data of the list
 		flatten_times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		flatten_ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
@@ -642,8 +746,8 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		if flags['plot_slices_flag']:
 			f_filename = e_filename.replace('_E_', '_F_')
 			f_prepared_data = auto_prepare_data(folder, f_filename, dstep_to=dstep_to)
-			e_lat_per_slice = get_lat_matrix(e_prepared_data, dstep_to)
-			f_lat_per_slice = get_lat_matrix(f_prepared_data, dstep_to)
+			# e_lat_per_slice = get_lat_matrix(e_prepared_data, dstep_to)
+			# f_lat_per_slice = get_lat_matrix(f_prepared_data, dstep_to)
 			# find an ideal example of dataset
 			# if "bio_" in e_filename:
 			# 	ideal_sample = example_bio_sample(folder, e_filename)
@@ -671,7 +775,7 @@ def process_dataset(filepaths, save_to, flags, convert_dstep_to=None):
 		plot_ks2d(ks1d_peaks, ks1d_ampls, ks1d_names, ks1d_colors, borders, packs_size, save_to=save_to)
 
 	if flags['plot_ks_b']:
-		ks_plus_benjamin(ks_b_times, ks_b_ampls, ks_b_slices, dstep=convert_dstep_to)
+		kde_r_test(ks_b_times, ks_b_ampls, borders, short_filenames, save_to, dstep=convert_dstep_to)
 
 	if flags['plot_pca3d']:
 		plot_3D_PCA(pca3d_pack, ks1d_names, save_to=save_to, corr_flag=flags['plot_correlation'])

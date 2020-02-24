@@ -264,7 +264,7 @@ def list3d(h, w):
 	return [[[] for _ in range(w)] for _ in range(h)]
 
 
-def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_slice=False, debugging=False):
+def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, tails=True, debugging=False):
 	"""
 	Finds all peaks times and amplitudes at each slice
 
@@ -275,7 +275,7 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_sli
 		sliced_datasets (np.ndarray):
 		dstep (float): data step size
 		borders (list): time borders for searching peaks
-		return_peaks_slice (bool): additional return of peak slice index (at which slice peak is located)
+		tails (bool): move the peaks of first 3 ms to the previous slice
 		debugging (bool): debugging flag
 	Returns:
 		list: 3D list of peak times, [experiment_index][slice_index][peak time]
@@ -293,7 +293,6 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_sli
 	peak_per_slice_list = list3d(h=tests_count, w=slices_count)
 	ampl_per_slice_list = list3d(h=tests_count, w=slices_count)
 	peak_slice_num_list = list3d(h=tests_count, w=slices_count)
-
 	# find all peaks times and amplitudes per slice
 	for experiment_index, slices_data in enumerate(sliced_datasets):
 		# combine slices into one myogram
@@ -316,6 +315,12 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_sli
 			if (min_dist <= dT <= max_dist) and dA >= 0.05 or dA >= min_ampl:
 				slice_index = int(max_index // slice_length)
 				peak_time = max_index - slice_length * slice_index
+				# change slice index for "tails" peaks
+				if tails and peak_time * dstep <= 3 and slice_index > 0:
+					slice_index -= 1
+					peak_time = max_index - slice_length * slice_index
+				# plt.plot(max_index * dstep, y[max_index], '.', color='k')
+				# plt.text(max_index * dstep, y[max_index], f"({peak_time * dstep:.1f}, {slice_index})")
 				if borders[0] <= peak_time * dstep <= borders[1]:
 					peak_per_slice_list[experiment_index][slice_index].append(peak_time)
 					ampl_per_slice_list[experiment_index][slice_index].append(dA)
@@ -331,10 +336,7 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, return_peaks_sli
 		# peaks_per_interval[:, -1] = c
 		# peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
 
-	if return_peaks_slice:
-		return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
-
-	return peak_per_slice_list, ampl_per_slice_list
+	return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
 
 
 def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=False):
