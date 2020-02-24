@@ -566,7 +566,6 @@ def kde_r_test(times, ampls, borders, fs, save_to, dstep):
 		os.makedirs(save_to)
 
 	dat = []
-	# 0 times kde, 1 ampls kde, 2 2d kde
 	steps_number = 0
 	for time0, amp0 in zip(times[0], ampls[0]):
 		for time1, amp1 in zip(times[1], ampls[1]):
@@ -623,18 +622,18 @@ def kde_r_test(times, ampls, borders, fs, save_to, dstep):
 			steps_number += 1
 
 	dat = np.array(dat)
-	a = f"T: median p-value={np.median(dat[0, :]):.3f}. Passed steps: ({len(dat[0, :] >= 0.05) / len(dat) * 100:.2f}%)"
-	b = f"A: median p-value={np.median(dat[1, :]):.3f}. Passed steps: ({len(dat[1, :] >= 0.05) / len(dat) * 100:.2f}%)"
-	c = f"2D: median p-value={np.median(dat[2, :]):.3f}. Passed steps: ({len(dat[2, :] >= 0.05) / len(dat) * 100:.2f}%)"
+	a = f"T: median p-value={np.median(dat[:, 0]):.3f}. Passed steps: ({len(np.where(dat[:, 0] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
+	b = f"A: median p-value={np.median(dat[:, 1]):.3f}. Passed steps: ({len(np.where(dat[:, 1] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
+	c = f"2D: median p-value={np.median(dat[:, 2]):.3f}. Passed steps: ({len(np.where(dat[:, 2] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
 	log.info(a)
 	log.info(b)
 	log.info(c)
 
 	fig = plt.figure(figsize=(5, 5))
 	plt.suptitle(f"{a}\n{b}\n{c}", fontsize=10)
-	plt.boxplot([k[0] for k in dat], positions=[0], widths=0.8)
-	plt.boxplot([k[1] for k in dat], positions=[1], widths=0.8)
-	plt.boxplot([k[2] for k in dat], positions=[2], widths=0.8)
+	plt.boxplot(dat[:, 0], positions=[0], widths=0.8)
+	plt.boxplot(dat[:, 1], positions=[1], widths=0.8)
+	plt.boxplot(dat[:, 2], positions=[2], widths=0.8)
 	plt.xticks([0, 1, 2], ["times", "ampls", "kde2d"])
 	plt.savefig(f"{save_to}/pval_boxplot.png", format="png")
 	plt.close(fig)
