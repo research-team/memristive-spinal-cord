@@ -10,7 +10,7 @@ NEURON {
 	USEION k READ ek WRITE ik
 	NONSPECIFIC_CURRENT il
 	RANGE gnabar, gkbar, vtraub, gl, el
-	RANGE m_inf, h_inf, n_inf
+	RANGE m_inf, h_inf, n_inf, m, h, n
 	RANGE tau_m, tau_h, tau_n
 	RANGE m_exp, h_exp, n_exp
 }

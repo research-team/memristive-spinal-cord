@@ -70,7 +70,7 @@ class interneuron(object):
     '''
     Adds length and diameter to sections
     '''
-    self.soma.L = self.soma.diam = random.randint(5, 10) # microns
+    self.soma.L = self.soma.diam = random.randint(5, 15) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
     self.dend.L = 200 # microns
@@ -156,7 +156,7 @@ class interneuron(object):
     '''
     Adds synapses
     '''
-    for i in range(200):
+    for i in range(20):
       s = h.ExpSyn(self.dend(0.5)) # Excitatory
       s.tau = 0.1
       s.e = 50

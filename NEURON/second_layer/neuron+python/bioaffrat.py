@@ -93,7 +93,7 @@ class bioaffrat(object):
   def synapses(self):
     #for sec in self.axonL.node:
     for i in range(3):
-      for j in range(50):
+      for j in range(5):
         s = h.ExpSyn(self.axonL.node[len(self.axonL.node)-1-i](0.5)) # Excitatory
         s.tau = 0.1
         s.e = 50
@@ -102,7 +102,7 @@ class bioaffrat(object):
         s.tau = 0.1
         s.e = 50
         self.synlistees.append(s)
-    for i in range(200):
+    for i in range(20):
       s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
       s.tau1 = 1.5
       s.tau2 = 2

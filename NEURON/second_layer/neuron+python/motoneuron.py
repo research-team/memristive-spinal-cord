@@ -3,6 +3,7 @@ h.load_file('stdlib.hoc') #for h.lambda_f
 
 import random
 from axon import axon
+from muscle import muscle
 
 class motoneuron(object):
   '''
@@ -20,13 +21,14 @@ class motoneuron(object):
   def __init__(self, diam):
     #print 'construct ', self
     #create axon
-    # self.axon = axon(50)
+    self.axon = axon(10)
+    self.muscle = muscle()
     self.diam = diam
     self.topol()
     self.subsets()
     self.geom()
     self.biophys()
-    self.geom_nseg()
+    #self.geom_nseg()
     self.synlistinh = []
     self.synlistex = []
     self.synapses()
@@ -42,10 +44,10 @@ class motoneuron(object):
     '''
     self.soma = h.Section(name='soma', cell=self)
     self.dend = h.Section(name='dend', cell= self)
-    self.axon = h.Section(name='axon', cell= self)
+    self.axon.node[0].connect(self.soma(1))
     self.dend.connect(self.soma(1))
-    self.axon.connect(self.soma(1))
-    self.basic_shape()
+    self.muscle.muscle_unit.connect(self.axon.node[self.axon.axonnodes-1](1))
+    #self.basic_shape()
 
   def basic_shape(self):
     '''
@@ -98,6 +100,7 @@ class motoneuron(object):
     Adds channels and their parameters
     '''
     self.soma.insert('motoneuron')
+    self.soma.insert('Ca_conc')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
     self.soma.cm = random.gauss(2, 0.1) # cm uf/cm2 - membrane capacitance
@@ -117,6 +120,7 @@ class motoneuron(object):
     self.dend.Ra = 200 # Ra ohm cm - membrane resistance
     self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
 
+    '''
     self.axon.insert('hh')
     self.axon.gnabar_hh = 0.5
     self.axon.gkbar_hh = 0.1
@@ -124,6 +128,7 @@ class motoneuron(object):
     self.axon.el_hh = -70
     self.axon.Ra = 70 # Ra ohm cm - membrane resistance
     self.axon.cm = 2 # cm uf/cm2 - membrane capacitance
+    '''
 
   def position(self, x, y, z):
     '''
@@ -157,7 +162,7 @@ class motoneuron(object):
     '''
     Adds synapses
     '''
-    for i in range(200):
+    for i in range(20):
       s = h.ExpSyn(self.soma(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50
