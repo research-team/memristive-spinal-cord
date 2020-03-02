@@ -162,7 +162,7 @@ class V3(Functions):
 		connect_to_ip(OM4_2_E, 15.5 * coef2, 2.3)
 		connect_to_ip(OM5_2_E, 16.5 * coef2, 2.7)
 
-		connect_to_moto(8.35)
+		connect_to_moto(6)
 
 		# flexor
 		self.connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip)
