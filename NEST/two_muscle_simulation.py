@@ -150,17 +150,17 @@ class V3(Functions):
 
 		def connect_to_moto(weight):
 			self.connect_fixed_outdegree(eIP_E_0, MN_E, 2, weight, neurons_in_moto_extensor)
-			self.connect_fixed_outdegree(eIP_E_1, MN_E, 3, weight * 1.5, neurons_in_moto_extensor)
+			self.connect_fixed_outdegree(eIP_E_1, MN_E, 3, weight * 2.1, neurons_in_moto_extensor)
 
 		# extensor
 
 		coef2 = 1.8
 
-		connect_to_ip(OM1_2_E, 12.5 * coef2, 1.4)
-		connect_to_ip(OM2_2_E, 13 * coef2, 1.3)
+		connect_to_ip(OM1_2_E, 14 * coef2, 1.4)
+		connect_to_ip(OM2_2_E, 14 * coef2, 1.3)
 		connect_to_ip(OM3_2_E, 14 * coef2, 1.9)
-		connect_to_ip(OM4_2_E, 16.5 * coef2, 2.3)
-		connect_to_ip(OM5_2_E, 17.5 * coef2, 2.7)
+		connect_to_ip(OM4_2_E, 15.5 * coef2, 2.3)
+		connect_to_ip(OM5_2_E, 16.5 * coef2, 2.7)
 
 		connect_to_moto(8.35)
 
@@ -317,7 +317,7 @@ class V3(Functions):
 		self.connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip)
 		self.connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -10, neurons_in_ip)
 		self.connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip)
-		self.connect_fixed_outdegree(Ia_E_aff, MN_E, 3.4, 26, neurons_in_moto_extensor)
+		self.connect_fixed_outdegree(Ia_E_aff, MN_E, 3.4, 14, neurons_in_moto_extensor)
 
 		self.connect_fixed_outdegree(R_E, R_F, 2, -1)
 		self.connect_fixed_outdegree(R_F, R_E, 2, -1)
@@ -325,8 +325,8 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 25
-	parameters.steps = 1
+	parameters.tests = 4
+	parameters.steps = 10
 	parameters.cms = 15
 	parameters.EES = 40
 	parameters.inh = 100
