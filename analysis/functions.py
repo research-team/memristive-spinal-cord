@@ -99,6 +99,7 @@ def read_data(filepath, rat):
 		if not all(map(len, data_by_test)):
 			raise Exception("hdf5 has an empty data!")
 	log.info(f"{len(data_by_test)} packs in rat #{rat} inside of {filepath}")
+
 	return np.array(data_by_test)
 
 
@@ -324,6 +325,9 @@ def prepare_data(dataset, filename):
 		elif "nest" in filename:
 			# FixMe: NEST has a special centering
 			centered_data = data_per_test - 67.5
+		elif "neuron" in filename:
+			# FixMe: NEURON has a special centering
+			centered_data = np.array(data_per_test) + 0.57
 		else:
 			centered_data = data_per_test - data_per_test[0]
 
@@ -446,7 +450,16 @@ def auto_prepare_data(folder, filename, dstep_to, debugging=False, rat=None):
 	# plt.show()
 	dataset = subsampling(dataset, dstep_from=dstep, dstep_to=dstep_to)
 	# prepare data and fill zeroes where not enough slices
-	prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, filename)])
+	# prepared_data = np.array([np.append(d, [0] * (full_size - len(d))) for d in prepare_data(dataset, filename)])
+	prepared_data = np.array([d for d in prepare_data(dataset, filename) if len(d) == full_size])
+
+	# plt.suptitle(filename)
+	# for test in prepared_data:
+	# 	plt.plot(np.array(test))
+	# plt.axhline(y=0)
+	# plt.show()
+	# raise Ellipse
+
 	# split datatest into the slices
 	splitted_per_slice = np.array([split_by_slices(d, slice_in_steps) for d in prepared_data])
 

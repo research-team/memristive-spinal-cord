@@ -286,7 +286,7 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, tails=True, debu
 
 	# form parameters for filtering peaks
 	min_ampl = 0.3
-	min_dist = int(0.7 / dstep)
+	min_dist = int(0.15 / dstep)
 	max_dist = int(4 / dstep)
 	# interpritate shape of dataset
 	tests_count, slices_count, slice_length = sliced_datasets.shape
@@ -302,17 +302,32 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, tails=True, debu
 		e_minima_indexes, e_minima_values = find_extrema(y, np.less)
 		# start pairing extrema from maxima
 		if e_minima_indexes[0] < e_maxima_indexes[0]:
-			comb = zip(e_maxima_indexes, e_minima_indexes[1:])
+			comb = list(zip(e_maxima_indexes, e_minima_indexes[1:]))
+			combA = list(zip(e_maxima_values, e_minima_values[1:]))
 		else:
-			comb = zip(e_maxima_indexes, e_minima_indexes)
+			comb = list(zip(e_maxima_indexes, e_minima_indexes))
+			combA = list(zip(e_maxima_values, e_minima_values))
+
 		# process each extrema pair
+		# xticks = np.arange(len(y)) * dstep
+		# plt.plot(xticks, y, color='k')
+		# plt.plot(e_maxima_indexes * dstep, e_maxima_values, '.', color='r')
+		# plt.plot(e_minima_indexes * dstep, e_minima_values, '.', color='b')
+		#
+		# for i in range(20):
+		# 	plt.axvline(25 * i)
+		#
+		per_dT = np.percentile(np.abs(np.diff(np.array(comb))) * dstep, q=[25, 50, 75])
+		per_dA = np.percentile(np.abs(np.diff(np.array(combA))), q=[25, 50, 75])
+		# print(f"{'{:.2f} {:.2f} {:.2f}'.format(*list(per_dT))} {'{:.3f} {:.3f} {:.3f}'.format(*per_dA)}")
+
 		for max_index, min_index in comb:
 			max_value = e_maxima_values[e_maxima_indexes == max_index][0]
 			min_value = e_minima_values[e_minima_indexes == min_index][0]
 			dT = abs(max_index - min_index)
 			dA = abs(max_value - min_value)
 			# check the difference between maxima and minima
-			if (min_dist <= dT <= max_dist) and dA >= 0.05 or dA >= min_ampl:
+			if (min_dist <= dT <= max_dist) and dA >= 0.028 or dA >= min_ampl:
 				slice_index = int(max_index // slice_length)
 				peak_time = max_index - slice_length * slice_index
 				# change slice index for "tails" peaks
@@ -326,6 +341,13 @@ def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, tails=True, debu
 					ampl_per_slice_list[experiment_index][slice_index].append(dA)
 					peak_slice_num_list[experiment_index][slice_index].append(slice_index)
 
+		# 			plt.plot([max_index * dstep, min_index * dstep], [max_value, max_value], ls='--', color='k')
+		# 			plt.plot([min_index * dstep, min_index * dstep], [max_value, min_value], ls='--', color='k')
+		# 			plt.plot(max_index * dstep, max_value, '.', color='r', ms=15)
+		# 			plt.plot(min_index * dstep, min_value, '.', color='b', ms=15)
+		# 			plt.text(max_index * dstep, max_value + 0.03,
+		# 			         f"dT {(min_index - max_index) * dstep:.2f}\ndA {dA:.3f}")
+		# plt.show()
 	if debugging:
 		raise NotImplemented
 		# peaks_per_interval = np.zeros((slices_count, len(intervals)))
