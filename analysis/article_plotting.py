@@ -3,14 +3,11 @@ import ntpath
 import logging
 import numpy as np
 import pylab as plt
-import scipy.stats as st
 from itertools import chain
-from importlib import reload
 from matplotlib import gridspec
-from scipy.stats import ks_2samp
+from scipy.stats import ks_2samp, kstest
 from rpy2.robjects.packages import STAP
 from scipy.stats import kstwobign, anderson_ksamp
-from statsmodels.stats.multitest import multipletests
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import auto_prepare_data, get_boxplots, parse_filename, subsampling
@@ -20,7 +17,7 @@ flatten = chain.from_iterable
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
-
+# logging.disable(logging.CRITICAL)
 k_median = 0
 k_box_high = 1
 k_box_low = 2
@@ -28,7 +25,7 @@ k_fliers_high = 5
 k_fliers_low = 6
 
 
-def recolor(boxplot_elements, color, fill_color):
+def recolor(boxplot_elements, color, fill_color, fill_alpha=0.0):
 	"""
 	Add colors to bars (setup each element)
 	Args:
@@ -36,11 +33,15 @@ def recolor(boxplot_elements, color, fill_color):
 		color (str): HEX color of outside lines
 		fill_color (str): HEX color of filling
 	"""
+	assert 0 <= fill_alpha <= 1
+
+	hex_alpha = hex(int(fill_alpha * 255))[2:]
+
 	for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-		plt.setp(boxplot_elements[element], color=color, linewidth=3)
+		plt.setp(boxplot_elements[element], color=color, linewidth=2)
 	plt.setp(boxplot_elements["fliers"], markeredgecolor=color)
 	for patch in boxplot_elements['boxes']:
-		patch.set(facecolor=fill_color)
+		patch.set(facecolor=f"{fill_color}{hex_alpha}")
 
 
 def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None, xmax=None):
@@ -523,7 +524,6 @@ def get_pvalue(y1, y2):
 	return pvalue
 
 
-
 def kde_test(x1, y1, x2, y2):
 	r_fct_string = f"""  
 	KDE_test <- function(){{
@@ -709,6 +709,7 @@ def process_dataset(pack, save_to, flags, convert_dstep_to=None):
 			dstep_to = stepsize
 		else:
 			dstep_to = convert_dstep_to
+
 		# set color based on filename
 		color = get_color(e_filename, colors)
 		# get extensor/flexor prepared data (centered, normalized, subsampled and sliced)
@@ -719,6 +720,71 @@ def process_dataset(pack, save_to, flags, convert_dstep_to=None):
 		flatten_times = np.array(list(flatten(flatten(e_peak_times_per_slice)))) * dstep_to
 		flatten_ampls = np.array(list(flatten(flatten(e_peak_ampls_per_slice))))
 		flatten_num_slices = np.array(list(flatten(flatten(e_peak_num_slice))))
+
+		# for i in range(len(e_peak_times_per_slice)):
+		# 	print(f"rat {rat} {mode} {speed} step {i + 1}")
+
+		# plt.hist(flatten_times)
+		# plt.show()
+		# rat_steps = len(e_prepared_data)
+		# print(f"{rat}\t{mode}\t{speed}\t{rat_steps}\t"
+		#       f"{len(flatten_ampls) / rat_steps:.1f}\t"
+		#       f"{np.percentile(flatten_ampls, q=[5, 50, 95])[1]:.2f}")
+		# # for k in e_peak_ampls_per_slice:
+		# # 	print(len(list(flatten(k))))
+		# return
+
+		if "boxplot" in flags and flags['boxplot']:
+			total_steps = e_prepared_data.shape[0]
+			total_slices = e_prepared_data.shape[1]
+			sliced_peak = [[] for _ in range(total_slices)]
+			peaks_vals = [[] for _ in range(total_slices)]
+			passed = 0
+			alles = total_steps * total_slices
+
+			if speed == "6":
+				fig, ax = plt.subplots(figsize=(20, 20))
+			elif speed == "13.5":
+				fig, ax = plt.subplots(figsize=(16, 12))
+			else:
+				fig, ax = plt.subplots(figsize=(16, 8))
+			fname = f"{source}_{rat}_{mode}_{speed}"
+
+			clr = iter(["#275b78", "#f2aa2e", "#a6261d", "#472650"] * alles)
+			for step in range(total_steps):
+				c = next(clr)
+				for slice_index in range(total_slices):
+					myogram = np.array(e_prepared_data[step][slice_index]) + slice_index
+					peaks_time = e_peak_times_per_slice[step][slice_index]
+					# peaks_val = list(myogram[peaks_time])
+					if len(peaks_time) > 0:
+						passed += 1
+					sliced_peak[slice_index] += peaks_time
+					# peaks_vals[slice_index] += peaks_val
+					plt.plot(np.arange(len(myogram)) * dstep_to, myogram, alpha=0.5, color=c)
+
+			# plt.suptitle(f"{fname} {passed / alles * 100:.1f}%")
+			percentile = [10, 90]
+			for i, s in enumerate(sliced_peak):
+				s = np.array(s)
+				plt.plot(s * dstep_to, [i] * len(s), '.', color='k', ms=4)
+				bx = plt.boxplot(s * dstep_to, vert=False, positions=[i], widths=0.8, showfliers=False, patch_artist=True, whis=percentile) # default 1.5
+				starts = bx['whiskers'][0].get_xdata()[1]
+				# starts = np.percentile(s * dstep_to, percentile)[0]
+				plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
+				recolor(bx, "#287a72", "#287a72", fill_alpha=0.2)
+			plt.grid(which='both', axis='x')
+			axis_article_style(ax, axis='x')
+
+			yticklabels = [None] * total_slices
+			slice_indexes = range(1, total_slices + 1)
+			for i in [0, -1, int(1 / 3 * total_slices), int(2 / 3 * total_slices)]:
+				yticklabels[i] = slice_indexes[i]
+			plt.yticks(range(0, total_slices), yticklabels, fontsize=50)
+			plt.xlim(0, 25)
+			plt.savefig(f"/home/alex/pval/{fname}.pdf", format="pdf")
+			# plt.show()
+			return
 
 		if flags['plot_pca3d']:
 			# process latencies, amplitudes, peaks (per dataset per slice)
