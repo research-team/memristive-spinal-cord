@@ -162,7 +162,7 @@ class V3(Functions):
 		connect_to_ip(OM4_2_E, 15.5 * coef2, 2.3)
 		connect_to_ip(OM5_2_E, 16.5 * coef2, 2.7)
 
-		connect_to_moto(6)
+		connect_to_moto(5)
 
 		# flexor
 		self.connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip)
@@ -300,7 +300,8 @@ class V3(Functions):
 		# reflex arc
 		self.connect_fixed_outdegree(iIP_E, eIP_F, 3.3, -14, neurons_in_ip)
 		connect_to_ip(iIP_F, -40, 0.5)
-		# self.connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -40, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_F, eIP_E_0, 0.5, -40, neurons_in_ip)
+		self.connect_fixed_outdegree(iIP_F, eIP_E_1, 0.5, -40, neurons_in_ip)
 
 		self.connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -3, neurons_in_ip)
 		self.connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -3, neurons_in_ip)
@@ -338,15 +339,15 @@ if __name__ == "__main__":
 
 	save_folder = f"{os.getcwd()}/dat"
 
-	for i in range(parameters.tests):
-		while True:
-			try:
-				V3(parameters, iteration=i)
-				break
-			except Exception:
-				print(traceback.format_exc())
-				continue
+	# for i in range(parameters.tests):
+	# 	while True:
+	# 		try:
+	# 			V3(parameters, iteration=i)
+	# 			break
+	# 		except Exception:
+	# 			print(traceback.format_exc())
+	# 			continue
 
-	convert_to_hdf5(save_folder)
+	# convert_to_hdf5(save_folder)
 	plot_results(save_folder, ees_hz=parameters.EES)
 	# draw.run()
