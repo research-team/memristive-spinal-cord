@@ -22,7 +22,7 @@ reversed_image = "reversed"
 class AppForm(QMainWindow):
 	def __init__(self, parent=None):
 		QMainWindow.__init__(self, parent)
-		self.setWindowTitle('Computer Vision Analyzer v2.0 (NcN lab product 2020)')
+		self.setWindowTitle('Computer Vision Analyzer v2.3 (NcN lab product 2020)')
 		self.create_main_frame()
 		self.create_status_bar()
 
@@ -31,6 +31,13 @@ class AppForm(QMainWindow):
 		self.excl_indices = None
 
 	def open_file(self, path):
+		"""
+		Try to read data from files with different types
+		Args:
+			path (str): file path
+		Returns:
+			tuple : shape of the data
+		"""
 		try:
 			self.dat = sio.loadmat(path)['components'][:]
 			return self.dat.shape
@@ -42,14 +49,19 @@ class AppForm(QMainWindow):
 			ValueError('Could not read the file at all...')
 
 	def reshape_data(self):
+		"""
+		Transpose the multi-dimensional matrix if need
+		"""
 		# get new shape as tuple
 		new_order = tuple(map(int, self.in_data_reshape.text().split()))
 		# reshape data to the new shape
 		self.dat = np.transpose(self.dat, new_order)
 		new_shape = self.dat.shape
+		# align for full formed polygons of KDE contours
+		self.align = 10
 		#
-		self.image_height = new_shape[0]
-		self.image_width = new_shape[1]
+		self.im_height = new_shape[0]
+		self.im_width = new_shape[1]
 		self.total_frames = new_shape[2]
 		# disable buttons of reshaping
 		self.in_data_reshape.setEnabled(False)
@@ -59,55 +71,69 @@ class AppForm(QMainWindow):
 		self.in_end_frame.setValidator(QIntValidator(0, self.total_frames - 1))
 		self.in_end_frame.setText(str(self.total_frames - 1))
 		# form a mesh grid
-		self.xx, self.yy = np.meshgrid(np.linspace(-10, new_shape[1] + 9, new_shape[1] + 20),
-		                               np.linspace(-10, new_shape[0] + 9, new_shape[0] + 20))
+		self.xx, self.yy = np.meshgrid(np.linspace(-self.align, self.im_width + self.align - 1,
+		                                           self.im_width + self.align * 2),
+		                               np.linspace(-self.align, self.im_height + self.align - 1,
+		                                           self.im_height + self.align * 2))
 		# re-present grid in 1D and pair them as (x1, y1 ...)
 		self.xy_meshgrid = np.vstack([self.xx.ravel(), self.yy.ravel()])
-		# ToDo add GUI
-		self.exclude()
 		# update status
 		self.status_text.setText(f"Data was reshaped to {new_shape}")
 
 	def file_dialog(self):
+		"""
+		Invoke PyQT file dialog with unblocking buttons
+		"""
 		fname = QFileDialog.getOpenFileName(self, 'Open file', "", "MAT file (*.mat)")
 		# if exists
 		if fname[0]:
 			self.dat = None
 			self.status_text.setText("Unpack .mat file... Please wait")
-			# FixMe it is a bug of QApplication
 			QApplication.processEvents()
 			QApplication.processEvents()
-
 			data_shape = self.open_file(fname[0])
 
 			self.status_text.setText(f".mat file is unpacked, data shape {data_shape}")
-
+			# show the data shape
 			str_format = len(data_shape) * '{:<5}'
 			self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
 			                            f"Index: {str_format.format(*list(range(4)))}")
 			self.label_fileinfo.setFont(QFont("Courier New"))
-
+			# unblock buttons
 			for obj in [self.btn_save_results, self.btn_loop_draw, self.btn_frame_right,
-			            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape]:
+			            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape,
+			            self.box_method, self.in_data_filter, self.btn_filter_data]:
 				obj.setEnabled(True)
 
 
-	def exclude(self):
+	def filter_exclude(self):
+		"""
+		Get a coords of points that have very small changes till the all recordings
+		"""
 		methodic = int(self.box_method.currentText())
-
-		diff = np.zeros(shape=self.dat[:, :, 0, methodic].shape)
-
+		input_q3 = self.check_input(self.in_data_filter, borders=[50, 100])
+		input_q1 = 100 - input_q3
+		# init diff 2D array as zeros
+		diff = np.zeros(shape=(self.im_height, self.im_width))
+		# sum each pixel per frame
 		for frame in range(self.total_frames):
 			diff += self.dat[:, :, frame, methodic]
-
+		# self.magnitudes = np.zeros(shape=(self.image_height, self.image_width))
 		# for xi in range(self.image_width):
 		# 	for yi in range(self.image_height):
-		# 		self.magnitudes[yi, xi] = np.sqrt(self.dat[yi, xi, :, methodic])
-
-		q1, m, q3 = np.percentile(diff, q=(0.5, 50, 99.5))
+		# 		self.magnitudes[yi, xi] = np.linalg.norm(self.dat[yi, xi, :600, methodic])
+		# find the fliers (points that lower than q1 or higher thn q3)
+		q1, m, q3 = np.percentile(diff, q=(input_q1, 50, input_q3))
 		row, col = np.indices(diff.shape)
 		diff = diff.ravel()
+		# take coordinates of the points where their values are fliers
 		self.excl_indices = np.stack((col.ravel(), row.ravel()), axis=1)[(diff >= q3) | (diff <= q1)]
+		# plot the filtering result
+		self.ax1.clear()
+		self.ax1.imshow(self.dat[:, :, 0, methodic], cmap='gray')
+		self.ax1.plot(self.excl_indices[:, 0], self.excl_indices[:, 1], '.', color='r')
+		self.canvas.draw()
+		self.canvas.flush_events()
 
 	@staticmethod
 	def eigsorted(cov):
@@ -116,16 +142,35 @@ class AppForm(QMainWindow):
 		return vals[order], vecs[:, order]
 
 	@staticmethod
-	def array_xor(A, B):
-		aset = set(map(tuple, A))
-		bset = set(map(tuple, B))
+	def array_xor(array_a, array_b):
+		aset = set(map(tuple, array_a))
+		bset = set(map(tuple, array_b))
 		return np.array(list(map(tuple, aset.difference(bset))))
 
-	def update_draws(self, frame, percentile, save_result=False):
-		# toDO
-		max_contour_number  = 15
+	@staticmethod
+	def polygon_area(x, y):
+		return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+	def align_coord(self, coords):
+		xx = coords - self.align
+		xx[xx >= self.im_width - 0.5] = self.im_width - 1
+		xx[xx <= 0.5] = 0
+		return xx
+
+	def update_draws(self, frame, threshold_percentile, save_result=False):
+		"""
+		Calculate contours and draw them on the axis
+		Args:
+			frame (int): index of the frame
+			threshold_percentile (float): Q3 percentile for finding non-normal values
+			save_result (bool): flag for skipping drawing if we want just save results
+		Returns:
+			tuple : x and y coords of the contour if 'save_result' is true
+		"""
 		# get the current methodic
 		methodic = int(self.box_method.currentText())
+		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
+
 		# get data
 		original = self.dat[:, :, frame, methodic]
 		# normalize data from 0 to 255 with dynamic borders (min and max). It mades grayscale cmap
@@ -136,19 +181,20 @@ class AppForm(QMainWindow):
 
 		image = cv2.medianBlur(image, 5)
 		# set the dynamic thresh value to catch the most "deviant" data -- 95%
-		thresh_value = np.percentile(image.ravel(), percentile)
+		thresh_value = np.percentile(image.ravel(), threshold_percentile)
 		# get coordinates of points which are greater than thresh value
 		found_points = np.stack(np.where(image >= thresh_value), axis=1)[:, [1, 0]]
+		# exclude points that are not adequate
 		found_points = self.array_xor(found_points, self.excl_indices)
 		x, y = found_points[:, 0], found_points[:, 1]
 
-		#### ELLIPSE ####
+		# form confidence ellipse
 		nstd = 2.5
 		ell_center = found_points.mean(axis=0)
 		cov = np.cov(found_points, rowvar=False)
 		vals, vecs = self.eigsorted(cov)
-		theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-		# Width and height are "full" widths, not radius
+		theta = float(np.degrees(np.arctan2(*vecs[:, 0][::-1])))
+		# width and height are "full" widths, not radius
 		width, height = 2 * nstd * np.sqrt(vals)
 
 		cos_angle = np.cos(np.radians(180 - theta))
@@ -166,146 +212,124 @@ class AppForm(QMainWindow):
 		mask = np.zeros(shape=image.shape)
 		mask[y, x] = 255
 		mask = mask.astype('uint8')
-
-		kernel = np.ones((3, 3), np.uint8)
+		#
 		_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
 		# transform morphology of the mask
-		thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-		thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+		morph_kernel = np.ones((3, 3), np.uint8)
+		thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
+		thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
 		# get the contour of the mask
 		*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
+		# just info for finding a dependencies
 		med_dist = np.median(np.sqrt((x - ell_center[0]) ** 2 + (y - ell_center[1]) ** 2))
-
-		contours = None
-		core_contour_x = None
-		core_contour_y = None
-
-		if len(CVcontours) < max_contour_number:
-			# get a KDE function values based on found points with XX YY meshgrid
+		# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
+		max_contour = None
+		if len(CVcontours) < max_fragmentation:
+			# get a KDE function values based on found points above XY meshgrid
 			a = st.gaussian_kde(np.stack(found_points, axis=1))(self.xy_meshgrid).T
-			# re-present grid back to 2D
+			# represent grid back to 2D
 			z = np.reshape(a, self.xx.shape)
-			# form a step and levels
+			# form a step as contour level
 			step = (np.amax(a) - np.amin(a)) / 3
-			# Find contours at a constant value of 0.8
 			contours = measure.find_contours(z, step)
-			# set the borders and alignment
-			core_contour_x = contours[0][:, 1] - 10
-			core_contour_x[core_contour_x >= self.image_width - 0.5] = self.image_width - 1
-			core_contour_x[core_contour_x <= 0.5] = 0
-			core_contour_y = contours[0][:, 0] - 10
-			core_contour_y[core_contour_y >= self.image_height - 0.5] = self.image_height - 1
-			core_contour_y[core_contour_y <= 0.5] = 0
+			# find the epilepsy contour (the biggest contour)
+			max_area = 0
+			# check and plot each contour
+			for c in contours:
+				# set the borders and alignment
+				yy = self.align_coord(c[:, 0])
+				xx = self.align_coord(c[:, 1])
+				pa = self.polygon_area(xx, yy)
+				if pa > max_area:
+					max_area = pa
+					max_contour = (xx, yy)
 
 		if save_result:
-			raise NotImplemented
-			cont = []
-			for c in core_contour:
-				if len(c) > 5:
-					epsilon = 0.01 * cv2.arcLength(c, True)
-					approx = cv2.approxPolyDP(c, epsilon, True).squeeze()
-					approx = np.vstack((approx, approx[0, :]))
-					cont.append(approx)
-			return cont
+			return max_contour
 		else:
 			self.current_frame = frame
 			self.fig.suptitle(f"Frame {frame}")
 			self.ax1.clear()
 			self.ax2.clear()
-
+			self.ax2.set_title(f"Fragmented contours: {len(CVcontours)} (dist {med_dist:.2f})")
 			# plotting original picture with excluded dots (red)
 			self.ax1.imshow(original, cmap='gray')
 			self.ax1.plot(self.excl_indices[:, 0], self.excl_indices[:, 1], '.', color='r')
 			# debug plot
 			self.ax2.imshow(image, cmap='gray')
+			# all points plotting, but after recoloring they will mean the points outside of ellipse
 			self.ax2.plot(x, y, '.', color='yellow', ms=1)
-			# plot inside ellipse dots
+			# plot inside ellipse points
 			self.ax2.plot(x[rad_cc <= 1], y[rad_cc <= 1], '.', color='green', ms=1)
-			ellip = Ellipse(xy=ell_center, width=width, height=height, angle=theta, lw=3, fill=False, edgecolor='w')
-			self.ax2.add_artist(ellip)
+			ellipse = Ellipse(xy=ell_center, width=width, height=height, angle=theta, lw=3, ec='w', fill=False)
+			self.ax2.add_artist(ellipse)
 			self.ax2.plot(ell_center[0], ell_center[1], 'x', ms=20, color='w')
-
-			if len(CVcontours) < max_contour_number:
-				for c in contours:
-					# set the borders and alignment
-					xx = c[:, 1] - 10
-					xx[xx >= self.image_width - 0.5] = self.image_width - 1
-					xx[xx <= 0.5] = 0
-					yy = c[:, 0] - 10
-					yy[yy >= self.image_height - 0.5] = self.image_height - 1
-					yy[yy <= 0.5] = 0
-					self.ax1.plot(xx, yy)
-				self.ax1.plot(core_contour_x, core_contour_y, color='g', linewidth=3)
-
-			self.ax2.set_title(f"Num: {len(CVcontours)} // dist {med_dist:.2f}")
-			'''
-			if False:
-				p = path.Path(core_contour)
-				x, y = np.meshgrid(np.arange(130), np.arange(174))  # make a canvas with coordinates
-				x, y = x.flatten(), y.flatten()
-				points = np.vstack((x, y)).T
-
-				grid = p.contains_points(points)
-				inside = points[grid]
-
-				ios = np.mean(original[inside[:, 0], inside[:, 1]])
-				self.ax2.plot(inside[:, 0], inside[:, 1], '.', color='pink', ms=3)
-			'''
+			# plot he main contour
+			if len(CVcontours) < max_fragmentation:
+				self.ax1.plot(max_contour[0], max_contour[1], color='g', lw=3)
 			self.canvas.draw()
 			# waiting to see changes
-			time.sleep(0.1)
+			time.sleep(0.01)
 			# flush the changes to the screen
 			self.canvas.flush_events()
 
-	def check_percentile(self):
+	def check_input(self, input_value, borders=(-np.inf, np.inf)):
 		"""
-
+		Checking the input value on validity
 		Returns:
-
+			float : converted from string a value
+		Raises:
+			ValueError : value not in borders
+			Exception : cannot convert from string
 		"""
 		try:
-			percentile = float(self.in_threshold_percentile.text())
-			if 0.1 <= percentile <= 100:
-				return percentile
+			value = float(input_value.text())
+			if borders[0] <= value <= borders[1]:
+				return value
+			else:
+				self.status_text.setText(f"Value ({value}) not in borders")
+				raise ValueError(f"Value ({value}) not in borders")
 		except Exception as e:
 			print(e)
-		self.status_text.setText("Percentile must be a number from 0.1 to 100")
+		self.status_text.setText(f"Value must be a number from {borders[0]} to {borders[1]}")
 
 	def save_contour(self):
 		"""
-
-		Returns:
-
+		Converting numpy arrays of contours to a mat file
 		"""
-		percentile = self.check_percentile()
-
-		if percentile:
+		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
+		# check if value is correct
+		if threshold_percentile:
 			self.status_text.setText("Saving results.... please wait")
+			# prepare array of objects per frame
 			matframes = np.zeros((self.total_frames, ), dtype=np.object)
-
+			# get data per frame and fill the 'matframes'
 			for frame in range(0, self.total_frames - 1):
-				conts = self.update_draws(frame, percentile, save_result=True)
-				matframes[frame] = np.zeros((len(conts),), dtype=np.object)
-				for cont_index, coords in enumerate(conts):
-					matframes[frame][cont_index] = np.array(coords, dtype=np.int32)
+				contour = self.update_draws(frame, threshold_percentile, save_result=True)
+				if contour is None:
+					matframes[frame] = np.array([], dtype=np.int32)
+				else:
+					matframes[frame] = np.array(contour, dtype=np.int32)
+				QApplication.processEvents()
+				QApplication.processEvents()
+				debug_text = f"Processed {frame + 1} of {self.total_frames} frames"
+				self.status_text.setText(debug_text)
+				print(debug_text)
+			# save data into mat format
 			sio.savemat(f"{os.getcwd()}/output.mat", {'frames': matframes})
-
+			# you are beautiful :3
 			self.status_text.setText(f"Successfully saved into {os.getcwd()}")
 
 	def on_loop_draw(self):
 		"""
-
-		Returns:
-
+		Automatic drawing data in loop by user panel settings
 		"""
-		start = int(self.in_start_frame.text())
-		end = int(self.in_end_frame.text())
-		step = int(self.in_frame_stepsize.text())
+		start = int(self.check_input(self.in_start_frame))
+		end = int(self.check_input(self.in_end_frame))
+		step = int(self.check_input(self.in_frame_stepsize))
+		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
 
-		percentile = self.check_percentile()
-
-		if percentile and 0 <= start < end < self.total_frames and step > 0:
+		if threshold_percentile and 0 <= start < end < self.total_frames and step > 0:
 			self.flag_loop_draw_stop = False
 			self.btn_loop_draw_stop.setEnabled(True)
 
@@ -314,7 +338,7 @@ class AppForm(QMainWindow):
 					break
 				self.in_start_frame.setText(str(frame))
 				self.current_frame = frame
-				self.update_draws(frame, percentile)
+				self.update_draws(frame, threshold_percentile)
 		else:
 			self.status_text.setText("Check the START, END and STEPS values!")
 
@@ -322,18 +346,24 @@ class AppForm(QMainWindow):
 		self.flag_loop_draw_stop = True
 
 	def on_hand_draw(self, step, sign=1):
+		"""
+		Manual drawing frames
+		Args:
+			step (int): stepsize of left/right moving
+			sign (int): -1 or 1 show the side moving (-1 is left, 1 is right)
+		"""
 		self.current_frame += sign * step
 
-		percentile = self.check_percentile()
+		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
 
 		if self.current_frame < 0:
 			self.current_frame = 0
 		if self.current_frame >= self.total_frames:
 			self.current_frame = self.total_frames - 1
 
-		if percentile:
+		if threshold_percentile:
 			self.in_start_frame.setText(str(self.current_frame))
-			self.update_draws(self.current_frame, percentile)
+			self.update_draws(self.current_frame, threshold_percentile)
 
 	def create_main_frame(self):
 		# create the main plot
@@ -344,12 +374,10 @@ class AppForm(QMainWindow):
 		self.canvas.setParent(self.main_frame)
 		# add axes for plotting
 		self.ax1 = self.fig.add_subplot(121)
-		self.ax2 = self.fig.add_subplot(122)
+		self.ax2 = self.fig.add_subplot(122, sharex=self.ax1, sharey=self.ax1)
 
 		self.ax1.set_title("Original image")
 		self.ax2.set_title(f"Normalized Gray + Blured")
-		# self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
-		# self.ax4 = self.fig.add_subplot(224, sharex=self.ax1, sharey=self.ax1)
 
 		# 2 Create the navigation toolbar, tied to the canvas
 		self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
@@ -357,8 +385,9 @@ class AppForm(QMainWindow):
 		# 3 Layout with panel
 		btn_panel_grid = QGridLayout()
 		btn_panel_grid.setContentsMargins(0, 0, 0, 0)
-		# GRID
-		# PREPARE BLOCK
+
+		''' PREPARE BLOCK '''
+		# FILE
 		self.btn_file = QPushButton("Open file")
 		self.btn_file.clicked.connect(self.file_dialog)
 		btn_panel_grid.addWidget(self.btn_file, 1, 0, 1, 2)
@@ -367,70 +396,99 @@ class AppForm(QMainWindow):
 		self.label_fileinfo.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 		btn_panel_grid.addWidget(self.label_fileinfo, 2, 0, 1, 2)
 
-		self.lbl_data_reshape = QLabel("Reshape data\n"
-		                               "Height Width Frame Method")
+		# RESHAPE
+		self.lbl_data_reshape = QLabel("Reshape data\nHeight Width Frame Method")
 		btn_panel_grid.addWidget(self.lbl_data_reshape, 3, 0, 1, 1)
 
 		self.in_data_reshape = QLineEdit()
 		self.in_data_reshape.setPlaceholderText("0 1 2 3")
-		self.in_data_reshape.setEnabled(False)
 		btn_panel_grid.addWidget(self.in_data_reshape, 4, 0, 1, 1)
+		self.in_data_reshape.setEnabled(False)
 
 		self.btn_reshape_data = QPushButton("Reshape")
 		self.btn_reshape_data.clicked.connect(lambda x: self.reshape_data())
-		self.btn_reshape_data.setEnabled(False)
 		btn_panel_grid.addWidget(self.btn_reshape_data, 4, 1, 1, 1)
+		self.btn_reshape_data.setEnabled(False)
 
-		self.label_object = QLabel("Image color")
-		self.label_object.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
-		btn_panel_grid.addWidget(self.label_object, 5, 0, 1, 1)
-
-		self.radio_original = QRadioButton(original_image)
-		self.radio_original.setChecked(True)
-		btn_panel_grid.addWidget(self.radio_original, 6, 0, 1, 1)
-
-		self.radio_reversed = QRadioButton(reversed_image)
-		btn_panel_grid.addWidget(self.radio_reversed, 7, 0, 1, 1)
-
-		self.label_threshold_percentile = QLabel("Thr percentile")
-		self.label_threshold_percentile.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
-		btn_panel_grid.addWidget(self.label_threshold_percentile, 8, 0, 1, 1)
-
-		self.in_threshold_percentile = QLineEdit("95")
-		btn_panel_grid.addWidget(self.in_threshold_percentile, 8, 1, 1, 1)
-
-		self.label_method = QLabel("Method")
-		self.label_method.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
-		btn_panel_grid.addWidget(self.label_method, 5, 1, 1, 1)
-
+		# METHOD
 		self.box_method = QComboBox(self)
 		for i in range(4):
 			self.box_method.addItem(str(i))
-		btn_panel_grid.addWidget(self.box_method, 6, 1, 1, 1)
+		btn_panel_grid.addWidget(self.box_method, 5, 0, 1, 1)
+		self.box_method.setEnabled(False)
+
+		self.label_method = QLabel("Method")
+		self.label_method.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+		btn_panel_grid.addWidget(self.label_method, 5, 1, 1, 1)
+
+		# FILTER
+		self.in_data_filter = QLineEdit("99.5")
+		self.in_data_filter.setPlaceholderText("Filter percentile 50-100")
+		btn_panel_grid.addWidget(self.in_data_filter, 6, 0, 1, 1)
+		self.in_data_filter.setEnabled(False)
+
+		self.btn_filter_data = QPushButton("Filter")
+		self.btn_filter_data.clicked.connect(lambda x: self.filter_exclude())
+		btn_panel_grid.addWidget(self.btn_filter_data, 6, 1, 1, 1)
+		self.btn_filter_data.setEnabled(False)
+
+		# IMAGE COLOR
+		self.label_object = QLabel("Image color")
+		self.label_object.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+		btn_panel_grid.addWidget(self.label_object, 7, 0, 1, 1)
+
+		self.radio_original = QRadioButton(original_image)
+		self.radio_reversed = QRadioButton(reversed_image)
+		self.radio_original.setChecked(True)
+		btn_panel_grid.addWidget(self.radio_original, 7, 1, 1, 1)
+		btn_panel_grid.addWidget(self.radio_reversed, 8, 1, 1, 1)
+
+		# THRESHOLD
+		self.label_threshold_percentile = QLabel("Threshold percentile")
+		self.label_threshold_percentile.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+		btn_panel_grid.addWidget(self.label_threshold_percentile, 9, 0, 1, 1)
+
+		self.in_threshold_percentile = QLineEdit("95")
+		self.in_threshold_percentile.setPlaceholderText("50-100")
+		btn_panel_grid.addWidget(self.in_threshold_percentile, 9, 1, 1, 1)
+
+		# FRAGMENTATION
+		self.label_max_fragmentation = QLabel("Max fragmentation")
+		self.label_max_fragmentation.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+		btn_panel_grid.addWidget(self.label_max_fragmentation, 10, 0, 1, 1)
+
+		self.in_max_fragmentation = QLineEdit("15")
+		self.in_max_fragmentation.setPlaceholderText("3-50")
+		btn_panel_grid.addWidget(self.in_max_fragmentation, 10, 1, 1, 1)
 
 		self.line = QFrame()
 		self.line.setFrameShape(QFrame.VLine)
 		self.line.setFrameShadow(QFrame.Sunken)
-		btn_panel_grid.addWidget(self.line, 1, 2, 7, 1)
-		""" END PREPARE BLOCK"""
+		btn_panel_grid.addWidget(self.line, 1, 2, 10, 1)
+		''' END PREPARE BLOCK '''
 
-		# AUTO BLOCK
-		self.label_automatic = QLabel("Automatic view", alignment=Qt.AlignCenter)
+		''' BEGIN AUTO BLOCK '''
+		self.label_automatic = QLabel("Automatic view")
+		self.label_automatic.setAlignment(Qt.AlignCenter)
+
 		btn_panel_grid.addWidget(self.label_automatic, 1, 3, 1, 2)
 
-		self.label_start_frame = QLabel("Start frame", alignment=Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+		self.label_start_frame = QLabel("Start frame")
+		self.label_start_frame.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 		btn_panel_grid.addWidget(self.label_start_frame, 2, 3, 1, 1)
 
 		self.in_start_frame = QLineEdit("0")
 		btn_panel_grid.addWidget(self.in_start_frame, 2, 4, 1, 1)
 
-		self.label_end_frame = QLabel("End frame", alignment=Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+		self.label_end_frame = QLabel("End frame")
+		self.label_end_frame.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 		btn_panel_grid.addWidget(self.label_end_frame, 3, 3, 1, 1)
 
 		self.in_end_frame = QLineEdit("0")
 		btn_panel_grid.addWidget(self.in_end_frame, 3, 4, 1, 1)
 
-		self.label_stepsize_frame = QLabel("Step size frame", alignment=Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+		self.label_stepsize_frame = QLabel("Step size frame")
+		self.label_stepsize_frame.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 		btn_panel_grid.addWidget(self.label_stepsize_frame, 4, 3, 1, 1)
 
 		self.in_frame_stepsize = QLineEdit("1")
@@ -458,19 +516,22 @@ class AppForm(QMainWindow):
 		btn_panel_grid.addWidget(self.line, 1, 5, 7, 1)
 		""" END AUTO BLOCK """
 
-		# MANUAL BLOCK
-		self.lbl_manual = QLabel("Manual view", alignment=Qt.AlignCenter)
+		''' MANUAL BLOCK '''
+		self.lbl_manual = QLabel("Manual view")
+		self.lbl_manual.setAlignment(Qt.AlignCenter)
 		btn_panel_grid.addWidget(self.lbl_manual, 1, 6, 1, 3)
 
-		self.lbl_framestep = QLabel("Frame step", alignment=Qt.AlignCenter)
+		self.lbl_framestep = QLabel("Frame step")
+		self.lbl_framestep.setAlignment(Qt.AlignCenter)
 		btn_panel_grid.addWidget(self.lbl_framestep, 2, 6, 1, 3)
 
-		in_frame_step = QLineEdit("1", alignment=Qt.AlignCenter)
+		in_frame_step = QLineEdit("1")
+		in_frame_step.setAlignment(Qt.AlignCenter)
 		in_frame_step.setValidator(QIntValidator(1, 100))
 		btn_panel_grid.addWidget(in_frame_step, 3, 7, 1, 1)
 
-		left_step = lambda x: self.on_hand_draw(int(in_frame_step.text()), sign=-1)
-		right_step = lambda x: self.on_hand_draw(int(in_frame_step.text()))
+		left_step = lambda x: self.on_hand_draw(int(self.check_input(in_frame_step)), sign=-1)
+		right_step = lambda x: self.on_hand_draw(int(self.check_input(in_frame_step)))
 
 		self.btn_frame_left = QPushButton("<<")
 		self.btn_frame_left.clicked.connect(left_step)
@@ -481,6 +542,7 @@ class AppForm(QMainWindow):
 		self.btn_frame_right.clicked.connect(right_step)
 		self.btn_frame_right.setEnabled(False)
 		btn_panel_grid.addWidget(self.btn_frame_right, 3, 8, 1, 1)
+		''' END MANUAL BLOCK '''
 
 		# 4 combne all in the structure
 		vbox = QVBoxLayout()
