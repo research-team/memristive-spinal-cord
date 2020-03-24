@@ -58,7 +58,7 @@ class AppForm(QMainWindow):
 		self.dat = np.transpose(self.dat, new_order)
 		new_shape = self.dat.shape
 		# align for full formed polygons of KDE contours
-		self.align = 10
+		self.align = 20
 		#
 		self.im_height = new_shape[0]
 		self.im_width = new_shape[1]
@@ -151,9 +151,9 @@ class AppForm(QMainWindow):
 	def polygon_area(x, y):
 		return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-	def align_coord(self, coords):
+	def align_coord(self, coords, border):
 		xx = coords - self.align
-		xx[xx >= self.im_width - 0.5] = self.im_width - 1
+		xx[xx >= border - 0.5] = border - 1
 		xx[xx <= 0.5] = 0
 		return xx
 
@@ -237,8 +237,8 @@ class AppForm(QMainWindow):
 			# check and plot each contour
 			for c in contours:
 				# set the borders and alignment
-				yy = self.align_coord(c[:, 0])
-				xx = self.align_coord(c[:, 1])
+				yy = self.align_coord(c[:, 0], border=self.im_height)
+				xx = self.align_coord(c[:, 1], border=self.im_width)
 				pa = self.polygon_area(xx, yy)
 				if pa > max_area:
 					max_area = pa
@@ -297,22 +297,26 @@ class AppForm(QMainWindow):
 		"""
 		Converting numpy arrays of contours to a mat file
 		"""
+		start = int(self.check_input(self.in_start_frame))
+		end = int(self.check_input(self.in_end_frame))
+		step = int(self.check_input(self.in_frame_stepsize))
 		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
 		# check if value is correct
-		if threshold_percentile:
+		if threshold_percentile and 0 <= start < end < self.total_frames and step > 0:
 			self.status_text.setText("Saving results.... please wait")
 			# prepare array of objects per frame
 			matframes = np.zeros((self.total_frames, ), dtype=np.object)
+			# init by void arrays
+			for frame in range(self.total_frames):
+				matframes[frame] = np.array([], dtype=np.int32)
 			# get data per frame and fill the 'matframes'
-			for frame in range(0, self.total_frames - 1):
+			for index, frame in enumerate(range(start, end, step)):
 				contour = self.update_draws(frame, threshold_percentile, save_result=True)
-				if contour is None:
-					matframes[frame] = np.array([], dtype=np.int32)
-				else:
+				if contour is not  None:
 					matframes[frame] = np.array(contour, dtype=np.int32)
 				QApplication.processEvents()
 				QApplication.processEvents()
-				debug_text = f"Processed {frame + 1} of {self.total_frames} frames"
+				debug_text = f"Processed {index / len(range(start, end, step)) * 100:.2f} %"
 				self.status_text.setText(debug_text)
 				print(debug_text)
 			# save data into mat format
