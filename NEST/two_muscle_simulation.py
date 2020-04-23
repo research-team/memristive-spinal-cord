@@ -144,9 +144,11 @@ class V3(Functions):
 		self.connect_one_to_all(CV4, iIP_E, 0.5, 20)
 		self.connect_one_to_all(CV5, iIP_E, 0.5, 20)
 
+		self.connect_fixed_outdegree(eIP_E_1, eIP_E_1, 0.5, 1.4, 20)
+		self.connect_fixed_outdegree(eIP_E_0, eIP_E_0, 0.5, 1.4, 20)
 		def connect_to_ip(neuron, weight, delay):
 			self.connect_fixed_outdegree(neuron, eIP_E_0, delay + 0.5, weight, neurons_in_ip)
-			self.connect_fixed_outdegree(eIP_E_0, eIP_E_1, 2.3, weight, neurons_in_ip)
+			self.connect_fixed_outdegree(eIP_E_0, eIP_E_1, 2.1, 2, neurons_in_ip)
 
 		def connect_to_moto(weight):
 			self.connect_fixed_outdegree(eIP_E_0, MN_E, 0.5, weight, neurons_in_moto_extensor)
@@ -155,15 +157,15 @@ class V3(Functions):
 		# extensor
 		ping_pong_coef = 1.6
 		delay_coef = 1
-		coef2 = 2
+		coef2 = 0.15
 
 		connect_to_ip(OM1_2_E, 15 * coef2, 1.5)
-		connect_to_ip(OM2_2_E, 12 * coef2, 1.5)
-		connect_to_ip(OM3_2_E, 15 * coef2, 2.5)
-		connect_to_ip(OM4_2_E, 13 * coef2, 2.5)
-		connect_to_ip(OM5_2_E, 15 * coef2, 2.5)
+		connect_to_ip(OM2_2_E, 13.5 * coef2, 1.5)
+		connect_to_ip(OM3_2_E, 16 * coef2, 2.5)
+		connect_to_ip(OM4_2_E, 17 * coef2, 2.5)
+		connect_to_ip(OM5_2_E, 17 * coef2, 2.5)
 
-		connect_to_moto(2)
+		connect_to_moto(3.3)
 
 		# flexor
 		self.connect_fixed_outdegree(OM1_2_F, eIP_F, 1, 7, neurons_in_ip)
@@ -209,8 +211,8 @@ class V3(Functions):
 		# input from EES group 2
 		self.connect_fixed_outdegree(E2, OM2_0, 1.5, 0.35)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV2, OM2_0, 1, 0.99 * quadru_coef * sero_coef * toe_coef)
-		self.connect_one_to_all(CV3, OM2_0, 1, 0.99 * quadru_coef * sero_coef * toe_coef)
+		self.connect_one_to_all(CV2, OM2_0, 1, 0.86 * quadru_coef * sero_coef * toe_coef)
+		self.connect_one_to_all(CV3, OM2_0, 1, 0.86 * quadru_coef * sero_coef * toe_coef)
 		# [inhibition]
 		self.connect_one_to_all(CV4, OM2_3, 3, 80)
 		self.connect_one_to_all(CV5, OM2_3, 3, 80)
@@ -256,10 +258,10 @@ class V3(Functions):
 
 		# OM 4
 		# input from EES group 4
-		self.connect_fixed_outdegree(E4, OM4_0, 2.5, 0.58)
+		self.connect_fixed_outdegree(E4, OM4_0, 2.5, 0.6)
 		# input from sensory [CV]
-		self.connect_one_to_all(CV4, OM4_0, 2.5, 0.93 * quadru_coef * sero_coef * air_coef)
-		self.connect_one_to_all(CV5, OM4_0, 2.5, 0.93 * quadru_coef * sero_coef * air_coef)
+		self.connect_one_to_all(CV4, OM4_0, 2.5, 0.97 * quadru_coef * sero_coef * air_coef)
+		self.connect_one_to_all(CV5, OM4_0, 2.5, 0.97 * quadru_coef * sero_coef * air_coef)
 		# input from sensory [CD]
 		self.connect_one_to_all(CD4, OM4_0, 3, 11)
 		self.connect_one_to_all(CD5, OM4_0, 3, 11)
@@ -319,7 +321,7 @@ class V3(Functions):
 		self.connect_fixed_outdegree(Ia_E_pool, Ia_F_pool, 1, -1, neurons_in_ip)
 		self.connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -10, neurons_in_ip)
 		self.connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1, neurons_in_ip)
-		self.connect_fixed_outdegree(Ia_E_aff, MN_E, 2.5, 8, neurons_in_moto_extensor)
+		self.connect_fixed_outdegree(Ia_E_aff, MN_E, 2.5, 6, neurons_in_moto_extensor)
 
 		self.connect_fixed_outdegree(R_E, R_F, 2, -1)
 		self.connect_fixed_outdegree(R_F, R_E, 2, -1)
@@ -327,8 +329,8 @@ class V3(Functions):
 
 if __name__ == "__main__":
 	parameters = Parameters()
-	parameters.tests = 1
-	parameters.steps = 1
+	parameters.tests = 4
+	parameters.steps = 7
 	parameters.cms = 15
 	parameters.EES = 40
 	parameters.inh = 50
