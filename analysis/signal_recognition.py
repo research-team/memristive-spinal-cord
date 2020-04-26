@@ -40,13 +40,19 @@ class AppForm(QMainWindow):
 		Returns:
 			tuple : shape of the data
 		"""
+		self.variables = {}
+
 		try:
-			self.dat = sio.loadmat(path)['components'][:]
-			return self.dat.shape
+			for k, v in sio.loadmat(path).items():
+				# get only 4-dim data
+				if len(np.shape(v)) == 4:
+					self.variables[k] = v[:]
 		except NotImplementedError:
 			with h5py.File(path, 'r') as file:
-				self.dat = file['components'][:]
-				return self.dat.shape
+				for k, v in file.items():
+					# get only 4-dim data
+					if len(np.shape(v)) == 4:
+						self.variables[k] = v[:]
 		except:
 			ValueError('Could not read the file at all...')
 
@@ -58,7 +64,7 @@ class AppForm(QMainWindow):
 		new_order = tuple(map(int, self.in_data_reshape.text().split()))
 		# reshape data to the new shape
 		self.dat = np.transpose(self.dat, new_order)
-		self.im_height, self.im_width, self.total_frames, _ = self.dat.shape
+		self.im_height, self.im_width, self.total_frames, methods_num = self.dat.shape
 		# disable buttons of reshaping
 		self.in_data_reshape.setEnabled(False)
 		self.btn_reshape_data.setEnabled(False)
@@ -69,6 +75,10 @@ class AppForm(QMainWindow):
 		# update status
 		self.status_text.setText(f"Data was reshaped to {self.dat.shape}")
 
+		self.box_method.clear()
+		for i in range(methods_num):
+			self.box_method.addItem(str(i))
+
 	def file_dialog(self):
 		"""
 		Invoke PyQT file dialog with unblocking buttons
@@ -76,26 +86,46 @@ class AppForm(QMainWindow):
 		fname = QFileDialog.getOpenFileName(self, 'Open file', "", "MAT file (*.mat)")
 		# if exists
 		if fname[0]:
+			self.box_variable.clear()
+			# delete old data if exists
 			if self.dat is not None:
 				del self.dat
 			self.dat = None
+
+			# prepare the data
 			self.status_text.setText("Unpack .mat file... Please wait")
 			QApplication.processEvents()
 			QApplication.processEvents()
-			data_shape = self.open_file(fname[0])
 
-			self.status_text.setText(f".mat file is unpacked, data shape {data_shape}")
-			# show the data shape
-			str_format = len(data_shape) * '{:<5}'
-			self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
-			                            f"Index: {str_format.format(*list(range(4)))}")
-			self.label_fileinfo.setFont(QFont("Courier New"))
-			# unblock buttons
-			for obj in [self.btn_save_results, self.btn_loop_draw, self.btn_frame_right,
-			            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape,
-			            self.box_method, self.in_data_filter, self.btn_filter_data]:
-				obj.setEnabled(True)
+			self.filepath = fname[0]
+			self.open_file(fname[0])
+			self.status_text.setText(f".mat file is unpacked ({self.filepath})")
 
+			# based on data set the possible variables
+			self.box_variable.setEnabled(True)
+			for k in self.variables.keys():
+				self.box_variable.addItem(str(k))
+
+	def choose_variable(self):
+		""" Invoked if text in QComboBox is changed """
+		# get the user's choose
+		var = self.box_variable.currentText()
+		# get the data by name
+		self.dat = self.variables[var]
+		# meta info
+		data_shape = self.dat.shape
+		str_format = len(data_shape) * '{:<5}'
+		self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
+		                            f"Index: {str_format.format(*list(range(4)))}")
+		self.label_fileinfo.setFont(QFont("Courier New"))
+
+		self.box_method.clear()
+		# unblock buttons
+		for obj in [self.btn_save_results, self.btn_loop_draw, self.btn_frame_right,
+		            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape,
+		            self.box_method, self.in_data_filter, self.btn_filter_data]:
+			obj.setEnabled(True)
+		self.status_text.setText(f"{var} is chosen {data_shape}")
 
 	def filter_exclude(self):
 		"""
@@ -112,20 +142,20 @@ class AppForm(QMainWindow):
 		diff = diff.ravel()
 		# form a coordinates array of exluded points
 		excl_indices = np.stack((col.ravel(), row.ravel()), axis=1)[(diff >= q3) | (diff <= q1)]
-		self.excl_x = excl_indices[:, 0]
-		self.excl_y = excl_indices[:, 1]
+		self.excl_x, self.excl_y = excl_indices[:, 0], excl_indices[:, 1]
 		# make excluded points values as a median
 		for frame in range(self.total_frames):
 			self.dat[self.excl_y, self.excl_x, frame, methodic] = np.percentile(self.dat[:, :, frame, methodic], input_q3)
+
+		self.maxDIFF = q3
+		self.minDIFF = q1
+
 		# plot the filtering result
 		self.ax1.clear()
 		self.ax1.imshow(self.dat[:, :, 0, methodic], cmap='gray')
 		self.ax1.plot(self.excl_x, self.excl_y, '.', color='r', ms=1)
 		self.canvas.draw()
 		self.canvas.flush_events()
-
-		self.maxDIFF = q3
-		self.minDIFF = q1
 
 	@staticmethod
 	def polygon_area(coords):
@@ -234,15 +264,14 @@ class AppForm(QMainWindow):
 			self.ax3.imshow(zdiff)
 			# save axis plot
 			# extent = self.ax3.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
-			# self.fig.savefig(f'/home/alex/example/{frame}.png', bbox_inches=extent, format='png')
+			# self.fig.savefig(f'/home/alex/example/{frame}.jpg', format='jpg')
 			self.ax4.set_title(f"Debug info")
 			self.ax4.text(0, 0, f"Median frame value: {mid:.1f}\n"
 			                    f"Max global: {self.maxDIFF:.1f}\n"
 			                    f"Min global: {self.minDIFF:.1f}\n"
 			                    f"Coef: {1 + coef:.3f} x {threshold_percentile:.1f}\n"
-			                    f"New threshold: {new_threshold:.1f}",
-			              va='top')
-
+			                    f"New threshold: {new_threshold:.1f}")
+			self.fig.tight_layout()
 			self.canvas.draw()
 			# waiting to see changes
 			time.sleep(0.01)
@@ -292,13 +321,14 @@ class AppForm(QMainWindow):
 					matframes[frame] = np.array(contour, dtype=np.int32)
 				QApplication.processEvents()
 				QApplication.processEvents()
-				debug_text = f"Processed {index / len(range(start, end, step)) * 100:.2f} %"
-				self.status_text.setText(debug_text)
-				print(debug_text)
+				self.status_text.setText(f"Processed {index / len(range(start, end, step)) * 100:.2f} %")
 			# save data into mat format
-			sio.savemat(f"{os.getcwd()}/output.mat", {'frames': matframes})
+			filepath = os.path.dirname(self.filepath)
+			filename = os.path.basename(self.filepath)
+
+			sio.savemat(f"{filepath}/prepared_{filename}", {'frames': matframes})
 			# you are beautiful :3
-			self.status_text.setText(f"Successfully saved into {os.getcwd()}")
+			self.status_text.setText(f"Successfully saved into {filepath}/prepared_{filename}")
 
 	def on_loop_draw(self):
 		"""
@@ -349,14 +379,14 @@ class AppForm(QMainWindow):
 		# create the main plot
 		self.main_frame = QWidget()
 		# 1 set up the canvas
-		self.fig = Figure(figsize=(10, 10), dpi=100)
+		self.fig = Figure(figsize=(10, 15), dpi=100)
 		self.canvas = FigureCanvas(self.fig)
 		self.canvas.setParent(self.main_frame)
 		# add axes for plotting
 		self.ax1 = self.fig.add_subplot(221)
 		self.ax2 = self.fig.add_subplot(222, sharex=self.ax1, sharey=self.ax1)
 		self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
-		self.ax4 = self.fig.add_subplot(224, sharex=self.ax1, sharey=self.ax1)
+		self.ax4 = self.fig.add_subplot(224)
 
 		self.ax1.set_title(f"Original image + contour")
 		self.ax2.set_title(f"Fragmented contours")
@@ -374,7 +404,13 @@ class AppForm(QMainWindow):
 		# FILE
 		self.btn_file = QPushButton("Open file")
 		self.btn_file.clicked.connect(self.file_dialog)
-		btn_panel_grid.addWidget(self.btn_file, 1, 0, 1, 2)
+		btn_panel_grid.addWidget(self.btn_file, 1, 0, 1, 1)
+
+		# VARIABLE
+		self.box_variable = QComboBox(self)
+		btn_panel_grid.addWidget(self.box_variable, 1, 1, 1, 1)
+		self.box_variable.currentTextChanged.connect(lambda x: self.choose_variable())
+		self.box_variable.setEnabled(False)
 
 		self.label_fileinfo = QLabel("File info")
 		self.label_fileinfo.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -385,7 +421,7 @@ class AppForm(QMainWindow):
 		btn_panel_grid.addWidget(self.lbl_data_reshape, 3, 0, 1, 1)
 
 		self.in_data_reshape = QLineEdit()
-		self.in_data_reshape.setPlaceholderText("0 1 2 3")
+		self.in_data_reshape.setText("0 1 2 3")
 		btn_panel_grid.addWidget(self.in_data_reshape, 4, 0, 1, 1)
 		self.in_data_reshape.setEnabled(False)
 
@@ -396,8 +432,6 @@ class AppForm(QMainWindow):
 
 		# METHOD
 		self.box_method = QComboBox(self)
-		for i in range(4):
-			self.box_method.addItem(str(i))
 		btn_panel_grid.addWidget(self.box_method, 5, 0, 1, 1)
 		self.box_method.setEnabled(False)
 
