@@ -5,10 +5,8 @@ import time
 import h5py
 import numpy as np
 import scipy.io as sio
-import scipy.stats as st
-from skimage import measure
+from fastkde import fastKDE
 from matplotlib.figure import Figure
-from matplotlib.patches import Ellipse
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
@@ -22,13 +20,17 @@ reversed_image = "reversed"
 class AppForm(QMainWindow):
 	def __init__(self, parent=None):
 		QMainWindow.__init__(self, parent)
-		self.setWindowTitle('Computer Vision Analyzer v2.3 (NcN lab product 2020)')
+		self.setWindowTitle('Computer Vision Analyzer v2.5 (NcN lab product 2020)')
 		self.create_main_frame()
 		self.create_status_bar()
 
+		self.dat = None
 		self.current_frame = 0
+		self.excl_x = None
+		self.excl_y = None
+		self.maxDIFF = None
+		self.minDIFF = None
 		self.analyse_type = original_image
-		self.excl_indices = None
 
 	def open_file(self, path):
 		"""
@@ -56,13 +58,7 @@ class AppForm(QMainWindow):
 		new_order = tuple(map(int, self.in_data_reshape.text().split()))
 		# reshape data to the new shape
 		self.dat = np.transpose(self.dat, new_order)
-		new_shape = self.dat.shape
-		# align for full formed polygons of KDE contours
-		self.align = 20
-		#
-		self.im_height = new_shape[0]
-		self.im_width = new_shape[1]
-		self.total_frames = new_shape[2]
+		self.im_height, self.im_width, self.total_frames, _ = self.dat.shape
 		# disable buttons of reshaping
 		self.in_data_reshape.setEnabled(False)
 		self.btn_reshape_data.setEnabled(False)
@@ -70,15 +66,8 @@ class AppForm(QMainWindow):
 		self.in_start_frame.setValidator(QIntValidator(0, self.total_frames - 1))
 		self.in_end_frame.setValidator(QIntValidator(0, self.total_frames - 1))
 		self.in_end_frame.setText(str(self.total_frames - 1))
-		# form a mesh grid
-		self.xx, self.yy = np.meshgrid(np.linspace(-self.align, self.im_width + self.align - 1,
-		                                           self.im_width + self.align * 2),
-		                               np.linspace(-self.align, self.im_height + self.align - 1,
-		                                           self.im_height + self.align * 2))
-		# re-present grid in 1D and pair them as (x1, y1 ...)
-		self.xy_meshgrid = np.vstack([self.xx.ravel(), self.yy.ravel()])
 		# update status
-		self.status_text.setText(f"Data was reshaped to {new_shape}")
+		self.status_text.setText(f"Data was reshaped to {self.dat.shape}")
 
 	def file_dialog(self):
 		"""
@@ -87,6 +76,8 @@ class AppForm(QMainWindow):
 		fname = QFileDialog.getOpenFileName(self, 'Open file', "", "MAT file (*.mat)")
 		# if exists
 		if fname[0]:
+			if self.dat is not None:
+				del self.dat
 			self.dat = None
 			self.status_text.setText("Unpack .mat file... Please wait")
 			QApplication.processEvents()
@@ -112,50 +103,40 @@ class AppForm(QMainWindow):
 		"""
 		methodic = int(self.box_method.currentText())
 		input_q3 = self.check_input(self.in_data_filter, borders=[50, 100])
-		input_q1 = 100 - input_q3
-		# init diff 2D array as zeros
-		diff = np.zeros(shape=(self.im_height, self.im_width))
-		# sum each pixel per frame
-		for frame in range(self.total_frames):
-			diff += self.dat[:, :, frame, methodic]
-		# self.magnitudes = np.zeros(shape=(self.image_height, self.image_width))
-		# for xi in range(self.image_width):
-		# 	for yi in range(self.image_height):
-		# 		self.magnitudes[yi, xi] = np.linalg.norm(self.dat[yi, xi, :600, methodic])
-		# find the fliers (points that lower than q1 or higher thn q3)
-		q1, m, q3 = np.percentile(diff, q=(input_q1, 50, input_q3))
+		# find the mean value of all frames per pixel
+		diff = np.mean(self.dat[:, :, :, methodic], axis=2)
+		# find the most unchanged data (they will have the highest values after mean)
+		q1, m, q3 = np.percentile(diff, q=(100 - input_q3, 50, input_q3))
+		# take coordinates of the points where their values are fliers
 		row, col = np.indices(diff.shape)
 		diff = diff.ravel()
-		# take coordinates of the points where their values are fliers
-		self.excl_indices = np.stack((col.ravel(), row.ravel()), axis=1)[(diff >= q3) | (diff <= q1)]
+		# form a coordinates array of exluded points
+		excl_indices = np.stack((col.ravel(), row.ravel()), axis=1)[(diff >= q3) | (diff <= q1)]
+		self.excl_x = excl_indices[:, 0]
+		self.excl_y = excl_indices[:, 1]
+		# make excluded points values as a median
+		for frame in range(self.total_frames):
+			self.dat[self.excl_y, self.excl_x, frame, methodic] = np.percentile(self.dat[:, :, frame, methodic], input_q3)
 		# plot the filtering result
 		self.ax1.clear()
 		self.ax1.imshow(self.dat[:, :, 0, methodic], cmap='gray')
-		self.ax1.plot(self.excl_indices[:, 0], self.excl_indices[:, 1], '.', color='r')
+		self.ax1.plot(self.excl_x, self.excl_y, '.', color='r', ms=1)
 		self.canvas.draw()
 		self.canvas.flush_events()
 
-	@staticmethod
-	def eigsorted(cov):
-		vals, vecs = np.linalg.eigh(cov)
-		order = vals.argsort()[::-1]
-		return vals[order], vecs[:, order]
+		self.maxDIFF = q3
+		self.minDIFF = q1
 
 	@staticmethod
-	def array_xor(array_a, array_b):
-		aset = set(map(tuple, array_a))
-		bset = set(map(tuple, array_b))
-		return np.array(list(map(tuple, aset.difference(bset))))
-
-	@staticmethod
-	def polygon_area(x, y):
+	def polygon_area(coords):
+		x, y = coords[:, 0], coords[:, 1]
 		return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-	def align_coord(self, coords, border):
-		xx = coords - self.align
-		xx[xx >= border - 0.5] = border - 1
-		xx[xx <= 0.5] = 0
-		return xx
+	@staticmethod
+	def align_coord(coords, border):
+		coords[coords >= border - 0.5] = border - 1
+		coords[coords <= 0.5] = 0
+		return coords
 
 	def update_draws(self, frame, threshold_percentile, save_result=False):
 		"""
@@ -167,47 +148,42 @@ class AppForm(QMainWindow):
 		Returns:
 			tuple : x and y coords of the contour if 'save_result' is true
 		"""
+		a = time.time()
+
+		max_contour = None
 		# get the current methodic
 		methodic = int(self.box_method.currentText())
 		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
 
-		# get data
+		# get an original data
 		original = self.dat[:, :, frame, methodic]
 		# normalize data from 0 to 255 with dynamic borders (min and max). It mades grayscale cmap
 		image = ((original - original.min()) * (1 / (original.max() - original.min()) * 255)).astype('uint8')
 		# reverse colors if epilepsy radio button checked
 		if self.radio_reversed.isChecked():
 			image = 255 - image
-
+		# blur the image to smooth very light pixels
 		image = cv2.medianBlur(image, 5)
-		# set the dynamic thresh value to catch the most "deviant" data -- 95%
-		thresh_value = np.percentile(image.ravel(), threshold_percentile)
+		# set the dynamic thresh value
+		zdiff = np.mean(self.dat[:, :, frame:frame + 10, methodic], axis=2)
+		mid = np.median(zdiff)
+		if mid >= 0:
+			coef = abs(mid / self.maxDIFF)
+		else:
+			coef = -abs(mid / self.minDIFF)
+		# self.magnitudes = np.zeros(shape=(self.image_height, self.image_width))
+		# for xi in range(self.image_width):
+		# 	for yi in range(self.image_height):
+		# 		self.magnitudes[yi, xi] = np.linalg.norm(self.dat[yi, xi, :600, methodic])
+		new_threshold = threshold_percentile + threshold_percentile * 1.2 * coef
+		if new_threshold > 99:
+			new_threshold = 99
+		if new_threshold < 50:
+			new_threshold = 50
+
+		thresh_value = np.percentile(image.ravel(), new_threshold)
 		# get coordinates of points which are greater than thresh value
-		found_points = np.stack(np.where(image >= thresh_value), axis=1)[:, [1, 0]]
-		# exclude points that are not adequate
-		found_points = self.array_xor(found_points, self.excl_indices)
-		x, y = found_points[:, 0], found_points[:, 1]
-
-		# form confidence ellipse
-		nstd = 2.5
-		ell_center = found_points.mean(axis=0)
-		cov = np.cov(found_points, rowvar=False)
-		vals, vecs = self.eigsorted(cov)
-		theta = float(np.degrees(np.arctan2(*vecs[:, 0][::-1])))
-		# width and height are "full" widths, not radius
-		width, height = 2 * nstd * np.sqrt(vals)
-
-		cos_angle = np.cos(np.radians(180 - theta))
-		sin_angle = np.sin(np.radians(180 - theta))
-
-		xc = x - ell_center[0]
-		yc = y - ell_center[1]
-
-		xct = xc * cos_angle - yc * sin_angle
-		yct = xc * sin_angle + yc * cos_angle
-
-		rad_cc = (xct ** 2 / (width / 2) ** 2) + (yct ** 2 / (height / 2) ** 2)
-
+		y, x = np.where(image >= thresh_value)
 		# calc raw CV contours to decide -- search contour or not
 		mask = np.zeros(shape=image.shape)
 		mask[y, x] = 255
@@ -219,31 +195,20 @@ class AppForm(QMainWindow):
 		thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
 		thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
 		# get the contour of the mask
-		*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-		# just info for finding a dependencies
-		med_dist = np.median(np.sqrt((x - ell_center[0]) ** 2 + (y - ell_center[1]) ** 2))
+		*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
-		max_contour = None
-		if len(CVcontours) < max_fragmentation:
-			# get a KDE function values based on found points above XY meshgrid
-			a = st.gaussian_kde(np.stack(found_points, axis=1))(self.xy_meshgrid).T
-			# represent grid back to 2D
-			z = np.reshape(a, self.xx.shape)
-			# form a step as contour level
-			step = (np.amax(a) - np.amin(a)) / 3
-			contours = measure.find_contours(z, step)
-			# find the epilepsy contour (the biggest contour)
-			max_area = 0
-			# check and plot each contour
-			for c in contours:
-				# set the borders and alignment
-				yy = self.align_coord(c[:, 0], border=self.im_height)
-				xx = self.align_coord(c[:, 1], border=self.im_width)
-				pa = self.polygon_area(xx, yy)
-				if pa > max_area:
-					max_area = pa
-					max_contour = (xx, yy)
 
+		if len(CVcontours) <= max_fragmentation:
+			# get a KDE function values based on found points above XY meshgrid
+			PDF, (vx, vy) = fastKDE.pdf(x, y)
+			# find the contour by maximal area
+			max_cont = max(self.ax1.contour(vx, vy, PDF, levels=1).allsegs[1], key=self.polygon_area)
+			# limit coordinates within the border
+			max_contour = (self.align_coord(max_cont[:, 0], self.im_width),
+			               self.align_coord(max_cont[:, 1], self.im_height))
+
+		b = time.time()
+		# print(f"{b - a:.3f}s")
 		if save_result:
 			return max_contour
 		else:
@@ -251,22 +216,33 @@ class AppForm(QMainWindow):
 			self.fig.suptitle(f"Frame {frame}")
 			self.ax1.clear()
 			self.ax2.clear()
-			self.ax2.set_title(f"Fragmented contours: {len(CVcontours)} (dist {med_dist:.2f})")
-			# plotting original picture with excluded dots (red)
+			self.ax3.clear()
+			self.ax4.clear()
+			# plotting original picture with excluded dots (red) and contour
+			self.ax1.set_title(f"Original image + contour")
 			self.ax1.imshow(original, cmap='gray')
-			self.ax1.plot(self.excl_indices[:, 0], self.excl_indices[:, 1], '.', color='r')
-			# debug plot
+			self.ax1.plot(self.excl_x, self.excl_y, '.', color='r', ms=1)
+			if len(CVcontours) <= max_fragmentation:
+				self.ax1.plot(max_contour[0], max_contour[1], color='g', lw=3)
+			# found points
+			self.ax2.set_title(f"Fragmented contours: {len(CVcontours)}")
 			self.ax2.imshow(image, cmap='gray')
 			# all points plotting, but after recoloring they will mean the points outside of ellipse
-			self.ax2.plot(x, y, '.', color='yellow', ms=1)
-			# plot inside ellipse points
-			self.ax2.plot(x[rad_cc <= 1], y[rad_cc <= 1], '.', color='green', ms=1)
-			ellipse = Ellipse(xy=ell_center, width=width, height=height, angle=theta, lw=3, ec='w', fill=False)
-			self.ax2.add_artist(ellipse)
-			self.ax2.plot(ell_center[0], ell_center[1], 'x', ms=20, color='w')
-			# plot he main contour
-			if len(CVcontours) < max_fragmentation:
-				self.ax1.plot(max_contour[0], max_contour[1], color='g', lw=3)
+			self.ax2.plot(x, y, '.', color='#00AA00', ms=1)
+			# demonstrate forecast (mean) of 10 frames
+			self.ax3.set_title(f"Forecast")
+			self.ax3.imshow(zdiff)
+			# save axis plot
+			# extent = self.ax3.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
+			# self.fig.savefig(f'/home/alex/example/{frame}.png', bbox_inches=extent, format='png')
+			self.ax4.set_title(f"Debug info")
+			self.ax4.text(0, 0, f"Median frame value: {mid:.1f}\n"
+			                    f"Max global: {self.maxDIFF:.1f}\n"
+			                    f"Min global: {self.minDIFF:.1f}\n"
+			                    f"Coef: {1 + coef:.3f} x {threshold_percentile:.1f}\n"
+			                    f"New threshold: {new_threshold:.1f}",
+			              va='top')
+
 			self.canvas.draw()
 			# waiting to see changes
 			time.sleep(0.01)
@@ -312,7 +288,7 @@ class AppForm(QMainWindow):
 			# get data per frame and fill the 'matframes'
 			for index, frame in enumerate(range(start, end, step)):
 				contour = self.update_draws(frame, threshold_percentile, save_result=True)
-				if contour is not  None:
+				if contour is not None:
 					matframes[frame] = np.array(contour, dtype=np.int32)
 				QApplication.processEvents()
 				QApplication.processEvents()
@@ -377,11 +353,15 @@ class AppForm(QMainWindow):
 		self.canvas = FigureCanvas(self.fig)
 		self.canvas.setParent(self.main_frame)
 		# add axes for plotting
-		self.ax1 = self.fig.add_subplot(121)
-		self.ax2 = self.fig.add_subplot(122, sharex=self.ax1, sharey=self.ax1)
+		self.ax1 = self.fig.add_subplot(221)
+		self.ax2 = self.fig.add_subplot(222, sharex=self.ax1, sharey=self.ax1)
+		self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
+		self.ax4 = self.fig.add_subplot(224, sharex=self.ax1, sharey=self.ax1)
 
-		self.ax1.set_title("Original image")
-		self.ax2.set_title(f"Normalized Gray + Blured")
+		self.ax1.set_title(f"Original image + contour")
+		self.ax2.set_title(f"Fragmented contours")
+		self.ax3.set_title(f"Forecast")
+		self.ax4.set_title(f"Debug info")
 
 		# 2 Create the navigation toolbar, tied to the canvas
 		self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
