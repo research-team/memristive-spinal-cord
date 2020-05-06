@@ -7,7 +7,7 @@ from matplotlib import gridspec
 import matplotlib.ticker as ticker
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
-from scipy.signal import argrelextrema
+
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from matplotlib.patches import FancyArrowPatch
@@ -114,23 +114,6 @@ def plot_ellipsoid(center, radii, rotation, plot_axes=False, color='b'):
 	ax.plot_surface(x, y, z, rstride=stride, cstride=stride, color=color, alpha=0.05)
 
 
-def split_by_slices(data, slice_length):
-	"""
-	TODO: add docstring
-	Args:
-		data (np.ndarray): data array
-		slice_length (int): slice length in steps
-	Returns:
-		np.ndarray: sliced data
-	"""
-	slices_begin_indexes = range(0, len(data) + 1, slice_length)
-	splitted_per_slice = [data[beg:beg + slice_length] for beg in slices_begin_indexes]
-	# remove tails
-	if len(splitted_per_slice[0]) != len(splitted_per_slice[-1]):
-		del splitted_per_slice[-1]
-	return splitted_per_slice
-
-
 def smooth(data, box_pts):
 	"""
 	Smooth the data by N box_pts number
@@ -142,33 +125,6 @@ def smooth(data, box_pts):
 	"""
 	box = np.ones(box_pts) / box_pts
 	return np.convolve(data, box, mode='same')
-
-
-def find_extrema(array, condition):
-	"""
-	Advanced wrapper of numpy.argrelextrema
-	Args:
-		array (np.ndarray): data array
-		condition (np.ufunc): e.g. np.less (<), np.great_equal (>=) and etc.
-	Returns:
-		np.ndarray: indexes of extrema
-		np.ndarray: values of extrema
-	"""
-	# get indexes of extrema
-	indexes = argrelextrema(array, condition)[0]
-	# in case where data line is horisontal and doesn't have any extrema -- return None
-	if len(indexes) == 0:
-		return None, None
-	# get values based on found indexes
-	values = array[indexes]
-	# calc the difference between nearby extrema values
-	diff_nearby_extrema = np.abs(np.diff(values, n=1))
-	# form indexes where no twin extrema (the case when data line is horisontal and have two extrema on borders)
-	indexes = np.array([index for index, diff in zip(indexes, diff_nearby_extrema) if diff > 0] + [indexes[-1]])
-	# get values based on filtered indexes
-	values = array[indexes]
-
-	return indexes, values
 
 
 def get_lat_matrix(sliced_datasets, step_size, debugging=False):
@@ -260,107 +216,6 @@ def get_lat_matrix(sliced_datasets, step_size, debugging=False):
 	return latency_matrix
 
 
-def list3d(h, w):
-	return [[[] for _ in range(w)] for _ in range(h)]
-
-
-def get_all_peak_amp_per_slice(sliced_datasets, dstep, borders, tails=True, debugging=False):
-	"""
-	Finds all peaks times and amplitudes at each slice
-
-	# 1. all slices must have equal size
-	# 2.
-
-	Args:
-		sliced_datasets (np.ndarray):
-		dstep (float): data step size
-		borders (list): time borders for searching peaks
-		tails (bool): move the peaks of first 3 ms to the previous slice
-		debugging (bool): debugging flag
-	Returns:
-		list: 3D list of peak times, [experiment_index][slice_index][peak time]
-		list: 3D list of peak ampls, [experiment_index][slice_index][peak ampl]
-	"""
-	if type(sliced_datasets) is not np.ndarray:
-		raise TypeError("Non valid type of data - use only np.ndarray")
-
-	# form parameters for filtering peaks
-	min_ampl = 0.3
-	min_dist = int(0.15 / dstep)
-	max_dist = int(4 / dstep)
-	# interpritate shape of dataset
-	tests_count, slices_count, slice_length = sliced_datasets.shape
-	peak_per_slice_list = list3d(h=tests_count, w=slices_count)
-	ampl_per_slice_list = list3d(h=tests_count, w=slices_count)
-	peak_slice_num_list = list3d(h=tests_count, w=slices_count)
-	# find all peaks times and amplitudes per slice
-	for experiment_index, slices_data in enumerate(sliced_datasets):
-		# combine slices into one myogram
-		y = np.array(slices_data).ravel()
-		# find all extrema
-		e_maxima_indexes, e_maxima_values = find_extrema(y, np.greater)
-		e_minima_indexes, e_minima_values = find_extrema(y, np.less)
-		# start pairing extrema from maxima
-		if e_minima_indexes[0] < e_maxima_indexes[0]:
-			comb = list(zip(e_maxima_indexes, e_minima_indexes[1:]))
-			combA = list(zip(e_maxima_values, e_minima_values[1:]))
-		else:
-			comb = list(zip(e_maxima_indexes, e_minima_indexes))
-			combA = list(zip(e_maxima_values, e_minima_values))
-
-		# process each extrema pair
-		# xticks = np.arange(len(y)) * dstep
-		# plt.plot(xticks, y, color='k')
-		# plt.plot(e_maxima_indexes * dstep, e_maxima_values, '.', color='r')
-		# plt.plot(e_minima_indexes * dstep, e_minima_values, '.', color='b')
-		#
-		# for i in range(20):
-		# 	plt.axvline(25 * i)
-		#
-		per_dT = np.percentile(np.abs(np.diff(np.array(comb))) * dstep, q=[25, 50, 75])
-		per_dA = np.percentile(np.abs(np.diff(np.array(combA))), q=[25, 50, 75])
-		# print(f"{'{:.2f} {:.2f} {:.2f}'.format(*list(per_dT))} {'{:.3f} {:.3f} {:.3f}'.format(*per_dA)}")
-
-		for max_index, min_index in comb:
-			max_value = e_maxima_values[e_maxima_indexes == max_index][0]
-			min_value = e_minima_values[e_minima_indexes == min_index][0]
-			dT = abs(max_index - min_index)
-			dA = abs(max_value - min_value)
-			# check the difference between maxima and minima
-			if (min_dist <= dT <= max_dist) and dA >= 0.028 or dA >= min_ampl:
-				slice_index = int(max_index // slice_length)
-				peak_time = max_index - slice_length * slice_index
-				# change slice index for "tails" peaks
-				if tails and peak_time * dstep <= 3 and slice_index > 0:
-					slice_index -= 1
-					peak_time = max_index - slice_length * slice_index
-				# plt.plot(max_index * dstep, y[max_index], '.', color='k')
-				# plt.text(max_index * dstep, y[max_index], f"({peak_time * dstep:.1f}, {slice_index})")
-				if borders[0] <= peak_time * dstep <= borders[1]:
-					peak_per_slice_list[experiment_index][slice_index].append(peak_time)
-					ampl_per_slice_list[experiment_index][slice_index].append(dA)
-					peak_slice_num_list[experiment_index][slice_index].append(slice_index)
-
-		# 			plt.plot([max_index * dstep, min_index * dstep], [max_value, max_value], ls='--', color='k')
-		# 			plt.plot([min_index * dstep, min_index * dstep], [max_value, min_value], ls='--', color='k')
-		# 			plt.plot(max_index * dstep, max_value, '.', color='r', ms=15)
-		# 			plt.plot(min_index * dstep, min_value, '.', color='b', ms=15)
-		# 			plt.text(max_index * dstep, max_value + 0.03,
-		# 			         f"dT {(min_index - max_index) * dstep:.2f}\ndA {dA:.3f}")
-		# plt.show()
-	if debugging:
-		raise NotImplemented
-		# peaks_per_interval = np.zeros((slices_count, len(intervals)))
-		# peaks_per_interval = peaks_per_interval / dataset_size
-		# # reshape
-		# c = peaks_per_interval[:, 0].copy()
-		# peaks_per_interval[:, 0: -1] = peaks_per_interval[:, 1:]
-		# peaks_per_interval[:, -1] = c
-		# peaks_per_interval[:, -1] = np.append(peaks_per_interval[1:, -1], 0)
-
-	return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
-
-
 def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=False):
 	"""
 	Finds extrema (as a peak) and sum of amplitudes after latnecy
@@ -428,57 +283,6 @@ def get_area_extrema_matrix(sliced_datasets, latencies, step_size, debugging=Fal
 	return peak_matrix, ampl_matrix
 
 
-def contour_plot(x, y, color, ax, z_prev, borders, levels_num):
-	"""
-	TODO: add docstring
-	Args:
-		x:
-		y:
-		color:
-		ax:
-		z_prev:
-		borders:
-	Returns:
-		np.ndarray:
-	"""
-	xmin, xmax, ymin, ymax = borders
-	# form a mesh grid
-	xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-	# re-present grid in 1D and pair them as (x1, y1 ...)
-	positions = np.vstack([xx.ravel(), yy.ravel()])
-	values = np.vstack([x, y])
-	# use a Gaussian KDE
-	a = st.gaussian_kde(values)(positions).T
-	# re-present grid back to 2D
-	z = np.reshape(a, xx.shape)
-	# find an index of the maximal element
-	m = np.amax(z)
-	# form a step and levels
-	step = (np.amax(a) - np.amin(a)) / levels_num
-	levels = np.arange(0, m, step) + step
-	# convert HEX to HSL
-	h_norm, s_norm, l_norm = Color(color).hsl
-	# make an gradient based on number of levels
-	light_gradient = np.linspace(l_norm, 0.95, len(levels))[::-1]
-	# generate colors for contours level from HSL (normalized) to RGB (normalized)
-	colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
-	# plot filled contour
-	if len(z_prev) == 1:
-		zorder = 0
-	else:
-		gt = z.ravel() > z_prev.ravel()
-		fullsize = len(gt)
-		gt = gt[gt == True]
-		truesize = len(gt)
-		zorder = -5 if truesize / fullsize * 100 > 50 else 5
-
-	ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-	ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=zorder)
-	# ax.scatter(x, y, s=0.1, color=color)
-
-	return z
-
-
 def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	"""
 	TODO: add docstring
@@ -542,7 +346,7 @@ def joint_plot(X, Y, ax, gs, borders, **kwargs):
 	dy = st.gaussian_kde(Y)(yy)
 	ax_top.plot(xx, dx, color=color)
 	ax_right.plot(dy, yy, color=color)
-
+	plt.plot([0], [kwargs['k']], 'D', color=color, ms=10)
 	ax_top.set_yticks([])
 	ax_right.set_xticks([])
 
