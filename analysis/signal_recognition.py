@@ -6,6 +6,8 @@ import h5py
 import numpy as np
 import scipy.io as sio
 from fastkde import fastKDE
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -26,10 +28,6 @@ class AppForm(QMainWindow):
 
 		self.dat = None
 		self.current_frame = 0
-		self.excl_x = None
-		self.excl_y = None
-		self.maxDIFF = None
-		self.minDIFF = None
 		self.analyse_type = original_image
 
 	def open_file(self, path):
@@ -65,6 +63,7 @@ class AppForm(QMainWindow):
 		# reshape data to the new shape
 		self.dat = np.transpose(self.dat, new_order)
 		self.im_height, self.im_width, self.total_frames, methods_num = self.dat.shape
+		self.im_shape = (self.im_height, self.im_width)
 		# disable buttons of reshaping
 		self.in_data_reshape.setEnabled(False)
 		self.btn_reshape_data.setEnabled(False)
@@ -78,6 +77,8 @@ class AppForm(QMainWindow):
 		self.box_method.clear()
 		for i in range(methods_num):
 			self.box_method.addItem(str(i))
+
+		self.interactive_dist = max(self.im_width, self.im_height) * 0.1
 
 	def file_dialog(self):
 		"""
@@ -98,7 +99,7 @@ class AppForm(QMainWindow):
 			QApplication.processEvents()
 
 			self.filepath = fname[0]
-			self.open_file(fname[0])
+			self.open_file(self.filepath)
 			self.status_text.setText(f".mat file is unpacked ({self.filepath})")
 
 			# based on data set the possible variables
@@ -106,56 +107,51 @@ class AppForm(QMainWindow):
 			for k in self.variables.keys():
 				self.box_variable.addItem(str(k))
 
+
 	def choose_variable(self):
 		""" Invoked if text in QComboBox is changed """
 		# get the user's choose
 		var = self.box_variable.currentText()
-		# get the data by name
-		self.dat = self.variables[var]
-		# meta info
-		data_shape = self.dat.shape
-		str_format = len(data_shape) * '{:<5}'
-		self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
-		                            f"Index: {str_format.format(*list(range(4)))}")
-		self.label_fileinfo.setFont(QFont("Courier New"))
+		if var != '':
+			# get the data by name
+			self.dat = self.variables[var]
+			# meta info
+			data_shape = self.dat.shape
+			str_format = len(data_shape) * '{:<5}'
+			self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
+			                            f"Index: {str_format.format(*list(range(4)))}")
+			self.label_fileinfo.setFont(QFont("Courier New"))
 
-		self.box_method.clear()
-		# unblock buttons
-		for obj in [self.btn_save_results, self.btn_loop_draw, self.btn_frame_right,
-		            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape,
-		            self.box_method, self.in_data_filter, self.btn_filter_data]:
-			obj.setEnabled(True)
-		self.status_text.setText(f"{var} is chosen {data_shape}")
+			self.box_method.clear()
+			# unblock buttons
+			for obj in [self.btn_save_results, self.btn_loop_draw, self.btn_frame_right,
+			            self.btn_frame_left, self.btn_reshape_data, self.in_data_reshape,
+			            self.box_method, self.btn_filter_data]:
+				obj.setEnabled(True)
+			self.status_text.setText(f"{var} is chosen {data_shape}")
 
 	def filter_exclude(self):
 		"""
-		Get a coords of points that have very small changes till the all recordings
+
 		"""
-		methodic = int(self.box_method.currentText())
-		input_q3 = self.check_input(self.in_data_filter, borders=[50, 100])
-		# find the mean value of all frames per pixel
-		diff = np.mean(self.dat[:, :, :, methodic], axis=2)
-		# find the most unchanged data (they will have the highest values after mean)
-		q1, m, q3 = np.percentile(diff, q=(100 - input_q3, 50, input_q3))
-		# take coordinates of the points where their values are fliers
-		row, col = np.indices(diff.shape)
-		diff = diff.ravel()
+		polygon = Polygon(self._polygon_points)
+		row, col = np.indices(self.im_shape)
+		grid = zip(col.ravel(), row.ravel())
 		# form a coordinates array of exluded points
-		excl_indices = np.stack((col.ravel(), row.ravel()), axis=1)[(diff >= q3) | (diff <= q1)]
-		self.excl_x, self.excl_y = excl_indices[:, 0], excl_indices[:, 1]
-		# make excluded points values as a median
-		for frame in range(self.total_frames):
-			self.dat[self.excl_y, self.excl_x, frame, methodic] = np.percentile(self.dat[:, :, frame, methodic], input_q3)
+		self.mask_inside = np.array(list(map(polygon.contains, map(Point, grid)))).reshape(self.im_shape)
+		self.true_y, self.true_x = np.where(self.mask_inside)
 
-		self.maxDIFF = q3
-		self.minDIFF = q1
+	def method_onchange(self):
+		text = self.box_method.currentText()
+		if text != '':
+			methodic = int(text)
 
-		# plot the filtering result
-		self.ax1.clear()
-		self.ax1.imshow(self.dat[:, :, 0, methodic], cmap='gray')
-		self.ax1.plot(self.excl_x, self.excl_y, '.', color='r', ms=1)
-		self.canvas.draw()
-		self.canvas.flush_events()
+			# self.ax1.clear()
+			self.ax1.imshow(np.mean(self.dat[:, :, :, methodic], axis=2), zorder=-10)
+			if self._line:
+				self.update_plot()
+			else:
+				self.canvas.draw()
 
 	@staticmethod
 	def polygon_area(coords):
@@ -168,109 +164,113 @@ class AppForm(QMainWindow):
 		coords[coords <= 0.5] = 0
 		return coords
 
-	def update_draws(self, frame, threshold_percentile, save_result=False):
+	def update_draws(self, frame, methodic, max_fragmentation, save_result=False):
 		"""
 		Calculate contours and draw them on the axis
 		Args:
 			frame (int): index of the frame
-			threshold_percentile (float): Q3 percentile for finding non-normal values
 			save_result (bool): flag for skipping drawing if we want just save results
 		Returns:
 			tuple : x and y coords of the contour if 'save_result' is true
 		"""
-		a = time.time()
-
 		max_contour = None
-		# get the current methodic
-		methodic = int(self.box_method.currentText())
-		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
-
 		# get an original data
 		original = self.dat[:, :, frame, methodic]
+		data_inside = original[self.mask_inside]
+		min_inside = np.min(data_inside)
+		max_inside = np.max(data_inside)
 		# normalize data from 0 to 255 with dynamic borders (min and max). It mades grayscale cmap
-		image = ((original - original.min()) * (1 / (original.max() - original.min()) * 255)).astype('uint8')
+		image = ((original - min_inside) / (max_inside - min_inside) * 255).astype('uint8')
+		image[~self.mask_inside] = 255
 		# reverse colors if epilepsy radio button checked
 		if self.radio_reversed.isChecked():
 			image = 255 - image
 		# blur the image to smooth very light pixels
 		image = cv2.medianBlur(image, 5)
 		# set the dynamic thresh value
-		zdiff = np.mean(self.dat[:, :, frame:frame + 10, methodic], axis=2)
-		mid = np.median(zdiff)
-		if mid >= 0:
-			coef = abs(mid / self.maxDIFF)
-		else:
-			coef = -abs(mid / self.minDIFF)
-		# self.magnitudes = np.zeros(shape=(self.image_height, self.image_width))
-		# for xi in range(self.image_width):
-		# 	for yi in range(self.image_height):
-		# 		self.magnitudes[yi, xi] = np.linalg.norm(self.dat[yi, xi, :600, methodic])
-		new_threshold = threshold_percentile + threshold_percentile * 1.2 * coef
-		if new_threshold > 99:
-			new_threshold = 99
-		if new_threshold < 50:
-			new_threshold = 50
+		in_mask_image = image[self.mask_inside]
 
-		thresh_value = np.percentile(image.ravel(), new_threshold)
-		# get coordinates of points which are greater than thresh value
-		y, x = np.where(image >= thresh_value)
-		# calc raw CV contours to decide -- search contour or not
-		mask = np.zeros(shape=image.shape)
-		mask[y, x] = 255
-		mask = mask.astype('uint8')
-		#
-		_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
-		# transform morphology of the mask
-		morph_kernel = np.ones((3, 3), np.uint8)
-		thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
-		thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
-		# get the contour of the mask
-		*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-		# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
+		# first, rude iteration
+		new_threshold = 99
+		while True:
+			thresh_value = np.percentile(in_mask_image, new_threshold)
+			# get coordinates of points which are greater than thresh value
+			y, x = np.where(image >= thresh_value)
+			# calc raw CV contours to decide -- search contour or not
+			mask = np.zeros(shape=image.shape)
+			mask[y, x] = 255
+			mask = mask.astype('uint8')
+			#
+			_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
+			# transform morphology of the mask
+			morph_kernel = np.ones((3, 3), np.uint8)
+			thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
+			thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
+			# get the contour of the mask
+			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+			# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
+			if len(CVcontours) > max_fragmentation:
+				break
+			new_threshold -= 2
+			if new_threshold < 50:
+				new_threshold += 2
+				break
+		# second, more preciescly iteration
+		while True:
+			new_threshold += 0.2
+			if new_threshold > 99:
+				new_threshold -= 0.2
+				break
+			thresh_value = np.percentile(in_mask_image, new_threshold)
+			# get coordinates of points which are greater than thresh value
+			y, x = np.where(image >= thresh_value)
+			# calc raw CV contours to decide -- search contour or not
+			mask = np.zeros(shape=image.shape)
+			mask[y, x] = 255
+			mask = mask.astype('uint8')
+			#
+			_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
+			# transform morphology of the mask
+			morph_kernel = np.ones((3, 3), np.uint8)
+			thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
+			thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
+			# get the contour of the mask
+			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+			# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
+			if len(CVcontours) <= max_fragmentation:
+				break
 
-		if len(CVcontours) <= max_fragmentation:
+		if len(CVcontours) <= max_fragmentation and len(x) > 10:
 			# get a KDE function values based on found points above XY meshgrid
 			PDF, (vx, vy) = fastKDE.pdf(x, y)
 			# find the contour by maximal area
-			max_cont = max(self.ax1.contour(vx, vy, PDF, levels=1).allsegs[1], key=self.polygon_area)
+			max_cont = max(self.ax3.contour(vx, vy, PDF, levels=1, alpha=0).allsegs[1], key=self.polygon_area)
 			# limit coordinates within the border
 			max_contour = (self.align_coord(max_cont[:, 0], self.im_width),
 			               self.align_coord(max_cont[:, 1], self.im_height))
 
-		b = time.time()
-		# print(f"{b - a:.3f}s")
 		if save_result:
 			return max_contour
 		else:
 			self.current_frame = frame
 			self.fig.suptitle(f"Frame {frame}")
-			self.ax1.clear()
 			self.ax2.clear()
 			self.ax3.clear()
 			self.ax4.clear()
 			# plotting original picture with excluded dots (red) and contour
-			self.ax1.set_title(f"Original image + contour")
-			self.ax1.imshow(original, cmap='gray')
-			self.ax1.plot(self.excl_x, self.excl_y, '.', color='r', ms=1)
-			if len(CVcontours) <= max_fragmentation:
-				self.ax1.plot(max_contour[0], max_contour[1], color='g', lw=3)
-			# found points
-			self.ax2.set_title(f"Fragmented contours: {len(CVcontours)}")
 			self.ax2.imshow(image, cmap='gray')
-			# all points plotting, but after recoloring they will mean the points outside of ellipse
 			self.ax2.plot(x, y, '.', color='#00AA00', ms=1)
-			# demonstrate forecast (mean) of 10 frames
-			self.ax3.set_title(f"Forecast")
-			self.ax3.imshow(zdiff)
+			if max_contour:
+				self.ax2.plot(max_contour[0], max_contour[1], color='g', lw=3)
+
+			self.ax3.imshow(original)
+			if max_contour:
+				self.ax3.plot(max_contour[0], max_contour[1], color='r', lw=3)
 			# save axis plot
 			# extent = self.ax3.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
 			# self.fig.savefig(f'/home/alex/example/{frame}.jpg', format='jpg')
-			self.ax4.set_title(f"Debug info")
-			self.ax4.text(0, 0, f"Median frame value: {mid:.1f}\n"
-			                    f"Max global: {self.maxDIFF:.1f}\n"
-			                    f"Min global: {self.minDIFF:.1f}\n"
-			                    f"Coef: {1 + coef:.3f} x {threshold_percentile:.1f}\n"
-			                    f"New threshold: {new_threshold:.1f}")
+			self.ax4.text(0, 0, f"New threshold: {new_threshold:.1f}\n"
+			                    f"Fragments: {len(CVcontours)}")
 			self.fig.tight_layout()
 			self.canvas.draw()
 			# waiting to see changes
@@ -305,9 +305,12 @@ class AppForm(QMainWindow):
 		start = int(self.check_input(self.in_start_frame))
 		end = int(self.check_input(self.in_end_frame))
 		step = int(self.check_input(self.in_frame_stepsize))
-		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
+
+		methodic = int(self.box_method.currentText())
+		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
+
 		# check if value is correct
-		if threshold_percentile and 0 <= start < end < self.total_frames and step > 0:
+		if 0 <= start < end < self.total_frames and step > 0:
 			self.status_text.setText("Saving results.... please wait")
 			# prepare array of objects per frame
 			matframes = np.zeros((self.total_frames, ), dtype=np.object)
@@ -316,7 +319,7 @@ class AppForm(QMainWindow):
 				matframes[frame] = np.array([], dtype=np.int32)
 			# get data per frame and fill the 'matframes'
 			for index, frame in enumerate(range(start, end, step)):
-				contour = self.update_draws(frame, threshold_percentile, save_result=True)
+				contour = self.update_draws(frame, methodic, max_fragmentation, save_result=True)
 				if contour is not None:
 					matframes[frame] = np.array(contour, dtype=np.int32)
 				QApplication.processEvents()
@@ -324,11 +327,12 @@ class AppForm(QMainWindow):
 				self.status_text.setText(f"Processed {index / len(range(start, end, step)) * 100:.2f} %")
 			# save data into mat format
 			filepath = os.path.dirname(self.filepath)
-			filename = os.path.basename(self.filepath)
+			filename = os.path.basename(self.filepath)[:-4]
 
-			sio.savemat(f"{filepath}/prepared_{filename}", {'frames': matframes})
+			newpath = f"{filepath}/{filename}_{self.box_variable.currentText()}.mat"
+			sio.savemat(newpath, {'frames': matframes})
 			# you are beautiful :3
-			self.status_text.setText(f"Successfully saved into {filepath}/prepared_{filename}")
+			self.status_text.setText(f"Successfully saved into {newpath}")
 
 	def on_loop_draw(self):
 		"""
@@ -337,9 +341,11 @@ class AppForm(QMainWindow):
 		start = int(self.check_input(self.in_start_frame))
 		end = int(self.check_input(self.in_end_frame))
 		step = int(self.check_input(self.in_frame_stepsize))
-		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
 
-		if threshold_percentile and 0 <= start < end < self.total_frames and step > 0:
+		methodic = int(self.box_method.currentText())
+		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
+
+		if 0 <= start < end < self.total_frames and step > 0:
 			self.flag_loop_draw_stop = False
 			self.btn_loop_draw_stop.setEnabled(True)
 
@@ -348,7 +354,7 @@ class AppForm(QMainWindow):
 					break
 				self.in_start_frame.setText(str(frame))
 				self.current_frame = frame
-				self.update_draws(frame, threshold_percentile)
+				self.update_draws(frame, methodic, max_fragmentation)
 		else:
 			self.status_text.setText("Check the START, END and STEPS values!")
 
@@ -364,16 +370,16 @@ class AppForm(QMainWindow):
 		"""
 		self.current_frame += sign * step
 
-		threshold_percentile = self.check_input(self.in_threshold_percentile, borders=[0.1, 100])
+		methodic = int(self.box_method.currentText())
+		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
 
 		if self.current_frame < 0:
 			self.current_frame = 0
 		if self.current_frame >= self.total_frames:
 			self.current_frame = self.total_frames - 1
 
-		if threshold_percentile:
-			self.in_start_frame.setText(str(self.current_frame))
-			self.update_draws(self.current_frame, threshold_percentile)
+		self.in_start_frame.setText(str(self.current_frame))
+		self.update_draws(self.current_frame, methodic, max_fragmentation)
 
 	def create_main_frame(self):
 		# create the main plot
@@ -388,10 +394,12 @@ class AppForm(QMainWindow):
 		self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
 		self.ax4 = self.fig.add_subplot(224)
 
-		self.ax1.set_title(f"Original image + contour")
-		self.ax2.set_title(f"Fragmented contours")
-		self.ax3.set_title(f"Forecast")
-		self.ax4.set_title(f"Debug info")
+		self.init_interactive()
+
+		# self.ax1.set_title(f"Original image + contour")
+		# self.ax2.set_title(f"Fragmented contours")
+		# self.ax3.set_title(f"Forecast")
+		# self.ax4.set_title(f"Debug info")
 
 		# 2 Create the navigation toolbar, tied to the canvas
 		self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
@@ -434,18 +442,14 @@ class AppForm(QMainWindow):
 		self.box_method = QComboBox(self)
 		btn_panel_grid.addWidget(self.box_method, 5, 0, 1, 1)
 		self.box_method.setEnabled(False)
+		self.box_method.currentTextChanged.connect(self.method_onchange)  # changed!
 
 		self.label_method = QLabel("Method")
 		self.label_method.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
 		btn_panel_grid.addWidget(self.label_method, 5, 1, 1, 1)
 
-		# FILTER
-		self.in_data_filter = QLineEdit("99.5")
-		self.in_data_filter.setPlaceholderText("Filter percentile 50-100")
-		btn_panel_grid.addWidget(self.in_data_filter, 6, 0, 1, 1)
-		self.in_data_filter.setEnabled(False)
-
-		self.btn_filter_data = QPushButton("Filter")
+		# POLYGON FILTER
+		self.btn_filter_data = QPushButton("Apply polygon")
 		self.btn_filter_data.clicked.connect(lambda x: self.filter_exclude())
 		btn_panel_grid.addWidget(self.btn_filter_data, 6, 1, 1, 1)
 		self.btn_filter_data.setEnabled(False)
@@ -460,15 +464,6 @@ class AppForm(QMainWindow):
 		self.radio_original.setChecked(True)
 		btn_panel_grid.addWidget(self.radio_original, 7, 1, 1, 1)
 		btn_panel_grid.addWidget(self.radio_reversed, 8, 1, 1, 1)
-
-		# THRESHOLD
-		self.label_threshold_percentile = QLabel("Threshold percentile")
-		self.label_threshold_percentile.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-		btn_panel_grid.addWidget(self.label_threshold_percentile, 9, 0, 1, 1)
-
-		self.in_threshold_percentile = QLineEdit("95")
-		self.in_threshold_percentile.setPlaceholderText("50-100")
-		btn_panel_grid.addWidget(self.in_threshold_percentile, 9, 1, 1, 1)
 
 		# FRAGMENTATION
 		self.label_max_fragmentation = QLabel("Max fragmentation")
@@ -574,6 +569,122 @@ class AppForm(QMainWindow):
 	def create_status_bar(self):
 		self.status_text = QLabel("Waiting a file...")
 		self.statusBar().addWidget(self.status_text, stretch=1)
+
+	def init_interactive(self):
+		self._polygon_points = []
+		self._line, self._dragging_point = None, None
+		self.canvas.mpl_connect('button_press_event', self.on_click)
+		self.canvas.mpl_connect('button_release_event', self.on_release)
+		self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+
+	def update_plot(self):
+		if not self._polygon_points:
+			self._line.set_data([], [])
+		else:
+			x, y = zip(*self._polygon_points)
+			# Add new plot
+			if not self._line:
+				(self._line, ) = self.ax1.plot(x, y, "r", marker="o", markersize=8, zorder=10)
+			# Update current plot
+			else:
+				x, y = list(x), list(y)
+				self._line.set_data(x + [x[0]], y + [y[0]])
+		self.canvas.draw()
+
+	def add_point(self, event):
+		self._polygon_points.append((event.xdata, event.ydata))
+
+	def remove_point(self, point):
+		if point in self._polygon_points:
+			self._polygon_points.remove(point)
+
+	def find_neighbor_point(self, event):
+		""" Find point around mouse position
+		:rtype: ((int, int)|None)
+		:return: (x, y) if there are any point around mouse else None
+		"""
+		if self._polygon_points:
+			nx, ny = min(self._polygon_points, key=lambda p: np.hypot(event.xdata - p[0], event.ydata - p[1]))
+			if np.hypot(event.xdata - nx, event.ydata - ny) < self.interactive_dist:
+				return nx, ny
+		return None
+
+	@staticmethod
+	def isBetween(pA, pB, p0):
+		p = pB
+		p0A = np.hypot(p0[0] - pA[0], p0[1] - pA[1])
+		p0B = np.hypot(p0[0] - pB[0], p0[1] - pB[1])
+		if p0A < p0B:
+			p = pA
+
+		dotproduct = (p0[0] - pA[0]) * (pB[0] - pA[0]) + (p0[1] - pA[1]) * (pB[1] - pA[1])
+		if dotproduct < 0:
+			return None, None
+
+		squaredlengthba = (pB[0] - pA[0]) * (pB[0] - pA[0]) + (pB[1] - pA[1]) * (pB[1] - pA[1])
+		if dotproduct > squaredlengthba:
+			return None, None
+
+		return p0B + p0A, p
+
+	def on_click(self, event):
+		""" callback method for mouse click event
+		:type event: MouseEvent
+		"""
+		# left click
+		if event.inaxes in [self.ax1] and event.button == 1:
+			point = self.find_neighbor_point(event)
+			p_next = None
+			p0 = (event.xdata, event.ydata)
+			mind = np.inf
+
+			if len(self._polygon_points) >= 3:
+				a = self._polygon_points + [self._polygon_points[0]]
+				for p1, p2 in zip(a, a[1:]):
+					d, p = self.isBetween(p1, p2, p0)
+					if d and d < mind:
+						mind = d
+						p_next = p2
+			if point:
+				self._dragging_point = point
+			elif p_next:
+				self._polygon_points.insert(self._polygon_points.index(p_next), p0)
+			else:
+				self.add_point(event)
+			self.update_plot()
+		# mid click
+		elif event.inaxes in [self.ax1] and event.button == 2:
+			self._polygon_points = []
+			self.update_plot()
+		elif event.inaxes in [self.ax1] and event.button == 3:
+			point = self.find_neighbor_point(event)
+			if point:
+				self.remove_point(point)
+				self.update_plot()
+
+	def on_release(self, event):
+		""" callback method for mouse release event
+		:type event: MouseEvent
+		"""
+		if event.inaxes in [self.ax1] and event.button == 1 and self._dragging_point:
+			self._dragging_point = None
+			self.update_plot()
+
+	def on_motion(self, event):
+		""" callback method for mouse motion event
+		:type event: MouseEvent
+		"""
+		if not self._dragging_point:
+			return
+		if event.xdata is None or event.ydata is None:
+			return
+		# get index of the previous dragged point
+		index = self._polygon_points.index(self._dragging_point)
+		# set new point
+		self._dragging_point = (event.xdata, event.ydata)
+		# update previous point
+		self._polygon_points[index] = self._dragging_point
+		self.update_plot()
 
 
 def main():
