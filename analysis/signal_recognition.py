@@ -13,16 +13,170 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QFont
-from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QLineEdit, QComboBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QLineEdit, QComboBox, QMessageBox
 from PyQt5.QtWidgets import QGridLayout, QFileDialog, QApplication, QMainWindow, QWidget, QVBoxLayout, QFrame
 
 original_image = "original"
 reversed_image = "reversed"
 
-class AppForm(QMainWindow):
+class PlotWindow(QMainWindow):
+	def __init__(self, parent=None):
+		super(PlotWindow, self).__init__(parent)
+		self.setWindowTitle("Visualization window")
+		self.interactive_dist = None
+		self._polygon_points = None
+		# 1 set up the canvas
+		self.fig = Figure(figsize=(8, 8), dpi=100)
+		self.canvas = FigureCanvas(self.fig)
+		self.canvas.setParent(self)
+		# add axes for plotting
+		self.ax1 = self.fig.add_subplot(221)
+		self.ax2 = self.fig.add_subplot(222, sharex=self.ax1, sharey=self.ax1)
+		self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
+		#
+		self.ax1.set_title("Interactive area")
+		self.ax2.set_title("Threshold: void\n"
+		                   "Fragments: void")
+		self.ax3.set_title("Result output")
+		#
+		self.init_interactive()
+
+		# 2 Create the navigation toolbar, tied to the canvas
+		self.mpl_toolbar = NavigationToolbar(self.canvas, self)
+
+		layout = QVBoxLayout()
+		layout.addWidget(self.canvas)
+		layout.addWidget(self.mpl_toolbar)
+		widget = QWidget()
+		widget.setLayout(layout)
+		self.setCentralWidget(widget)
+
+		self.resize(900, 900)
+		self.fig.tight_layout()
+		self.show()
+
+	def init_interactive(self):
+		self._polygon_points = []
+		self._line, self._dragging_point = None, None
+		self.canvas.mpl_connect('button_press_event', self.on_click)
+		self.canvas.mpl_connect('button_release_event', self.on_release)
+		self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+
+	def update_plot(self):
+		if not self._polygon_points:
+			self._line.set_data([], [])
+		else:
+			x, y = zip(*self._polygon_points)
+			# Add new plot
+			if not self._line:
+				(self._line, ) = self.ax1.plot(x, y, "r", marker="o", markersize=8, zorder=10)
+			# Update current plot
+			else:
+				x, y = list(x), list(y)
+				self._line.set_data(x + [x[0]], y + [y[0]])
+		self.fig.tight_layout()
+		self.canvas.draw()
+
+	def add_point(self, event):
+		self._polygon_points.append((event.xdata, event.ydata))
+
+	def remove_point(self, point):
+		if point in self._polygon_points:
+			self._polygon_points.remove(point)
+
+	def find_neighbor_point(self, event):
+		""" Find point around mouse position
+		:rtype: ((int, int)|None)
+		:return: (x, y) if there are any point around mouse else None
+		"""
+		if self._polygon_points:
+			nx, ny = min(self._polygon_points, key=lambda p: np.hypot(event.xdata - p[0], event.ydata - p[1]))
+			if np.hypot(event.xdata - nx, event.ydata - ny) < self.interactive_dist:
+				return nx, ny
+		return None
+
+	@staticmethod
+	def isBetween(pA, pB, p0):
+		p = pB
+		p0A = np.hypot(p0[0] - pA[0], p0[1] - pA[1])
+		p0B = np.hypot(p0[0] - pB[0], p0[1] - pB[1])
+		if p0A < p0B:
+			p = pA
+
+		dotproduct = (p0[0] - pA[0]) * (pB[0] - pA[0]) + (p0[1] - pA[1]) * (pB[1] - pA[1])
+		if dotproduct < 0:
+			return None, None
+
+		squaredlengthba = (pB[0] - pA[0]) * (pB[0] - pA[0]) + (pB[1] - pA[1]) * (pB[1] - pA[1])
+		if dotproduct > squaredlengthba:
+			return None, None
+
+		return p0B + p0A, p
+
+	def on_click(self, event):
+		""" callback method for mouse click event
+		:type event: MouseEvent
+		"""
+		# left click
+		if event.inaxes in [self.ax1] and event.button == 1:
+			point = self.find_neighbor_point(event)
+			p_next = None
+			p0 = (event.xdata, event.ydata)
+			mind = np.inf
+
+			if len(self._polygon_points) >= 3:
+				a = self._polygon_points + [self._polygon_points[0]]
+				for p1, p2 in zip(a, a[1:]):
+					d, p = self.isBetween(p1, p2, p0)
+					if d and d < mind:
+						mind = d
+						p_next = p2
+			if point:
+				self._dragging_point = point
+			elif p_next:
+				self._polygon_points.insert(self._polygon_points.index(p_next), p0)
+			else:
+				self.add_point(event)
+			self.update_plot()
+		# mid click
+		elif event.inaxes in [self.ax1] and event.button == 2:
+			self._polygon_points = []
+			self.update_plot()
+		elif event.inaxes in [self.ax1] and event.button == 3:
+			point = self.find_neighbor_point(event)
+			if point:
+				self.remove_point(point)
+				self.update_plot()
+
+	def on_release(self, event):
+		""" callback method for mouse release event
+		:type event: MouseEvent
+		"""
+		if event.inaxes in [self.ax1] and event.button == 1 and self._dragging_point:
+			self._dragging_point = None
+			self.update_plot()
+
+	def on_motion(self, event):
+		""" callback method for mouse motion event
+		:type event: MouseEvent
+		"""
+		if not self._dragging_point:
+			return
+		if event.xdata is None or event.ydata is None:
+			return
+		# get index of the previous dragged point
+		index = self._polygon_points.index(self._dragging_point)
+		# set new point
+		self._dragging_point = (event.xdata, event.ydata)
+		# update previous point
+		self._polygon_points[index] = self._dragging_point
+		self.update_plot()
+
+
+class Application(QMainWindow):
 	def __init__(self, parent=None):
 		QMainWindow.__init__(self, parent)
-		self.setWindowTitle('Computer Vision Analyzer v2.5 (NcN lab product 2020)')
+		self.setWindowTitle('Computer Vision Analyzer v2.7 (NcN lab product 2020)')
 		self.create_main_frame()
 		self.create_status_bar()
 
@@ -52,7 +206,7 @@ class AppForm(QMainWindow):
 					if len(np.shape(v)) == 4:
 						self.variables[k] = v[:]
 		except:
-			ValueError('Could not read the file at all...')
+			QMessageBox.about(self, f"Error", 'Could not read the file at all...')
 
 	def reshape_data(self):
 		"""
@@ -78,7 +232,7 @@ class AppForm(QMainWindow):
 		for i in range(methods_num):
 			self.box_method.addItem(str(i))
 
-		self.interactive_dist = max(self.im_width, self.im_height) * 0.1
+		self.plot_frame.interactive_dist = max(self.im_width, self.im_height) * 0.1
 
 	def file_dialog(self):
 		"""
@@ -107,7 +261,6 @@ class AppForm(QMainWindow):
 			for k in self.variables.keys():
 				self.box_variable.addItem(str(k))
 
-
 	def choose_variable(self):
 		""" Invoked if text in QComboBox is changed """
 		# get the user's choose
@@ -134,7 +287,7 @@ class AppForm(QMainWindow):
 		"""
 
 		"""
-		polygon = Polygon(self._polygon_points)
+		polygon = Polygon(self.plot_frame._polygon_points)
 		row, col = np.indices(self.im_shape)
 		grid = zip(col.ravel(), row.ravel())
 		# form a coordinates array of exluded points
@@ -147,11 +300,11 @@ class AppForm(QMainWindow):
 			methodic = int(text)
 
 			# self.ax1.clear()
-			self.ax1.imshow(np.mean(self.dat[:, :, :, methodic], axis=2), zorder=-10)
-			if self._line:
-				self.update_plot()
+			self.plot_frame.ax1.imshow(np.mean(self.dat[:, :, :, methodic], axis=2), zorder=-10, cmap='gray')
+			if self.plot_frame._line:
+				self.plot_frame.update_plot()
 			else:
-				self.canvas.draw()
+				self.plot_frame.canvas.draw()
 
 	@staticmethod
 	def polygon_area(coords):
@@ -173,7 +326,6 @@ class AppForm(QMainWindow):
 		Returns:
 			tuple : x and y coords of the contour if 'save_result' is true
 		"""
-		max_contour = None
 		# get an original data
 		original = self.dat[:, :, frame, methodic]
 		data_inside = original[self.mask_inside]
@@ -181,10 +333,11 @@ class AppForm(QMainWindow):
 		max_inside = np.max(data_inside)
 		# normalize data from 0 to 255 with dynamic borders (min and max). It mades grayscale cmap
 		image = ((original - min_inside) / (max_inside - min_inside) * 255).astype('uint8')
-		image[~self.mask_inside] = 255
 		# reverse colors if epilepsy radio button checked
 		if self.radio_reversed.isChecked():
 			image = 255 - image
+			original = 255 - original
+		image[~self.mask_inside] = 0
 		# blur the image to smooth very light pixels
 		image = cv2.medianBlur(image, 5)
 		# set the dynamic thresh value
@@ -192,22 +345,22 @@ class AppForm(QMainWindow):
 
 		# first, rude iteration
 		new_threshold = 99
+		morph_kernel = np.ones((3, 3), np.uint8)
+		mask = np.zeros(shape=image.shape, dtype='uint8')
 		while True:
 			thresh_value = np.percentile(in_mask_image, new_threshold)
 			# get coordinates of points which are greater than thresh value
 			y, x = np.where(image >= thresh_value)
 			# calc raw CV contours to decide -- search contour or not
-			mask = np.zeros(shape=image.shape)
-			mask[y, x] = 255
-			mask = mask.astype('uint8')
+			tmpmask = np.array(mask, copy=True)
+			tmpmask[y, x] = 255
 			#
-			_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
+			_, thresh = cv2.threshold(tmpmask, 200, 255, cv2.THRESH_BINARY)
 			# transform morphology of the mask
-			morph_kernel = np.ones((3, 3), np.uint8)
 			thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
 			thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
 			# get the contour of the mask
-			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 			# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
 			if len(CVcontours) > max_fragmentation:
 				break
@@ -225,58 +378,61 @@ class AppForm(QMainWindow):
 			# get coordinates of points which are greater than thresh value
 			y, x = np.where(image >= thresh_value)
 			# calc raw CV contours to decide -- search contour or not
-			mask = np.zeros(shape=image.shape)
-			mask[y, x] = 255
-			mask = mask.astype('uint8')
+			tmpmask = np.array(mask, copy=True)
+			tmpmask[y, x] = 255
 			#
-			_, thresh = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
+			_, thresh = cv2.threshold(tmpmask, 200, 255, cv2.THRESH_BINARY)
 			# transform morphology of the mask
-			morph_kernel = np.ones((3, 3), np.uint8)
 			thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, morph_kernel)
 			thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, morph_kernel)
 			# get the contour of the mask
-			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+			*im2, CVcontours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 			# only if number of CV not so big (more fragmentation -- more confidence that there are no epilepsy contour)
 			if len(CVcontours) <= max_fragmentation:
 				break
-
-		if len(CVcontours) <= max_fragmentation and len(x) > 10:
+		#
+		max_contour = None
+		if len(x) > 10:
 			# get a KDE function values based on found points above XY meshgrid
 			PDF, (vx, vy) = fastKDE.pdf(x, y)
 			# find the contour by maximal area
-			max_cont = max(self.ax3.contour(vx, vy, PDF, levels=1, alpha=0).allsegs[1], key=self.polygon_area)
+			max_cont = max(self.plot_frame.ax3.contour(vx, vy, PDF, levels=1, alpha=0).allsegs[1], key=self.polygon_area)
 			# limit coordinates within the border
 			max_contour = (self.align_coord(max_cont[:, 0], self.im_width),
 			               self.align_coord(max_cont[:, 1], self.im_height))
-
+		#
 		if save_result:
 			return max_contour
 		else:
 			self.current_frame = frame
-			self.fig.suptitle(f"Frame {frame}")
-			self.ax2.clear()
-			self.ax3.clear()
-			self.ax4.clear()
-			# plotting original picture with excluded dots (red) and contour
-			self.ax2.imshow(image, cmap='gray')
-			self.ax2.plot(x, y, '.', color='#00AA00', ms=1)
-			if max_contour:
-				self.ax2.plot(max_contour[0], max_contour[1], color='g', lw=3)
+			self.plot_frame.fig.suptitle(f"Frame {frame}")
+			self.plot_frame.ax2.clear()
+			self.plot_frame.ax3.clear()
 
-			self.ax3.imshow(original)
+			self.plot_frame.ax1.set_title("Interactive area")
+			self.plot_frame.ax2.set_title(f"Threshold: {new_threshold:.1f}\n"
+			                              f"Fragments: {len(CVcontours)}")
+			self.plot_frame.ax3.set_title("Result output")
+
+			# plotting original picture with excluded dots (red) and contour
+			self.plot_frame.ax2.imshow(image, cmap='gray')
+			self.plot_frame.ax2.plot(x, y, '.', color='#00AA00', ms=1)
 			if max_contour:
-				self.ax3.plot(max_contour[0], max_contour[1], color='r', lw=3)
+				self.plot_frame.ax2.plot(max_contour[0], max_contour[1], color='g', lw=3)
+			self.plot_frame.ax3.imshow(original, cmap='gray')
+			if max_contour:
+				self.plot_frame.ax3.plot(max_contour[0], max_contour[1], color='r', lw=3)
 			# save axis plot
 			# extent = self.ax3.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
 			# self.fig.savefig(f'/home/alex/example/{frame}.jpg', format='jpg')
-			self.ax4.text(0, 0, f"New threshold: {new_threshold:.1f}\n"
-			                    f"Fragments: {len(CVcontours)}")
-			self.fig.tight_layout()
-			self.canvas.draw()
+			# self.plot_frame.ax4.text(0, 0, f"New threshold: {new_threshold:.1f}\n"
+			#                     f"Fragments: {len(CVcontours)}")
+			self.plot_frame.fig.tight_layout()
+			self.plot_frame.canvas.draw()
 			# waiting to see changes
 			time.sleep(0.01)
 			# flush the changes to the screen
-			self.canvas.flush_events()
+			self.plot_frame.canvas.flush_events()
 
 	def check_input(self, input_value, borders=(-np.inf, np.inf)):
 		"""
@@ -292,11 +448,11 @@ class AppForm(QMainWindow):
 			if borders[0] <= value <= borders[1]:
 				return value
 			else:
-				self.status_text.setText(f"Value ({value}) not in borders")
-				raise ValueError(f"Value ({value}) not in borders")
-		except Exception as e:
-			print(e)
-		self.status_text.setText(f"Value must be a number from {borders[0]} to {borders[1]}")
+				QMessageBox.about(self, f"Error value '{value}'", f"Value must be a number from {borders[0]} to {borders[1]}")
+				return None
+		except Exception:
+			QMessageBox.about(self, f"Error value '{input_value.text()}'", f"Value must be a number from {borders[0]} to {borders[1]}")
+		return None
 
 	def save_contour(self):
 		"""
@@ -343,7 +499,10 @@ class AppForm(QMainWindow):
 		step = int(self.check_input(self.in_frame_stepsize))
 
 		methodic = int(self.box_method.currentText())
-		max_fragmentation = int(self.check_input(self.in_max_fragmentation, borders=[3, 80]))
+		max_fragmentation = self.check_input(self.in_max_fragmentation, borders=[3, 80])
+
+		if any(d is None for d in [start, end, step, max_fragmentation]):
+			return
 
 		if 0 <= start < end < self.total_frames and step > 0:
 			self.flag_loop_draw_stop = False
@@ -354,9 +513,9 @@ class AppForm(QMainWindow):
 					break
 				self.in_start_frame.setText(str(frame))
 				self.current_frame = frame
-				self.update_draws(frame, methodic, max_fragmentation)
+				self.update_draws(frame, methodic, int(max_fragmentation))
 		else:
-			self.status_text.setText("Check the START, END and STEPS values!")
+			QMessageBox.about(self, "Error", "Check the START, END and STEPS values!")
 
 	def stop_loop(self):
 		self.flag_loop_draw_stop = True
@@ -384,26 +543,7 @@ class AppForm(QMainWindow):
 	def create_main_frame(self):
 		# create the main plot
 		self.main_frame = QWidget()
-		# 1 set up the canvas
-		self.fig = Figure(figsize=(10, 15), dpi=100)
-		self.canvas = FigureCanvas(self.fig)
-		self.canvas.setParent(self.main_frame)
-		# add axes for plotting
-		self.ax1 = self.fig.add_subplot(221)
-		self.ax2 = self.fig.add_subplot(222, sharex=self.ax1, sharey=self.ax1)
-		self.ax3 = self.fig.add_subplot(223, sharex=self.ax1, sharey=self.ax1)
-		self.ax4 = self.fig.add_subplot(224)
-
-		self.init_interactive()
-
-		# self.ax1.set_title(f"Original image + contour")
-		# self.ax2.set_title(f"Fragmented contours")
-		# self.ax3.set_title(f"Forecast")
-		# self.ax4.set_title(f"Debug info")
-
-		# 2 Create the navigation toolbar, tied to the canvas
-		self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
-
+		self.plot_frame = PlotWindow(self)
 		# 3 Layout with panel
 		btn_panel_grid = QGridLayout()
 		btn_panel_grid.setContentsMargins(0, 0, 0, 0)
@@ -559,8 +699,6 @@ class AppForm(QMainWindow):
 
 		# 4 combne all in the structure
 		vbox = QVBoxLayout()
-		vbox.addWidget(self.canvas)
-		vbox.addWidget(self.mpl_toolbar)
 		vbox.addLayout(btn_panel_grid)
 
 		self.main_frame.setLayout(vbox)
@@ -570,131 +708,14 @@ class AppForm(QMainWindow):
 		self.status_text = QLabel("Waiting a file...")
 		self.statusBar().addWidget(self.status_text, stretch=1)
 
-	def init_interactive(self):
-		self._polygon_points = []
-		self._line, self._dragging_point = None, None
-		self.canvas.mpl_connect('button_press_event', self.on_click)
-		self.canvas.mpl_connect('button_release_event', self.on_release)
-		self.canvas.mpl_connect('motion_notify_event', self.on_motion)
-
-	def update_plot(self):
-		if not self._polygon_points:
-			self._line.set_data([], [])
-		else:
-			x, y = zip(*self._polygon_points)
-			# Add new plot
-			if not self._line:
-				(self._line, ) = self.ax1.plot(x, y, "r", marker="o", markersize=8, zorder=10)
-			# Update current plot
-			else:
-				x, y = list(x), list(y)
-				self._line.set_data(x + [x[0]], y + [y[0]])
-		self.canvas.draw()
-
-	def add_point(self, event):
-		self._polygon_points.append((event.xdata, event.ydata))
-
-	def remove_point(self, point):
-		if point in self._polygon_points:
-			self._polygon_points.remove(point)
-
-	def find_neighbor_point(self, event):
-		""" Find point around mouse position
-		:rtype: ((int, int)|None)
-		:return: (x, y) if there are any point around mouse else None
-		"""
-		if self._polygon_points:
-			nx, ny = min(self._polygon_points, key=lambda p: np.hypot(event.xdata - p[0], event.ydata - p[1]))
-			if np.hypot(event.xdata - nx, event.ydata - ny) < self.interactive_dist:
-				return nx, ny
-		return None
-
-	@staticmethod
-	def isBetween(pA, pB, p0):
-		p = pB
-		p0A = np.hypot(p0[0] - pA[0], p0[1] - pA[1])
-		p0B = np.hypot(p0[0] - pB[0], p0[1] - pB[1])
-		if p0A < p0B:
-			p = pA
-
-		dotproduct = (p0[0] - pA[0]) * (pB[0] - pA[0]) + (p0[1] - pA[1]) * (pB[1] - pA[1])
-		if dotproduct < 0:
-			return None, None
-
-		squaredlengthba = (pB[0] - pA[0]) * (pB[0] - pA[0]) + (pB[1] - pA[1]) * (pB[1] - pA[1])
-		if dotproduct > squaredlengthba:
-			return None, None
-
-		return p0B + p0A, p
-
-	def on_click(self, event):
-		""" callback method for mouse click event
-		:type event: MouseEvent
-		"""
-		# left click
-		if event.inaxes in [self.ax1] and event.button == 1:
-			point = self.find_neighbor_point(event)
-			p_next = None
-			p0 = (event.xdata, event.ydata)
-			mind = np.inf
-
-			if len(self._polygon_points) >= 3:
-				a = self._polygon_points + [self._polygon_points[0]]
-				for p1, p2 in zip(a, a[1:]):
-					d, p = self.isBetween(p1, p2, p0)
-					if d and d < mind:
-						mind = d
-						p_next = p2
-			if point:
-				self._dragging_point = point
-			elif p_next:
-				self._polygon_points.insert(self._polygon_points.index(p_next), p0)
-			else:
-				self.add_point(event)
-			self.update_plot()
-		# mid click
-		elif event.inaxes in [self.ax1] and event.button == 2:
-			self._polygon_points = []
-			self.update_plot()
-		elif event.inaxes in [self.ax1] and event.button == 3:
-			point = self.find_neighbor_point(event)
-			if point:
-				self.remove_point(point)
-				self.update_plot()
-
-	def on_release(self, event):
-		""" callback method for mouse release event
-		:type event: MouseEvent
-		"""
-		if event.inaxes in [self.ax1] and event.button == 1 and self._dragging_point:
-			self._dragging_point = None
-			self.update_plot()
-
-	def on_motion(self, event):
-		""" callback method for mouse motion event
-		:type event: MouseEvent
-		"""
-		if not self._dragging_point:
-			return
-		if event.xdata is None or event.ydata is None:
-			return
-		# get index of the previous dragged point
-		index = self._polygon_points.index(self._dragging_point)
-		# set new point
-		self._dragging_point = (event.xdata, event.ydata)
-		# update previous point
-		self._polygon_points[index] = self._dragging_point
-		self.update_plot()
-
 
 def main():
 	app = QApplication(sys.argv)
-	form = AppForm()
-	form.resize(900, 900)
+	form = Application()
+	form.resize(800, 350)
 
 	form.show()
 	app.exec_()
-
 
 if __name__ == "__main__":
 	main()
