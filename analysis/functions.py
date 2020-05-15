@@ -88,8 +88,21 @@ def read_hdf5(filepath, rat):
 	"""
 	data_by_test = []
 	with hdf5.File(filepath, 'r') as file:
-		for test_names, test_values in file.items():
-			if f"#{rat}" in test_names and len(test_values[:]) != 0:
+		for test_name, test_values in file.items():
+			#todo fix me
+			if ("#1" in test_name or "#3" in test_name) and 'bio_' in filepath and "PLT_13.5cms_40Hz_2pedal" in filepath:
+				continue
+			if "#1" in test_name and 'bio_' in filepath and "PLT_6cms_40Hz_2pedal" in filepath:
+				continue
+			if "#8" in test_name and 'bio_' in filepath and "QPZ_13.5cms_40Hz_2pedal" in filepath:
+				continue
+			if "#4" in test_name and 'bio_' in filepath and "TOE_13.5cms_40Hz_2pedal" in filepath:
+				continue
+			if "#7" in test_name and 'bio_' in filepath and "STR_13.5cms_40Hz_2pedal" in filepath:
+				continue
+			if "#7" in test_name and 'bio_' in filepath and "STR_6cms_40Hz_2pedal" in filepath:
+				continue
+			if f"#{rat}" in test_name and len(test_values[:]) != 0:
 				data_by_test.append(test_values[:])
 	if len(data_by_test):
 		log.info(f"{len(data_by_test)} packs in rat #{rat} inside of {filepath}")
@@ -135,7 +148,8 @@ def subsampling(dataset, dstep_from, dstep_to):
 	if dstep_from == dstep_to or not dstep_from or not dstep_to:
 		return dataset
 	sub_step = int(dstep_to / dstep_from)
-	return dataset[:, ::sub_step]
+
+	return [d[::sub_step] for d in dataset]
 
 
 def trim_data(dataset, beg=None, end=None):

@@ -12,11 +12,115 @@ from colour import Color
 from itertools import chain
 from matplotlib import gridspec
 from scipy.stats import ks_2samp
+from collections import defaultdict
 from scipy.signal import argrelextrema
 from rpy2.robjects.packages import STAP
+from rpy2.robjects.numpy2ri import numpy2rpy
 from scipy.stats import kstwobign, anderson_ksamp
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import read_hdf5, trim_data, calibrate_data, get_boxplots, parse_filename, subsampling
+
+flatten = chain.from_iterable
+
+class Metadata:
+	def __init__(self, pickle_folder=None, filename=None, sdict=None):
+		if sdict:
+			self.pdata = sdict
+		else:
+			if pickle_folder and filename:
+				self.pdata = self.unpickle_data(pickle_folder, filename)
+			else:
+				raise Exception(f"Check the filename '{filename}' and folder '{pickle_folder}'")
+
+	def unpickle_data(self, pickle_folder, filename):
+		filename = filename if ".pickle" in filename else f"{filename}.pickle"
+		with open(f"{pickle_folder}/{filename.replace('_E_', '_')}", 'rb') as handle:
+			return pickle.load(handle)
+
+	def get_rats_id(self, muscle='E'):
+		return self.pdata['rats_data'][muscle].keys()
+
+	def get_myograms(self, rat, muscle='E'):
+		return self.pdata['rats_data'][muscle][rat]['data']
+
+	def get_peak_times(self, rat, muscle='E', flat=False, unslice=False):
+		data = self.pdata['rats_data'][muscle][rat]['times']
+		if flat:
+			return np.array(list(flatten(flatten(data))))
+		if unslice:
+			return [list(flatten(d)) for d in data]
+		return data
+
+	def get_peak_ampls(self, rat, muscle='E', flat=False, unslice=False):
+		data = self.pdata['rats_data'][muscle][rat]['ampls']
+		if flat:
+			return np.array(list(flatten(flatten(data))))
+		if unslice:
+			return [list(flatten(d)) for d in data]
+		return data
+
+	def get_peak_slices(self, rat, muscle='E', flat=False, unslice=False):
+		data = self.pdata['rats_data'][muscle][rat]['slices']
+		if flat:
+			return np.array(list(flatten(flatten(data))))
+		if unslice:
+			return [list(flatten(d)) for d in data]
+		return data
+
+	def get_fMEP_count(self, rat, muscle='E'):
+		return len(self.pdata['rats_data'][muscle][rat]['data'])
+
+	def get_peak_counts(self, rat, border, muscle='E'):
+		times = self.get_peak_times(rat, muscle, flat=True) * self.pdata['dstep_to']
+		fMEPs = self.get_fMEP_count(rat, muscle)
+
+		if border == 'poly_tail':
+			# [0 - 3] and [8 - 25]
+			mask = (times <= 3) | (8 <= times)
+		else:
+			# [T1, T2]
+			mask = (border[0] <= times) & (times <= border[1])
+
+		return len(times[mask]) / fMEPs
+
+	def get_peak_median_height(self, rat, border, muscle='E'):
+		ampls = self.get_peak_ampls(rat, muscle, flat=True)
+		times = self.get_peak_times(rat, muscle, flat=True) * self.pdata['dstep_to']
+		if border == 'poly_tail':
+			# [0 - 3] and [8 - 25]
+			mask = (times <= 3) | (8 <= times)
+		else:
+			# [T1, T2]
+			mask = (border[0] <= times) & (times <= border[1])
+
+		return np.median(ampls[mask])
+
+	def get_latency_volume(self, rat, muscle='E'):
+		return self.pdata['rats_data'][muscle][rat]['latency_volume']
+
+	@property
+	def shortname(self):
+		return self.pdata['shortname']
+
+	@property
+	def dstep_to(self):
+		return self.pdata['dstep_to']
+
+	@property
+	def dstep_from(self):
+		return self.pdata['dstep_from']
+
+	@property
+	def slice_in_ms(self):
+		return self.pdata['slice_in_ms']
+
+	@property
+	def slice_count(self):
+		return self.pdata['slices_count']
+
+	@property
+	def speed(self):
+		return self.pdata['speed']
 
 
 class Analyzer:
@@ -31,55 +135,12 @@ class Analyzer:
 		if not os.path.exists(self.plots_folder):
 			os.makedirs(self.plots_folder)
 
-		self.flatten = chain.from_iterable
-
 		logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 		self.log = logging.getLogger()
 
 	@staticmethod
 	def disable_log():
 		logging.disable(logging.CRITICAL)
-
-	def get_pickle_data(self, file):
-		with open(f"{self.pickle_folder}/{file}.pickle", 'rb') as handle:
-			pdata = pickle.load(handle)
-		return pdata
-
-	def get_rats_id(self, pdata, muscle='E'):
-		return pdata['rats_data'][muscle].keys()
-
-	def get_myograms(self, pdata, rat, muscle='E'):
-		return pdata['rats_data'][muscle][rat]['data']
-
-	def get_peak_times(self, pdata, rat, muscle='E', flatten=False):
-		data = pdata['rats_data'][muscle][rat]['times']
-		if flatten:
-			return np.array(list(self.flatten(self.flatten(data))))
-		return data
-
-	def get_peak_ampls(self, pdata, rat, muscle='E', flatten=False):
-		data = pdata['rats_data'][muscle][rat]['ampls']
-		if flatten:
-			return np.array(list(self.flatten(self.flatten(data))))
-		return data
-
-	def get_peak_slices(self, pdata, rat, muscle='E', flatten=False):
-		data = pdata['rats_data'][muscle][rat]['slices']
-		if flatten:
-			return np.array(list(self.flatten(self.flatten(data))))
-		return data
-
-	def get_shortname(self, pdata):
-		return pdata['shortname']
-
-	def get_dstep_to(self, pdata):
-		return pdata['dstep_to']
-
-	def get_dstep_from(self, pdata):
-		return pdata['dstep_from']
-
-	def get_latency_volume(self, file, rats):
-		return self.plot_density_3D(file, rats, factor=15, only_volume=True)
 
 	@staticmethod
 	def _recolor(boxplot_elements, color, fill_color, fill_alpha=0.0):
@@ -100,7 +161,423 @@ class Analyzer:
 		for patch in boxplot_elements['boxes']:
 			patch.set(facecolor=f"{fill_color}{hex_alpha}")
 
-	def _lw_prepare_data(self, folder, muscle, metadata, fill_zeros):
+	def KDE_plot(self, xy1, xy2, names, rats, border):
+		plt.close()
+		gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+		plt.figure(figsize=(8, 6))
+		title_ax = plt.subplot(gs[0, 1])
+
+		for spine in ['top', 'right', 'left', 'bottom']:
+			title_ax.spines[spine].set_visible(False)
+		title_ax.set_xticks([])
+		title_ax.set_yticks([])
+
+		kde_ax = plt.subplot(gs[1, 0])
+		kde_ax.spines['top'].set_visible(False)
+		kde_ax.spines['right'].set_visible(False)
+		label_pathes = []
+		#
+		for (x, y), name, color in zip([xy1, xy2],
+		                             [f"{names[0]} {rats[0]}", f"{names[1]} {rats[1]}"],
+		                             ['#A6261D', '#472650']):
+			self._contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0],
+			                   borders=border, levels_num=15)
+			t, r = self.joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=border, with_boxplot=False)
+			label_pathes.append(mpatches.Patch(color=color, label=f"{name}"))
+			kde_ax.plot(x, y, '.', c=color)
+			t.set_xticklabels([])
+			r.set_yticklabels([])
+
+			t.set_xlim(border[0], border[1])
+			r.set_ylim(border[2], border[3])
+
+		kde_ax.legend(handles=label_pathes, fontsize=17)
+		kde_ax.set_xlim(border[0], border[1])
+		kde_ax.set_ylim(border[2], border[3])
+		plt.tight_layout()
+
+
+	def outside_compare(self, comb, border, axis, per_step=False, plot=False, show=False):
+		if len(comb) != 2:
+			raise Exception("Only pairing analysis")
+		#
+		metadata1 = Metadata(self.pickle_folder, comb[0][0])
+		metadata2 = Metadata(self.pickle_folder, comb[1][0])
+
+		# do not change an order!
+		axis_names = ('time', 'ampl', 'slice')  # do not change an order!
+		axis_borders = ([8, 28] if border == 'poly_tail' else border,
+		                (0, 1.5),
+		                (-1, max(metadata1.slice_count, metadata2.slice_count) + 1))
+		#
+		ax1_index = axis_names.index(axis[0])
+		ax2_index = axis_names.index(axis[1])
+
+		meta_names = (metadata1.shortname, metadata2.shortname)
+		#
+		for rat1 in comb[0][1]:
+			for rat2 in comb[1][1]:
+				# check if pval file is exist to save a calulcation time
+				if per_step:
+					"""
+					Here p-value will be calculated for each step in R KDE test.
+					Convertation lists with different lengths to matrix is only way to pass the matrix to R.
+					Because of that the emptines filled by -9999 (trash) values, whtich will be filtered in R.
+					np.where is used instead of classic slice because of saving true shape of the matrix
+					"""
+					dataXY = []
+
+					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
+						t = m.get_peak_times(rat=r, unslice=True)
+						a = m.get_peak_ampls(rat=r, unslice=True)
+						s = m.get_peak_slices(rat=r, unslice=True)
+						maxlen = max(map(len, t))
+						t = np.array([d + [-9999] * (maxlen - len(d)) for d in t]) * m.dstep_to
+						a = np.array([d + [-9999] * (maxlen - len(d)) for d in a])
+						s = np.array([d + [-9999] * (maxlen - len(d)) for d in s])
+						shape = t.shape
+
+						if border == 'poly_tail':
+							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
+							mask = t >= 8
+						else:
+							mask = (border[0] <= t) & (t <= border[1])
+
+						# pick the data which corresponds to the axis name with saving shape
+						data = (np.where(mask, t, -9999).reshape(shape),
+						        np.where(mask, a, -9999).reshape(shape),
+						        np.where(mask, s, -9999).reshape(shape))
+						X, Y = data[ax1_index], data[ax2_index]
+
+						# number of point must be more than 16!
+						not_good_rows = [i for i, d in enumerate(X) if len(d[d >= 0]) < 10]
+
+						X = np.delete(X, not_good_rows, axis=0)
+						Y = np.delete(Y, not_good_rows, axis=0)
+
+						if len(X) == 0:
+							print('EMPTY')
+							break
+						dataXY.append((X, Y))
+					else:
+						# !
+						# todo about .T
+						pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1]).T
+						print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
+						      f"'{axis[0]} by step': {np.median(pval_t):.3f}; "
+						      f"'{axis[1]} by step': {np.median(pval_a):.3f}; "
+						      f"2D by step: {np.median(pval_2d):.3f}")
+						# plot data if necessary
+						if plot:
+							kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
+							for xstep1, ystep1 in zip(*dataXY[0]):
+								for xstep2, ystep2 in zip(*dataXY[1]):
+									xy1 = xstep1[xstep1 >= 0], ystep1[ystep1 >= 0]
+									xy2 = xstep2[xstep2 >= 0], ystep2[ystep2 >= 0]
+									self.KDE_plot(xy1, xy2, meta_names, (rat1, rat2), kde_border)
+									filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
+									plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
+									if show:
+										plt.show()
+									plt.close()
+				else:
+					"""
+					The simpliest way to compare data -- 1D representation.
+					That way all steps merged into one dataset.
+					P-value will critical differ from median p-value of step-by-step analysis
+					"""
+					dataXY = []
+					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
+						t = m.get_peak_times(rat=r, flat=True) * m.dstep_to
+						a = m.get_peak_ampls(rat=r, flat=True)
+						s = m.get_peak_slices(rat=r, flat=True)
+						if border == 'poly_tail':
+							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
+							mask = 8 <= t
+						else:
+							mask = (border[0] <= t) & (t <= border[1])
+						# pick the data which corresponds to the axis name
+						d = (t[mask], a[mask], s[mask])
+						X, Y = d[ax1_index], d[ax2_index]
+						dataXY.append((X, Y))
+						# plt.close()
+						# print(m.shortname, r)
+						# for si in range(0, max(s) + 1):
+						# 	plt.boxplot(a[s == si], positions=[si], whis=[5, 95])
+						# plt.ylim(0, 1.7)
+						# plt.show()
+					# calc the p-value by KDE test
+					pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1])
+					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
+					      f"'{axis[0]} merged': {pval_t:.3f}; "
+					      f"'{axis[1]} merged': {pval_a:.3f}; "
+					      f"2D merged: {pval_2d:.3f}")
+					# plot data if necessary
+					if plot:
+						kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
+						self.KDE_plot(dataXY[0], dataXY[1], meta_names, (rat1, rat2), kde_border)
+						filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
+						plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
+						if show:
+							plt.show()
+						plt.close()
+
+
+	def plot_cumulative(self, cmltv, border, order=None, pval_slices_peak=False):
+		"""
+		"""
+		data = []
+		wspace = 6
+		pos_dict = []
+		clr_height = '#472650'
+		clr_count = '#a6261d'
+		clr_volume = '#287a72'
+		global_significancies = defaultdict(list)
+		names = np.array(cmltv)[:, :2]
+		uniq_names = list(np.unique(names))
+
+		if order:
+			if sorted(uniq_names) != sorted(order):
+				raise Exception("Order is not contain all uniq names of 'cmltv' list")
+			uniq_names = order
+
+		def add_signific(source, target, value):
+			#
+			if source > target:
+				source, target = target, source
+			#
+			top = max(pos_dict[source:target + 1]) + tickrisk
+			global_significancies[target - source].append([source, target, top, value])
+			global_significancies[target - source] = sorted(global_significancies[target - source], key=lambda d: d[2])
+
+		def apply_signific():
+			last_max = 0
+			#
+			for key in sorted(global_significancies.keys()):
+				for d in global_significancies[key]:
+					if d[2] > last_max:
+						last_max = d[2]
+					else:
+						while d[2] <= last_max:
+							d[2] += 3 * tickrisk
+						last_max = d[2]
+			#
+			for meta in sum(global_significancies.values(), []):
+				xl, xr, yt, textval = meta
+				yt += 3 * tickrisk
+				ax1.plot(np.array((xl + 0.05, xl + 0.05, xr - 0.05, xr - 0.05)) * wspace,
+				         (yt - 1.2 * tickrisk, yt, yt, yt - 1.2 * tickrisk), lw=2, c='k')
+				ax1.text(np.mean([xr, xl]) * wspace, yt + tickrisk, textval, c='k', ha='center', fontsize=15)
+
+			return last_max
+		#
+		for uniq_key in uniq_names:
+			filename = [f for f in os.listdir(self.pickle_folder) if uniq_key in f and f.endswith(".pickle")][0]
+			pdata = Metadata(self.pickle_folder, filename)
+			rats = pdata.get_rats_id(muscle='E')
+			counts = [pdata.get_peak_counts(rat, border=border) for rat in rats]
+			heights = [pdata.get_peak_median_height(rat, border=border) for rat in rats]
+			volumes = [pdata.get_latency_volume(rat) for rat in rats]
+			for rat_id, count, height, volume in zip(rats, counts, heights, volumes):
+				data.append([uniq_key, rat_id, count, height, volume])
+
+		grouped_height = {k: [] for k in uniq_names}
+		grouped_count = {k: [] for k in uniq_names}
+		grouped_volume = {k: [] for k in uniq_names}
+
+		for d in data:
+			grouped_count[d[0]].append(d[2])
+			grouped_height[d[0]].append(d[3])
+			grouped_volume[d[0]].append(d[4])
+
+		all_vals_ax1 = [d[2] for d in data]
+		all_vals_ax2 = [d[3] for d in data]
+		all_vals_ax3 = [d[4] for d in data]
+
+		ax1_min, ax1_max = min(all_vals_ax1), max(all_vals_ax1)
+		ax2_min, ax2_max = min(all_vals_ax2), max(all_vals_ax2)
+		ax3_min, ax3_max = min(all_vals_ax3), max(all_vals_ax3)
+
+		tickrisk = (ax1_max - ax1_min) * 0.02
+
+		fig, ax1 = plt.subplots(figsize=(16, 9))
+		ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+		ax3 = ax1.twinx()
+		ax3.spines["right"].set_position(("axes", 1.1))
+
+		i = 0
+		averagesX = []
+		averagesY = []
+		for name, c, h, v in zip(uniq_names, grouped_count.values(), grouped_height.values(), grouped_volume.values()):
+			i1, i2, i3 = i - 1, i, i + 1
+			# make the same data ratio
+			h = [(ax1_max - ax1_min) * (h_elem - ax2_min) / (ax2_max - ax2_min) + ax1_min for h_elem in h]
+			v = [(ax1_max - ax1_min) * (v_elem - ax3_min) / (ax3_max - ax3_min) + ax1_min for v_elem in v]
+			# for trendlines
+			averagesX.append((i1 - 0.3, i2 - 0.3, i3 - 0.3))
+			averagesY.append((np.mean(c), np.mean(h), np.mean(v)))
+
+			for ax, index, dat, color in zip([ax1, ax2, ax3], [i1, i2, i3],
+			                                 [c, h, v], [clr_count, clr_height, clr_volume]):
+				ax.plot([index - 0.4, index - 0.2], [np.mean(dat)] * 2, color=color, lw=4)
+				ax.plot([index - 0.3] * 2, [max(dat), min(dat)], color=color, lw=1.5)
+				ax.plot([index] * len(dat), dat, '.', ms=15, color=color)
+
+			pos_dict.append(max(h + c + v))
+			i += wspace
+
+		for xx, yy, clr in zip(np.array(averagesX).T, np.array(averagesY).T, [clr_count, clr_height, clr_volume]):
+			ax.plot(xx, yy, c=clr, alpha=0.4)
+
+		if len(cmltv[0]) == 3:
+			for p1, p2, pval in cmltv:
+				logging.info(f"Pair {p1} and {p2}")
+				source = uniq_names.index(p1)
+				target = uniq_names.index(p2)
+				add_signific(source, target, value=f"{pval:.2f}")
+		else:
+			for p1, p2 in cmltv:
+				logging.info(f"Pair {p1} and {p2}")
+				source = uniq_names.index(p1)
+				target = uniq_names.index(p2)
+
+				filename1 = [f for f in os.listdir(self.pickle_folder) if p1 in f and f.endswith(".pickle")][0]
+				filename2 = [f for f in os.listdir(self.pickle_folder) if p2 in f and f.endswith(".pickle")][0]
+				pdata1 = self.get_pickle_data(filename1)
+				pdata2 = self.get_pickle_data(filename2)
+
+				dstep_to1 = pdata1['dstep_to']
+				dstep_to2 = pdata2['dstep_to']
+
+				pvalues = []
+				for rat1 in self.get_rats_id(pdata1):
+					for rat2 in self.get_rats_id(pdata2):
+						# check if pval file is exist to save a calulcation time
+						pval_file = f"{self.pickle_folder}/pval_ampl_{p1}_{rat1}+{p2}_{rat2}"
+
+						if os.path.exists(pval_file) and os.path.getsize(pval_file) > 0:
+							with open(f"{self.pickle_folder}/pval_ampl_{p1}_{rat1}+{p2}_{rat2}") as file:
+								pval_x, pval_y, pval_2d = [], [], []
+								for line in file.readlines():
+									pval_x, pval_y, pval_2d = list(map(float, line.split("\t")))
+						else:
+							x1 = [(np.array(d) * dstep_to1).tolist() for d in self.get_peak_times(pdata1, rat=rat1, unslice=True)]
+							x2 = [(np.array(d) * dstep_to2).tolist() for d in self.get_peak_times(pdata2, rat=rat2, unslice=True)]
+
+							if pval_slices_peak:
+								y1 = self.get_peak_slices(pdata1, rat=rat1, unslice=True)
+								y2 = self.get_peak_slices(pdata2, rat=rat2, unslice=True)
+							else:
+								y1 = self.get_peak_ampls(pdata1, rat=rat1, unslice=True)
+								y2 = self.get_peak_ampls(pdata2, rat=rat2, unslice=True)
+
+							pval_x, pval_y, pval_2d = self._multi_R_KDE_test(x1, y1, x2, y2)
+							# save pvalues
+							with open(pval_file, 'w') as file:
+								for px, py, p2d in zip(pval_x, pval_y, pval_2d):
+									file.write(f"{px:.5f}\t{py:.5f}\t{p2d:.5f}\n")
+							#
+							ind = 0
+							for aa, bb in zip(x1, y1):
+								for cc, dd in zip(x2, y2):
+									kde_pval_t = pval_x[ind]
+									kde_pval_a = pval_y[ind]
+									kde_pval_2d = pval_2d[ind]
+									gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
+									fig = plt.figure(figsize=(8, 6))
+									title_ax = plt.subplot(gs[0, 1])
+									title_ax.text(0.5, 0.5, f"T: {kde_pval_t:.3f}\nA: {kde_pval_a:.3f}\n2D: {kde_pval_2d:.3f}",
+									              horizontalalignment='center',
+									              verticalalignment='center',
+									              fontsize=18, transform=title_ax.transAxes)
+									for spine in ['top', 'right', 'left', 'bottom']:
+										title_ax.spines[spine].set_visible(False)
+									title_ax.set_xticks([])
+									title_ax.set_yticks([])
+
+									kde_ax = plt.subplot(gs[1, 0])
+									kde_ax.spines['top'].set_visible(False)
+									kde_ax.spines['right'].set_visible(False)
+
+									# 2D joint plot
+									z = []
+									label_pathes = []
+									z_prev = np.zeros(1)
+									#
+									border = [8, 28, 0, 1.4]
+									for x, y, name, color in zip([np.array(aa) * dstep_to1, np.array(cc) * dstep_to2],
+									                             [bb, dd], [f"{p1} {rat1}", f"{p2} {rat2}"], ['#A6261D', '#472650']):
+										z_prev = self._contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=border,
+										                            levels_num=15)
+										z.append(z_prev)
+										t, r = self.joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=border, with_boxplot=False)
+										label_pathes.append(mpatches.Patch(color=color, label=f"{name}"))
+
+										t.set_xticklabels([])
+										r.set_yticklabels([])
+
+										t.set_xlim(border[0], border[1])
+										r.set_ylim(border[2], border[3])
+										kde_ax.plot(x, y, '.', color=color)
+
+									kde_ax.legend(handles=label_pathes, fontsize=17)
+									kde_ax.set_xlim(border[0], border[1])
+									kde_ax.set_ylim(border[2], border[3])
+
+									plt.tight_layout()
+									plt.show()
+									plt.close(fig)
+									ind += 1
+							# end if
+						pvalues.append((rat1, rat2, np.median(pval_2d)))
+						logging.info(f"{p1}_{rat1} vs {p2}_{rat2} {np.median(pval_x)} {np.median(pval_y)} {np.median(pval_2d)}")
+				# end rats for loop
+				# add significance lines
+				for p in pvalues:
+					if 4 in p and 8 in p:
+						text = f"{p[2]:.2} (rat {p[0]} and {p[1]})"
+						break
+				else:
+					for p in pvalues:
+						if 4 in p or 4 in p:
+							text = f"{p[2]:.2} (rat {p[0]} and {p[1]})"
+							break
+					else:
+						text = f"{np.mean([p[2] for p in pvalues]):.2} (mean)"
+				pvals = [p[2] for p in pvalues]
+				add_signific(source, target, value=f"{np.median(pvals):.2f}")
+			# end p1, p2 for loop
+		# end if
+		max_val = apply_signific()
+
+		# make more readable
+		ax1.set_ylim(10, max_val + 5 * tickrisk)
+		ax2.set_ylim(10, max_val + 5 * tickrisk)
+		ax3.set_ylim(10, max_val + 5 * tickrisk)
+
+		# back to original tick labels
+		new_ax2_ticklabels = [(ax2_max - ax2_min) * (tick - ax1_min) / (ax1_max - ax1_min) + ax2_min for tick in
+		                      ax2.yaxis.get_major_locator()()]
+		new_ax3_ticklabels = [(ax3_max - ax3_min) * (tick - ax1_min) / (ax1_max - ax1_min) + ax3_min for tick in
+		                      ax3.yaxis.get_major_locator()()]
+		ax2.set_yticklabels(np.round(new_ax2_ticklabels, 2))
+		ax3.set_yticklabels(np.round(new_ax3_ticklabels, 2))
+
+		for ax, color, label in zip([ax1, ax2, ax3],
+		                            [clr_count, clr_height, clr_volume],
+		                            ['Number of peaks per fMEP', 'Median peak height', 'Latency volume']):
+			ax.set_ylabel(label, color=color, fontsize=23)
+			ax.tick_params(axis='y', labelcolor=color, labelsize=20)
+			ax.tick_params(axis="x", labelsize=20)
+
+			ax.spines['top'].set_visible(False)
+		xticks = ["\n".join(xtick.split("_")[1:]) for xtick in uniq_names]
+		plt.xticks(np.arange(len(uniq_names)) * wspace, xticks, fontsize=15)
+		plt.tight_layout()
+		plt.savefig(f"{self.plots_folder}/cumulative.pdf", format='pdf')
+		plt.show()
+
+	def _lw_prepare_data(self, folder, muscle, metadata, fill_zeros, filter_val):
 		"""
 
 		Args:
@@ -139,7 +616,6 @@ class Analyzer:
 			abs_filename = f"{folder}/{filename}"
 			# read the raw data
 			dataset = read_hdf5(abs_filename, rat=rat_id)
-
 			if dataset is None:
 				continue
 
@@ -166,7 +642,7 @@ class Analyzer:
 					end = begin + (7 if metadata['pedal'] == "4" else 5) * standard_slice_length_in_steps
 				# trim redundant simulation data
 				dataset = trim_data(dataset, begin, end)
-				prepared_data = np.array(calibrate_data(dataset, filename))
+				prepared_data = np.array(calibrate_data(dataset, source))
 
 			if muscle == "E":
 				sliced_data = [np.array_split(beg, e_slices_number) for beg in prepared_data]
@@ -175,19 +651,41 @@ class Analyzer:
 
 			sliced_data = np.array(sliced_data)
 
-			sliced_time, sliced_ampls, sliced_index = self._get_peaks(sliced_data, dstep_to, [0, slise_in_ms], debug=self.debug)
+
+			if len(sliced_data) == 0:
+				metadata['rats_data'][muscle][rat_id] = dict(data=None,
+				                                             times=None,
+				                                             ampls=None,
+				                                             slices=None,
+				                                             latency_volume=None)
+				continue
+			#
+			sliced_time, sliced_ampls, sliced_index = self._get_peaks(sliced_data, dstep_to,
+			                                                          [0, slise_in_ms], filter_val, debug=self.debug)
+
+
 			metadata['rats_data'][muscle][rat_id] = dict(data=sliced_data,
 			                                             times=sliced_time,
 			                                             ampls=sliced_ampls,
 			                                             slices=sliced_index)
 
-	def prepare_data(self, folder, dstep_to=None, fill_zeros=True):
+			# do not calculate volume for FLEXOR (is redundant)
+			if muscle == 'E':
+				latency_volume = self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
+			else:
+				latency_volume = None
+
+			metadata['rats_data'][muscle][rat_id]['latency_volume'] = latency_volume
+
+	#
+	def prepare_data(self, folder, dstep_to=None, fill_zeros=True, filter_val=0.05):
 		"""
 
 		Args:
 			folder:
 			dstep_to:
 			fill_zeros:
+			filter_val:
 		"""
 		# check each .hdf5 file in the folder
 		for filename in [f for f in os.listdir(folder) if f.endswith('.hdf5') and '_E_' in f]:
@@ -196,7 +694,7 @@ class Analyzer:
 			#
 			if dstep_to is None:
 				dstep_to = dstep
-			# prepare metadata dict for fillining
+			# prepare the metadata dict
 			metadata = {
 				'filename': filename,
 				'source': source,
@@ -204,6 +702,7 @@ class Analyzer:
 				'mode': mode,
 				'speed': speed,
 				'rate': rate,
+				'slice_in_ms': 1 / rate * 1000,
 				'pedal': pedal,
 				'dstep_from': dstep,
 				'dstep_to': dstep_to,
@@ -213,11 +712,14 @@ class Analyzer:
 					'F': {}
 				}
 			}
-
-			self._lw_prepare_data(folder, 'E', metadata, fill_zeros)
-			self._lw_prepare_data(folder, 'F', metadata, fill_zeros)
-
-			pickle_save = f"{self.pickle_folder}/{os.path.splitext(filename)[0]}.pickle"
+			# fill the metadata for each muscle (number of peaks, median height and etc)
+			self._lw_prepare_data(folder, 'E', metadata, fill_zeros, filter_val)
+			self._lw_prepare_data(folder, 'F', metadata, fill_zeros, filter_val)
+			#
+			any_rat = list(metadata['rats_data'][muscle].keys())[0]
+			metadata['slices_count'] = len(metadata['rats_data']['E'][any_rat]['data'][0])
+			# save metadata as pickle object (dict)
+			pickle_save = f"{self.pickle_folder}/{os.path.splitext(filename.replace('_E_', '_'))[0]}.pickle"
 			with open(pickle_save, 'wb') as handle:
 				pickle.dump(metadata, handle)
 			logging.info(pickle_save)
@@ -239,42 +741,50 @@ class Analyzer:
 			ytick_labels[i] = yticks_indices[i]
 		return ytick_labels
 
-	@staticmethod
-	def rat_metadata(rat_steps, flatten_metadata):
-		return len(flatten_metadata) / rat_steps, np.median(flatten_metadata)
-
-	def plot_fMEP_boxplots(self, file, rats=None, borders=(0, 25), show=False):
-		"""
-		Plot slices with peaks and their boxplots inside borders
-		Args:
-			file:
-			rats:
-			borders:
-			show:
-		"""
-		muscle = 'E'
-		pdata = self.get_pickle_data(file)
+	def print_metainfo(self, source, rats, muscle='E'):
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
 
 		if rats is None or rats is all:
-			rats = self.get_rats_id(pdata)
-		if rats is int:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
 			rats = [rats]
-		speed = pdata['speed']
-		dstep_to = pdata['dstep_to']
-		shortname = pdata['shortname']
+
+		print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
+		for rat_id in rats:
+			c = metadata.get_peak_counts(rat_id, border=[0, 25], muscle=muscle)
+			h = metadata.get_peak_median_height(rat_id, border='poly_tail', muscle=muscle)
+			f = metadata.get_fMEP_count(rat_id, muscle=muscle)
+			v = metadata.get_latency_volume(rat_id, muscle=muscle)
+			print(f"{metadata.shortname} | {rat_id} | {f} | {c} | {h} | {v}")
+		print("- " * 10)
+
+	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False):
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		speed = metadata.speed
+		dstep_to = metadata.dstep_to
+		shortname = metadata.shortname
+		slice_in_ms = metadata.slice_in_ms
 
 		# plot per each rat
 		for rat_id in rats:
-			rat_myogram = self.get_myograms(pdata, rat_id, muscle=muscle)
-			rat_times = self.get_peak_times(pdata, rat_id, muscle=muscle)
+			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
 
-			total_steps = rat_myogram.shape[0]
-			total_slices = rat_myogram.shape[1]
-
-			sliced_x = [[] for _ in range(total_slices)]
-			sliced_y = [[] for _ in range(total_slices)]
-			passed = 0
-			alles = total_steps * total_slices
+			total_rat_steps = rat_myograms.shape[0]
+			total_slices = rat_myograms.shape[1]
+			total_datasteps = rat_myograms.shape[2]
 
 			plt.close()
 			if speed == "6":
@@ -284,72 +794,156 @@ class Analyzer:
 			else:
 				fig, ax = plt.subplots(figsize=(16, 8))
 
-			save_filename = f"{shortname}_{rat_id}_fMEP_boxplot"
 
-			colors = iter(["#275b78", "#f2aa2e", "#a6261d", "#472650"] * total_steps)
-			for data_per_step, time_per_step in zip(rat_myogram, rat_times):
+			colors = iter(["#275b78", "#f2aa2e", "#a6261d", "#472650"] * total_rat_steps)
+
+			xticks = np.arange(total_datasteps) * dstep_to
+			# plot sliced myogram data
+			for myogram_fMEP in rat_myograms:
 				color = next(colors)
-				for slice_index, (slice_data, slice_times) in enumerate(zip(data_per_step, time_per_step)):
-					myogram = np.array(slice_data) + slice_index
-					peaks_time = np.array(slice_times)
-					plt.plot(np.arange(len(myogram)) * dstep_to, myogram, alpha=0.5, color=color)
-					peaks_time = peaks_time[(peaks_time >= borders[0] / dstep_to) & (peaks_time <= borders[1] / dstep_to)]
-					if len(peaks_time) > 0:
-						passed += 1
-						sliced_x[slice_index] += list(peaks_time)
-						sliced_y[slice_index] += list(myogram[peaks_time])
-						plt.plot(peaks_time * dstep_to, myogram[peaks_time], '.', c='k')
+				for slice_index, slice_data in enumerate(myogram_fMEP):
+					plt.plot(xticks, np.array(slice_data) + slice_index, alpha=0.5, color=color, zorder=1)
 
-			for i, (x, y) in enumerate(zip(sliced_x, sliced_y)):
-				if len(x):
-					x = np.array(x)
-					plt.plot(x * dstep_to, y, '.', color='k', ms=4)
-					bx = plt.boxplot(x * dstep_to, vert=False, positions=[i], widths=0.8,
-					                 showfliers=False, patch_artist=True, whis=[10, 90])
-					starts = bx['whiskers'][0].get_xdata()[1]
-					# starts = np.percentile(s * dstep_to, percentile)[0]
-					plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
-					self._recolor(bx, "#287a72", "#287a72", fill_alpha=0.2)
+			# for each border (if it is a list of lists) find peaks inside and form boxplots
+			if type(borders[0]) is not list:
+				borders = [borders]
+			for border in borders:
+				# meta info about percent of existing at least on peak in the border
+				passed = 0
+				alles = total_rat_steps * total_slices
+				# prepare lists for boxplots forming
+				sliced_x = [[] for _ in range(total_slices)]
+				# find peaks and plot them
+				for myogram_fMEP, time_per_step in zip(rat_myograms, rat_peak_times):
+					for slice_index, (slice_data, peak_time_per_slice) in enumerate(zip(myogram_fMEP, time_per_step)):
+						# raw data before filtering
+						peaks_time = np.array(peak_time_per_slice) * dstep_to
+						peaks_value = np.array(slice_data)[peak_time_per_slice] + slice_index
+						# get peaks only inside the borders
+						filter_mask = (border[0] <= peaks_time) & (peaks_time <= border[1])
+						# filter data
+						peaks_time = peaks_time[filter_mask]
+						peaks_value = peaks_value[filter_mask]
+						# plot peaks if not void
+						if len(peaks_time):
+							passed += 1
+							sliced_x[slice_index] += list(peaks_time)
+							plt.plot(peaks_time, peaks_value, '.', c='k', zorder=3, ms=4)
+				# plot boxplots
+				for i, x in enumerate(sliced_x):
+					if len(x):
+						bx = plt.boxplot(x, positions=[i], widths=0.8,  whis=[10, 90],
+						                 showfliers=False, patch_artist=True, vert=False, zorder=5)
+						starts = bx['whiskers'][0].get_xdata()[1]
+						plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
+						self._recolor(bx, color="#287a72", fill_color="#287a72", fill_alpha=0.2)
+				logging.info(f"{shortname}, rat {rat_id}, {passed / alles * 100:.1f}% of peaks prob. at {border}ms")
 
+			save_filename = f"{shortname}_{rat_id}_fMEP_boxplot"
 			plt.grid(which='both', axis='x')
 			self.axis_article_style(ax, axis='x')
-
 			plt.yticks(range(0, total_slices), self._form_ticklabels(total_slices), fontsize=30)
-			plt.xlim(0, 25)
+			plt.xlim(0, slice_in_ms)
+			plt.tight_layout()
 			plt.savefig(f"{self.plots_folder}/{save_filename}.pdf", format="pdf")
 			if show:
 				plt.show()
 			plt.close()
-			logging.info(f"{shortname}, rat {rat_id}, {passed / alles * 100:.1f}% of peaks prob. at {borders}ms")
 
-
-	def plot_density_3D(self, file, rats=None, factor=8, show=False, only_volume=False):
+	@staticmethod
+	def joint_plot(X, Y, ax, gs, borders, **kwargs):
 		"""
-
+		TODO: add docstring
 		Args:
-			file:
-			rats:
-			factor:
-			show:
-			only_volume:
-		Returns:
+			X (np.ndarray):
+			Y (np.ndarray):
+			ax:
+			gs:
+			borders:
+			**kwargs:
 		"""
-		pdata = self.get_pickle_data(file)
+		color = kwargs['color']
+		xmin, xmax, ymin, ymax = borders
+
+		if kwargs['with_boxplot']:
+			pos = kwargs['pos']
+			# create X-marginal (top)
+			ax_top = plt.subplot(gs[0, 1])
+			ax_top.spines['top'].set_visible(False)
+			ax_top.spines['right'].set_visible(False)
+			# create Y-marginal (right)
+			ax_right = plt.subplot(gs[1, 2])
+			ax_right.spines['top'].set_visible(False)
+			ax_right.spines['right'].set_visible(False)
+
+			ax_left = plt.subplot(gs[1, 0])
+			ax_left.spines['top'].set_visible(False)
+			ax_left.spines['right'].set_visible(False)
+
+			ax_bottom = plt.subplot(gs[2, 1])
+			ax_bottom.spines['top'].set_visible(False)
+			ax_bottom.spines['right'].set_visible(False)
+
+			flierprops = dict(marker='.', markersize=1, linestyle='none')
+
+			bxt = ax_left.boxplot(Y, positions=[pos * 10], widths=3, patch_artist=True, flierprops=flierprops)
+			recolor(bxt, 'k', color)
+			ax_left.set_ylim([ymin, ymax])
+			ax_left.set_xticks([])
+
+			bxt = ax_bottom.boxplot(X, positions=[pos], widths=0.4, vert=False, patch_artist=True,
+			                        flierprops=flierprops)
+			recolor(bxt, 'k', color)
+			ax_bottom.set_xlim([xmin, xmax])
+			ax_bottom.set_yticks([])
+		else:
+			ax_top = plt.subplot(gs[0, 0])
+			ax_top.spines['top'].set_visible(False)
+			ax_top.spines['right'].set_visible(False)
+			# create Y-marginal (right)
+			ax_right = plt.subplot(gs[1, 1])
+			ax_right.spines['top'].set_visible(False)
+			ax_right.spines['right'].set_visible(False)
+
+		# add grid
+		ax_top.grid(which='minor', axis='x')
+		ax_right.grid(which='minor', axis='y')
+		# gaussian_kde calculation
+		xx = np.linspace(xmin, xmax, 100)
+		yy = np.linspace(ymin, ymax, 100)
+		dx = st.gaussian_kde(X)(xx)
+		dy = st.gaussian_kde(Y)(yy)
+		ax_top.plot(xx, dx, color=color)
+		ax_right.plot(dy, yy, color=color)
+		# plt.plot([0], [kwargs['k']], 'D', color=color, ms=10)
+		ax_top.set_yticks([])
+		ax_right.set_xticks([])
+
+		return ax_top, ax_right
+
+	def plot_density_3D(self, source, rats, factor=8, show=False, only_volume=False):
+		if type(source) is not Metadata:
+			if type(source) is dict:
+				metadata = Metadata(sdict=source)
+			else:
+				metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
 
 		if rats is None or rats is all:
-			rats = self.get_rats_id(pdata)
-		if rats is int:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
 			rats = [rats]
 
+		shortname = metadata.shortname
+
 		volumes = []
-		shortname = self.get_shortname(pdata)
-		dstep = self.get_dstep_to(pdata)
+		#
+		for rat_id in rats:
+			X = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
+			Y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 
-		for rid in rats:
-			X = self.get_peak_times(pdata, rid, muscle='E', flatten=True) * dstep
-			Y = self.get_peak_slices(pdata, rid, muscle='E', flatten=True)
-
-			save_filename = f"{shortname}_3D_rat={rid}"
+			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
 			xmax, ymax = 25, max(Y)
 			xborder_l, xborder_r = 5, 20
@@ -367,7 +961,10 @@ class Analyzer:
 			# re-present grid back to 2D
 			z = np.reshape(a, xmesh.shape)
 			# set the mid isoline (2/3)
-			z_mid = (np.max(z) + np.min(z)) / 3 * 2
+			if any(n in shortname for n in ["AIR", "TOE", "PLT"]):
+				z_mid = (np.max(z) + np.min(z)) / 2
+			else:
+				z_mid = (np.max(z) + np.min(z)) / 3 * 2
 
 			conty_ymax = -np.inf
 			conty_ymin = np.inf
@@ -428,19 +1025,18 @@ class Analyzer:
 			# form data pack to visualize all in one axes
 			data = [surface, plane1, plane2, plane3, plane4]
 			# plot isoline
-			for c in mid_contours:
-				data.append(go.Scatter3d(x=c[:, 0], y=c[:, 1], z=[z_mid] * len(c[:, 0]),
+			for contour in mid_contours:
+				data.append(go.Scatter3d(x=contour[:, 0], y=contour[:, 1], z=[z_mid] * len(contour[:, 0]),
 				                         line=dict(color='#000000', width=6), mode='lines', showlegend=False))
-			# plot Z dots
-			xunder = xmesh[xslice, yslice][zclip <= z_mid].flatten()
-			yunder = ymesh[xslice, yslice][zclip <= z_mid].flatten()
-			zunder = zunder.flatten()
-			data.append(go.Scatter3d(x=xunder, y=yunder, z=zunder,
-			                         mode='markers', marker=dict(size=2, color=['rgb(0,0,0)'] * len(zunder))))
+			# plot dots under isoline
+			data.append(go.Scatter3d(x=xmesh[xslice, yslice][zclip <= z_mid].ravel(), # X under isoline
+			                         y=ymesh[xslice, yslice][zclip <= z_mid].ravel(), # Y under isoline
+			                         z=zunder.ravel(), # Z under isoline
+			                         mode='markers', marker=dict(size=2, color=['rgb(0,0,0)'] * len(zunder.ravel()))))
 			# plot all
 			fig = go.Figure(data=data)
 			# change a camera view and etc
-			fig.update_layout(title=f'{shortname} | RAT {rid} | V: {zvol:.3f}',
+			fig.update_layout(title=f'{shortname} | RAT {rat_id} | V: {zvol:.3f}',
 			                  autosize=False,
 			                  width=1000,
 			                  height=800,
@@ -464,73 +1060,25 @@ class Analyzer:
 		if only_volume:
 			return volumes
 
-	def plot_kde_peaks_slices(self, peaks_times_pack, peaks_slices_pack, names, colors, packs_size, save_to):
-		"""
-		ToDo add info
-		Args:
-			peaks_times_pack (list): pack of peaks
-			peaks_slices_pack (list): pack of slices number
-			names (list): filenames for different origin of data
-			colors (list): hex colors for graphics
-			save_to (str): save folder
-		"""
-		# unpack the data
-		for x, y, color, name, pack_size in zip(peaks_times_pack, peaks_slices_pack, colors, names, packs_size):
-			# x - peak time
-			# y - slice index
-			# shift slice index to be human readable [1...N]
-			y += 1
-			# define grid for subplots
-			gs = gridspec.GridSpec(2, 2, width_ratios=[5, 1], height_ratios=[1, 3], wspace=0.3)
-			fig = plt.figure(figsize=(16, 9))
-			kde_ax = plt.subplot(gs[1, 0])
-			kde_ax.spines['top'].set_visible(False)
-			kde_ax.spines['right'].set_visible(False)
-
-			# 2D joint plot
-			borders = 0, 25, 1, max(y)
-			contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0], borders=borders, levels_num=15)
-			joint_plot(x, y, kde_ax, gs, **{"color": color, "pos": 0}, borders=borders, with_boxplot=False)
-			log_text = f"total peaks={len(x)}, packs={pack_size}, per pack={int(len(x) / pack_size)}"
-			# kde_ax.text(0.05, 0.95, log_text, transform=kde_ax.transAxes, verticalalignment='top', color=color, fontsize=10)
-			logging.info(log_text)
-
-			kde_ax.set_xlabel("peak time (ms)")
-			kde_ax.set_ylabel("slice index")
-			kde_ax.set_xlim(borders[0], borders[1])
-			kde_ax.set_ylim(borders[2], borders[3])
-
-			plt.tight_layout()
-			new_filename = short_name(name)
-			plt.savefig(f"{save_to}/{new_filename}_kde_peak_slice.pdf", dpi=250, format="pdf")
-			plt.show()
-			plt.close(fig)
-
-			logging.info(f"saved to {save_to}")
-
-	def plot_shadow_slices(self, file, rats=None, only_extensor=False, add_kde=False, show=False):
-		"""
-
-		Args:
-			file:
-			rats:
-			show:
-		"""
+	def plot_shadow_slices(self, source, rats=None, only_extensor=False, add_kde=False, show=False):
 		shadow_color = "#472650"
 		kde_color = "#287a72"
 		k_fliers_high, k_fliers_low = 5, 6
 
-		pdata = self.get_pickle_data(file)
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
 
 		if rats is None or rats is all:
-			rats = self.get_rats_id(pdata)
-		if rats is int:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
 			rats = [rats]
 
-		shortname = self.get_shortname(pdata)
-		dstep_to = self.get_dstep_to(pdata)
-		speed = pdata['speed']
-		slice_in_ms = 1 / int(pdata['rate']) * 1000
+		shortname = metadata.shortname
+		dstep_to = metadata.dstep_to
+		speed = metadata.speed
+		slice_in_ms = metadata.slice_in_ms
 
 		if speed == "6":
 			figsize = (20, 20)
@@ -540,9 +1088,9 @@ class Analyzer:
 			figsize = (16, 8)
 		#
 		for rat_id in rats:
-			extensor_data = self.get_myograms(pdata, rat_id, muscle='E')
+			extensor_data = metadata.get_myograms(rat_id, muscle='E')
 			# check rat's flexor, in some cases there are no data
-			flexor_flag = rat_id in self.get_rats_id(pdata, muscle='F') and not only_extensor
+			flexor_flag = rat_id in metadata.get_rats_id(muscle='F') and not only_extensor
 			# get number of slices per muscle
 			e_slices_number = len(extensor_data[0])
 			steps_in_slice = len(extensor_data[0][0])
@@ -554,6 +1102,7 @@ class Analyzer:
 			fig, ax = plt.subplots(figsize=figsize)
 
 			yticks = []
+			f_slices_number = 0 # init flexor number of slices
 			shared_x = np.arange(steps_in_slice) * dstep_to
 			# plot extensor
 			for slice_index, data in enumerate(e_boxplots):
@@ -568,7 +1117,7 @@ class Analyzer:
 				yticks.append(ideal_data[0])
 
 			if flexor_flag:
-				flexor_data = self.get_myograms(pdata, rat_id, muscle='F')
+				flexor_data = metadata.get_myograms(rat_id, muscle='F')
 				f_slices_number = len(flexor_data[0])
 				f_boxplots = get_boxplots(flexor_data)
 				# plot flexor
@@ -584,8 +1133,8 @@ class Analyzer:
 					yticks.append(ideal_data[0])
 
 			if add_kde:
-				x = self.get_peak_times(pdata, rat_id, muscle='E', flatten=True) * dstep_to
-				y = self.get_peak_slices(pdata, rat_id, muscle='E', flatten=True)
+				x = metadata.get_peak_times(rat_id, muscle='E', flat=True) * dstep_to
+				y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 				borders = 0, slice_in_ms, -1, e_slices_number + 1
 				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15)
 			# form ticks
@@ -607,193 +1156,6 @@ class Analyzer:
 			logging.info(f"{shortname}, rat {rat_id} "
 			             f"{'' if flexor_flag else 'WITHOUT FLEXOR'} "
 			             f"saved to {self.plots_folder}/{save_filename}")
-
-
-	def plot_ks2d(self, peaks_times_pack, peaks_ampls_pack, names, colors, borders, packs_size, save_to,
-	              additional_tests=False):
-		raise NotImplemented
-		"""
-		ToDo add info
-		Args:
-			peaks_times_pack (list): pack of peak lists for different origin of data (bio/neuron/gras/nest)
-			peaks_ampls_pack (list): pack of amplitude lists for different origin of data (bio/neuron/gras/nest)
-			names (list): filenames for different origin of data
-			colors (list): hex colors for graphics
-			save_to (str): save folder
-		"""
-		# calc the critical constant to comapre with D-value * en
-		crit = kstwobign.isf(0.01)
-		# prepare filename
-		new_filename = f"{'='.join(map(short_name, names))}"
-		# # set new parameters for logging
-		# reload(logging)
-		# logging.basicConfig(filename=f"{save_to}/{new_filename}.log",
-		#                     filemode='a',
-		#                     format='%(message)s',
-		#                     level=logging.DEBUG)
-
-		# unpack the data
-		xmin, xmax, ymin, ymax = borders
-		x1, y1 = peaks_times_pack[0], peaks_ampls_pack[0]
-		x2, y2 = peaks_times_pack[1], peaks_ampls_pack[1]
-		assert len(x1) == len(y1) and len(x2) == len(y2)
-
-		fig, axes = plt.subplots(nrows=2, ncols=3)
-		for data1, data2, row in ([x1, x2, 0], [y1, y2, 1]):
-			# plot the CDF (not scaled)
-			axes[row, 0].set_title("not scaled CDF")
-			label = f"STD: {np.std(data1):.3}, MED: {np.median(data1):.3}"
-			axes[row, 0].plot(sorted(data1), np.linspace(0, 1, len(data1)), color=colors[0], label=label)
-			label = f"STD: {np.std(data2):.3}, MED: {np.median(data2):.3}"
-			axes[row, 0].plot(sorted(data2), np.linspace(0, 1, len(data2)), color=colors[1], label=label)
-			if row == 0:
-				axes[row, 0].set_xlabel("Time (ms)")
-			else:
-				axes[row, 0].set_xlabel("Amplitude")
-			axes[row, 0].set_ylabel("Probability")
-			axes[row, 0].legend(fontsize=9)
-
-			# plot the CDF (scaled) with D-value line
-			binEdges = np.hstack([-np.inf, np.sort(np.concatenate([data1, data2])), np.inf])
-			binCounts1 = np.histogram(data1, binEdges)[0]
-			binCounts2 = np.histogram(data2, binEdges)[0]
-			sampleCDF1 = np.cumsum(binCounts1, dtype=float) / np.sum(binCounts1)
-			sampleCDF2 = np.cumsum(binCounts2, dtype=float) / np.sum(binCounts2)
-			deltaCDF = np.abs(sampleCDF1 - sampleCDF2)
-			maxDind = np.argmax(deltaCDF)
-
-			KSstatistic = np.max(deltaCDF)
-
-			axes[row, 1].set_title("scaled CDF")
-			axes[row, 1].plot(sampleCDF1)
-			axes[row, 1].plot(sampleCDF2)
-			axes[row, 1].plot([maxDind, maxDind], [sampleCDF1[maxDind], sampleCDF2[maxDind]], color='k', ls='--')
-			axes[row, 1].set_xlabel("Dots")
-			axes[row, 1].set_ylabel("Probability")
-
-			# delta CDF
-			deltaCDF = sampleCDF1 - sampleCDF2
-			axes[row, 2].set_title(f"scaled CDF diff (D={KSstatistic:.5f})")
-			axes[row, 2].axhline(y=max(deltaCDF), ls='--')
-			axes[row, 2].axhline(y=min(deltaCDF), ls='--')
-			axes[row, 2].plot(deltaCDF)
-			axes[row, 2].set_xlabel("Dots")
-
-		# plt.show()
-		plt.close(fig)
-
-		logging.info(f"N1 {len(x1)}")
-		logging.info(f"N2 {len(x2)}")
-		# calc the "en"
-		en = np.sqrt(len(x1) * len(x2) / (len(x1) + len(x2)))
-
-		# 1D peak times analysis
-		dvalue, _ = ks_2samp(x1, x2)
-		den = dvalue * en
-		pvalue = kstwobign.sf(en * dvalue)
-		logging.info("1D K-S peaks TIME")
-		logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
-		             f"D-value: {dvalue:.5f}\n"
-		             f"p-value: {pvalue}")
-		logging.info("- " * 10)
-
-		# 1D peak amplitudes analysis
-		dvalue, _ = ks_2samp(y1, y2)
-		en = np.sqrt(len(y1) * len(y2) / (len(y1) + len(y2)))
-		den = dvalue * en
-		pvalue = kstwobign.sf(den)
-		logging.info("1D K-S peaks AMPL")
-		logging.info(f"Den ({den:.5f}) {'<' if den < crit else '>'} Critical ({crit:.5f})\n"
-		             f"D-value: {dvalue:.5f}\n"
-		             f"p-value: {pvalue}")
-		logging.info("- " * 10)
-		colors = ['#4B244F', '#217B73']
-		# define grid for subplots
-		gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
-		fig = plt.figure(figsize=(8, 6))
-		kde_ax = plt.subplot(gs[1, 0])
-		kde_ax.spines['top'].set_visible(False)
-		kde_ax.spines['right'].set_visible(False)
-
-		# 2D joint plot
-		z_prev = np.zeros(1)
-		label_pathes = []
-		z = []
-		kk = {'AIR 2pedal 13.5cms': 0.088,
-		      'TOE 2pedal 13.5cms': 0.110,
-		      'PLT 2pedal 6cms': 0.124,
-		      'PLT 2pedal 21cms': 0.131,
-		      'PLT 2pedal 13.5cms': 0.136,
-		      'PLT 4pedal 21cms': 0.333,
-		      'PLT 4pedal 13.5cms': 0.142,
-		      'QPZ 2pedal 13.5cms': 0.199,
-		      'STR 2pedal 21cms': 0.179,
-		      'STR 2pedal 13.5cms': 0.210}
-
-		for x, y, name, color, pack_size in zip(peaks_times_pack, peaks_ampls_pack, names, colors, packs_size):
-			tmpname = name.split("_")
-			k = kk[f"{tmpname[2]} {tmpname[5]} {tmpname[3]}"]
-			z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=10)
-			z.append(z_prev)
-			t, r = joint_plot(x, y, kde_ax, gs, **{"color": color, 'k': k}, borders=borders, with_boxplot=False)
-			# label_text = f"packs={pack_size}, per pack={int(len(x) / pack_size)}"
-			# label_pathes.append(mpatches.Patch(color=color, label=label_text))
-
-			axis_article_style(t, axis='x')
-			axis_article_style(r, axis='y')
-
-			t.set_xticklabels([])
-			r.set_yticklabels([])
-
-			t.set_xlim(borders[0], borders[1])
-			r.set_ylim(borders[2], borders[3])
-
-		axis_article_style(kde_ax, axis='both')
-
-		# kde_ax.legend(handles=label_pathes, fontsize=17)
-		kde_ax.set_xlim(borders[0], borders[1])
-		kde_ax.set_ylim(borders[2], borders[3])
-
-		plt.tight_layout()
-		plt.savefig(f"{save_to}/{new_filename}_kde2d.pdf", dpi=250, format="pdf")
-		# plt.show()
-		plt.close(fig)
-
-		logging.info(f"saved to {save_to}")
-
-		if additional_tests:
-			from colour import Color
-			plt.close()
-			fig = plt.figure()
-			ax = fig.gca(projection='3d')
-			xmin, xmax, ymin, ymax = borders
-			xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-
-			for zdata, clr in zip(z, colors):
-				levels_num = 10
-				h_norm, s_norm, l_norm = Color(clr).hsl
-				# make an gradient based on number of levels
-				light_gradient = np.linspace(l_norm, 0.95, levels_num)[::-1]
-				# generate colors for contours level from HSL (normalized) to RGB (normalized)
-				colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
-				# find an index of the maximal element
-				m = np.amax(zdata)
-				# form a step and levels
-				step = (np.amax(zdata) - np.amin(zdata)) / levels_num
-				levels = np.arange(0, m, step) + step
-
-				ax.plot_surface(xx, yy, zdata, linewidth=0, alpha=0.2, color=clr)
-				ax.plot_wireframe(xx, yy, zdata, linewidth=0.2, color=clr)
-
-				ax.contour(xx, yy, zdata, zdir='z', offset=0, linewidths=0.5, levels=levels, colors=clr)
-				ax.contourf(xx, yy, zdata, zdir='z', offset=0, levels=levels, colors=colors, alpha=0.5)
-
-				xmaaa = np.max(zdata, axis=1)
-				ymaaa = np.max(zdata, axis=0)
-				ax.plot(np.linspace(xmin, xmax, len(xmaaa)), [1.5] * len(xmaaa), xmaaa, color=clr)
-				ax.plot([8] * len(ymaaa), np.linspace(ymin, ymax, len(ymaaa)), ymaaa, color=clr)
-
-			plt.show()
 
 	@staticmethod
 	def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None, xmax=None):
@@ -889,13 +1251,14 @@ class Analyzer:
 	def _list3d(h, w):
 		return [[[] for _ in range(w)] for _ in range(h)]
 
-	def _get_peaks(self, sliced_datasets, dstep, borders, tails=False, debug=False):
+	def _get_peaks(self, sliced_datasets, dstep, borders, filter_val, tails=False, debug=False):
 		"""
 		Finds all peaks times and amplitudes at each slice
 		Args:
 			sliced_datasets (np.ndarray):
 			dstep (float): data step size
 			borders (list): time borders for searching peaks
+			filter_val (float): default is 0.028 but can be changed
 			tails (bool): move the peaks of first 3 ms to the previous slice
 			debug (bool): debugging flag
 		Returns:
@@ -908,7 +1271,7 @@ class Analyzer:
 
 		# form parameters for filtering peaks
 		min_ampl = 0.3
-		min_dist = int(0.15 / dstep)
+		min_dist = int(0.2 / dstep) # 0.15
 		max_dist = int(4 / dstep)
 		# interpritate shape of dataset
 		tests_count, slices_count, slice_length = sliced_datasets.shape
@@ -947,7 +1310,7 @@ class Analyzer:
 				dT = abs(max_index - min_index)
 				dA = abs(max_value - min_value)
 				# check the difference between maxima and minima
-				if (min_dist <= dT <= max_dist) and dA >= 0.028 or dA >= min_ampl:
+				if (min_dist <= dT <= max_dist) and dA >= filter_val or dA >= min_ampl:
 					slice_index = int(max_index // slice_length)
 					peak_time = max_index - slice_length * slice_index
 					# change slice index for "tails" peaks
@@ -974,63 +1337,6 @@ class Analyzer:
 				plt.show()
 
 		return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
-
-	def plot_peaks_bar_intervals(self, pack_peaks_per_interval, names, save_to):
-		"""
-		ToDo add info
-		Args:
-			pack_peaks_per_interval (list of np.ndarrays): grouped datasets by different sim/bio data
-			names (list): filenames of grouped datasets
-			save_to (str): path for saving a built picture
-		"""
-		raise NotImplemented
-		yticks = []
-		datasets_number = len(names)
-		dist_coef = 2
-		bar_height = 0.1
-		coef = 0.3 * datasets_number
-		colors = ["#275b78", "#f27c2e", "#f2aa2e", "#472650", "#a6261d", "#287a72", "#2ba7b9"] * 10
-		ms_intervals = np.array([[0, 3], [7, 10], [10, 15], [15, 20], [20, 25]])
-		# form the new name of the file
-		mode = "_".join(names[0].split("_")[1:-1])
-		merged_names = "_".join(name.split("_")[0] for name in names)
-		new_filename = f"{merged_names}_{mode}_bar.pdf"
-
-		fig, ax = plt.subplots(figsize=(15, 5))
-
-		for pack_index, pack_data in enumerate(pack_peaks_per_interval):
-			# set color based on filename
-			if "bio" in names[pack_index]:
-				marker = '✚'
-			elif "neuron" in names[pack_index]:
-				marker = '★'
-			elif "gras" in names[pack_index]:
-				marker = '▴'
-			elif "nest" in names[pack_index]:
-				marker = '⚫'
-			else:
-				raise Exception("Can not set marker for data!")
-			# plot bar chart
-			for interval_index, interval_data in enumerate(pack_data.T):
-				left = 0
-				# plot stacked bars (intervals are stacked, slices separated)
-				y_pos = interval_index * coef + dist_coef * pack_index * bar_height
-				if pack_index == 0:
-					yticks.append(y_pos)
-				for slice_index, slice_data in enumerate(interval_data):
-					plt.barh(y=y_pos, width=slice_data, left=left, color=colors[slice_index], height=bar_height, alpha=0.9)
-					left += slice_data
-				plt.text(x=left + 0.1, y=y_pos - bar_height / 4, s=marker)
-
-		yticks = np.array(yticks) + datasets_number * bar_height - bar_height
-		yticklabels = [f"{interval[0]}-{interval[1]}" for interval in ms_intervals]
-		plt.yticks(yticks, yticklabels)
-		axis_article_style(ax, axis='x')
-		plt.yticks(fontsize=30)
-		plt.tight_layout()
-		plt.savefig(f"{save_to}/{new_filename}", dpi=250, format="pdf")
-		plt.close()
-		log.info(f"saved to {save_to}/{new_filename}")
 
 	@staticmethod
 	def _example_bio_sample(folder, filename):
@@ -1102,124 +1408,56 @@ class Analyzer:
 		return pvalue
 
 	@staticmethod
-	def _kde_test(x1, y1, x2, y2):
-		r_fct_string = f"""  
-		KDE_test <- function(){{
+	def _multi_R_KDE_test(x1, y1, x2, y2):
+		r_fct_string = """  
+		KDE_test <- function(X1, Y1, X2, Y2){
 			library("ks")
-			x1 <- c({str(list(x1))[1:-1]})
-			y1 <- c({str(list(y1))[1:-1]})
-			x2 <- c({str(list(x2))[1:-1]})
-			y2 <- c({str(list(y2))[1:-1]})
-			mat1 <- matrix(c(x1, y1), nrow=length(x1))
-			mat2 <- matrix(c(x2, y2), nrow=length(x2))
-	
-			res_time <- kde.test(x1=x1, x2=x2)$pvalue
-			res_ampl <- kde.test(x1=y1, x2=y2)$pvalue
-			res_2d <- kde.test(x1=mat1, x2=mat2)$pvalue
-	
-	        return(c(res_time, res_ampl, res_2d))
-		}}
+			if(length(dim(X1)) == 1){
+				X1 <- as.vector(X1)
+				X2 <- as.vector(X2)
+				Y1 <- as.vector(Y1)
+				Y2 <- as.vector(Y2)
+				res_time <- kde.test(x1=X1, x2=X2)$pvalue
+				res_ampl <- kde.test(x1=Y1, x2=Y2)$pvalue
+				mat1 <- matrix(c(X1, Y1), nrow=length(X1))
+				mat2 <- matrix(c(X2, Y2), nrow=length(X2))
+				res_2d <- kde.test(x1=mat1, x2=mat2)$pvalue	
+				return(c(res_time, res_ampl, res_2d))
+			}
+			results <- matrix(, nrow = nrow(X1) * nrow(X2), ncol = 3)
+			index <- 1
+			#
+			for(i1 in 1:nrow(X1)) {
+				#
+				x1 <- X1[i1, ]
+				x1 <- x1[x1 >= 0]
+				y1 <- Y1[i1, ]
+				y1 <- y1[y1 >= 0]
+				#
+				for(i2 in 1:nrow(X2)) {
+					#
+					x2 <- X2[i2, ]
+					x2 <- x2[x2 >= 0]
+					y2 <- Y2[i2, ]
+					y2 <- y2[y2 >= 0]
+					#
+					mat1 <- matrix(c(x1, y1), nrow=length(x1))
+					mat2 <- matrix(c(x2, y2), nrow=length(x2))
+					#
+					res_time <- kde.test(x1=x1, x2=x2)$pvalue
+					res_ampl <- kde.test(x1=y1, x2=y2)$pvalue
+					res_2d <- kde.test(x1=mat1, x2=mat2)$pvalue
+					
+					results[index, ] <- c(res_time, res_ampl, res_2d)
+					index <- index + 1
+				} 
+			}
+			return(results)
+		}
 		"""
 		r_pkg = STAP(r_fct_string, "r_pkg")
-		return np.asarray(r_pkg.KDE_test())
-
-	@staticmethod
-	def _get_AD_2samp_pvalue(a, b):
-		reject_at = 0
-		significance_levels = [25, 10, 5, 2.5, 1]
-		statistic, critical_values, ad_pvalue = anderson_ksamp([a, b])
-		for percent, level in zip(significance_levels, critical_values):
-			if statistic > level:
-				reject_at = percent
-		return ad_pvalue, reject_at
-
-	@staticmethod
-	def _multi_R_KDE_test(times, ampls, borders, fs, save_to, dstep):
-		r1 = fs[0]
-		r2 = fs[1] # source, rat, mode, speed
-		name1 = f"{r1[0]}_{r1[2]}_{r1[3]}"
-		name2 = f"{r2[0]}_{r2[2]}_{r2[3]}"
-		save_to = f"{save_to}/{name1} and {name2}/{r1[1]} {r2[1]}"
-
-		if not os.path.exists(save_to):
-			os.makedirs(save_to)
-
-		dat = []
-		steps_number = 0
-		for time0, amp0 in zip(times[0], ampls[0]):
-			for time1, amp1 in zip(times[1], ampls[1]):
-				t0, t1 = np.array(list(flatten(time0))) * dstep, np.array(list(flatten(time1))) * dstep
-				a0, a1 = np.array(list(flatten(amp0))), np.array(list(flatten(amp1)))
-
-				if len(t0) < 5 or len(t1) < 5:
-					continue
-
-				kde_pval_t, kde_pval_a, kde_pval_2d = kde_test(t0, a0, t1, a1)
-				dat.append([kde_pval_t, kde_pval_a, kde_pval_2d])
-
-				gs = gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 4])
-				fig = plt.figure(figsize=(8, 6))
-				title_ax = plt.subplot(gs[0, 1])
-				title_ax.text(0.5, 0.5, f"T: {kde_pval_t:.3f}\nA: {kde_pval_a:.3f}\n2D: {kde_pval_2d:.3f}",
-				        horizontalalignment='center',
-				        verticalalignment='center',
-				        fontsize=18, transform=title_ax.transAxes)
-				for spine in ['top', 'right', 'left', 'bottom']:
-					title_ax.spines[spine].set_visible(False)
-				title_ax.set_xticks([])
-				title_ax.set_yticks([])
-
-				kde_ax = plt.subplot(gs[1, 0])
-				kde_ax.spines['top'].set_visible(False)
-				kde_ax.spines['right'].set_visible(False)
-
-				# 2D joint plot
-				z = []
-				label_pathes = []
-				z_prev = np.zeros(1)
-				#
-				for x, y, name, color in zip([t0, t1], [a0, a1], [name1, name2], ['#A6261D', '#472650']):
-					z_prev = contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=z_prev, borders=borders, levels_num=15)
-					z.append(z_prev)
-					t, r = joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=borders, with_boxplot=False)
-					label_pathes.append(mpatches.Patch(color=color, label=f"{name}"))
-
-					t.set_xticklabels([])
-					r.set_yticklabels([])
-
-					t.set_xlim(borders[0], borders[1])
-					r.set_ylim(borders[2], borders[3])
-
-				kde_ax.legend(handles=label_pathes, fontsize=17)
-				kde_ax.set_xlim(borders[0], borders[1])
-				kde_ax.set_ylim(borders[2], borders[3])
-
-				plt.tight_layout()
-				plt.savefig(f"{save_to}/{steps_number}.png", format="png")
-				plt.close(fig)
-
-				steps_number += 1
-
-		dat = np.array(dat)
-		a = f"T: median p-value={np.median(dat[:, 0]):.3f}. Passed steps: ({len(np.where(dat[:, 0] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
-		b = f"A: median p-value={np.median(dat[:, 1]):.3f}. Passed steps: ({len(np.where(dat[:, 1] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
-		c = f"2D: median p-value={np.median(dat[:, 2]):.3f}. Passed steps: ({len(np.where(dat[:, 2] >= 0.05)[0]) / len(dat) * 100:.1f}%)"
-		log.info(a)
-		log.info(b)
-		log.info(c)
-
-		fig = plt.figure(figsize=(5, 5))
-		plt.suptitle(f"{a}\n{b}\n{c}", fontsize=10)
-		plt.boxplot(dat[:, 0], positions=[0], widths=0.8)
-		plt.boxplot(dat[:, 1], positions=[1], widths=0.8)
-		plt.boxplot(dat[:, 2], positions=[2], widths=0.8)
-		plt.xticks([0, 1, 2], ["times", "ampls", "kde2d"])
-		plt.savefig(f"{save_to}/pval_boxplot.png", format="png")
-		plt.close(fig)
-
-		with open(f"{save_to}/stat", 'w') as file:
-			for t, a, d2 in dat:
-				file.write(f"{t:.5f}\t{a:.5f}\t{d2:.5f}\n")
+		rx1, ry1, rx2, ry2 = map(numpy2rpy, (x1, y1, x2, y2))
+		return np.asarray(r_pkg.KDE_test(rx1, ry1, rx2, ry2))
 
 	@staticmethod
 	def _contour_plot(x, y, color, ax, z_prev, borders, levels_num):
@@ -1257,17 +1495,8 @@ class Analyzer:
 		# generate colors for contours level from HSL (normalized) to RGB (normalized)
 		colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 		# plot filled contour
-		if len(z_prev) == 1:
-			zorder = 0
-		else:
-			gt = z.ravel() > z_prev.ravel()
-			fullsize = len(gt)
-			gt = gt[gt == True]
-			truesize = len(gt)
-			zorder = -5 if truesize / fullsize * 100 > 50 else 5
-
 		ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-		ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=zorder)
+		ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=0)
 		# ax.scatter(x, y, s=0.1, color=color)
 		return z
 
