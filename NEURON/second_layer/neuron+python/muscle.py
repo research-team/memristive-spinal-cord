@@ -14,6 +14,8 @@ class muscle(object):
     self.subsets()
     self.geom()
     self.biophys()
+    self.synlistex = []
+    self.synapses()
 
     def __del__(self):
     #print 'delete ', self
@@ -24,6 +26,8 @@ class muscle(object):
     Creates section
     '''
     self.muscle_unit = h.Section(name='muscle_unit', cell=self)
+    self.soma = h.Section(name='soma', cell=self)
+    self.muscle_unit.connect(self.soma(1))
 
   def subsets(self):
     '''
@@ -38,8 +42,10 @@ class muscle(object):
     '''
     Adds length and diameter to sections
     '''
-    self.muscle_unit.L = 10 # microns
-    self.muscle_unit.diam = 10 # microns
+    self.muscle_unit.L = 30 # microns
+    self.muscle_unit.diam = 30 # microns
+    self.soma.L = 30 # microns
+    self.soma.diam = 30 # microns
 
   def geom_nseg(self):
     '''
@@ -56,10 +62,47 @@ class muscle(object):
     self.muscle_unit.insert('pas')
     self.muscle_unit.g_pas = 0.002
 
+    self.soma.cm = 20 # cm uf/cm2
+    self.soma.insert('Ca_conc')
+    self.soma.insert('cal')
+    self.soma.insert('fastchannels')
+    self.soma.gnabar_fastchannels = 0.5
+    self.soma.gkbar_fastchannels = 0.04
+    self.soma.gl_fastchannels = 0.0002
+    self.soma.insert('extracellular')  #adds extracellular mechanism for recording extracellular potential
+
     rec = h.xm(self.muscle_unit(0.5))
 
     self.muscle_unit.insert('CaSP')
     self.muscle_unit.insert('fHill')
+
+  def connect2target(self, target):
+    '''
+    NEURON staff
+    Adds presynapses
+    Parameters
+    ----------
+    target: NEURON cell
+        target neuron
+    Returns
+    -------
+    nc: NEURON NetCon
+        connection between neurons
+    '''
+    nc = h.NetCon(self.soma(0)._ref_v, target, sec = self.soma)
+    nc.threshold = 10
+    return nc
+
+  def synapses(self):
+    '''
+    Adds synapses
+    '''
+    for i in range(200):
+      s = h.ExpSyn(self.soma(0.5)) # Excitatory
+      s.tau = 0.1
+      s.e = 50
+      self.synlistex.append(s)
+
 
   def is_art(self):
     return 0

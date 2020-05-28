@@ -4,9 +4,10 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as pyplot
 import math
 #neuron.load_mechanisms("./mod")
-from bioaff import bioaff
+from bioaffrat import bioaffrat
 from interneuron import interneuron
 from motoneuron import motoneuron
+from muscle import muscle
 
 def set_recording_vectors(compartment):
     ''' recording voltage
@@ -22,14 +23,17 @@ def set_recording_vectors(compartment):
         recorded time
     '''
     v_vec = h.Vector()   # Membrane potential vector at compartment
-    # v_vec2 = h.Vector()
-    # v_vec3 = h.Vector()
+    v_vec2 = h.Vector()
+    v_vec1 = h.Vector()
     t_vec = h.Vector()        # Time stamp vector
-    v_vec.record(compartment(0.5)._ref_v)
+    v_vec.record(compartment(0.5)._ref_vext[0])
+    # v_vec1.record(compartment(0.5)._ref_ik)
+    # v_vec2.record(compartment(0.5)._ref_ica)
+
     # v_vec2.record(compartment(0.5)._ref_h_fastchannels)
     # v_vec3.record(compartment(0.5)._ref_n_fastchannels)
     t_vec.record(h._ref_t)
-    return v_vec, t_vec
+    return v_vec, v_vec1, v_vec2, t_vec
 
 def simulate(cell, tstop=1000, vinit=-70):
     ''' simulation control
@@ -46,7 +50,7 @@ def simulate(cell, tstop=1000, vinit=-70):
     h.v_init = vinit
     h.run()
 
-def show_output(v_vec, t_vec):
+def show_output(v_vec, v_vec1, v_vec2, t_vec):
     ''' show graphs
     Parameters
     ----------
@@ -58,9 +62,9 @@ def show_output(v_vec, t_vec):
     # t_vec = list(t_vec)[100:]
     # v_vec = list(v_vec)[100:]
     # dend_plot =
-    pyplot.plot(t_vec, v_vec)
-    # pyplot.plot(t_vec, v_vec2, label = 'h')
-    # pyplot.plot(t_vec, v_vec3, label = 'n')
+    pyplot.plot(t_vec, v_vec, label = 'ina')
+    # pyplot.plot(t_vec, v_vec2, label = 'ica')
+    # pyplot.plot(t_vec, v_vec1, label = 'ik')
 
     # pyplot.legend()
     # f = open('./res.txt', 'w')
@@ -71,7 +75,8 @@ def show_output(v_vec, t_vec):
 
 if __name__ == '__main__':
     cell = motoneuron(35)
-    aff = bioaff()
+    aff = bioaffrat()
+    muscle = muscle()
     # branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
     stim = h.NetStim()
     stim.number = 5
@@ -88,13 +93,17 @@ if __name__ == '__main__':
     # # dummy = h.Section(name='dummy')
     stim2 = h.IaGenerator(0.5)
     stim2.number = 1000000
-    h.setpointer(cell.muscle.muscle_unit(0.5)._ref_F_fHill, 'fhill', stim2)
-    soma_vec, t_vec = set_recording_vectors(cell.soma)
+    h.setpointer(muscle.muscle_unit(0.5)._ref_F_fHill, 'fhill', stim2)
+    soma_vec, soma_vec1, soma_vec2, t_vec = set_recording_vectors(muscle.soma)
     ncstim2 = h.NetCon(stim2, aff.synlistex[1])
     ncstim2.delay = 1
     ncstim2.weight[0] = 0.05
 
     nc1 = h.NetCon(aff.soma(0.5)._ref_v, cell.synlistex[5], sec=aff.soma)
+    nc1.delay = 1
+    nc1.weight[0] = 0.05
+
+    nc1 = h.NetCon(cell.soma(0.5)._ref_v, muscle.synlistex[5], sec=cell.soma)
     nc1.delay = 1
     nc1.weight[0] = 0.05
     # stim = h.IClamp(cell.axonL.node[len(cell.axonL.node)-1](0.5))
@@ -104,7 +113,9 @@ if __name__ == '__main__':
     # print("Number of model - ",cell.numofmodel)
     for sec in h.allsec():
         h.psection(sec=sec)
+
+    print(cell.soma.psection())
     simulate(cell)
     # show_output(branch_vec, t_vec)
-    show_output(soma_vec, t_vec)
+    show_output(soma_vec, soma_vec1, soma_vec2, t_vec)
     pyplot.show()

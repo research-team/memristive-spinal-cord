@@ -46,7 +46,7 @@ class motoneuron(object):
     self.dend = h.Section(name='dend', cell= self)
     self.axon.node[0].connect(self.soma(1))
     self.dend.connect(self.soma(1))
-    self.muscle.muscle_unit.connect(self.axon.node[self.axon.axonnodes-1](1))
+    # self.muscle.muscle_unit.connect(self.axon.node[self.axon.axonnodes-1](1))
     #self.basic_shape()
 
   def basic_shape(self):
@@ -100,15 +100,16 @@ class motoneuron(object):
     Adds channels and their parameters
     '''
     self.soma.insert('motoneuron')
-    self.soma.insert('Ca_conc')
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
     self.soma.Ra = 200 # Ra ohm cm - membrane resistance
     self.soma.cm = random.gauss(2, 0.1) # cm uf/cm2 - membrane capacitance
     if self.diam > 50:
       self.soma.gnabar_motoneuron = 0.4
-      self.soma.gl_motoneuron = 0.01
+      self.soma.gcaL_motoneuron = 0.003
+      self.soma.gl_motoneuron = 0.005
     else:
       self.soma.gnabar_motoneuron = 0.055
+      self.soma.gcaL_motoneuron = 0.0005
     '''
     self.soma.insert('pas')
     self.soma.g_pas = 0.002
@@ -117,8 +118,8 @@ class motoneuron(object):
     self.dend.insert('pas')
     self.dend.g_pas = 0.0002
     self.dend.e_pas = -80
-    self.dend.Ra = 200 # Ra ohm cm - membrane resistance
-    self.dend.cm = 2 # cm uf/cm2 - membrane capacitance
+    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
+    self.dend.cm = 1 # cm uf/cm2 - membrane capacitance
 
     '''
     self.axon.insert('hh')
@@ -162,7 +163,7 @@ class motoneuron(object):
     '''
     Adds synapses
     '''
-    for i in range(20):
+    for i in range(200):
       s = h.ExpSyn(self.soma(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50
