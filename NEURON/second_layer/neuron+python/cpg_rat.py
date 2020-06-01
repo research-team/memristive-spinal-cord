@@ -25,7 +25,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.02
+k = 0.012
 
 exnclist = []
 inhnclist = []
@@ -120,8 +120,8 @@ class CPG:
         self.mns_E = self.addpool(nMN, "mns_E", "moto")
         self.mns_F = self.addpool(nMN, "mns_F", "moto")
 
-        self.muscle_E = self.addpool(nMN*30, "muscle_E", "muscle")
-        self.muscle_F = self.addpool(nMN*30, "muscle_F", "muscle")
+        self.muscle_E = self.addpool(nMN*200, "muscle_E", "muscle")
+        self.muscle_F = self.addpool(nMN*200, "muscle_F", "muscle")
 
         '''reflex arc'''
         self.Ia_E = self.addpool(nInt, "Ia_E", "int")
@@ -204,9 +204,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.5, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00035, 3)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.0003, 3)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00035, 2)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00033, 2)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -218,39 +218,39 @@ class CPG:
                 for i in range(layer - 1):
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.8, 1)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.5, 2)
-        genconnect(self.ees, self.Ia_aff_F, 0.5, 2)
-        genconnect(self.ees, self.dict_CV[0], 0.5, 2)
-        genconnect(self.Iagener_E, self.Ia_aff_E, 0.0005, 2)
-        genconnect(self.Iagener_F, self.Ia_aff_F, 0.0005, 2)
+        genconnect(self.ees, self.Ia_aff_E, 0.5, 1)
+        genconnect(self.ees, self.Ia_aff_F, 0.5, 1)
+        genconnect(self.ees, self.dict_CV[0], 0.5, 1)
+        genconnect(self.Iagener_E, self.Ia_aff_E, 0.00015, 2)
+        genconnect(self.Iagener_F, self.Ia_aff_F, 0.00015, 2)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.55, 1)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.55, 1)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.75, 1)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.75, 1)
 
         connectcells(self.mns_E, self.muscle_E, 0.75, 1, False, 100)
         connectcells(self.mns_E, self.muscle_F, 0.75, 1, False, 100)
 
         '''IP'''
         for layer in range(2, 4):
-            connectcells(self.dict_IP_E[layer], self.dict_IP_E[layer+1], 0.2*layer, 2)
-            connectcells(self.dict_IP_F[layer], self.dict_IP_F[layer+1], 0.2*layer, 2)
+            connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.15*layer, 1)
+            connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.15*layer, 1)
         for layer in range(layers):
             '''Extensor'''
             # connectinsidenucleus(self.dict_IP_E[layer])
             # connectinsidenucleus(self.dict_1[layer])
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.75, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.65, 2)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.65, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.65, 2)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0005, 1, True)
             else:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 1, True)
             '''Flexor'''
-            connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 0.75, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.65, 2)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.65, 2)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 0.65, 2)
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -553,13 +553,13 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 0.5, 2)
     connectcells(OM1, OM2, 0.5, 3)
     connectcells(OM2, OM1, 0.5, 4)
-    connectcells(OM2, OM3, 0.0004, 3)
+    connectcells(OM2, OM3, 0.001, 3)
     connectcells(OM1, OM3, 0.0001, 3)
-    connectcells(OM3, OM2, 0.004, 1, True)
-    connectcells(OM3, OM1, 0.004, 1, True)
+    connectcells(OM3, OM2, 0.4, 1, True)
+    connectcells(OM3, OM1, 0.4, 1, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.15, 3)
+    connectcells(nucleus, nucleus, 0.15, 1)
 
 def spike_record(pool, version, muscle = False):
     ''' Records spikes from gids
