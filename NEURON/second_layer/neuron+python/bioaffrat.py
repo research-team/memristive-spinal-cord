@@ -2,7 +2,6 @@ from neuron import h
 h.load_file('stdlib.hoc') #for h.lambda_f
 
 import random
-from axon import axon
 
 class bioaffrat(object):
   '''
@@ -17,10 +16,11 @@ class bioaffrat(object):
     synlistees: list (creates by synapses())
       list of excitatory synapses for connection with generators
   '''
+  from axon import make_axon, topol_axon, geom_axon, biophys_axon
+
   def __init__(self):
     #create axon
-    self.axonL = axon(random.randint(10, 20))
-    self.axonR = axon(random.randint(5, 10))
+    self.make_axon(random.randint(8, 10))
     self.topol()
     self.subsets()
     self.geom()
@@ -39,8 +39,7 @@ class bioaffrat(object):
     Creates sections soma, dend, axon and connects them
     '''
     self.soma = h.Section(name='soma', cell=self)
-    self.axonR.node[0].connect(self.soma(1))
-    self.axonL.node[0].connect(self.soma(1))
+    self.node[len(self.node)//2].connect(self.soma(1))
 
     #self.basic_shape()
 
@@ -86,28 +85,27 @@ class bioaffrat(object):
     nc: NEURON NetCon
         connection between neurons
     '''
-    nc = h.NetCon(self.soma(0.5)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.node[len(self.node)-1](0.5)._ref_v, target, sec=self.node[len(self.node)-1])
     nc.threshold = 10
     return nc
 
   def synapses(self):
     #for sec in self.axonL.node:
-    for i in range(3):
-      for j in range(5):
-        s = h.ExpSyn(self.axonL.node[len(self.axonL.node)-1-i](0.5)) # Excitatory
+    for i in range(2):
+      for j in range(50):
+        s = h.ExpSyn(self.node[i](0.5)) # Excitatory
         s.tau = 0.1
         s.e = 50
         self.synlistex.append(s)
-        s = h.ExpSyn(self.axonR.node[i+1](0.5)) # Excitatory
+        s = h.ExpSyn(self.node[len(self.node)-i-1](0.5)) # Excitatory
         s.tau = 0.1
-        s.e = 50
-        self.synlistees.append(s)
-    for i in range(20):
-      s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
-      s.tau1 = 1.5
-      s.tau2 = 2
-      s.e = -80
-      self.synlistinh.append(s)
+        s.e = -70
+        self.synlistinh.append(s)
+    for i in range(200):
+      s = h.ExpSyn(self.soma(0.5)) # Excitatory
+      s.tau = 0.1
+      s.e = 50
+      self.synlistees.append(s)
 
   def is_art(self):
     return 0

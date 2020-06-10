@@ -62,13 +62,17 @@ class muscle(object):
     self.muscle_unit.insert('pas')
     self.muscle_unit.g_pas = 0.002
 
-    self.soma.cm = 20 # cm uf/cm2
+    self.soma.cm = random.uniform(3, 4) # cm uf/cm2
+    self.soma.Ra = random.uniform(30, 60)
     self.soma.insert('Ca_conc')
-    self.soma.insert('cal')
-    self.soma.insert('fastchannels')
-    self.soma.gnabar_fastchannels = 0.5
-    self.soma.gkbar_fastchannels = 0.04
-    self.soma.gl_fastchannels = 0.0002
+    self.soma.insert('na14a')
+    self.soma.insert('motoneuron')
+    self.soma.gbar_na14a = 0.3
+    self.soma.gnabar_motoneuron = 0.3
+    self.soma.gcaL_motoneuron = 0.002
+    self.soma.gl_motoneuron = 0.002
+    self.soma.gkrect_motoneuron = 0.1
+    self.soma.gcak_motoneuron =  0.1
     self.soma.insert('extracellular')  #adds extracellular mechanism for recording extracellular potential
 
     rec = h.xm(self.muscle_unit(0.5))
@@ -100,7 +104,7 @@ class muscle(object):
     for i in range(200):
       s = h.ExpSyn(self.soma(0.5)) # Excitatory
       s.tau = 0.1
-      s.e = 50
+      s.e = 0
       self.synlistex.append(s)
 
 

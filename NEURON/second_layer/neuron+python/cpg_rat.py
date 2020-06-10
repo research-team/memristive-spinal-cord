@@ -18,7 +18,7 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 10 # number of steps
+step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -226,9 +226,8 @@ class CPG:
         connectcells(self.Ia_aff_E, self.mns_E, 0.85, 1)
         connectcells(self.Ia_aff_F, self.mns_F, 0.85, 1)
 
-        connectcells(self.mns_E, self.muscle_E, 0.75, 1, False, 65)
-        connectcells(self.mns_E, self.muscle_F, 0.75, 1, False, 65)
-
+        connectcells(self.mns_E, self.muscle_E, 0.15, 1)
+        connectcells(self.mns_E, self.muscle_F, 0.15, 1)
         '''IP'''
         for layer in range(2, 4):
             connectcells(self.dict_IP_E[layer], self.dict_IP_E[layer+1], 0.1*layer, 2)
@@ -241,7 +240,7 @@ class CPG:
             connectinsidenucleus(self.dict_2F[layer])
             connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 3)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.75, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.75, 3)
+            # connectcells(self.dict_IP_E[layer], self.mns_E, 0.75, 3)
             # if layer > 3:
             #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0004, 1, True)
             # else:
@@ -249,7 +248,7 @@ class CPG:
             '''Flexor'''
             connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 0.75, 2)
+            # connectcells(self.dict_IP_F[layer], self.mns_F, 0.75, 2)
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -257,6 +256,9 @@ class CPG:
 
         connectcells(self.IP_F, self.Ia_aff_F, 0.0007, 2, True)
         connectcells(self.IP_E, self.Ia_aff_E, 0.0005, 2, True)
+
+        connectcells(self.IP_F, self.mns_F, 0.75, 2)
+        connectcells(self.IP_E, self.mns_E, 0.75, 2)
 
 
         '''C'''
@@ -310,11 +312,9 @@ class CPG:
 
         '''C=0 Flexor'''
         connectcells(self.IP_F, self.iIP_F, 0.08, 1)
-        connectcells(self.iIP_F, self.IP_E, 0.09, 1, True)
-        connectcells(self.iIP_F, self.iIP_E, 0.09, 1, True)
-        connectcells(self.C_0, self.Ia_aff_E, 0.015, 1, True)
-        connectcells(self.C_0, self.IP_E, 0.09, 1, True)
-        connectcells(self.C_0, self.iIP_F, 0.09, 1)
+        connectcells(self.iIP_F, self.IP_E, 0.08, 1, True)
+        connectcells(self.iIP_F, self.Ia_aff_E, 0.08, 1, True)
+        connectcells(self.iIP_F, self.mns_E, 0.08, 1, True)
 
         '''reflex arc'''
         connectcells(self.iIP_E, self.Ia_E, 0.005, 1)
@@ -534,8 +534,8 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False, N = 50):
                     # nc.weight[0] = random.gauss(weight, weight / 8)
                 nc = pc.gid_connect(gen_gid, syn)
                 stimnclist.append(nc)
-                nc.delay = random.gauss(delay, delay / 9)
-                nc.weight[0] = random.gauss(weight, weight / 8)
+                nc.delay = random.gauss(delay, delay / 6)
+                nc.weight[0] = random.gauss(weight, weight / 6)
 
 def createmotif(OM0, OM1, OM2, OM3):
     ''' Connects motif module
