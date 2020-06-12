@@ -46,14 +46,14 @@ PARAMETER {
 	O1C2k2	  = -9
 
 	C2O2b2	  = 0.03
-	C2O2v2	  = -30
+	C2O2v2	  = -20
 	C2O2k2	  = -8
 
 	O2C2b1	  = 3
 	O2C2v1	  = -50
 	O2C2k1	  = 8
 	O2C2b2	  = 0.1
-	O2C2v2	  = -30
+	O2C2v2	  = -20
 	O2C2k2	  = -8
 
 	O1I1b1	  = 0

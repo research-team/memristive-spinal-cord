@@ -14,12 +14,13 @@ INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
 NEURON {
 	SUFFIX motoneuron
-	NONSPECIFIC_CURRENT ina
-	NONSPECIFIC_CURRENT ikrect
-	NONSPECIFIC_CURRENT ikca
+
+	USEION na WRITE ina
+	USEION k WRITE ik
+	USEION ca READ cao WRITE ica
 	NONSPECIFIC_CURRENT il
-	NONSPECIFIC_CURRENT icaN
-	NONSPECIFIC_CURRENT icaL
+
+
 	RANGE  gnabar, gl, ena, ek, el, gkrect, gcaN, gcaL, gcak
 	RANGE p_inf, m_inf, h_inf, n_inf, mc_inf, hc_inf
 	RANGE tau_p, tau_m, tau_h, tau_n, tau_mc, tau_hc
@@ -38,7 +39,7 @@ PARAMETER {
 	gcaN = 0.05  (mho/cm2)
 	gcaL = 0.0001  (mho/cm2)
 	gcak = 0.3  (mho/cm2)
-	ca0 = 2  
+	ca0 = 2
 	ena = 50.0  (mV)
 	ek = -80.0 (mV)
 	el = -70.0 (mV)
@@ -61,10 +62,8 @@ STATE {
 ASSIGNED {
 	ina	 (mA/cm2)
 	il      (mA/cm2)
-	ikrect    (mA/cm2)
-	icaN  (mA/cm2)
-	icaL  (mA/cm2)
-	ikca  (mA/cm2)
+	ica  (mA/cm2)
+	ik  (mA/cm2)
 	Eca  (mV)
 	m_inf
 	mc_inf
@@ -78,20 +77,19 @@ ASSIGNED {
 	tau_n
 	tau_mc
 	tau_hc
+	cao (mM)
 }
 
 BREAKPOINT {
 	SOLVE states METHOD cnexp
 	ina = gnabar * m*m*m*h*(v - ena)
-	ikrect = gkrect *n*n*n*n*(v - ek)   :stesso ek di sotto
+	ik = gkrect *n*n*n*n*(v - ek) + gcak*(cai*cai)/(cai*cai+0.014*0.014)*(v-ek)  :stesso ek di sotto
 	il = gl * (v - el)
 	Eca = ((1000*R*309.15)/(2*F))*log(ca0/cai)
-	icaN = gcaN*mc*mc*hc*(v-Eca)
-	icaL = gcaL*p*(v-Eca)
-	ikca = gcak*(cai*cai)/(cai*cai+0.014*0.014)*(v-ek)
+	ica = gcaN*mc*mc*hc*(v-Eca) + gcaL*p*(v-Eca)
 }
 
-DERIVATIVE states {  
+DERIVATIVE states {
 	 : exact Hodgkin-Huxley equations
         evaluate_fct(v)
 	m' = (m_inf - m) / tau_m
@@ -100,7 +98,7 @@ DERIVATIVE states {
 	n' = (n_inf - n) / tau_n
 	mc' = (mc_inf - mc) / tau_mc
 	hc' = (hc_inf - hc) / tau_hc
-	cai'= 0.01*(-(icaN+icaL) - 4*cai)
+	cai'= 0.01*(-(ica) - 4*cai)
 }
 
 UNITSOFF
@@ -116,8 +114,8 @@ INITIAL {
 	cai = 0.0001
 }
 
-PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2  
-	 
+PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
+
 	:FAST SODIUM
 	:m
 	a = alpham(v)
@@ -127,8 +125,8 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 	:h
 	tau_h = 30 / (Exp((v+60)/15) + Exp(-(v+60)/16))
 	h_inf = 1 / (1 + Exp((v+65)/7))
-	
-	:DELAYED RECTIFIER POTASSIUM 
+
+	:DELAYED RECTIFIER POTASSIUM
 	tau_n = 5 / (Exp((v+50)/40) + Exp(-(v+50)/50))
 	n_inf = 1 / (1 + Exp(-(v+38)/15))
 
@@ -138,7 +136,7 @@ PROCEDURE evaluate_fct(v(mV)) { LOCAL a,b,v2
 	mc_inf = 1/(1+Exp(-(v+32)/5))
 	tau_hc = 50
 	hc_inf =  1/(1+Exp((v+50)/5))
-	
+
 	:L-type
 	tau_p = 400
 	p_inf = 1/(1+Exp(-(v+55.8)/3.7))

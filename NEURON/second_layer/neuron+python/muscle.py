@@ -58,21 +58,33 @@ class muscle(object):
     '''
     Adds channels and their parameters
     '''
-    self.muscle_unit.cm = 20 # cm uf/cm2
+    self.muscle_unit.cm = random.uniform(3, 4)  # cm uf/cm2
     self.muscle_unit.insert('pas')
     self.muscle_unit.g_pas = 0.002
 
     self.soma.cm = random.uniform(3, 4) # cm uf/cm2
-    self.soma.Ra = random.uniform(30, 60)
+    self.soma.Ra = random.uniform(50, 80)
     self.soma.insert('Ca_conc')
+    self.soma.insert('hh')
+    self.soma.insert('kir')
     self.soma.insert('na14a')
-    self.soma.insert('motoneuron')
-    self.soma.gbar_na14a = 0.3
-    self.soma.gnabar_motoneuron = 0.3
-    self.soma.gcaL_motoneuron = 0.002
-    self.soma.gl_motoneuron = 0.002
-    self.soma.gkrect_motoneuron = 0.1
-    self.soma.gcak_motoneuron =  0.1
+    self.soma.insert('cal')
+    self.soma.insert('K_No')
+    self.soma.insert('cac1')
+    self.soma.gmax_cac1 = 0.01
+    self.soma.gbar_na14a = 0.4
+    self.soma.gkbar_kir = 0.04
+    self.soma.gnabar_hh = 0.3
+    self.soma.gkbar_hh = 0.04
+    self.soma.gl_hh = 0.0002
+    self.soma.gkmax_K_No = 0.1
+    # self.soma.gcaN_motoneuron = 0.0#001
+    # self.soma.gnabar_motoneuron = 0.2
+    # self.soma.gcaL_motoneuron = 0.0003
+    # self.soma.gl_motoneuron = 0.005
+    # self.soma.gkrect_motoneuron = 0.05
+    # self.soma.gcak_motoneuron =  0.01
+
     self.soma.insert('extracellular')  #adds extracellular mechanism for recording extracellular potential
 
     rec = h.xm(self.muscle_unit(0.5))
@@ -102,10 +114,11 @@ class muscle(object):
     Adds synapses
     '''
     for i in range(200):
-      s = h.ExpSyn(self.soma(0.5)) # Excitatory
-      s.tau = 0.1
-      s.e = 0
-      self.synlistex.append(s)
+        s = h.ExpSyn(self.soma(0.5)) # Inhibitory
+        s.tau = 0.4
+        # s.tau2 = 0.5
+        s.e = 0
+        self.synlistex.append(s)
 
 
   def is_art(self):

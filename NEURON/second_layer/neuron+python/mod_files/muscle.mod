@@ -18,7 +18,7 @@ NEURON {
 	::simulation::
 	RANGE spk_index, t_axon, vm, R
 	USEION mg WRITE mgi VALENCE 2
-	USEION cl READ cli VALENCE 1
+	USEION cl READ cli VALENCE -1
 }
 
 PARAMETER {
