@@ -20,7 +20,7 @@ class bioaffrat(object):
 
   def __init__(self):
     #create axon
-    self.make_axon(random.randint(8, 10))
+    self.make_axon(random.randint(5, 10))
     self.topol()
     self.subsets()
     self.geom()
@@ -39,7 +39,7 @@ class bioaffrat(object):
     Creates sections soma, dend, axon and connects them
     '''
     self.soma = h.Section(name='soma', cell=self)
-    self.node[len(self.node)//2].connect(self.soma(1))
+    self.node[0].connect(self.soma(1))
 
     #self.basic_shape()
 
@@ -64,9 +64,9 @@ class bioaffrat(object):
     Adds channels and their parameters
     '''
     self.soma.insert('hh')
-    self.soma.gnabar_hh = 0.3
+    self.soma.gnabar_hh = 0.5
     self.soma.gkbar_hh = 0.04
-    self.soma.gl_hh = 0.00017
+    self.soma.gl_hh = 0.0002
     self.soma.el_hh = -70
     self.soma.Ra = 200
     self.soma.cm = 2
@@ -93,10 +93,6 @@ class bioaffrat(object):
     #for sec in self.axonL.node:
     for i in range(2):
       for j in range(50):
-        s = h.ExpSyn(self.node[i](0.5)) # Excitatory
-        s.tau = 0.1
-        s.e = 50
-        self.synlistex.append(s)
         s = h.ExpSyn(self.node[len(self.node)-i-1](0.5)) # Excitatory
         s.tau = 0.1
         s.e = -70
@@ -106,6 +102,10 @@ class bioaffrat(object):
       s.tau = 0.1
       s.e = 50
       self.synlistees.append(s)
+      s = h.ExpSyn(self.soma(0.5)) # Excitatory
+      s.tau = 0.1
+      s.e = 50
+      self.synlistex.append(s)
 
   def is_art(self):
     return 0
