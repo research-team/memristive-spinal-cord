@@ -5,15 +5,15 @@ import logging
 import numpy as np
 import h5py as hdf5
 import time
+
 from multi_gpu_build import Build
 from meta_plotting import get_4_pvalue
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-N_individuals_in_first_init = 1000
+N_individuals_in_first_init = 4
 N_how_much_we_choose = 15
-N_individuals_for_mutation = 15
 
 # p-value what we want or bigger
 p = 0.05
@@ -55,7 +55,7 @@ def convert_to_hdf5(result_folder):
         with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
             for test_index, filename in enumerate(datfiles):
                 with open(f"{result_folder}/{filename}") as datfile:
-                    data = [float(v) for v in datfile.readline().split()]
+                    data = [-float(v) for v in datfile.readline().split()]
                     # check on NaN values (!important)
                     if any(map(np.isnan, data)):
                         logging.info(f"{filename} has NaN... skip")
@@ -84,15 +84,6 @@ def convert_to_hdf5(result_folder):
 
 class Individual:
 
-    def __str__(self):
-        return f"p-value = {self.pvalue}, p-value ampls = {self.pvalue_amplitude}, p-value times = {self.pvalue_times}\n"
-
-    def __eq__(self, other):
-        return self.pvalue == other.pvalue
-
-    def __gt__(self, other):
-        return self.pvalue > other.pvalue
-
     def __init__(self):
         self.pvalue = 0.0
         self.pvalue_amplitude = 0.0
@@ -101,75 +92,89 @@ class Individual:
         self.weights = []
         self.delays = []
 
+    def __str__(self):
+        return f"p-value = {self.pvalue}, p-value ampls = {self.pvalue_amplitude}, " \
+            f"p-value times = {self.pvalue_times}\n"
+
+    def __eq__(self, other):
+        return self.pvalue == other.pvalue
+
+    def __gt__(self, other):
+        return self.pvalue > other.pvalue
+
     def __copy__(self):
 
         new_individual = Individual()
 
-        for this in self.gen:
-            new_individual.gen.append(this)
+        for weight in self.weights:
+            new_individual.weights.append(weight)
+
+        for delay in self.delays:
+            new_individual.delays.append(delay)
+
+        new_individual.gen = new_individual.weights + new_individual.delays
 
         return new_individual
 
     def __len__(self):
         return len(self.gen)
 
-    def format(self, x):
-        return float("{0:.2f}".format(x))
+    def __format__(self, format_spec):
+        return float("{0:.4f}".format(format_spec))
 
     def is_correct(self):
         return self.pvalue_times != 0 and self.pvalue_amplitude != 0 and self.pvalue != 0
 
+    # init individual with random weights and delays
     def init(self):
 
         # Es ~ OMs
         for i in range(5):
-            self.weights.append(random.uniform(0.01, 0.3))
+            self.weights.append(self.__format__(random.uniform(0.01, 0.3)))
             low_weights.append(0.01)
             max_weights.append(0.3)
 
         # CVs - OMs
         for i in range(16):
-            self.weights.append(random.uniform(0.01, 3))
+            self.weights.append(self.__format__(random.uniform(0.01, 3)))
             low_weights.append(0.01)
             max_weights.append(3)
 
         # output to Flexor another OM
         for i in range(4):
-            self.weights.append(random.uniform(0.01, 5))
+            self.weights.append(self.__format__(random.uniform(0.01, 5)))
             low_weights.append(0.01)
             max_weights.append(5)
 
         # output to eIP
         for i in range(10):
-            self.weights.append(random.uniform(0.1, 2.5))
+            self.weights.append(self.__format__(random.uniform(0.1, 2.5)))
             low_weights.append(0.1)
             max_weights.append(2.5)
 
-        # TODO init ex weights
         for i in range(40):
-            self.weights.append(random.uniform(0.05, 1.2))
+            self.weights.append(self.__format__(random.uniform(0.05, 1.2)))
             low_weights.append(0.05)
             max_weights.append(1.2)
 
-        # TODO init inh weights
         for i in range(15):
-            self.weights.append(random.uniform(0.01, 0.2))
+            self.weights.append(self.__format__(random.uniform(0.01, 0.2)))
             low_weights.append(0.01)
             max_weights.append(0.2)
 
         for i in range(2):
-            self.weights.append(random.uniform(0.005, 0.06))
+            self.weights.append(self.__format__(random.uniform(0.005, 0.06)))
             low_weights.append(0.005)
             max_weights.append(0.06)
 
         for i in range(4):
-            self.weights.append(random.uniform(0.0005, 0.002))
+            self.weights.append(self.__format__(random.uniform(0.0005, 0.002)))
             low_weights.append(0.0005)
             max_weights.append(0.002)
 
         # eIP ~ MN
         for i in range(2):
-            self.weights.append(random.uniform(5, 10))
+            self.weights.append(self.__format__(random.uniform(5, 10)))
             low_weights.append(5)
             max_weights.append(10)
 
@@ -180,7 +185,7 @@ class Individual:
 
         # init delays
         for i in range(N):
-            self.delays.append(random.uniform(low_delay, max_delay))
+            self.delays.append(float("{0:.1f}".format(random.uniform(low_delay, max_delay))))
 
         self.gen = self.weights + self.delays
 
@@ -201,7 +206,9 @@ class Population:
         for i in range(N_individuals_in_first_init):
             individual = Individual()
             individual.init()
-            self.individuals.append(individual)
+            self.add_individual(individual)
+
+        print("Population 1 inited")
 
     # TODO first init for knowing part of weights and delays, it's needed ?
 
@@ -223,11 +230,11 @@ class Fitness:
         for i in range(len(individuals)):
             individual = individuals[i]
 
-            ampl = open(f'{path}/dat/{i}/a.txt')
+            ampls = open(f'{path}/dat/{i}/a.txt')
             times = open(f'{path}/dat/{i}/t.txt')
             d2 = open(f'{path}/dat/{i}/d2.txt')
 
-            individual.pvalue_amplitude = float(ampl.readline())
+            individual.pvalue_amplitude = float(ampls.readline())
             individual.pvalue_times = float(times.readline())
             individual.pvalue = float(d2.readline())
 
@@ -263,10 +270,14 @@ class Breeding:
         crossover_point = random.randint(0, length)
 
         new_individual_1 = Individual()
-        new_individual_1.gen = individual_1.gen[0:crossover_point] + individual_2.gen[crossover_point:length]
+        new_individual_1.gen = individual_1.gen[:crossover_point] + individual_2.gen[crossover_point:length]
+        new_individual_1.weights = new_individual_1.gen[:int(len(new_individual_1) / 2)]
+        new_individual_1.delays = new_individual_1.gen[int(len(new_individual_1) / 2):]
 
         new_individual_2 = Individual()
-        new_individual_2.gen = individual_2.gen[0:crossover_point] + individual_1.gen[crossover_point:length]
+        new_individual_2.gen = individual_2.gen[:crossover_point] + individual_1.gen[crossover_point:length]
+        new_individual_2.weights = new_individual_1.gen[:int(len(new_individual_1) / 2)]
+        new_individual_2.delays = new_individual_1.gen[int(len(new_individual_1) / 2):]
 
         return new_individual_1, new_individual_2
 
@@ -275,25 +286,17 @@ class Breeding:
 
         new_individual = individual.__copy__()
 
-        n = random.randint(0, 100)
+        n = random.randint(1, 2)
 
-        for index in range(len(individual)):
-            if n % 2 == 0:
-                if index % 2 == 0:
-                    mean = new_individual.gen[index]
-                    low, high = Breeding.get_low_high(mean)
-                    if index < 5:
-                        new_individual.gen[index] = random.randint(int(low), int(high))
-                    else:
-                        new_individual.gen[index] = Individual().format(random.uniform(low, high))
-            else:
-                if index % 2 != 0:
-                    mean = new_individual.gen[index]
-                    low, high = Breeding.get_low_high(mean)
-                    if index < 5:
-                        new_individual.gen[index] = random.randint(int(low), int(high))
-                    else:
-                        new_individual.gen[index] = Individual().format(random.uniform(low, high))
+        for index, g in enumerate(individual.gen):
+            if index % n == n:
+                low, high = Breeding.get_low_high(g)
+                if index < N:
+                    new_individual.weights.append(Individual().__format__(random.uniform(low, high)))
+                else:
+                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+
+        new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
         return new_individual
 
@@ -320,22 +323,21 @@ class Breeding:
 
         return low, high
 
-    # TODO add another way to get low and high
-
     @staticmethod
     def mutation3(individual):
 
         new_individual = individual.__copy__()
 
-        for index in range(len(individual)):
+        for index, g in enumerate(individual.gen):
             n = random.randint(0, 100)
             if n < 50:
-                mean = new_individual.gen[index]
-                low, high = Breeding.get_low_high(mean)
-                if index < 5:
-                    new_individual.gen[index] = random.randint(int(low), int(high))
+                low, high = Breeding.get_low_high(g)
+                if index < N:
+                    new_individual.weights.append(Individual().__format__(random.uniform(low, high)))
                 else:
-                    new_individual.gen[index] = Individual().format(random.uniform(low, high))
+                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+
+        new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
         return new_individual
 
@@ -344,16 +346,17 @@ class Breeding:
 
         new_individual = individual.__copy__()
 
-        for index in range(len(individual)):
+        for index, g in enumerate(individual.gen):
             n = random.randint(0, 100)
             if n < 50:
                 m = random.randint(2, 10)
-                mean = new_individual.gen[index]
-                low, high = mean - mean / m, mean + mean / m
-                if index < 5:
-                    new_individual.gen[index] = random.randint(int(low), int(high))
+                low, high = g - g / m, g + g / m
+                if index < N:
+                    new_individual.gen.append(Individual().__format__(random.uniform(low, high)))
                 else:
-                    new_individual.gen[index] = Individual().format(random.uniform(low, high))
+                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+
+        new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
         return new_individual
 
@@ -366,10 +369,10 @@ class Breeding:
         for index in range(mutation_point):
             mean = new_individual.gen[index]
             low, high = Breeding.get_low_high(mean)
-            if index < 5:
-                new_individual.gen[index] = random.randint(int(low), int(high))
+            if index < N:
+                new_individual.gen[index] = Individual().__format__(random.uniform(low, high))
             else:
-                new_individual.gen[index] = Individual().format(random.uniform(low, high))
+                new_individual.gen[index] = float("{0:.1f}".format(random.uniform(low, high)))
 
         return new_individual
 
@@ -407,7 +410,7 @@ class Breeding:
         arr = sorted(newPopulation.individuals, reverse=True)
 
         if len(arr) > N_how_much_we_choose:
-            return arr[0:N_how_much_we_choose]
+            return arr[:N_how_much_we_choose]
         else:
             return arr
 
@@ -443,20 +446,10 @@ class Evolution:
     @staticmethod
     def start_gen_algorithm(current_population, number):
 
-        # Evolution.terminate_algorithm = max(current_population.individuals).pvalue >= p
-
         Breeding.calculate_tests_result(current_population.individuals, number)
-
-        file_with_log_of_bests = open(f'{path}/files/log_of_bests.dat', 'a')
-
         individuals = Breeding.select(current_population)
-        best_individual = max(individuals)
-        file = open('../files/bests_pvalue.dat', 'a')
-        file.write(f"In population number {number} best pvalue = {best_individual.pvalue} \n")
-        file.write(f"pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n")
-        file.write(' '.join(map(str, best_individual.gen)) + "\n")
 
-        file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
+        # Debug.log_of_bests(individuals, number)
 
         newPopulation = Population()
 
@@ -472,10 +465,6 @@ class Evolution:
                 crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
                 newPopulation.add_individual(crossover_individual_1)
                 newPopulation.add_individual(crossover_individual_2)
-
-        print("Len population after crossover: " + str(len(newPopulation)))
-        f = open(f'{path}/files/len_population.dat', 'a')
-        f.write(f"Len population after crossover: {len(newPopulation)} ")
 
         for individual in newPopulation.individuals:
             for i in range(len(individual.gen)):
@@ -499,52 +488,62 @@ class Evolution:
 
         final_population = Population()
 
-        for j in range(len(newPopulation)):
+        for individual in newPopulation.individuals:
 
-            individual = newPopulation.individuals[j]
+            for j in range(len(individual)):
 
-            for i in range(len(individual)):
+                if j < N:
 
-                if i >= int(len(individual) / 2):
-                    if float(individual.gen[i]) < low_delay:
-                        individual.gen[i] = low_delay
-                    if float(individual.gen[i]) > max_delay:
-                        individual.gen[i] = max_delay
+                    if individual.gen[j] < low_weights[j]:
+                        individual.gen[j] = low_weights[j]
+                    if individual.gen[j] > max_weights[j]:
+                        individual.gen[j] = max_weights[j]
 
-                if i < int(len(individual) / 2):
-                    if float(individual.gen[i]) < low_weights[i]:
-                        individual.gen[i] = low_weights[i]
-                    if float(individual.gen[i]) > max_weights[i]:
-                        individual.gen[i] = max_weights[i]
+                else:
+
+                    if individual.gen[j] < low_delay:
+                        individual.gen[j] = low_delay
+                    if individual.gen[j] > max_delay:
+                        individual.gen[j] = max_delay
 
             final_population.add_individual(individual)
-
-        f.write(f"Final len: {len(final_population)} ")
 
         return final_population
 
 
 class Debug:
 
-   @staticmethod
-   def save(current_population, number):
+    @staticmethod
+    def save(current_population, number):
+        current_individual = Fitness.best_fitness(current_population)
 
-       current_individual = Fitness.best_fitness(current_population)
+        folder = f"{path}/files/"
 
-       folder = f"{path}/files/"
-       
-       # print in file weights and result fitness function
-       f = open(f'{folder}/history.dat', 'a')
-       f.write(f"Population number: {number}")
-       f.write(f"\nPvalue_time = {current_individual.pvalue_times}")
-       f.write(f"\nPvalue_ampl = {current_individual.pvalue_amplitude}")
-       f.write("\n2d\n")
-       f.write(f"Pvalue = {current_individual.pvalue}" "\n")
-       f.write("Weights and delays: \n")
-       for i in current_individual.gen:
-           f.write(str(i) + " ")
+        # print in file weights and result fitness function
+        f = open(f'{folder}/history.dat', 'a')
+        f.write(f"Population number: {number}")
+        f.write(f"\nPvalue_time = {current_individual.pvalue_times}")
+        f.write(f"\nPvalue_ampl = {current_individual.pvalue_amplitude}")
+        f.write("\n2d\n")
+        f.write(f"Pvalue = {current_individual.pvalue}" "\n")
+        f.write("Weights and delays: \n")
+        for i in current_individual.gen:
+            f.write(str(i) + " ")
 
-       f.write("\n\n")
+        f.write("\n\n")
+
+    @staticmethod
+    def log_of_bests(individuals, number):
+        best_individual = individuals[0]
+
+        file_with_log_of_bests = open(f'{path}/files/log_of_bests.dat', 'a')
+        file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
+
+        file = open('../files/bests_pvalue.dat', 'a')
+        file.write(f"In population number {number} best pvalue = {best_individual.pvalue} \n")
+        file.write(
+            f"pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n")
+        file.write(' '.join(map(str, best_individual.gen)) + "\n")
 
 
 if __name__ == "__main__":
@@ -563,11 +562,9 @@ if __name__ == "__main__":
     population = Population()
     population.first_init()
 
-    i = 1
     population_number = 1
 
     while not Evolution.terminate_algorithm:
-
         print(f"Population number = {population_number}")
 
         new_population = Evolution.start_gen_algorithm(population, population_number)
