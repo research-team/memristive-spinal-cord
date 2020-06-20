@@ -27,13 +27,7 @@ low_weights = []
 low_delay = 0.5
 max_delay = 6
 
-# TODO it's needed to be bigger or smaller ?
-low_weight = 0.0001
-max_weight = 2
-
-# TODO it's needed now ?
-# if number of spikes less then this then p-value = 0
-critial_num_spikes = 10000
+crit_peaks_number = 50
 
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
 
@@ -76,7 +70,7 @@ def convert_to_hdf5(result_folder):
                         end += l
                         arr = data[start:end]
                         start += l
-                        hdf5_file.create_dataset(f"{i}", data=arr, compression="gzip")
+                        hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr, compression="gzip")
         # check that hdf5 file was written properly
         with hdf5.File(f"{result_folder}/{name}") as hdf5_file:
             assert all(map(len, hdf5_file.values()))
@@ -88,13 +82,16 @@ class Individual:
         self.pvalue = 0.0
         self.pvalue_amplitude = 0.0
         self.pvalue_times = 0.0
+        self.peaks_number = 0.0
         self.gen = []
         self.weights = []
         self.delays = []
 
     def __str__(self):
-        return f"p-value = {self.pvalue}, p-value ampls = {self.pvalue_amplitude}, " \
-            f"p-value times = {self.pvalue_times}\n"
+
+        return f"""p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, 
+        p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}\n
+        """
 
     def __eq__(self, other):
         return self.pvalue == other.pvalue
@@ -123,69 +120,58 @@ class Individual:
         return float("{0:.4f}".format(format_spec))
 
     def is_correct(self):
-        return self.pvalue_times != 0 and self.pvalue_amplitude != 0 and self.pvalue != 0
+        # ~ pvalue_times != 0 and pvalue_amplitude != 0 and pvalue != 0
+        return self.pvalue * self.pvalue_amplitude * self.pvalue_times != 0 and self.peaks_number >= crit_peaks_number
+
+    def set_weight(self, min_weight, max_weight):
+        self.weights.append(self.__format__(random.uniform(min_weight, max_weight)))
+        max_weights.append(max_weight)
+        low_weights.append(min_weight)
+
+    def set_delay(self):
+        self.weights.append(float("{0:.1f}".format(random.uniform(low_delay, max_delay))))
 
     # init individual with random weights and delays
     def init(self):
 
         # Es ~ OMs
         for i in range(5):
-            self.weights.append(self.__format__(random.uniform(0.01, 0.3)))
-            low_weights.append(0.01)
-            max_weights.append(0.3)
+            self.set_weight(0.01, 0.3)
 
         # CVs - OMs
         for i in range(16):
-            self.weights.append(self.__format__(random.uniform(0.01, 3)))
-            low_weights.append(0.01)
-            max_weights.append(3)
+            self.set_weight(0.01, 3)
 
         # output to Flexor another OM
         for i in range(4):
-            self.weights.append(self.__format__(random.uniform(0.01, 5)))
-            low_weights.append(0.01)
-            max_weights.append(5)
+            self.set_weight(0.01, 5)
 
         # output to eIP
         for i in range(10):
-            self.weights.append(self.__format__(random.uniform(0.1, 2.5)))
-            low_weights.append(0.1)
-            max_weights.append(2.5)
+            self.set_weight(0.1, 2.5)
 
         for i in range(40):
-            self.weights.append(self.__format__(random.uniform(0.05, 1.2)))
-            low_weights.append(0.05)
-            max_weights.append(1.2)
+            self.set_weight(0.05, 1.2)
 
         for i in range(15):
-            self.weights.append(self.__format__(random.uniform(0.01, 0.2)))
-            low_weights.append(0.01)
-            max_weights.append(0.2)
+            self.set_weight(0.01, 0.2)
 
         for i in range(2):
-            self.weights.append(self.__format__(random.uniform(0.005, 0.06)))
-            low_weights.append(0.005)
-            max_weights.append(0.06)
+            self.set_weight(0.005, 0.06)
 
         for i in range(4):
-            self.weights.append(self.__format__(random.uniform(0.0005, 0.002)))
-            low_weights.append(0.0005)
-            max_weights.append(0.002)
+            self.set_weight(0.0005, 0.002)
 
         # eIP ~ MN
         for i in range(2):
-            self.weights.append(self.__format__(random.uniform(5, 10)))
-            low_weights.append(5)
-            max_weights.append(10)
+            self.set_weight(5, 10)
 
         for i in range(6):
             self.weights.append(0)
-            low_weights.append(0)
-            max_weights.append(0)
 
         # init delays
         for i in range(N):
-            self.delays.append(float("{0:.1f}".format(random.uniform(low_delay, max_delay))))
+            self.set_delay()
 
         self.gen = self.weights + self.delays
 
@@ -233,27 +219,32 @@ class Fitness:
             ampls = open(f'{path}/dat/{i}/a.txt')
             times = open(f'{path}/dat/{i}/t.txt')
             d2 = open(f'{path}/dat/{i}/d2.txt')
+            peaks = open(f'{path}/dat/{i}/peaks_number.txt')
 
             individual.pvalue_amplitude = float(ampls.readline())
             individual.pvalue_times = float(times.readline())
             individual.pvalue = float(d2.readline())
+            individual.peaks_number = float(peaks.readline())
 
             Fitness.write_pvalue(individual, num_population)
 
     @staticmethod
     def write_pvalue(individual, number):
 
-        f = open(f'{path}/files/history.dat', 'a')
+        file = open(f'{path}/files/history.dat', 'a')
 
-        if individual.pvalue != 0:
-            f.write(f"Population {number}: individual pvalue: {individual.pvalue}\n")
-            f.write(f"individual pvalue_ampl: {individual.pvalue_amplitude}\n")
-            f.write(f"individual pvalue_time: {individual.pvalue_times}\n")
-            f.write(f"Weighs and delays: {' '.join(map(str, individual.gen))}\n")
-        else:
-            f.write(f"Population {number}: individual pvalue: {individual.pvalue}\n\n")
+        log_str = f"""Population {number}:
+        individual pvalue: {individual.pvalue}\n
+        individual pvalue_ampl: {individual.pvalue_amplitude}\n 
+        individual pvalue_time: {individual.pvalue_times}\n
+        peaks number = {individual.peaks_number}\n
+        """
 
-        f.close()
+        if individual.is_correct():
+            log_str += f"Weighs and delays: {' '.join(map(str, individual.gen))}\n"
+
+        file.write(log_str)
+        file.close()
 
     # choose best value of fitness function for population
     @staticmethod
@@ -395,13 +386,17 @@ class Breeding:
 
             else:
                 counter += 1
-                s = f"Skip individual because p-value = {current_population.individuals[index].pvalue} "
-                s += f"pvalue_ampl = {current_population.individuals[index].pvalue_amplitude} "
-                s += f"pvalue_ampl = {current_population.individuals[index].pvalue_times}\n"
+
+                s = f"""Skip individual because p-value = {current_population.individuals[index].pvalue} 
+                pvalue_ampl = {current_population.individuals[index].pvalue_amplitude} 
+                pvalue_ampl = {current_population.individuals[index].pvalue_times}\n
+                """
+
                 print(s)
                 logg_string += s
 
         logg_string += f"Skiped {counter} individuals\n"
+
         file = open(f"{path}/files/log.dat", 'a')
         file.write(logg_string)
         file.close()
@@ -409,10 +404,7 @@ class Breeding:
         # sort this individuals
         arr = sorted(newPopulation.individuals, reverse=True)
 
-        if len(arr) > N_how_much_we_choose:
-            return arr[:N_how_much_we_choose]
-        else:
-            return arr
+        return arr[:N_how_much_we_choose] if len(arr) > N_how_much_we_choose else arr
 
     @staticmethod
     def calculate_tests_result(current_population, number):
@@ -517,20 +509,17 @@ class Debug:
     def save(current_population, number):
         current_individual = Fitness.best_fitness(current_population)
 
-        folder = f"{path}/files/"
+        log_str = f"""Population number: {number}\n
+        Pvalue_time = {current_individual.pvalue_times}\n
+        Pvalue_ampl = {current_individual.pvalue_amplitude}
+        \n2d\n
+        Pvalue = {current_individual.pvalue}\n
+        Weights and delays: \n
+        {' '.join(map(str, current_individual.gen))}\n\n
+        """
 
-        # print in file weights and result fitness function
-        f = open(f'{folder}/history.dat', 'a')
-        f.write(f"Population number: {number}")
-        f.write(f"\nPvalue_time = {current_individual.pvalue_times}")
-        f.write(f"\nPvalue_ampl = {current_individual.pvalue_amplitude}")
-        f.write("\n2d\n")
-        f.write(f"Pvalue = {current_individual.pvalue}" "\n")
-        f.write("Weights and delays: \n")
-        for i in current_individual.gen:
-            f.write(str(i) + " ")
-
-        f.write("\n\n")
+        f = open(f'{path}/files/history.dat', 'a')
+        f.write(log_str)
 
     @staticmethod
     def log_of_bests(individuals, number):
@@ -539,16 +528,25 @@ class Debug:
         file_with_log_of_bests = open(f'{path}/files/log_of_bests.dat', 'a')
         file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
 
+        log_str = f"""In population number {number} best pvalue = {best_individual.pvalue}\n
+        pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n
+        {' '.join(map(str, best_individual.gen))}\n
+        """
+
         file = open('../files/bests_pvalue.dat', 'a')
-        file.write(f"In population number {number} best pvalue = {best_individual.pvalue} \n")
-        file.write(
-            f"pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n")
-        file.write(' '.join(map(str, best_individual.gen)) + "\n")
+        file.write(log_str)
+        file.close()
+
+    @staticmethod
+    def get(a):
+        return 1 if a > 10 else 0
 
 
 if __name__ == "__main__":
 
-    files = [f"{path}/files/history.dat", f"{path}/files/bests_pvalue.dat", f"{path}/files/log.dat"]
+    files = [f"{path}/files/history.dat",
+             f"{path}/files/bests_pvalue.dat",
+             f"{path}/files/log.dat"]
 
     for file in files:
         if os.path.isfile(file):
