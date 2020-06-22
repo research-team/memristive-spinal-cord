@@ -18,14 +18,14 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
+step_number = 1 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.022
+k = 0.5
 
 exnclist = []
 inhnclist = []
@@ -203,9 +203,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.75, 2)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00033, 2)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.05, 2)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00033, 2)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.05, 2)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -217,11 +217,11 @@ class CPG:
                 for i in range(0, (layer - 1)):
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.9, 1)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.5, 1)
-        genconnect(self.ees, self.Ia_aff_F, 0.5, 1)
-        genconnect(self.ees, self.dict_CV[0], 0.5, 2)
-        genconnect(self.Iagener_E, self.Ia_aff_E, 0.005, 1, False, 5)
-        genconnect(self.Iagener_F, self.Ia_aff_F, 0.005, 1, False, 5)
+        genconnect(self.ees, self.Ia_aff_E, 0.75, 1)
+        genconnect(self.ees, self.Ia_aff_F, 0.75, 1)
+        genconnect(self.ees, self.dict_CV[0], 0.75, 2)
+        genconnect(self.Iagener_E, self.Ia_aff_E, 0.0005, 1, False, 5)
+        genconnect(self.Iagener_F, self.Ia_aff_F, 0.0005, 1, False, 5)
 
         connectcells(self.Ia_aff_E, self.mns_E, 0.5, 2)
         connectcells(self.Ia_aff_F, self.mns_F, 0.5, 2)
@@ -239,17 +239,17 @@ class CPG:
             # connectinsidenucleus(self.dict_1[layer])
             # connectinsidenucleus(self.dict_2E[layer])
             # connectinsidenucleus(self.dict_2F[layer])
-            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.85, 1)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.85, 1)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 0.85, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.05, 1)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.05, 1)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 0.05, 2)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.005, 1, True)
             else:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.003, 1, True)
             '''Flexor'''
-            connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.85, 1)
-            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.85, 1)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 0.85, 2)
+            connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.05, 1)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.05, 1)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 0.05, 2)
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -551,16 +551,16 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 0.75, 3)
-    connectcells(OM1, OM2, 0.75, 3)
-    connectcells(OM2, OM1, 0.75, 4)
-    connectcells(OM2, OM3, 0.05, 2)
-    connectcells(OM1, OM3, 0.0002, 2)
-    connectcells(OM3, OM2, 0.9, 1, True)
-    connectcells(OM3, OM1, 0.9, 1, True)
+    connectcells(OM0, OM1, 0.05, 2)
+    connectcells(OM1, OM2, 0.05, 3)
+    connectcells(OM2, OM1, 0.05, 4)
+    connectcells(OM2, OM3, 0.005, 3)
+    connectcells(OM1, OM3, 0.0002, 3)
+    connectcells(OM3, OM2, 0.04, 2, True)
+    connectcells(OM3, OM1, 0.04, 2, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.45, 1)
+    connectcells(nucleus, nucleus, 0.05, 1)
 
 def spike_record(pool, version, muscle = False):
     ''' Records spikes from gids
@@ -580,7 +580,7 @@ def spike_record(pool, version, muscle = False):
     for i in pool:
         cell = pc.gid2cell(i)
         vec = h.Vector()
-        vec.record(cell.soma(0.5)._ref_vext[1])
+        vec.record(cell.soma(0.5)._ref_v)
         v_vec.append(vec)
     return v_vec
 
@@ -639,7 +639,7 @@ def spikeout(pool, name, version, v_vec):
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
             outavg = avgarr(outavg)
-            path = str('./res/' + name  + 'r%dv%d_%dtests_%dspeed_PLT_ees%d_l%d_exl%d_v2rc' % (rank, version, versions, speed, ees_fr, layers, extra_layers))
+            path = str('./res/' + name  + 'r%dv%d_%dtests_%dspeed_PLT_ees%d_l%d_exl%d_v3rc' % (rank, version, versions, speed, ees_fr, layers, extra_layers))
             f = open(path, 'w')
             for v in outavg:
                 f.write(str(v) + "\n")

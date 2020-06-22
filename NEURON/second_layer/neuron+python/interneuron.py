@@ -53,8 +53,9 @@ class interneuron(object):
     '''
     self.soma = h.Section(name='soma', cell=self)
     self.axon = h.Section(name='axon', cell= self)
-    self.dend = h.Section(name='dend', cell= self)
-    self.dend.connect(self.soma(1))
+    self.dend = [h.Section(name='dend[%d]' % i) for i in range(random.randint(5,10))]
+    for sec in self.dend:
+      sec.connect(self.soma(0.5))
     self.axon.connect(self.soma(1))
 
   def subsets(self):
@@ -73,8 +74,9 @@ class interneuron(object):
     self.soma.L = self.soma.diam = random.randint(5, 15) # microns
     self.axon.L = 150 # microns
     self.axon.diam = 1 # microns
-    self.dend.L = 200 # microns
-    self.dend.diam = random.gauss(1, 0.1) # microns
+    for sec in self.dend:
+      sec.L = 200 # microns
+      sec.diam = random.gauss(1, 0.1) # microns
 
   def geom_nseg(self):
     '''
@@ -93,33 +95,32 @@ class interneuron(object):
 
     self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('fastchannels')
-    self.soma.gnabar_fastchannels = 0.2
+    self.soma.gnabar_fastchannels = 0.5
     self.soma.gkbar_fastchannels = 0.04
     self.soma.gl_fastchannels = 0.0004
     self.soma.el_fastchannels = -70
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
-    self.dend.Ra = 100 # Ra ohm cm - membrane resistance
-    self.dend.insert('pas')
-    self.dend.g_pas = 0.0002
-    self.dend.e_pas = -70
+    for sec in self.dend:
+      sec.Ra = 100 # Ra ohm cm - membrane resistance
 
-    if self.delay:
-      distance = random.uniform(30, 1500)
-      self.dend.insert('hh')
-      diff = h.slow_5HT(self.dend(0.5))
-      rec = h.r5ht3a(self.dend(0.5))
-      rec.gmax = random.uniform(0, 0.002)
-      diff.h = random.gauss(distance, distance/5)
-      diff.c0cleft = 2
-      diff.tx1 = 10+(diff.h/70)*1000
-      h.setpointer(diff._ref_serotonin, 'serotonin', rec)
-      self.diffs.append(diff)
-      self.recs.append(rec)
-    else:
-      self.dend.insert('pas')
-      self.dend.g_pas = 0.0002
-      self.dend.e_pas = -70
+    for sec in self.dend:
+      if self.delay:
+        distance = random.uniform(30, 1500)
+        sec.insert('hh')
+        diff = h.slow_5HT(self.dend(0.5))
+        rec = h.r5ht3a(self.dend(0.5))
+        rec.gmax = random.uniform(0, 0.002)
+        diff.h = random.gauss(distance, distance/5)
+        diff.c0cleft = 2
+        diff.tx1 = 10+(diff.h/70)*1000
+        h.setpointer(diff._ref_serotonin, 'serotonin', rec)
+        self.diffs.append(diff)
+        self.recs.append(rec)
+      else:
+        sec.insert('pas')
+        sec.g_pas = 0.0002
+        sec.e_pas = -65 
 
     self.axon.Ra = 50
     self.axon.insert('hh')
@@ -148,7 +149,7 @@ class interneuron(object):
     nc: NEURON NetCon
         connection between neurons
     '''
-    nc = h.NetCon(self.soma(1)._ref_v, target, sec = self.soma)
+    nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
     nc.threshold = 10
     return nc
 
@@ -156,20 +157,22 @@ class interneuron(object):
     '''
     Adds synapses
     '''
-    for i in range(20):
-      s = h.ExpSyn(self.dend(0.5)) # Excitatory
-      s.tau = 0.1
-      s.e = 50
-      self.synlistex.append(s)
-      s = h.Exp2Syn(self.dend(0.5)) # Inhibitory
+    for i in range(200):
+      s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
       s.tau1 = 2
       s.tau2 = 3
       s.e = -80
       self.synlistinh.append(s)
-      s = h.ExpSyn(self.dend(0.8)) # Excitatory
+      s = h.ExpSyn(self.soma(0.8)) # Excitatory
       s.tau = 0.1
       s.e = 50
       self.synlistees.append(s)
+    for sec in self.dend:
+      for i in range(50):
+        s = h.ExpSyn(sec(0.5)) # Excitatory
+        s.tau = 0.1
+        s.e = 50
+        self.synlistex.append(s)
 
   def is_art(self):
     return 0
