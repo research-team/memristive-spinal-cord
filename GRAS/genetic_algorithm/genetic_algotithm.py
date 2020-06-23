@@ -5,6 +5,7 @@ import logging
 import numpy as np
 import h5py as hdf5
 import time
+import datetime
 
 from multi_gpu_build import Build
 from meta_plotting import get_4_pvalue
@@ -12,7 +13,7 @@ from meta_plotting import get_4_pvalue
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-N_individuals_in_first_init = 4
+N_individuals_in_first_init = 500
 N_how_much_we_choose = 15
 
 # p-value what we want or bigger
@@ -29,7 +30,21 @@ max_delay = 6
 
 crit_peaks_number = 50
 
+speed = 13.5
+
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
+
+
+def write_zero(result_folder):
+    f = open(f"{result_folder}/time.txt", 'w')
+    f.write("0")
+    f.close()
+    f = open(f"{result_folder}/ampl.txt", 'w')
+    f.write("0")
+    f.close()
+    f = open(f"{result_folder}/2d.txt", 'w')
+    f.write("0")
+    f.close()
 
 
 def convert_to_hdf5(result_folder):
@@ -44,24 +59,22 @@ def convert_to_hdf5(result_folder):
         is_datfile = lambda f: f.endswith(f"{muscle}.dat")
         datfiles = filter(is_datfile, os.listdir(result_folder))
 
-        name = f"gras_{muscle.replace('MN_', '')}_PLT_21cms_40Hz_2pedal_0.025step.hdf5"
+        name = f"gras_{muscle.replace('MN_', '')}_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
 
         with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
             for test_index, filename in enumerate(datfiles):
                 with open(f"{result_folder}/{filename}") as datfile:
-                    data = [-float(v) for v in datfile.readline().split()]
+                    data = [v for v in datfile.readline().split()]
+                    if data.__contains__("-"):
+                        logging.info(f"{filename} has '-' skip")
+                        write_zero(result_folder)
+                        continue
+                    else:
+                        data = list(map(float, data))
                     # check on NaN values (!important)
                     if any(map(np.isnan, data)):
                         logging.info(f"{filename} has NaN... skip")
-                        f = open(f"{result_folder}/time.txt", 'w')
-                        f.write("0")
-                        f.close()
-                        f = open(f"{result_folder}/ampl.txt", 'w')
-                        f.write("0")
-                        f.close()
-                        f = open(f"{result_folder}/2d.txt", 'w')
-                        f.write("0")
-                        f.close()
+                        write_zero(result_folder)
                         continue
 
                     length = len(data)
@@ -88,7 +101,6 @@ class Individual:
         self.delays = []
 
     def __str__(self):
-
         return f"""p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, 
         p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}\n
         """
@@ -103,33 +115,35 @@ class Individual:
 
         new_individual = Individual()
 
-        for weight in self.weights:
-            new_individual.weights.append(weight)
+        for g in self.gen:
+            new_individual.gen.append(g)
 
-        for delay in self.delays:
-            new_individual.delays.append(delay)
-
-        new_individual.gen = new_individual.weights + new_individual.delays
+        new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
         return new_individual
 
     def __len__(self):
         return len(self.gen)
 
-    def __format__(self, format_spec):
-        return float("{0:.4f}".format(format_spec))
+    @staticmethod
+    def format_weight(weight):
+        return float("{0:.4f}".format(weight))
+
+    @staticmethod
+    def format_delay(delay):
+        return float("{0:.1f}".format(delay))
 
     def is_correct(self):
         # ~ pvalue_times != 0 and pvalue_amplitude != 0 and pvalue != 0
         return self.pvalue * self.pvalue_amplitude * self.pvalue_times != 0 and self.peaks_number >= crit_peaks_number
 
     def set_weight(self, min_weight, max_weight):
-        self.weights.append(self.__format__(random.uniform(min_weight, max_weight)))
+        self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
         max_weights.append(max_weight)
         low_weights.append(min_weight)
 
     def set_delay(self):
-        self.weights.append(float("{0:.1f}".format(random.uniform(low_delay, max_delay))))
+        self.delays.append(Individual().format_delay(random.uniform(low_delay, max_delay)))
 
     # init individual with random weights and delays
     def init(self):
@@ -176,6 +190,31 @@ class Individual:
         self.gen = self.weights + self.delays
 
 
+class Data:
+    path_to_files = f"{path}/files"
+    path_to_dat_folder = f"{path}/dat"
+
+    files = [f"{path_to_files}/history.dat", f"{path_to_files}/bests_pvalue.dat",
+            f"{path_to_files}/log.dat", f"{path_to_files}/log_of_bests.dat"]
+
+    for i in range(4):
+        files.append(f"{path_to_dat_folder}/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/a.txt")
+        files.append(f"{path_to_dat_folder}/{i}/t.txt")
+        files.append(f"{path_to_dat_folder}/{i}/d2.txt")
+        files.append(f"{path_to_dat_folder}/{i}/peaks.txt")
+        files.append(f"{path_to_dat_folder}/{i}/{i}_MN_E.dat")
+        files.append(f"{path_to_dat_folder}/{i}/{i}_MN_F.dat")
+
+    @staticmethod
+    def delete_all_files():
+        for file in Data.files:
+            if os.path.isfile(file):
+                print(f"Deleted {file}")
+                os.remove(f"{file}")
+
+
 class Population:
 
     def __init__(self):
@@ -205,6 +244,8 @@ class Fitness:
     @staticmethod
     def calculate_fitness(individuals, num_population):
 
+        print("CALCULATE FITNESS FUNCTION")
+
         # converting 4 results data to hdf5
         for i in range(4):
             convert_to_hdf5(f"{path}/dat/{i}")
@@ -219,7 +260,7 @@ class Fitness:
             ampls = open(f'{path}/dat/{i}/a.txt')
             times = open(f'{path}/dat/{i}/t.txt')
             d2 = open(f'{path}/dat/{i}/d2.txt')
-            peaks = open(f'{path}/dat/{i}/peaks_number.txt')
+            peaks = open(f'{path}/dat/{i}/peaks.txt')
 
             individual.pvalue_amplitude = float(ampls.readline())
             individual.pvalue_times = float(times.readline())
@@ -228,17 +269,14 @@ class Fitness:
 
             Fitness.write_pvalue(individual, num_population)
 
+        Data.delete_all_files()
+
     @staticmethod
     def write_pvalue(individual, number):
 
         file = open(f'{path}/files/history.dat', 'a')
 
-        log_str = f"""Population {number}:
-        individual pvalue: {individual.pvalue}\n
-        individual pvalue_ampl: {individual.pvalue_amplitude}\n 
-        individual pvalue_time: {individual.pvalue_times}\n
-        peaks number = {individual.peaks_number}\n
-        """
+        log_str = f"Population {number}:\n {str(individual)}"
 
         if individual.is_correct():
             log_str += f"Weighs and delays: {' '.join(map(str, individual.gen))}\n"
@@ -283,9 +321,9 @@ class Breeding:
             if index % n == n:
                 low, high = Breeding.get_low_high(g)
                 if index < N:
-                    new_individual.weights.append(Individual().__format__(random.uniform(low, high)))
+                    new_individual.weights.append(Individual().format_weight(random.uniform(low, high)))
                 else:
-                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -324,9 +362,9 @@ class Breeding:
             if n < 50:
                 low, high = Breeding.get_low_high(g)
                 if index < N:
-                    new_individual.weights.append(Individual().__format__(random.uniform(low, high)))
+                    new_individual.weights.append(Individual().format_weight(random.uniform(low, high)))
                 else:
-                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -343,9 +381,9 @@ class Breeding:
                 m = random.randint(2, 10)
                 low, high = g - g / m, g + g / m
                 if index < N:
-                    new_individual.gen.append(Individual().__format__(random.uniform(low, high)))
+                    new_individual.gen.append(Individual().format_weight(random.uniform(low, high)))
                 else:
-                    new_individual.weights.append(float("{0:.1f}".format(random.uniform(low, high))))
+                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -361,9 +399,9 @@ class Breeding:
             mean = new_individual.gen[index]
             low, high = Breeding.get_low_high(mean)
             if index < N:
-                new_individual.gen[index] = Individual().__format__(random.uniform(low, high))
+                new_individual.gen[index] = Individual().format_weight(random.uniform(low, high))
             else:
-                new_individual.gen[index] = float("{0:.1f}".format(random.uniform(low, high)))
+                new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
 
         return new_individual
 
@@ -387,10 +425,7 @@ class Breeding:
             else:
                 counter += 1
 
-                s = f"""Skip individual because p-value = {current_population.individuals[index].pvalue} 
-                pvalue_ampl = {current_population.individuals[index].pvalue_amplitude} 
-                pvalue_ampl = {current_population.individuals[index].pvalue_times}\n
-                """
+                s = f"Skip individual because {str(current_population.individuals[index])}\n"
 
                 print(s)
                 logg_string += s
@@ -428,7 +463,7 @@ class Breeding:
 
         for i in range(len(arr1)):
             Build.run_tests(arr1[i])
-            time.sleep(0.1)
+            time.sleep(0.2)
             Fitness.calculate_fitness(arr1[i], number)
 
 
@@ -441,7 +476,7 @@ class Evolution:
         Breeding.calculate_tests_result(current_population.individuals, number)
         individuals = Breeding.select(current_population)
 
-        # Debug.log_of_bests(individuals, number)
+        Debug.log_of_bests(individuals, number)
 
         newPopulation = Population()
 
@@ -465,11 +500,11 @@ class Evolution:
         for individual in individuals:
             newPopulation.add_individual(Breeding.mutation3(individual))
 
-        for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation2(individual))
-
-        for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation4(individual))
+        # for individual in individuals:
+        #     newPopulation.add_individual(Breeding.mutation2(individual))
+        #
+        # for individual in individuals:
+        #     newPopulation.add_individual(Breeding.mutation4(individual))
 
         for individual in individuals:
             newPopulation.add_individual(Breeding.mutation(individual))
@@ -507,15 +542,12 @@ class Debug:
 
     @staticmethod
     def save(current_population, number):
-        current_individual = Fitness.best_fitness(current_population)
+        best_individual = Fitness.best_fitness(current_population)
 
-        log_str = f"""Population number: {number}\n
-        Pvalue_time = {current_individual.pvalue_times}\n
-        Pvalue_ampl = {current_individual.pvalue_amplitude}
-        \n2d\n
-        Pvalue = {current_individual.pvalue}\n
-        Weights and delays: \n
-        {' '.join(map(str, current_individual.gen))}\n\n
+        log_str = f"""Population number = {number}\n
+        {str(best_individual)}\n
+        Weights and delays:\n
+        {' '.join(map(str, best_individual.gen))}\n\n
         """
 
         f = open(f'{path}/files/history.dat', 'a')
@@ -527,6 +559,7 @@ class Debug:
 
         file_with_log_of_bests = open(f'{path}/files/log_of_bests.dat', 'a')
         file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
+        file_with_log_of_bests.close()
 
         log_str = f"""In population number {number} best pvalue = {best_individual.pvalue}\n
         pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n
@@ -537,22 +570,14 @@ class Debug:
         file.write(log_str)
         file.close()
 
-    @staticmethod
-    def get(a):
-        return 1 if a > 10 else 0
-
 
 if __name__ == "__main__":
 
-    files = [f"{path}/files/history.dat",
-             f"{path}/files/bests_pvalue.dat",
-             f"{path}/files/log.dat"]
+    Data().delete_all_files()
 
-    for file in files:
-        if os.path.isfile(file):
-            os.remove(f"{file}")
-
-    print("Deleted files with history, bests_pvalue and log")
+    f = open(f"{path}/files/history.dat")
+    f.write(f"{datetime.datetime.now()}\n")
+    f.close()
 
     Build.compile()
 
