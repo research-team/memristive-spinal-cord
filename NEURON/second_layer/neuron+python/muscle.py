@@ -13,6 +13,7 @@ class muscle(object):
     self.topol()
     self.subsets()
     self.geom()
+    self.geom_nseg()
     self.biophys()
     self.synlistex = []
     self.synapses()
@@ -42,42 +43,54 @@ class muscle(object):
     '''
     Adds length and diameter to sections
     '''
-    self.muscle_unit.L = 30 # microns
-    self.muscle_unit.diam = 30 # microns
-    self.soma.L = 30 # microns
-    self.soma.diam = 30 # microns
+    self.muscle_unit.L = 5000 # microns
+    self.muscle_unit.diam = 40 # microns
+    self.soma.L = 5000 # microns
+    self.soma.diam = 40 # microns
 
   def geom_nseg(self):
     '''
     Calculates numder of segments in section
     '''
     for sec in self.all:
-      sec.nseg = int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
+      sec.nseg = 10#int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
 
   def biophys(self):
     '''
     Adds channels and their parameters
     '''
-    self.muscle_unit.cm = random.uniform(3, 4)  # cm uf/cm2
+    self.muscle_unit.cm = 3.6  # cm uf/cm2
     self.muscle_unit.insert('pas')
-    self.muscle_unit.g_pas = 0.002
+    self.muscle_unit.g_pas = 0.0005
+    self.muscle_unit.Ra = 0.15
 
-    self.soma.cm = random.uniform(3, 4) # cm uf/cm2
-    self.soma.Ra = random.uniform(50, 80)
+    self.soma.cm = 3.6 # cm uf/cm2
+    self.soma.Ra = 0.15
     self.soma.insert('Ca_conc')
-    self.soma.insert('hh')
+    self.soma.insert('fastchannels')
     self.soma.insert('kir')
     self.soma.insert('na14a')
     self.soma.insert('cal')
     self.soma.insert('K_No')
     self.soma.insert('cac1')
-    self.soma.gmax_cac1 = 0.01
-    self.soma.gbar_na14a = 0.4
-    self.soma.gkbar_kir = 0.04
-    self.soma.gnabar_hh = 0.3
-    self.soma.gkbar_hh = 0.04
-    self.soma.gl_hh = 0.0002
-    self.soma.gkmax_K_No = 0.1
+    # self.soma.insert('pas')
+    # self.soma.g_pas = 0.0002
+    self.soma.gmax_cac1 = 0.0002
+    self.soma.gbar_na14a = 0.55
+    self.soma.gkbar_kir = 0.015
+    self.soma.gnabar_fastchannels=0.35
+    self.soma.gkbar_fastchannels=0.015
+    self.soma.gl_fastchannels=0.0002
+    self.soma.el_fastchannels=-70
+    # self.soma.gnabar_hh = 0.35
+    # self.soma.gkbar_hh = 0.02
+    # self.soma.gl_hh = 0.002
+    self.soma.gkmax_K_No = 0.02
+    self.soma.gcalbar_cal = 0.003
+
+    self.soma.ena = 55
+    self.soma.ek = -80
+
     # self.soma.gcaN_motoneuron = 0.0#001
     # self.soma.gnabar_motoneuron = 0.2
     # self.soma.gcaL_motoneuron = 0.0003
@@ -115,7 +128,7 @@ class muscle(object):
     '''
     for i in range(200):
         s = h.ExpSyn(self.soma(0.5)) # Inhibitory
-        s.tau = 0.4
+        s.tau = 0.3
         # s.tau2 = 0.5
         s.e = 0
         self.synlistex.append(s)
