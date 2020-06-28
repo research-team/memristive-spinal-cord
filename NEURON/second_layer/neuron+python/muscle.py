@@ -43,9 +43,9 @@ class muscle(object):
     '''
     Adds length and diameter to sections
     '''
-    self.muscle_unit.L = 5000 # microns
+    self.muscle_unit.L = 1500 # microns
     self.muscle_unit.diam = 40 # microns
-    self.soma.L = 5000 # microns
+    self.soma.L = 3500 # microns
     self.soma.diam = 40 # microns
 
   def geom_nseg(self):
@@ -53,7 +53,7 @@ class muscle(object):
     Calculates numder of segments in section
     '''
     for sec in self.all:
-      sec.nseg = 10#int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
+      sec.nseg = int((sec.L/(0.1*h.lambda_f(100)) + .9)/2.)*2 + 1
 
   def biophys(self):
     '''
@@ -61,12 +61,12 @@ class muscle(object):
     '''
     self.muscle_unit.cm = 3.6  # cm uf/cm2
     self.muscle_unit.insert('pas')
-    self.muscle_unit.g_pas = 0.0005
-    self.muscle_unit.Ra = 0.15
+    self.muscle_unit.g_pas = 0.002
+    self.muscle_unit.Ra = 0.06
 
     self.soma.cm = 3.6 # cm uf/cm2
-    self.soma.Ra = 0.15
-    self.soma.insert('Ca_conc')
+    self.soma.Ra = 0.06
+    # self.soma.insert('Ca_conc')
     self.soma.insert('fastchannels')
     self.soma.insert('kir')
     self.soma.insert('na14a')
@@ -75,21 +75,21 @@ class muscle(object):
     self.soma.insert('cac1')
     # self.soma.insert('pas')
     # self.soma.g_pas = 0.0002
-    self.soma.gmax_cac1 = 0.0002
-    self.soma.gbar_na14a = 0.55
-    self.soma.gkbar_kir = 0.015
+    self.soma.gmax_cac1 = 0.001
+    self.soma.gbar_na14a = 0.5
+    self.soma.gkbar_kir = 0.01
     self.soma.gnabar_fastchannels=0.35
-    self.soma.gkbar_fastchannels=0.015
-    self.soma.gl_fastchannels=0.0002
+    self.soma.gkbar_fastchannels=0.01
+    self.soma.gl_fastchannels=0.002
     self.soma.el_fastchannels=-70
     # self.soma.gnabar_hh = 0.35
     # self.soma.gkbar_hh = 0.02
     # self.soma.gl_hh = 0.002
-    self.soma.gkmax_K_No = 0.02
+    self.soma.gkmax_K_No = 0.015
     self.soma.gcalbar_cal = 0.003
 
     self.soma.ena = 55
-    self.soma.ek = -80
+    self.soma.ek = -90
 
     # self.soma.gcaN_motoneuron = 0.0#001
     # self.soma.gnabar_motoneuron = 0.2
