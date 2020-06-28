@@ -30,7 +30,7 @@ max_delay = 6
 
 crit_peaks_number = 50
 
-speed = 13.5
+speed = 6
 
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
 
@@ -64,26 +64,24 @@ def convert_to_hdf5(result_folder):
         with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
             for test_index, filename in enumerate(datfiles):
                 with open(f"{result_folder}/{filename}") as datfile:
-                    data = [v for v in datfile.readline().split()]
-                    if data.__contains__("-"):
-                        logging.info(f"{filename} has '-' skip")
-                        write_zero(result_folder)
-                        continue
-                    else:
-                        data = list(map(float, data))
-                    # check on NaN values (!important)
-                    if any(map(np.isnan, data)):
-                        logging.info(f"{filename} has NaN... skip")
-                        write_zero(result_folder)
-                        continue
+                    try:
+                        data = [-float(v) for v in datfile.readline().split()]
+                        # check on NaN values (!important)
+                        if any(map(np.isnan, data)):
+                            logging.info(f"{filename} has NaN... skip")
+                            write_zero(result_folder)
+                            continue
 
-                    length = len(data)
-                    start, end, l = 0, 0, int(length / 10)
-                    for i in range(10):
-                        end += l
-                        arr = data[start:end]
-                        start += l
-                        hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr, compression="gzip")
+                        length = len(data)
+                        start, end, l = 0, 0, int(length / 10)
+                        for i in range(10):
+                            end += l
+                            arr = data[start:end]
+                            start += l
+                            hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr,
+                                                     compression="gzip")
+                    except:
+                        continue
         # check that hdf5 file was written properly
         with hdf5.File(f"{result_folder}/{name}") as hdf5_file:
             assert all(map(len, hdf5_file.values()))
@@ -99,16 +97,20 @@ class Individual:
         self.gen = []
         self.weights = []
         self.delays = []
+        self.id = 0
+        self.origin = ""
 
     def __str__(self):
         return f"""p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, 
-        p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}\n
+        p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}, origin from {self.origin}\n
         """
 
     def __eq__(self, other):
+        # return self.peaks_number == self.peaks_number
         return self.pvalue == other.pvalue
 
     def __gt__(self, other):
+        # return self.peaks_number > self.peaks_number
         return self.pvalue > other.pvalue
 
     def __copy__(self):
@@ -134,6 +136,7 @@ class Individual:
         return float("{0:.1f}".format(delay))
 
     def is_correct(self):
+        # return self.peaks_number > 0
         # ~ pvalue_times != 0 and pvalue_amplitude != 0 and pvalue != 0
         return self.pvalue * self.pvalue_amplitude * self.pvalue_times != 0 and self.peaks_number >= crit_peaks_number
 
@@ -150,22 +153,22 @@ class Individual:
 
         # Es ~ OMs
         for i in range(5):
-            self.set_weight(0.01, 0.3)
+            self.set_weight(0.01, 0.5)
 
         # CVs - OMs
         for i in range(16):
-            self.set_weight(0.01, 3)
+            self.set_weight(0.06, 2)
 
         # output to Flexor another OM
         for i in range(4):
-            self.set_weight(0.01, 5)
+            self.set_weight(0.001, 0.01)
 
         # output to eIP
         for i in range(10):
-            self.set_weight(0.1, 2.5)
+            self.set_weight(0.1, 5)
 
         for i in range(40):
-            self.set_weight(0.05, 1.2)
+            self.set_weight(0.05, 1)
 
         for i in range(15):
             self.set_weight(0.01, 0.2)
@@ -178,7 +181,7 @@ class Individual:
 
         # eIP ~ MN
         for i in range(2):
-            self.set_weight(5, 10)
+            self.set_weight(2, 15)
 
         for i in range(6):
             self.weights.append(0)
@@ -188,18 +191,25 @@ class Individual:
             self.set_delay()
 
         self.gen = self.weights + self.delays
+        self.origin = "first init"
 
 
 class Data:
     path_to_files = f"{path}/files"
     path_to_dat_folder = f"{path}/dat"
 
-    files = [f"{path_to_files}/history.dat", f"{path_to_files}/bests_pvalue.dat",
-            f"{path_to_files}/log.dat", f"{path_to_files}/log_of_bests.dat"]
+    log_files = [f"{path_to_files}/history.dat", f"{path_to_files}/bests_pvalue.dat",
+                 f"{path_to_files}/log.dat", f"{path_to_files}/log_of_bests.dat"]
+
+    files = []
 
     for i in range(4):
-        files.append(f"{path_to_dat_folder}/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5")
-        files.append(f"{path_to_dat_folder}/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_E_PLT_21cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_F_PLT_21cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_E_PLT_13.5cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_F_PLT_13.5cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_E_PLT_6cms_40Hz_2pedal_0.025step.hdf5")
+        files.append(f"{path_to_dat_folder}/{i}/gras_F_PLT_6cms_40Hz_2pedal_0.025step.hdf5")
         files.append(f"{path_to_dat_folder}/{i}/a.txt")
         files.append(f"{path_to_dat_folder}/{i}/t.txt")
         files.append(f"{path_to_dat_folder}/{i}/d2.txt")
@@ -208,11 +218,19 @@ class Data:
         files.append(f"{path_to_dat_folder}/{i}/{i}_MN_F.dat")
 
     @staticmethod
-    def delete_all_files():
-        for file in Data.files:
+    def delete(files_arr):
+        for file in files_arr:
             if os.path.isfile(file):
                 print(f"Deleted {file}")
                 os.remove(f"{file}")
+
+    @staticmethod
+    def delete_files():
+        Data().delete(Data.files)
+
+    @staticmethod
+    def delete_all_files():
+        Data().delete(Data.log_files + Data.files)
 
 
 class Population:
@@ -232,6 +250,7 @@ class Population:
             individual = Individual()
             individual.init()
             self.add_individual(individual)
+            individual.id = i
 
         print("Population 1 inited")
 
@@ -269,7 +288,7 @@ class Fitness:
 
             Fitness.write_pvalue(individual, num_population)
 
-        Data.delete_all_files()
+        Data.delete_files()
 
     @staticmethod
     def write_pvalue(individual, number):
@@ -308,6 +327,8 @@ class Breeding:
         new_individual_2.weights = new_individual_1.gen[:int(len(new_individual_1) / 2)]
         new_individual_2.delays = new_individual_1.gen[int(len(new_individual_1) / 2):]
 
+        new_individual_1.origin, new_individual_2.origin = "crossover", "crossover"
+
         return new_individual_1, new_individual_2
 
     @staticmethod
@@ -326,6 +347,8 @@ class Breeding:
                     new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
+
+        new_individual.origin = "mutation2"
 
         return new_individual
 
@@ -368,6 +391,8 @@ class Breeding:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
+        new_individual.origin = "mutation3"
+
         return new_individual
 
     @staticmethod
@@ -387,6 +412,8 @@ class Breeding:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
+        new_individual.origin = "mutation4"
+
         return new_individual
 
     @staticmethod
@@ -402,6 +429,8 @@ class Breeding:
                 new_individual.gen[index] = Individual().format_weight(random.uniform(low, high))
             else:
                 new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
+
+        new_individual.origin = "mutation"
 
         return new_individual
 
@@ -500,11 +529,11 @@ class Evolution:
         for individual in individuals:
             newPopulation.add_individual(Breeding.mutation3(individual))
 
-        # for individual in individuals:
-        #     newPopulation.add_individual(Breeding.mutation2(individual))
-        #
-        # for individual in individuals:
-        #     newPopulation.add_individual(Breeding.mutation4(individual))
+        for individual in individuals:
+            newPopulation.add_individual(Breeding.mutation2(individual))
+
+        for individual in individuals:
+            newPopulation.add_individual(Breeding.mutation4(individual))
 
         for individual in individuals:
             newPopulation.add_individual(Breeding.mutation(individual))
@@ -561,12 +590,13 @@ class Debug:
         file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
         file_with_log_of_bests.close()
 
-        log_str = f"""In population number {number} best pvalue = {best_individual.pvalue}\n
-        pvalue_ampl = {best_individual.pvalue_amplitude} \n pvalue_times = {best_individual.pvalue_times}\n
+        log_str = f"""In population number {number} best pvalue = {best_individual.pvalue}
+        pvalue_ampl = {best_individual.pvalue_amplitude}, pvalue_times = {best_individual.pvalue_times}, 
+        origin {best_individual.origin}\n
         {' '.join(map(str, best_individual.gen))}\n
         """
 
-        file = open('../files/bests_pvalue.dat', 'a')
+        file = open(f'{path}/files/bests_pvalue.dat', 'a')
         file.write(log_str)
         file.close()
 
@@ -575,7 +605,7 @@ if __name__ == "__main__":
 
     Data().delete_all_files()
 
-    f = open(f"{path}/files/history.dat")
+    f = open(f"{path}/files/history.dat", "w")
     f.write(f"{datetime.datetime.now()}\n")
     f.close()
 
