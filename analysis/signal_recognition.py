@@ -8,6 +8,7 @@ import scipy.io as sio
 from fastkde import fastKDE
 from matplotlib.path import Path
 from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
@@ -39,6 +40,9 @@ class PlotWindow(QMainWindow):
 		self.ax2.set_title("Processing")
 		self.ax3.set_title("Result output")
 		self.ax4.set_title("Debug info")
+		# build a colorbar at right of Axis №3
+		self.cax = make_axes_locatable(self.ax3).append_axes("right", size="5%", pad="2%")
+		self.cax.axis('off')
 		#
 		self.init_interactive()
 		# (2) Create the navigation toolbar, tied to the canvas
@@ -62,7 +66,8 @@ class PlotWindow(QMainWindow):
 
 	def update_plot(self):
 		if not self._polygon_points:
-			self._line.set_data([], [])
+			if self._line:
+				self._line.set_data([], [])
 		else:
 			x, y = zip(*self._polygon_points)
 			# Add new plot
@@ -155,6 +160,7 @@ class PlotWindow(QMainWindow):
 			if point:
 				self.remove_point(point)
 				self.update_plot()
+				self.parent.filter_exclude()
 			else:
 				self._anchor_object = (event.xdata, event.ydata)
 				self.update_plot()
@@ -195,11 +201,12 @@ class PlotWindow(QMainWindow):
 class Application(QMainWindow):
 	def __init__(self, parent=None):
 		QMainWindow.__init__(self, parent)
-		self.setWindowTitle('Computer Vision Analyzer v3.0 (NcN lab product 2020)')
+		self.setWindowTitle('Computer Vision Analyzer v3.1 (NcN lab product 2020)')
 		self.create_main_frame()
 		self.create_status_bar()
 
-		self.dat = None
+		self.data = None
+		self.mask_inside = None
 		self.current_frame = 0
 
 	def open_file(self, path):
@@ -212,31 +219,31 @@ class Application(QMainWindow):
 		"""
 		self.variables = {}
 		try:
-			for k, v in sio.loadmat(path).items():
+			for varname, vardata in sio.loadmat(path).items():
 				# get only 4-dim data
-				if len(np.shape(v)) == 4:
-					self.variables[k] = v[:]
+				if len(np.shape(vardata)) == 4:
+					self.variables[varname] = vardata[:]
 		except NotImplementedError:
 			with h5py.File(path, 'r') as file:
-				for k, v in file.items():
+				for varname, vardata in file.items():
 					# get only 4-dim data
-					if len(np.shape(v)) == 4:
-						self.variables[k] = v[:]
+					if len(np.shape(vardata)) == 4:
+						self.variables[varname] = vardata[:]
 		except Exception:
-			QMessageBox.about(self, f"Error", 'Could not read the file at all...')
+			QMessageBox.about(self, 'Error', "Could not read the file...")
 
 	def file_dialog(self):
 		"""
 		Invoke PyQT file dialog with unblocking buttons
 		"""
-		fname = QFileDialog.getOpenFileName(self, 'Open file', "", "MAT file (*.mat)")
+		fname = QFileDialog.getOpenFileName(self, "Open file", '', "MAT file (*.mat)")
 		# if exists
 		if fname[0]:
 			self.box_variable.clear()
 			# delete old data if exists
-			if self.dat is not None:
-				del self.dat
-			self.dat = None
+			if self.data is not None:
+				del self.data
+			self.data = None
 			# prepare the data
 			self.status_text.setText("Unpack .mat file... Please wait")
 			QApplication.processEvents()
@@ -247,8 +254,8 @@ class Application(QMainWindow):
 			self.status_text.setText(f".mat file is unpacked ({self.filepath})")
 			# based on data set the possible variables
 			self.box_variable.setEnabled(True)
-			for k in self.variables.keys():
-				self.box_variable.addItem(str(k))
+			for varname in self.variables.keys():
+				self.box_variable.addItem(str(varname))
 
 	def reshape_data(self):
 		"""
@@ -257,8 +264,8 @@ class Application(QMainWindow):
 		# get new shape as tuple
 		new_order = tuple(map(int, self.in_data_reshape.text().split()))
 		# reshape data to the new shape
-		self.dat = np.transpose(self.dat, new_order)
-		self.im_height, self.im_width, self.total_frames, methods_num = self.dat.shape
+		self.data = np.transpose(self.data, new_order)
+		self.im_height, self.im_width, self.total_frames, methods_num = self.data.shape
 		self.im_shape = (self.im_height, self.im_width)
 		# disable buttons of reshaping
 		self.in_data_reshape.setEnabled(False)
@@ -268,11 +275,11 @@ class Application(QMainWindow):
 		self.in_end_frame.setValidator(QIntValidator(0, self.total_frames - 1))
 		self.in_end_frame.setText(str(self.total_frames - 1))
 		# update status
-		self.status_text.setText(f"Data was reshaped to {self.dat.shape}")
+		self.status_text.setText(f"Data was reshaped to {self.data.shape}")
 		#
 		self.box_method.clear()
-		for i in range(methods_num):
-			self.box_method.addItem(str(i))
+		for method_index in range(methods_num):
+			self.box_method.addItem(str(method_index))
 		#
 		self.plot_frame.interactive_dist = max(self.im_width, self.im_height) * 0.1
 
@@ -282,9 +289,9 @@ class Application(QMainWindow):
 		var = self.box_variable.currentText()
 		if var != '':
 			# get the data by name
-			self.dat = self.variables[var]
+			self.data = self.variables[var]
 			# meta info
-			data_shape = self.dat.shape
+			data_shape = self.data.shape
 			str_format = len(data_shape) * '{:<5}'
 			self.label_fileinfo.setText(f"Shape: {str_format.format(*data_shape)}\n"
 			                            f"Index: {str_format.format(*list(range(4)))}")
@@ -297,6 +304,11 @@ class Application(QMainWindow):
 			self.status_text.setText(f"{var} is chosen {data_shape}")
 
 	def filter_exclude(self):
+		"""
+
+		Returns:
+
+		"""
 		row, col = np.indices(self.im_shape)
 		grid_points = np.vstack((col.ravel(), row.ravel())).T
 		p = Path(self.plot_frame._polygon_points)  # make a polygon
@@ -304,11 +316,15 @@ class Application(QMainWindow):
 		self.true_y, self.true_x = np.where(self.mask_inside)
 
 	def method_onchange(self):
+		"""
+
+		Returns:
+
+		"""
 		text = self.box_method.currentText()
 		if text != '':
 			methodic = int(text)
-			# self.ax1.clear()
-			self.plot_frame.ax1.imshow(np.mean(self.dat[:, :, :, methodic], axis=2), zorder=-10, cmap='gray')
+			self.plot_frame.ax1.imshow(np.mean(self.data[:, :, :, methodic], axis=2), zorder=-10, cmap='gray')
 			if self.plot_frame._line:
 				self.plot_frame.update_plot()
 			else:
@@ -322,12 +338,21 @@ class Application(QMainWindow):
 
 	@staticmethod
 	def align_coord(coords, border):
+		"""
+
+		Args:
+			coords:
+			border:
+
+		Returns:
+
+		"""
 		coords[coords >= border - 0.5] = border - 1
 		coords[coords <= 0.5] = 0
 		return coords
 
 	def update_draws(self, frame, methodic, static_thresh=None, dynamic_thresh=None,
-	                 fullness_need=None, normalization=None, anchor=None, reversal=None, save_result=False):
+	                 fullness_need=None, separation=None, anchor=None, reversal=None, save_result=False):
 		"""
 		Calculate contours and draw them on the axis
 		Args:
@@ -336,7 +361,7 @@ class Application(QMainWindow):
 			static_thresh (float): constant threshold value (None - not using static threshold)
 			dynamic_thresh (float): maximal number of fragmentation (None - without fragmentation checking)
 			fullness_need (float): level of fullnes inside the IOS (None - without fullness checking)
-			normalization (tuple): min/max values of border (None - without normalization)
+			separation (tuple): lower/upper values of border (None - without separation)
 			anchor (tuple): x,y coordinates of anchor (None - without using an anchor)
 			reversal (bool): is reversing of color needs
 			save_result (bool): flag for skipping drawing if we want just save results
@@ -348,22 +373,22 @@ class Application(QMainWindow):
 		debug_ios = None
 		max_contour = None
 		# get an original data
-		original = self.dat[:, :, frame, methodic]
 		mask_in = self.mask_inside
+		if mask_in is None:
+			return
+		original = self.data[:, :, frame, methodic]
 		# normalize data from 0 to 4095 with dynamic borders (min and max). It mades grayscale cmap
-		if normalization:
-			min_val = normalization[0]
-			max_val = normalization[1]
-			diff = max_val - min_val
-			image = ((original - min_val) * 4095).astype('uint16')
-		else:
-			image = np.array(original, copy=True)
+		image = np.array(original, copy=True)
+		# if normalization:
+		# 	a_to, b_to = normalization
+		# 	i_min, i_max = image.min(), image.max()
+		# 	image = (b_to - a_to) * (image - i_min) / (i_max - i_min) + a_to
 		# reverse colors if epilepsy radio button checked
 		if reversal:
-			if normalization:
-				image = (max_val - min_val) - image
-			else:
-				image = -image
+			image = -image
+			original = -original
+		if separation:
+			mask_in = mask_in & (separation[0] <= image) & (image <= separation[1])
 		image[~mask_in] = np.min(image[mask_in])
 		# blur the image to smooth very light pixels
 		# image = cv2.medianBlur(image, 3)
@@ -405,7 +430,7 @@ class Application(QMainWindow):
 			# second, more preciescly iteration
 			while True:
 				threshold_percent += 0.2
-				if threshold_percent > 99:
+				if threshold_percent > 99.8:
 					threshold_percent -= 0.2
 					break
 				thresh_value = np.percentile(in_mask_image, threshold_percent)
@@ -458,13 +483,17 @@ class Application(QMainWindow):
 			self.plot_frame.ax3.clear()
 			self.plot_frame.ax4.clear()
 			self.plot_frame.ax4.axis('off')
+			self.plot_frame.cax.clear()
 
 			self.plot_frame.ax1.set_title("Interactive area")
 			self.plot_frame.ax2.set_title("Processing")
 			self.plot_frame.ax3.set_title("Result output")
 			self.plot_frame.ax4.set_title("Debug info")
-			# Axis 2
+			if separation:
+				m = (image < separation[0]) | (separation[1] < image)
+				image[m] = None
 			image[~mask_in] = None
+			# Axis 2
 			self.plot_frame.ax2.imshow(image)
 			self.plot_frame.ax2.plot(x, y, '.', color='r', ms=1)
 			if max_contour:
@@ -472,7 +501,9 @@ class Application(QMainWindow):
 			if debug_ios:
 				self.plot_frame.ax2.plot(debug_ios[0], debug_ios[1], color='r', lw=3, ls='--')
 			# Axis 3
-			self.plot_frame.ax3.imshow(image)
+			im = self.plot_frame.ax3.imshow(image, cmap='jet')
+			self.plot_frame.fig.colorbar(im, cax=self.plot_frame.cax)
+
 			if max_contour:
 				self.plot_frame.ax3.plot(max_contour[0], max_contour[1], color='r', lw=3)
 			if anchor:
@@ -490,7 +521,7 @@ class Application(QMainWindow):
 			      f"Fullness: {fullness:.2f}% (Min: {round(fullness_need, 2) if fullness_need else 'not setted'})\n"
 			if self.chkbox_anchor.isChecked():
 				anc = self.plot_frame._anchor_object
-				log += f"Ancor: {np.floor(anc) if anc and self.chkbox_anchor.isChecked() else 'Not used'}"
+				log += f"Anchor: {np.floor(anc) if anc and self.chkbox_anchor.isChecked() else 'Not used'}"
 			self.plot_frame.ax4.text(0, 0.5, log, ha='left', va='center', transform=self.plot_frame.ax4.transAxes)
 			# save axis plot
 			# extent = self.ax3.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
@@ -517,10 +548,42 @@ class Application(QMainWindow):
 				return value
 			else:
 				QMessageBox.about(self, f"Error value '{value}'", f"Value must be a number from {borders[0]} to {borders[1]}")
-				return None
+				return
 		except Exception:
 			QMessageBox.about(self, f"Error value '{input_value.text()}'", f"Value must be a number from {borders[0]} to {borders[1]}")
-		return None
+		return
+
+	def check_fields(self):
+		"""
+		"""
+		fields = {}
+		#
+		if len(self.plot_frame._polygon_points) < 4:
+			QMessageBox.about(self, "Error", f"Polygon is not setted")
+			fields['polygon_existing'] = False
+		#
+		if self.radio_static.isChecked():
+			static_thresh = self.check_input(self.in_static_thresh, borders=[0.1, 99.9])
+			fields['static_thresh'] = static_thresh
+		else:
+			dynamic_thresh = self.check_input(self.in_dynamic_thresh, borders=[3, 100])
+			fields['dynamic_thresh'] = int(dynamic_thresh) if dynamic_thresh else None
+		#
+		if self.chkbox_fullness.isChecked():
+			fullness_need = self.check_input(self.in_fullness, borders=[0.0, 100.0])
+			fields['fullness_need'] = fullness_need
+		#
+		if self.chkbox_separation.isChecked():
+			lower = self.check_input(self.in_lower_separation)
+			upper = self.check_input(self.in_upper_separation)
+			fields['separation'] = None if (lower is None or upper is None or upper <= lower) else (lower, upper)
+		#
+		if self.chkbox_anchor.isChecked() and self.plot_frame._anchor_object:
+			fields['anchor'] = self.plot_frame._anchor_object
+		#
+		fields['reversal'] = self.chkbox_reverse.isChecked()
+
+		return fields
 
 	def save_contour(self):
 		"""
@@ -531,50 +594,45 @@ class Application(QMainWindow):
 		step = int(self.check_input(self.in_frame_stepsize))
 		methodic = int(self.box_method.currentText())
 		#
-		anchor, reversal = None, None
-		max_fragm, static_thresh = None, None
-		fullness_need, normalization = None, None
+		if start < 0 or end <= start or end >= self.total_frames or step <= 0:
+			QMessageBox.about(self, "Error", f"Invalid start/end/step values")
+			return
 		#
-		if self.radio_static.isChecked():
-			static_thresh = self.check_input(self.in_static_thresh, borders=[0.1, 99.9])
-		else:
-			max_fragm = int(self.check_input(self.in_dynamic_thresh, borders=[3, 100]))
-		if self.chkbox_fullness.isChecked():
-			fullness_need = self.check_input(self.in_fullness, borders=[0.0, 100.0])
-		if self.chkbox_normalization.isChecked():
-			minv = self.check_input(self.in_min_normalization)
-			maxv = self.check_input(self.in_max_normalization)
-			normalization = (minv, maxv)
-		if self.chkbox_reverse.isChecked():
-			reversal = True
-		if self.chkbox_anchor.isChecked() and self.plot_frame._anchor_object:
-			anchor = self.plot_frame._anchor_object
+		fields = self.check_fields()
+		if any(f in [None, False] for f in fields):
+			return
+		static_thresh = fields['static_thresh'] if 'static_thresh' in fields.keys() else None
+		dynamic_thresh = fields['dynamic_thresh'] if 'dynamic_thresh' in fields.keys() else None
+		fullness_need = fields['fullness_need'] if 'fullness_need' in fields.keys() else None
+		separation = fields['separation'] if 'separation' in fields.keys() else None
+		anchor = fields['anchor'] if 'anchor' in fields.keys() else None
+		reversal = fields['reversal']
 		# check if value is correct
-		if 0 <= start < end < self.total_frames and step > 0:
-			self.status_text.setText("Saving results.... please wait")
-			# prepare array of objects per frame
-			matframes = np.zeros((self.total_frames, ), dtype=np.object)
-			# init by void arrays
-			for frame in range(self.total_frames):
-				matframes[frame] = np.array([], dtype=np.int32)
-			# get data per frame and fill the 'matframes'
-			for index, frame in enumerate(range(start, end, step)):
-				contour = self.update_draws(frame, methodic,
-				                            static_thresh=static_thresh, dynamic_thresh=max_fragm,
-				                            fullness_need=fullness_need, normalization=normalization,
-				                            anchor=anchor, reversal=reversal, save_result=True)
-				if contour is not None:
-					matframes[frame] = np.array(contour, dtype=np.int32)
-				QApplication.processEvents()
-				QApplication.processEvents()
-				self.status_text.setText(f"Processed {index / len(range(start, end, step)) * 100:.2f} %")
-			# save data into mat format
-			filepath = os.path.dirname(self.filepath)
-			filename = os.path.basename(self.filepath)[:-4]
-			newpath = f"{filepath}/{filename}_{self.box_variable.currentText()}.mat"
-			sio.savemat(newpath, {'frames': matframes})
-			# you are beautiful :3
-			self.status_text.setText(f"Successfully saved into {newpath}")
+		self.status_text.setText("Saving results.... please wait")
+		# prepare array of objects per frame
+		matframes = np.zeros((self.total_frames, ), dtype=np.object)
+		# init by void arrays
+		for frame in range(self.total_frames):
+			matframes[frame] = np.array([], dtype=np.int32)
+		# get data per frame and fill the 'matframes'
+		for index, frame in enumerate(range(start, end, step)):
+			contour = self.update_draws(frame, methodic,
+			                            static_thresh=static_thresh, dynamic_thresh=dynamic_thresh,
+			                            fullness_need=fullness_need, separation=separation,
+			                            anchor=anchor, reversal=reversal, save_result=True)
+			if contour is not None:
+				matframes[frame] = np.array(contour, dtype=np.int32)
+			QApplication.processEvents()
+			QApplication.processEvents()
+			self.status_text.setText(f"Processed {index / len(range(start, end, step)) * 100:.2f} %")
+		# save data into mat format
+		filepath = os.path.dirname(self.filepath)
+		filename = os.path.basename(self.filepath)[:-4]
+		newpath = f"{filepath}/{filename}_{self.box_variable.currentText()}_{methodic}.mat"
+		fields['frames'] = matframes
+		sio.savemat(newpath, fields)
+		# you are beautiful :3
+		self.status_text.setText(f"Successfully saved into {newpath}")
 
 	def on_loop_draw(self):
 		"""
@@ -585,39 +643,31 @@ class Application(QMainWindow):
 		step = int(self.check_input(self.in_frame_stepsize))
 		methodic = int(self.box_method.currentText())
 		#
-		anchor, reversal = None, None
-		max_fragm, static_thresh = None, None
-		fullness_need, normalization = None, None
-		if self.radio_static.isChecked():
-			static_thresh = self.check_input(self.in_static_thresh, borders=[0.1, 99.9])
-		else:
-			max_fragm = int(self.check_input(self.in_dynamic_thresh, borders=[3, 100]))
-		if self.chkbox_fullness.isChecked():
-			fullness_need = self.check_input(self.in_fullness, borders=[0.0, 100.0])
-		if self.chkbox_normalization.isChecked():
-			minv = self.check_input(self.in_min_normalization)
-			maxv = self.check_input(self.in_max_normalization)
-			normalization = (minv, maxv)
-		if self.chkbox_reverse.isChecked():
-			reversal = True
-		if self.chkbox_anchor.isChecked() and self.plot_frame._anchor_object:
-			anchor = self.plot_frame._anchor_object
+		if start < 0 or end <= start or end >= self.total_frames or step <= 0:
+			QMessageBox.about(self, "Error", f"Invalid start/end/step values")
+			return
 		#
-		if 0 <= start < end < self.total_frames and step > 0:
-			self.flag_loop_draw_stop = False
-			self.btn_loop_draw_stop.setEnabled(True)
+		fields = self.check_fields()
+		if any(f in [None, False] for f in fields):
+			return
+		static_thresh = fields['static_thresh'] if 'static_thresh' in fields.keys() else None
+		dynamic_thresh = fields['dynamic_thresh'] if 'dynamic_thresh' in fields.keys() else None
+		fullness_need = fields['fullness_need'] if 'fullness_need' in fields.keys() else None
+		separation = fields['separation'] if 'separation' in fields.keys() else None
+		anchor = fields['anchor'] if 'anchor' in fields.keys() else None
+		reversal = fields['reversal']
+		#
+		self.flag_loop_draw_stop = False
+		self.btn_loop_draw_stop.setEnabled(True)
 
-			for frame in range(start, end, step):
-				if self.flag_loop_draw_stop:
-					break
-				self.in_start_frame.setText(str(frame))
-				self.current_frame = frame
-				self.update_draws(frame, methodic,
-				                  static_thresh=static_thresh, dynamic_thresh=max_fragm,
-				                  fullness_need=fullness_need, normalization=normalization,
-				                  anchor=anchor, reversal=reversal)
-		else:
-			QMessageBox.about(self, "Error", "Check the START, END and STEPS values!")
+		for frame in range(start, end, step):
+			if self.flag_loop_draw_stop:
+				break
+			self.current_frame = frame
+			self.in_start_frame.setText(str(frame))
+			self.update_draws(frame, methodic,
+			                  static_thresh=static_thresh, dynamic_thresh=dynamic_thresh, fullness_need=fullness_need,
+			                  separation=separation, anchor=anchor, reversal=reversal)
 
 	def stop_loop(self):
 		self.flag_loop_draw_stop = True
@@ -630,26 +680,18 @@ class Application(QMainWindow):
 			sign (int): -1 or 1 show the side moving (-1 is left, 1 is right)
 		"""
 		self.current_frame += sign * step
-
 		methodic = int(self.box_method.currentText())
 		#
-		anchor, reversal = None, None
-		max_fragm, static_thresh = None, None
-		fullness_need, normalization = None, None
-		if self.radio_static.isChecked():
-			static_thresh = self.check_input(self.in_static_thresh, borders=[0.1, 99.9])
-		else:
-			max_fragm = int(self.check_input(self.in_dynamic_thresh, borders=[3, 100]))
-		if self.chkbox_fullness.isChecked():
-			fullness_need = self.check_input(self.in_fullness, borders=[0.0, 100.0])
-		if self.chkbox_normalization.isChecked():
-			minv = self.check_input(self.in_min_normalization)
-			maxv = self.check_input(self.in_max_normalization)
-			normalization = (minv, maxv)
-		if self.chkbox_reverse.isChecked():
-			reversal = True
-		if self.chkbox_anchor.isChecked() and self.plot_frame._anchor_object:
-			anchor = self.plot_frame._anchor_object
+		fields = self.check_fields()
+		if any(f in [None, False] for f in fields):
+			return
+		static_thresh = fields['static_thresh'] if 'static_thresh' in fields.keys() else None
+		dynamic_thresh = fields['dynamic_thresh'] if 'dynamic_thresh' in fields.keys() else None
+		fullness_need = fields['fullness_need'] if 'fullness_need' in fields.keys() else None
+		separation = fields['separation'] if 'separation' in fields.keys() else None
+		anchor = fields['anchor'] if 'anchor' in fields.keys() else None
+		reversal = fields['reversal']
+		#
 		if self.current_frame < 0:
 			self.current_frame = 0
 		if self.current_frame >= self.total_frames:
@@ -657,9 +699,8 @@ class Application(QMainWindow):
 
 		self.in_start_frame.setText(str(self.current_frame))
 		self.update_draws(self.current_frame, methodic,
-		                  static_thresh=static_thresh, dynamic_thresh=max_fragm,
-		                  fullness_need=fullness_need, normalization=normalization,
-		                  anchor=anchor, reversal=reversal)
+		                  static_thresh=static_thresh, dynamic_thresh=dynamic_thresh, fullness_need=fullness_need,
+		                  separation=separation, anchor=anchor, reversal=reversal)
 
 	def create_main_frame(self):
 		# create the main plot
@@ -765,28 +806,28 @@ class Application(QMainWindow):
 		current_line += 2
 
 		def state1():
-			if self.chkbox_normalization.isChecked():
-				self.in_min_normalization.setEnabled(True)
-				self.in_max_normalization.setEnabled(True)
+			if self.chkbox_separation.isChecked():
+				self.in_lower_separation.setEnabled(True)
+				self.in_upper_separation.setEnabled(True)
 			else:
-				self.in_min_normalization.setEnabled(False)
-				self.in_max_normalization.setEnabled(False)
+				self.in_lower_separation.setEnabled(False)
+				self.in_upper_separation.setEnabled(False)
 
 		# normalization
-		self.chkbox_normalization = QCheckBox("Normalization")
-		self.chkbox_normalization.setChecked(False)
-		btn_panel_grid.addWidget(self.chkbox_normalization, current_line, 0, 1, 1)
-		self.chkbox_normalization.stateChanged.connect(state1)
+		self.chkbox_separation = QCheckBox("Separation")
+		self.chkbox_separation.setChecked(False)
+		btn_panel_grid.addWidget(self.chkbox_separation, current_line, 0, 1, 1)
+		self.chkbox_separation.stateChanged.connect(state1)
 		# min
-		self.in_min_normalization = QLineEdit()
-		self.in_min_normalization.setPlaceholderText("min")
-		self.in_min_normalization.setEnabled(False)
-		btn_panel_grid.addWidget(self.in_min_normalization, current_line, 1, 1, 1)
+		self.in_lower_separation = QLineEdit()
+		self.in_lower_separation.setPlaceholderText("lower")
+		self.in_lower_separation.setEnabled(False)
+		btn_panel_grid.addWidget(self.in_lower_separation, current_line, 1, 1, 1)
 		# max
-		self.in_max_normalization = QLineEdit()
-		self.in_max_normalization.setPlaceholderText("max")
-		self.in_max_normalization.setEnabled(False)
-		btn_panel_grid.addWidget(self.in_max_normalization, current_line, 2, 1, 1)
+		self.in_upper_separation = QLineEdit()
+		self.in_upper_separation.setPlaceholderText("upper")
+		self.in_upper_separation.setEnabled(False)
+		btn_panel_grid.addWidget(self.in_upper_separation, current_line, 2, 1, 1)
 
 		current_line += 1
 
@@ -935,7 +976,7 @@ class Application(QMainWindow):
 def main():
 	app = QApplication(sys.argv)
 	form = Application()
-	form.resize(600, 350)
+	form.resize(700, 350)
 
 	form.show()
 	app.exec_()
