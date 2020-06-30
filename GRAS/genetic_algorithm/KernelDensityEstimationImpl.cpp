@@ -3,6 +3,10 @@
 
 using namespace std;
 
+// amount of dimensional
+const int d = 2;
+const int N = 100;
+
 /// based on https://www.mvstat.net/mvksa/mvksa.pdf
 
 /// Matrix always is
@@ -14,12 +18,19 @@ using namespace std;
  * H ^ (1/2) - squared matrix
  ***/
 
-float **get2dArray() {
-    float ** array = new float * [2];
-    for (int i = 0; i < 2; i++) {
-        array[i] = new float [2];
+// return matrix lines x columns
+float** getMatrix(const int lines, const int columns) {
+    cout << lines << " " << columns << endl;
+    float** matrix = new float * [lines];
+    for (int i = 0; i < lines; i++) {
+        matrix[i] = new float [columns];
     }
-    return array;
+    return matrix;
+}
+
+// return 2x2 matrix
+float** get2dArray() {
+    return getMatrix(2, 2);
 }
 
 // return |H| - determinant of 2d matrix
@@ -38,10 +49,9 @@ float determinant2d(float** matrix) {
 ***/
 // TODO 4 matrix instead 1, which should be chosen?
 float **getSquareRoot2dMatrix(float** matrix) {
-    float ** squareRoot2dMatrix = get2dArray();
+    float** squareRoot2dMatrix = get2dArray();
 
     float determinantOfH = determinant2d(matrix);
-    cout << "determinant = " << determinantOfH << endl;
 
     if (determinantOfH < 0) {
         cout << "Error: determinant of matrix < 0" << endl;
@@ -49,16 +59,10 @@ float **getSquareRoot2dMatrix(float** matrix) {
     }
 
     float s1 = sqrt(determinantOfH);
-    float s2 = -s1;
-    cout << "s1 = " << s1 << endl;
-    cout << "s2 = " << s2 << endl;
 
     // A + D
     float r = matrix[0][0] + matrix[1][1];
-    cout << "A + D = " << r << endl;
-
     float sum = r + 2 * s1;
-    cout << "sum = " << sum << endl;
 
     if (sum < 0) {
         cout << "Error: sum" << endl;
@@ -66,7 +70,6 @@ float **getSquareRoot2dMatrix(float** matrix) {
     }
 
     float t = sqrt(sum);
-    cout << "t = " << t << endl;
 
     if (t == 0) {
         cout << "Error: t == 0" << endl;
@@ -85,10 +88,10 @@ float **getSquareRoot2dMatrix(float** matrix) {
     return squareRoot2dMatrix;
 }
 
-void print2dMatrix(float matrix[2][2]) {
+void printMatrix(float** matrix, const int lines, const int columns) {
     cout << "-----------\n";
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < lines; i++) {
+        for (int j = 0; j < columns; j++) {
             cout << matrix[i][j] << " ";
         }
         cout << "\n";
@@ -96,15 +99,8 @@ void print2dMatrix(float matrix[2][2]) {
     cout << "-----------\n";
 }
 
-void print2dArr(float **matrix) {
-    cout << "-----------\n";
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
-            cout << matrix[i][j] << " ";
-        }
-        cout << "\n";
-    }
-    cout << "-----------\n";
+void print2dMatrix(float **matrix) {
+    printMatrix(matrix, 2, 2);
 }
 
 /***
@@ -112,8 +108,8 @@ void print2dArr(float **matrix) {
  * @param matrix
  * @return matrix ^-1
  ***/
-float **getInverse2dMatrix(float **matrix) {
-    float ** inverse2dMatrix = get2dArray();
+float** getInverse2dMatrix(float **matrix) {
+    float** inverse2dMatrix = get2dArray();
 
     float determinant = determinant2d(matrix);
 
@@ -136,9 +132,23 @@ float **getInverse2dMatrix(float **matrix) {
 
 }
 
+float** toMatrixFromVector(float* vector, const int len) {
+    float** matrix = new float* [1];
+
+    for (int i = 0; i < len; i++) {
+        matrix[i] = new float [len];
+    }
+
+    for (int i = 0; i < len; i++) {
+        matrix[0][i] = vector[i];
+    }
+
+    return matrix;
+}
+
 // .T
-float **t(float* vector, const int len) {
-    float ** tVector = new float * [len];
+float** t(float* vector, const int len) {
+    float ** tVector = new float* [len];
 
     for (int i = 0; i < len; i++) {
         tVector[i] = new float [1];
@@ -157,13 +167,108 @@ void printTvector(float** vector, int len) {
     }
 }
 
-float **xTx(float *x) {
+float** multiplyMatrix(float** matrix1, float** matrix2,
+        const int lines1, const int columns1, const int lines2, const int columns2) {
+
+    float** matrix3 = getMatrix(lines1, columns2);
+
+    for(int i = 0; i < lines1; i++){
+        for(int j = 0; j < columns2; j++){
+            for(int a = 0; a < columns1; a++){
+                matrix3[i][j] += matrix1[i][a] * matrix2[a][j];
+            }
+        }
+    }
+
+}
+
+void multiplyMatrixToNumber(float** matrix, const int l, const int c, float number) {
+    for (int i = 0; i < l; i++) {
+        for (int j = 0; j < c; j++) {
+            matrix[i][j] /= number;
+        }
+    }
+}
+
+// x - vector
+// work only for 2d
+// TODO pow don't work with fractional numbers!
+// for dimensional = 2 is OK
+float normalKernelFunction2d(float* x, const int lenX) {
+
+    float** resultMatrix = multiplyMatrix(t(x, lenX), toMatrixFromVector(x, lenX), 1, lenX, lenX, 1);
+    multiplyMatrixToNumber(resultMatrix, lenX, lenX);
+
+    float** Kx = pow(2 * M_PI, d / 2) * exp(resultMatrix);
+
+    // TODO exp of matrix
+    // mb use it https://eigen.tuxfamily.org/dox/unsupported/group__MatrixFunctions__Module.html#matrixbase_exp
+
+}
+
+float** sumOfMatrix(float** matrix1, float** matrix2, const int l, const int c) {
+    float** resultMatrix = getMatrix(l, c);
+
+    for (int i = 0; i < l; i++) {
+        for (int j = 0; j < c; j++) {
+            resultMatrix[i][j] = matrix1[i][j] + matrix2[i][j];
+        }
+    }
+
+    return resultMatrix;
+}
+
+float factorial(int number) {
+
+    if (number == 0 || number == 1) {
+        return 1;
+    }
+
+    int result = 1;
+
+    for (int i = 1; i <= number; i++) {
+        result *= i;
+    }
+
+    return result;
+
+}
+
+// return Identity matrix
+float** getEmatrix(const int dim) {
+    float** Ematrix = getMatrix(dim, dim);
+
+    for (int i = 0; i < dim; i++) {
+        for (int j = 0; j < dim; j++) {
+            if (i == j) {
+                Ematrix[i][j] = 1;
+            }
+        }
+    }
+
+    return Ematrix;
+
+}
+
+// it's more quickly I'm think
+float** get2dEmatrix() {
+    float** Ematrix = get2dArray();
+    Ematrix[0][0] = 1;
+    Ematrix[1][1] = 1;
+    return Ematrix;
+}
+
+float** matrixExp(float** matrix, const int dim) {
+
+    float** resultMatrix = getMatrix(dim, dim);
+
+    for (int i = 0; i < N; i++) {
+
+    }
 
 }
 
 int main(int argc, char* argv[]) {
-    // amount of dimensional
-    int d = 2;
     // 2d matrix to bandwidth
     float H[2][2];
 
@@ -187,12 +292,12 @@ int main(int argc, char* argv[]) {
 //    float** squaredMatrix = getSquareRoot2dMatrix(testSqrtMatrix);
 //    print2dArr(squaredMatrix);
 
-    const int len = 5;
-    float* v = new float[len];
-    v[0] = 1;
-    v[1] = 2;
-    v[2] = 3;
-    v[3] = 4;
-    v[4] = 5;
-    printTvector(t(v, len), len);
+//    const int len = 5;
+//    float* v = new float[len];
+//    v[0] = 1;
+//    v[1] = 2;
+//    v[2] = 3;
+//    v[3] = 4;
+//    v[4] = 5;
+//    printTvector(t(v, len), len);
 }
