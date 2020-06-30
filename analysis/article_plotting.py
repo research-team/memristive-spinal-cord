@@ -14,6 +14,7 @@ from matplotlib import gridspec
 from scipy.stats import ks_2samp
 from collections import defaultdict
 from scipy.signal import argrelextrema
+from matplotlib.patches import Ellipse
 from rpy2.robjects.packages import STAP
 from rpy2.robjects.numpy2ri import numpy2rpy
 from scipy.stats import kstwobign, anderson_ksamp
@@ -103,6 +104,10 @@ class Metadata:
 		return self.pdata['shortname']
 
 	@property
+	def rate(self):
+		return self.pdata['rate']
+
+	@property
 	def dstep_to(self):
 		return self.pdata['dstep_to']
 
@@ -178,8 +183,8 @@ class Analyzer:
 		label_pathes = []
 		#
 		for (x, y), name, color in zip([xy1, xy2],
-		                             [f"{names[0]} {rats[0]}", f"{names[1]} {rats[1]}"],
-		                             ['#A6261D', '#472650']):
+		                               [f"{names[0]} {rats[0]}", f"{names[1]} {rats[1]}"],
+		                               ['#A6261D', '#472650']):
 			self._contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0],
 			                   borders=border, levels_num=15)
 			t, r = self.joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=border, with_boxplot=False)
@@ -195,7 +200,6 @@ class Analyzer:
 		kde_ax.set_xlim(border[0], border[1])
 		kde_ax.set_ylim(border[2], border[3])
 		plt.tight_layout()
-
 
 	def outside_compare(self, comb, border, axis, per_step=False, plot=False, show=False):
 		if len(comb) != 2:
@@ -300,12 +304,12 @@ class Analyzer:
 						d = (t[mask], a[mask], s[mask])
 						X, Y = d[ax1_index], d[ax2_index]
 						dataXY.append((X, Y))
-						# plt.close()
-						# print(m.shortname, r)
-						# for si in range(0, max(s) + 1):
-						# 	plt.boxplot(a[s == si], positions=[si], whis=[5, 95])
-						# plt.ylim(0, 1.7)
-						# plt.show()
+					# plt.close()
+					# print(m.shortname, r)
+					# for si in range(0, max(s) + 1):
+					# 	plt.boxplot(a[s == si], positions=[si], whis=[5, 95])
+					# plt.ylim(0, 1.7)
+					# plt.show()
 					# calc the p-value by KDE test
 					pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1])
 					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
@@ -321,7 +325,6 @@ class Analyzer:
 						if show:
 							plt.show()
 						plt.close()
-
 
 	def plot_cumulative(self, cmltv, border, order=None, pval_slices_peak=False):
 		"""
@@ -528,22 +531,10 @@ class Analyzer:
 									plt.show()
 									plt.close(fig)
 									ind += 1
-							# end if
+						# end if
 						pvalues.append((rat1, rat2, np.median(pval_2d)))
 						logging.info(f"{p1}_{rat1} vs {p2}_{rat2} {np.median(pval_x)} {np.median(pval_y)} {np.median(pval_2d)}")
 				# end rats for loop
-				# add significance lines
-				for p in pvalues:
-					if 4 in p and 8 in p:
-						text = f"{p[2]:.2} (rat {p[0]} and {p[1]})"
-						break
-				else:
-					for p in pvalues:
-						if 4 in p or 4 in p:
-							text = f"{p[2]:.2} (rat {p[0]} and {p[1]})"
-							break
-					else:
-						text = f"{np.mean([p[2] for p in pvalues]):.2} (mean)"
 				pvals = [p[2] for p in pvalues]
 				add_signific(source, target, value=f"{np.median(pvals):.2f}")
 			# end p1, p2 for loop
@@ -577,7 +568,7 @@ class Analyzer:
 		plt.savefig(f"{self.plots_folder}/cumulative.pdf", format='pdf')
 		plt.show()
 
-	def _lw_prepare_data(self, folder, muscle, metadata, fill_zeros, filter_val):
+	def _lw_prepare_data(self, folder, muscle, metadata, fill_zeros, filter_val, hz_analysis=None):
 		"""
 
 		Args:
@@ -605,6 +596,8 @@ class Analyzer:
 		speed = metadata['speed']
 		mode = metadata['mode']
 		slise_in_ms = 1 / int(metadata['rate']) * 1000
+		if hz_analysis:
+			slise_in_ms = 50
 
 		if muscle == 'F':
 			filename = filename.replace('_E_', '_F_')
@@ -643,14 +636,42 @@ class Analyzer:
 				# trim redundant simulation data
 				dataset = trim_data(dataset, begin, end)
 				prepared_data = np.array(calibrate_data(dataset, source))
-
-			if muscle == "E":
-				sliced_data = [np.array_split(beg, e_slices_number) for beg in prepared_data]
+			if hz_analysis:
+				if muscle == "E":
+					K = []
+					for stepdata in prepared_data:
+						ees_int = int(1000 / metadata['rate'])
+						slice_frame = ((50 // ees_int) * ees_int) / dstep_to
+						if slice_frame == 0:
+							slice_frame = 50 / dstep_to
+						slices_begin_indexes = range(0, len(stepdata) + 1, int(slice_frame))
+						splitted_per_slice = [stepdata[beg:beg + int(50 / dstep_to)] for beg in slices_begin_indexes]
+						splitted_per_slice = splitted_per_slice[:6]
+						# remove tails
+						print(list(map(len, splitted_per_slice)))
+						K.append(np.array(splitted_per_slice))
+				else:
+					K = []
+					for stepdata in prepared_data:
+						ees_int = int(1000 / metadata['rate'])
+						slice_frame = ((50 // ees_int) * ees_int) / dstep_to
+						if slice_frame == 0:
+							slice_frame = 50 / dstep_to
+						slices_begin_indexes = range(0, len(stepdata) + 1, int(slice_frame))
+						splitted_per_slice = [stepdata[beg:beg + int(50 / dstep_to)] for beg in slices_begin_indexes]
+						splitted_per_slice = splitted_per_slice[:2]
+						# remove tails
+						print(list(map(len, splitted_per_slice)))
+						K.append(np.array(splitted_per_slice))
+				sliced_data = np.array(K)
 			else:
-				sliced_data = [np.array_split(beg, f_slices_number) for beg in prepared_data]
+				if muscle == "E":
+					sliced_data = [np.array_split(beg, e_slices_number) for beg in prepared_data]
+				else:
+					sliced_data = [np.array_split(beg, f_slices_number) for beg in prepared_data]
+				sliced_data = np.array(sliced_data)
 
-			sliced_data = np.array(sliced_data)
-
+			print(sliced_data.shape)
 
 			if len(sliced_data) == 0:
 				metadata['rats_data'][muscle][rat_id] = dict(data=None,
@@ -662,7 +683,6 @@ class Analyzer:
 			#
 			sliced_time, sliced_ampls, sliced_index = self._get_peaks(sliced_data, dstep_to,
 			                                                          [0, slise_in_ms], filter_val, debug=self.debug)
-
 
 			metadata['rats_data'][muscle][rat_id] = dict(data=sliced_data,
 			                                             times=sliced_time,
@@ -678,7 +698,7 @@ class Analyzer:
 			metadata['rats_data'][muscle][rat_id]['latency_volume'] = latency_volume
 
 	#
-	def prepare_data(self, folder, dstep_to=None, fill_zeros=True, filter_val=0.05):
+	def prepare_data(self, folder, dstep_to=None, fill_zeros=True, filter_val=0.05, hz_analysis=False):
 		"""
 
 		Args:
@@ -690,7 +710,7 @@ class Analyzer:
 		# check each .hdf5 file in the folder
 		for filename in [f for f in os.listdir(folder) if f.endswith('.hdf5') and '_E_' in f]:
 			source, muscle, mode, speed, rate, pedal, dstep = parse_filename(filename)
-			shortname = f"{source}_{mode}_{speed}_{pedal}ped"
+			shortname = f"{source}_{mode}_{speed}_{rate}hz_{pedal}ped"
 			#
 			if dstep_to is None:
 				dstep_to = dstep
@@ -713,8 +733,8 @@ class Analyzer:
 				}
 			}
 			# fill the metadata for each muscle (number of peaks, median height and etc)
-			self._lw_prepare_data(folder, 'E', metadata, fill_zeros, filter_val)
-			self._lw_prepare_data(folder, 'F', metadata, fill_zeros, filter_val)
+			self._lw_prepare_data(folder, 'E', metadata, fill_zeros, filter_val, hz_analysis)
+			self._lw_prepare_data(folder, 'F', metadata, fill_zeros, filter_val, hz_analysis)
 			#
 			any_rat = list(metadata['rats_data'][muscle].keys())[0]
 			metadata['slices_count'] = len(metadata['rats_data']['E'][any_rat]['data'][0])
@@ -731,7 +751,7 @@ class Analyzer:
 		"""
 		Form a ticklabels there are 4 ticks: begin, 1/3, 2/3 and the end
 		Args:
-			ticks_length: 
+			ticks_length:
 		Returns:
 			list: prepared ticklabels
 		"""
@@ -761,7 +781,7 @@ class Analyzer:
 			print(f"{metadata.shortname} | {rat_id} | {f} | {c} | {h} | {v}")
 		print("- " * 10)
 
-	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False):
+	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
 		if type(source) is not Metadata:
 			metadata = Metadata(self.pickle_folder, source)
 		else:
@@ -775,7 +795,10 @@ class Analyzer:
 		speed = metadata.speed
 		dstep_to = metadata.dstep_to
 		shortname = metadata.shortname
-		slice_in_ms = metadata.slice_in_ms
+		if slice_ms is None:
+			slice_in_ms = metadata.slice_in_ms
+		else:
+			slice_in_ms = slice_ms
 
 		# plot per each rat
 		for rat_id in rats:
@@ -793,7 +816,6 @@ class Analyzer:
 				fig, ax = plt.subplots(figsize=(16, 12))
 			else:
 				fig, ax = plt.subplots(figsize=(16, 8))
-
 
 			colors = iter(["#275b78", "#f2aa2e", "#a6261d", "#472650"] * total_rat_steps)
 
@@ -832,7 +854,7 @@ class Analyzer:
 				# plot boxplots
 				for i, x in enumerate(sliced_x):
 					if len(x):
-						bx = plt.boxplot(x, positions=[i], widths=0.8,  whis=[10, 90],
+						bx = plt.boxplot(x, positions=[i], widths=0.8, whis=[10, 90],
 						                 showfliers=False, patch_artist=True, vert=False, zorder=5)
 						starts = bx['whiskers'][0].get_xdata()[1]
 						plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
@@ -921,7 +943,121 @@ class Analyzer:
 
 		return ax_top, ax_right
 
-	def plot_density_3D(self, source, rats, factor=8, show=False, only_volume=False):
+	def plot_mono_Hz(self, source, rats):
+		""""""
+		if type(source) is not Metadata:
+			if type(source) is dict:
+				metadata = Metadata(sdict=source)
+			else:
+				metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		shortname = metadata.shortname
+		print(shortname)
+		#
+		slice_length = 50
+		ees = int(1 / metadata.rate * 1000)
+		#
+		for rat_id in rats:
+			T = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
+			A = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
+			S = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
+			D = metadata.get_myograms(rat_id, muscle='E')
+			for exp in D:
+				for i, data in enumerate(exp):
+					plt.plot(np.arange(len(data)) * metadata.dstep_to, data + i)
+			plt.plot(T, S, '.', c='k')
+
+
+			monos = []
+			for i in range(0, slice_length, ees):
+				start = i + 3
+				end = i + 7.5
+				plt.axvspan(xmin=start, xmax=end, alpha=0.5)
+				monos.append(A[(start <= T) & (T <= end)])
+
+			for i in range(1, len(monos)):
+				print(f"{np.median(monos[i]) / np.median(monos[0]):.2f}\t({np.median(monos[i]):.2f} / {np.median(monos[0]):.2f})")
+
+			plt.show()
+
+	def plot_poly_Hz(self, source, rats):
+		""""""
+		if type(source) is not Metadata:
+			if type(source) is dict:
+				metadata = Metadata(sdict=source)
+			else:
+				metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		shortname = metadata.shortname
+		ell_width = 25
+		print(shortname)
+		slice_length = 50
+		ees = int(1 / metadata.rate * 1000)
+		#
+		for rat_id in rats:
+			plt.figure(figsize=(10, 5))
+			T = metadata.get_peak_times(rat_id, muscle='E', flat=True)
+			A = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
+			S = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
+			D = metadata.get_myograms(rat_id, muscle='E')
+
+			for exp in D:
+				for islice, data in enumerate(exp):
+					plt.plot(np.arange(len(data)) * metadata.dstep_to, data + islice)
+					t = T[S == islice]
+					plt.plot(t * metadata.dstep_to, data[t] + islice, '.', c='k', ms=4)
+			#
+			is_inside = lambda point: (point[0] - rc[0]) ** 2 / rx ** 2 + (point[1] - rc[1]) ** 2 / ry ** 2 <= 1
+
+			rx = ell_width / 2
+			ry = 6 / 2
+
+			for i in range(0, slice_length, ees):
+				mono_start = i + 3
+				mono_end = i + 7.5
+				rc = (mono_end + 2 + ell_width / 2, 2.5)
+				e = Ellipse(xy=rc, width=rx * 2, height=ry * 2, alpha=0.3, edgecolor='k')
+				plt.gca().add_artist(e)
+
+				plt.axvspan(xmin=mono_start, xmax=mono_end, alpha=0.5, color='r')
+
+				a = np.array([d for d in np.vstack((T * metadata.dstep_to, A)).T if is_inside(d)])
+				for time in range(0, slice_length, ees):
+					a = a[(a[:, 0] < (time + 3)) | ((time + 7.5) < a[:, 0])]
+				print(a)
+				plt.plot(a[:, 0], [0] * len(a[:, 0]) , '.', c='r', ms=10)
+			plt.xlim(0, 50)
+			plt.ylim(-1, 6)
+			plt.tight_layout()
+			plt.show()
+
+	def plot_density_3D(self, source, rats, factor=8, show=False, only_volume=False, slice_ms=25):
+		"""
+
+		Args:
+			source:
+			rats (int or tuple):
+			factor:
+			show:
+			only_volume:
+
+		Returns:
+
+		"""
 		if type(source) is not Metadata:
 			if type(source) is dict:
 				metadata = Metadata(sdict=source)
@@ -945,8 +1081,8 @@ class Analyzer:
 
 			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
-			xmax, ymax = 25, max(Y)
-			xborder_l, xborder_r = 5, 20
+			xmax, ymax = slice_ms, max(Y)
+			xborder_l, xborder_r = 5, slice_ms - 5
 
 			gridsize_x, gridsize_y = factor * xmax, factor * ymax
 			xmesh, ymesh = np.meshgrid(np.linspace(0, xmax, gridsize_x),
@@ -1110,7 +1246,7 @@ class Analyzer:
 				ideal_data = extensor_data[0][slice_index] + slice_index
 				data += slice_index
 				# fliers shadow
-				ax.fill_between(shared_x,  data[:, k_fliers_high], data[:, k_fliers_low],
+				ax.fill_between(shared_x, data[:, k_fliers_high], data[:, k_fliers_low],
 				                color=shadow_color, alpha=0.7, zorder=3)
 				# ideal pattern
 				ax.plot(shared_x, ideal_data, color='k', linewidth=1, zorder=4)
@@ -1447,7 +1583,7 @@ class Analyzer:
 					res_time <- kde.test(x1=x1, x2=x2)$pvalue
 					res_ampl <- kde.test(x1=y1, x2=y2)$pvalue
 					res_2d <- kde.test(x1=mat1, x2=mat2)$pvalue
-					
+
 					results[index, ] <- c(res_time, res_ampl, res_2d)
 					index <- index + 1
 				} 
