@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 using namespace std;
 
@@ -17,6 +18,10 @@ const int N = 100;
  * |H| - determinant of bandwidth matrix
  * H ^ (1/2) - squared matrix
  ***/
+
+void print(float x) {
+    cout << x << endl;
+}
 
 // return matrix lines x columns
 float** getMatrix(const int lines, const int columns) {
@@ -148,7 +153,7 @@ float** toMatrixFromVector(float* vector, const int len) {
 
 // .T
 float** t(float* vector, const int len) {
-    float ** tVector = new float* [len];
+    float** tVector = new float* [len];
 
     for (int i = 0; i < len; i++) {
         tVector[i] = new float [1];
@@ -156,6 +161,21 @@ float** t(float* vector, const int len) {
 
     for (int i = 0; i < len; i++) {
         tVector[i][0] = vector[i];
+    }
+
+    return tVector;
+}
+
+float** toMatrix(vector<float> x) {
+    int len = x.size();
+    float** tVector = new float* [len];
+
+    for (int i = 0; i < len; i++) {
+        tVector[i] = new float [1];
+    }
+
+    for (int i = 0; i < len; i++) {
+        tVector[i][0] = x[i];
     }
 
     return tVector;
@@ -180,6 +200,8 @@ float** multiplyMatrix(float** matrix1, float** matrix2,
         }
     }
 
+    return matrix3;
+
 }
 
 void multiplyMatrixToNumber(float** matrix, const int l, const int c, float number) {
@@ -197,9 +219,9 @@ void multiplyMatrixToNumber(float** matrix, const int l, const int c, float numb
 float normalKernelFunction2d(float* x, const int lenX) {
 
     float** resultMatrix = multiplyMatrix(t(x, lenX), toMatrixFromVector(x, lenX), 1, lenX, lenX, 1);
-    multiplyMatrixToNumber(resultMatrix, lenX, lenX);
+    multiplyMatrixToNumber(resultMatrix, lenX, lenX, 2);
 
-    float** Kx = pow(2 * M_PI, d / 2) * exp(resultMatrix);
+//    float** Kx = pow(2 * M_PI, d / 2) * exp(resultMatrix);
 
     // TODO exp of matrix
     // mb use it https://eigen.tuxfamily.org/dox/unsupported/group__MatrixFunctions__Module.html#matrixbase_exp
@@ -258,46 +280,198 @@ float** get2dEmatrix() {
     return Ematrix;
 }
 
-float** matrixExp(float** matrix, const int dim) {
-
-    float** resultMatrix = getMatrix(dim, dim);
-
-    for (int i = 0; i < N; i++) {
-
+// https://stat.ethz.ch/R-manual/R-devel/library/stats/html/Normal.html
+float dnorm(float x) {
+    // dnorm(0) == 1/sqrt(2*pi)
+    if (x == 0) {
+        // TODO mb just return 0.398942
+        return 1 / sqrt(2 * M_PI);
     }
+
+    // TODO for x != 0 but it no needed now
+}
+
+// https://rdrr.io/cran/ks/src/R/normal.R
+// TODO need to check
+float dnormDeriv(float x=0, float mu=0, float sigma=1, float deriv_order=0) {
+    float r = deriv_order;
+    float phi = dnorm(0);
+
+    float X = x - mu;
+    float arg = x / sigma;
+
+    float hmold0 = 1;
+    float hmold1 = arg;
+    float hmnew = 1;
+
+    if (r == 1) {
+        hmnew = hmold1;
+    }
+    else if (r >= 2) {
+        // (2:r) == r - 1
+        for (int i = 0; i < r - 1; i++) {
+            hmnew = arg * hmold1 - (i - 1) * hmold0;
+            hmold0 = hmold1;
+            hmold1 = hmnew;
+        }
+    }
+
+    float derivt = pow(-1, r) * phi * hmnew / pow(sigma, r);
+
+    return derivt;
+}
+
+float mean(vector<float> x) {
+    float sum = 0;
+    for (int i = 0; i < x.size(); i++) {
+        sum += x[i];
+    }
+    return sum / x.size();
+}
+
+// sample variance
+float S2(vector<float> x) {
+    float m = mean(x);
+    float sum = 0;
+
+    for (int i = 0; i < x.size(); i++) {
+        float diff = x[i] - m;
+        sum += diff * diff;
+    }
+
+    return sum;
 
 }
 
+// biased estimate
+// like in R too
+float sd(vector<float> x) {
+    float size = x.size();
+    float diff = 1 / (size - 1);
+    return sqrt(diff * S2(x));
+}
+
+// https://rdrr.io/cran/ks/src/R/normal.R
+// TODO need to check
+float psins1d(int r, float sigma) {
+
+    float psins = 0;
+
+    float r2 = float(r/2);
+
+    if(r % 2 == 0) {
+        psins = pow(-1, r2) * factorial(r) / (pow(2*sigma, r+1) * factorial(r/2) * sqrt(M_PI));
+    }
+
+    return psins;
+
+}
+
+// https://rdrr.io/cran/ks/src/R/binning.R
+// TODO need to check
+// TODO it's only for 1d !!!!!!!
+float binning(vector<float> x, float H=0, float h=0,
+        float bgridsize=0, float xmin=0, float xmax=0, float supp=3.7,
+        float w=0, string gridtype="linear") {
+
+    // return matrix like vector.T
+    float** matrix = toMatrixFromVector(x);
+
+    // FIXME now working only for 1d needed for 2d?
+    int d = 1; // ncol
+    int n = x.size(); // nrow
+
+    // TODO https://rdrr.io/cran/ks/src/R/binning.R
+}
+
+// https://rdrr.io/cran/ks/src/R/normal.R
+// TODO need to check
+float dnormDerivSum(vector<float> x, float sigma, float derivOrder, float binPar=0,
+        float inc=1, bool binned=false, bool kfe=false) {
+    // TODO
+    float r = derivOrder;
+    float n = x.size();
+    float bin_par = binPar;
+
+    if(binned) {
+        if(binPar == 0) {
+            bin_par = binning(x, sigma, 4+r);
+        }
+    }
+}
+
+// https://rdrr.io/cran/ks/src/R/kfe.R
+// TODO need to check
+float kfe1d(vector<float> x, float g, float derivOrder, float binPar, float inc=1, bool binned=true) {
+    float r = derivOrder;
+    float n = x.size();
+
+    float psir = dnormDerivSum(x, g, r, 1, binned, binPar, true);
+
+    if(inc == 0) {
+//        psir = (n^2*psir - n*dnorm.deriv(0, mu=0, sigma=g, deriv.order=r))/(n*(n-1));
+    }
+
+    return psir;
+}
+
+// https://rdrr.io/cran/ks/src/R/kfe.R
+// TODO need to check
+float hpiKfe(vector<float> x, float bgridsize, float nstage=2,
+        bool binned=false, bool amise=false, float derivOrder=0) {
+
+    float n = x.size();
+    float d = 1;
+    float r = derivOrder;
+    float k = 2; // kernel order
+
+    float Kr0 = dnormDeriv(0, 0, 1, r);
+
+    float mu2K = 1;
+    float psi2Hat = 0;
+
+    if(nstage == 2) {
+        float psi4Hat = psins1d(r+k+2, sd(x));
+        float gamse2 = pow(factorial(r+2) * Kr0 / float(mu2K * psi4Hat * n), float(1) / float(r+k+3));
+        // TODO
+//        float psi2Hat = kfe1d(x=x, g=gamse2, deriv.order=r+k, inc=1, binned=binned);
+    }
+
+    else {
+        psi2Hat = psins1d(r+k, sd(x));
+    }
+
+    float gamse = pow(factorial(r) * Kr0 / (-mu2K * psi2Hat * n), float(1) / float(r+k+1));
+
+    return 0;
+
+}
+
+// TODO need to check
+float kdeTest1d(vector<float> x1, vector<float> x2, int bgridsize) {
+    int n1 = x1.size();
+    int n2 = x2.size();
+    int d = 1;
+
+    float K0 = dnormDeriv(0, 0, 1, 1);
+
+    float s1 = sd(x1);
+    float s2 = sd(x2);
+
+    // TODO
+
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
-    // 2d matrix to bandwidth
-    float H[2][2];
+      vector<float> arr;
 
-//    float** arr = get2dArray();
-//    arr[0][0] = 4.0;
-//    arr[0][1] = 7.0;
-//    arr[1][0] = 2.0;
-//    arr[1][1] = 6.0;
-//    print2dArr(arr);
-//
-//    float** iMatrix = getInverse2dMatrix(arr);
-//    print2dArr(iMatrix);
+      arr.push_back(1);
+      arr.push_back(2);
+      arr.push_back(3);
+      arr.push_back(4);
+      arr.push_back(5);
 
-//    float** testSqrtMatrix = get2dArray();
-//    testSqrtMatrix[0][0] = 2;
-//    testSqrtMatrix[0][1] = 2;
-//    testSqrtMatrix[1][0] = 3;
-//    testSqrtMatrix[1][1] = 4;
-//    print2dArr(testSqrtMatrix);
-//
-//    float** squaredMatrix = getSquareRoot2dMatrix(testSqrtMatrix);
-//    print2dArr(squaredMatrix);
+      print(pow(a, b));
 
-//    const int len = 5;
-//    float* v = new float[len];
-//    v[0] = 1;
-//    v[1] = 2;
-//    v[2] = 3;
-//    v[3] = 4;
-//    v[4] = 5;
-//    printTvector(t(v, len), len);
 }
