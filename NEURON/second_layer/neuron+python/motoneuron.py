@@ -3,7 +3,7 @@ h.load_file('stdlib.hoc') #for h.lambda_f
 
 import random
 # from axon import axon
-from muscle import muscle
+# from muscle import muscle
 
 class motoneuron(object):
   '''

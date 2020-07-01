@@ -102,17 +102,17 @@ class CPG:
             self.IP_E.append(self.dict_IP_E[layer])
             self.IP_F.append(self.dict_IP_F[layer])
 
-        for layer in range(layers, extra_layers):
-            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
-            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
-            self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
-            self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
-            self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
+        # for layer in range(layers, extra_layers):
+        #     self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
+        #     self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
+        #     self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
+        #     self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
+        #     self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
 
         self.IP_E = sum(self.IP_E, [])
         self.IP_F = sum(self.IP_F, [])
 
-        self.sens_aff = self.addpool(nAff, "sens_aff", "aff")
+        # self.sens_aff = self.addpool(nAff, "sens_aff", "aff")
         self.Ia_aff_E = self.addpool(nAff, "Ia_aff_E", "aff")
         self.Ia_aff_F = self.addpool(nAff, "Ia_aff_F", "aff")
 
@@ -123,13 +123,13 @@ class CPG:
         self.muscle_F = self.addpool(nMN*100, "muscle_F", "muscle")
 
         '''reflex arc'''
-        self.Ia_E = self.addpool(nInt, "Ia_E", "int")
+        # self.Ia_E = self.addpool(nInt, "Ia_E", "int")
         self.iIP_E = self.addpool(nInt, "iIP_E", "int")
-        self.R_E = self.addpool(nInt, "R_E", "int")
-
-        self.Ia_F = self.addpool(nInt, "Ia_F", "int")
+        # self.R_E = self.addpool(nInt, "R_E", "int")
+        #
+        # self.Ia_F = self.addpool(nInt, "Ia_F", "int")
         self.iIP_F = self.addpool(nInt, "iIP_F", "int")
-        self.R_F = self.addpool(nInt, "R_F", "int")
+        # self.R_F = self.addpool(nInt, "R_F", "int")
         # self.Iagener_E = []
         # self.Iagener_F = []
 
@@ -226,8 +226,8 @@ class CPG:
         connectcells(self.Ia_aff_E, self.mns_E, 0.75, 2)
         connectcells(self.Ia_aff_F, self.mns_F, 0.75, 2)
 
-        connectcells(self.mns_E, self.muscle_E, 0.5, 1)
-        connectcells(self.mns_E, self.muscle_F, 0.5, 1)
+        connectcells(self.mns_E, self.muscle_E, 0.75, 1)
+        connectcells(self.mns_E, self.muscle_F, 0.75, 1)
 
         '''IP'''
         # for layer in range(2, 5):
@@ -242,10 +242,10 @@ class CPG:
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.75, 1)
             connectcells(self.dict_IP_E[layer], self.mns_E, 0.75, 2)
-            if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
-            else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00015, 1, True)
+            # if layer > 3:
+            #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
+            # else:
+            #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.00015, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.75, 2)
@@ -300,20 +300,20 @@ class CPG:
             connectcells(self.dict_C[layer], self.iIP_E, 0.8, 1)
             # connectcells(self.dict_C[layer], self.OM1_0F, 0.8, 1, True)
 
-        connectcells(self.iIP_E, self.OM1_0F, 0.8, 1, True)
+        # connectcells(self.iIP_E, self.OM1_0F, 0.8, 1, True)
 
         # for layer in range(layers - 1):
         #     connectcells(self.iIP_E, self.dict_2F[layer], 0.8, 2, True)
 
-        connectcells(self.iIP_E, self.IP_F, 0.4, 1, True)
-        connectcells(self.iIP_E, self.Ia_aff_F, 0.2, 1, True)
-        connectcells(self.iIP_E, self.mns_F, 0.2, 1, True)
+        # connectcells(self.iIP_E, self.IP_F, 0.4, 1, True)
+        # connectcells(self.iIP_E, self.Ia_aff_F, 0.2, 1, True)
+        # connectcells(self.iIP_E, self.mns_F, 0.2, 1, True)
 
         '''C=0 Flexor'''
         connectcells(self.IP_F, self.iIP_F, 0.5, 1)
-        connectcells(self.iIP_F, self.IP_E, 0.04, 1, True)
-        connectcells(self.iIP_F, self.iIP_E, 0.2, 1, True)
-        connectcells(self.iIP_F, self.Ia_aff_E, 0.2, 1, True)
+        # connectcells(self.iIP_F, self.IP_E, 0.04, 1, True)
+        # connectcells(self.iIP_F, self.iIP_E, 0.2, 1, True)
+        # connectcells(self.iIP_F, self.Ia_aff_E, 0.2, 1, True)
         connectcells(self.C_0, self.iIP_F, 0.7, 1)
 
         '''reflex arc'''
@@ -653,7 +653,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
-    tstop = 25 + (6 * speed + 125) * step_number
+    tstop = 150#25 + (6 * speed + 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
     pc.psolve(tstop)
