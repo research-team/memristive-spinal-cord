@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <string.h>
 
 using namespace std;
 
@@ -23,14 +24,67 @@ void print(float x) {
     cout << x << endl;
 }
 
+void print(vector<float> v) {
+    for (int i = 0; i < v.size(); i++) {
+        cout << v[i] << " ";
+    }
+    cout << "\n";
+}
+
+void printMatrix(float** matrix, const int lines, const int columns) {
+    cout << "-----------\n";
+    for (int i = 0; i < lines; i++) {
+        for (int j = 0; j < columns; j++) {
+            cout << matrix[i][j] << " ";
+        }
+        cout << "\n";
+    }
+    cout << "-----------\n";
+}
+
+void print2dMatrix(float **matrix) {
+    printMatrix(matrix, 2, 2);
+}
+
 // return matrix lines x columns
 float** getMatrix(const int lines, const int columns) {
-    cout << lines << " " << columns << endl;
     float** matrix = new float * [lines];
     for (int i = 0; i < lines; i++) {
         matrix[i] = new float [columns];
     }
     return matrix;
+}
+
+float max(vector<float> x) {
+    int len = x.size();
+    if(len == 0) {
+        cout << "Error in max function vector length = 0" << endl;
+        exit(-1);
+    }
+    float maximum = x[0];
+    for (int i = 1; i < len; i++) {
+        if(x[i] > maximum) {
+            maximum = x[i];
+        }
+    }
+
+    return maximum;
+}
+
+float min(vector<float> x) {
+    int len = x.size();
+    if(len == 0) {
+        cout << "Error in max function vector length = 0" << endl;
+        exit(-1);
+    }
+    float minimum = x[0];
+    for (int i = 1; i < len; i++) {
+        if(x[i] < minimum) {
+            minimum = x[i];
+        }
+    }
+
+    return minimum;
 }
 
 // return 2x2 matrix
@@ -52,7 +106,6 @@ float determinant2d(float** matrix) {
  * find H ^ (1/2)
  * https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix#:~:text=A%20square%20root%20of%20a,obtained%20by%20an%20explicit%20formula.
 ***/
-// TODO 4 matrix instead 1, which should be chosen?
 float **getSquareRoot2dMatrix(float** matrix) {
     float** squareRoot2dMatrix = get2dArray();
 
@@ -93,25 +146,10 @@ float **getSquareRoot2dMatrix(float** matrix) {
     return squareRoot2dMatrix;
 }
 
-void printMatrix(float** matrix, const int lines, const int columns) {
-    cout << "-----------\n";
-    for (int i = 0; i < lines; i++) {
-        for (int j = 0; j < columns; j++) {
-            cout << matrix[i][j] << " ";
-        }
-        cout << "\n";
-    }
-    cout << "-----------\n";
-}
-
-void print2dMatrix(float **matrix) {
-    printMatrix(matrix, 2, 2);
-}
-
 /***
  * https://www.mathsisfun.com/algebra/matrix-inverse.html
  * @param matrix
- * @return matrix ^-1
+ * @return matrix^-1
  ***/
 float** getInverse2dMatrix(float **matrix) {
     float** inverse2dMatrix = get2dArray();
@@ -367,21 +405,174 @@ float psins1d(int r, float sigma) {
 
 }
 
+vector<float> rep(float number, int amountOfRep) {
+    vector<float> arr;
+
+    for (int i = 0; i < amountOfRep; i++) {
+        arr.push_back(number);
+    }
+
+    return arr;
+}
+
+vector<string> rep(string s, int amountOfRep) {
+    vector<string> arr;
+
+    for (int i = 0; i < amountOfRep; i++) {
+        arr.push_back(s);
+    }
+
+    return arr;
+}
+
+vector<int> convertFromFloatVectorToIntVector(vector<float> v) {
+    vector<int> out;
+    for(int i = 0; i < v.size(); i++) {
+        out.push_back(int(v[i]));
+    }
+    return out;
+}
+
+// https://rdrr.io/cran/ks/src/R/binning.R
+vector<int> defaultGridsize(int d) {
+    vector<int> gridsize;
+    if(d == 1) {
+        gridsize.push_back(401);
+    }
+    else if(d == 2) {
+        gridsize = convertFromFloatVectorToIntVector(rep(151, d));
+    }
+    else if(d == 3) {
+        gridsize = convertFromFloatVectorToIntVector(rep(51, d));
+    }
+    else if (d>=4){
+        gridsize = convertFromFloatVectorToIntVector(rep(21, d));
+    }
+    else {
+        cout << "Error: d < 1" << endl;
+        exit(-1);
+    }
+    return gridsize;
+}
+
 // https://rdrr.io/cran/ks/src/R/binning.R
 // TODO need to check
-// TODO it's only for 1d !!!!!!!
-float binning(vector<float> x, float H=0, float h=0,
-        float bgridsize=0, float xmin=0, float xmax=0, float supp=3.7,
-        float w=0, string gridtype="linear") {
+float linbinKs(vector<float> x, vector<float> gpoints, vector<float> w) {
+    int n = x.size();
+    int M = gpoints.size();
+    if(w.size() == 0) {
+        w = rep(1, n);
+    }
+    float a = gpoints[1];
+    float b = gpoints[M];
+
+    float xi = 0;
+    // TODO
+//    xi <- .C(C_massdist1d, x1=as.double(x[,1]), n=as.integer(n), a1=as.double(a), b1=as.double(b), M1=as.integer(M), weight=as.double(w), est=double(M))$est
+
+    return xi;
+}
+
+// https://rdrr.io/cran/ks/src/R/binning.R
+// TODO 1
+// TODO need to check
+/// h it is?
+float binning1d(vector<float> x,
+              vector<int> bgridsize,
+              float h=-10000,
+              float w=-10000,
+              float xmin=-10000,
+              float xmax=-10000,
+              float H=-10000,
+              float supp=3.7,
+              char gridtype[] = "linear") {
 
     // return matrix like vector.T
-    float** matrix = toMatrixFromVector(x);
+    // like asmatrix in R
+    float** matrix = toMatrix(x);
 
-    // FIXME now working only for 1d needed for 2d?
+    int d = 1; // ncol
+    int n = x.size(); // nrow
+    vector<float> rangeX;
+    vector<string> gridTypeVec;
+    gridTypeVec.push_back("");
+
+    if(w == -10000) {
+        w = 1;
+    }
+    if(h == -10000) {
+        h = 0;
+    }
+    if(H != -10000) {
+        // TODO
+    }
+    if(bgridsize.size() == 0) {
+        bgridsize = defaultGridsize(d);
+    }
+    if(xmin != -10000 && xmax != -10000) {
+        rangeX.push_back(xmin);
+        rangeX.push_back(xmax);
+    }
+    else if(xmin == -10000 || xmax == -10000) {
+        // FIXME shape h is?
+        float a = supp * h;
+        rangeX.push_back(min(x) - a);
+        rangeX.push_back(max(x) + a);
+    }
+
+    // FIXME not sure
+    /// but 1d it's ok
+    // a <- unlist(lapply(range.x,min))
+    vector<float> a = rangeX;
+    // b <- unlist(lapply(range.x,max))
+    vector<float> b = rangeX;
+
+    char defaultType[] = "linear";
+    int k = strcmp(defaultType, gridtype);
+    if(k != 0) {
+
+    }
+
+}
+
+// https://rdrr.io/cran/ks/src/R/binning.R
+// TODO need to check
+// FIXME this will be for 2d
+// TODO
+float binning(vector<float> x,
+                vector<float> h,
+                vector<float> w,
+                vector<int> bgridsize,
+                vector<float> xmin,
+                vector<float> xmax,
+                float H = 0,
+                float supp=3.7,
+                string gridtype="linear") {
+
+    // return matrix like vector.T
+    // like asmatrix in R
+    float** matrix = toMatrix(x);
+
+    // TODO x should be not vector - matrix
     int d = 1; // ncol
     int n = x.size(); // nrow
 
-    // TODO https://rdrr.io/cran/ks/src/R/binning.R
+    if(w.size() == 0) {
+        w = rep(1, n);
+    }
+    if(h.size() == 0) {
+        h = rep(0, d);
+    }
+    if(H != 0) {
+        // TODO H not number it's bandwidth matrix
+    }
+    if(bgridsize.size() == 0) {
+        bgridsize = defaultGridsize(d);
+    }
+    if(xmin.size() != 0 && xmax.size() == 0) {
+
+    }
+
 }
 
 // https://rdrr.io/cran/ks/src/R/normal.R
@@ -395,7 +586,7 @@ float dnormDerivSum(vector<float> x, float sigma, float derivOrder, float binPar
 
     if(binned) {
         if(binPar == 0) {
-            bin_par = binning(x, sigma, 4+r);
+//            bin_par = binning(x, sigma, 4+r);
         }
     }
 }
@@ -471,7 +662,5 @@ int main(int argc, char* argv[]) {
       arr.push_back(3);
       arr.push_back(4);
       arr.push_back(5);
-
-      print(pow(a, b));
 
 }
