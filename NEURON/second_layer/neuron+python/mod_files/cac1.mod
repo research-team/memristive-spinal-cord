@@ -1,7 +1,8 @@
 NEURON {
 	SUFFIX cac1
 	RANGE gmax, Ev
-	NONSPECIFIC_CURRENT i}
+  USEION cl READ cli, clo WRITE icl VALENCE -1
+}
 
 UNITS{
 	(pA) = (picoamp)
@@ -33,12 +34,14 @@ PARAMETER {
 
 ASSIGNED {
 	v (mV)	: voltage
-	i (mA/cm2)	: current
+	icl (mA/cm2)	: current
 	g  (mho/cm2)	: conductance
   a1 (/s)
   b1 (/s)
   l1 (/s)
   u1 (/s)
+  cli
+  clo
 }
 
 STATE {
@@ -51,13 +54,13 @@ STATE {
 }
 
 INITIAL {
-	Cs=1
+	SOLVE kstates METHOD sparse
 }
 
 BREAKPOINT {
 	SOLVE kstates METHOD sparse
 	g = gmax*(O1+O2)
-	i = g * (v - Ev)
+	icl = g * ghk(v,cli,clo)
 }
 
 KINETIC kstates{
@@ -81,4 +84,25 @@ KINETIC kstates{
 
 FUNCTION update_state(v(mV), state0, z0){
 	update_state = state0*exp(z0*FARADAY*v/R/(273.15 + celsius))
+}
+
+FUNCTION ghk(v(mV), ci(mM), co(mM)) (mV) {
+        LOCAL nu,f
+
+        f = KTF(celsius)/2
+        nu = v/f
+        ghk=-f*(1. - (ci/co)*exp(nu))*efun(nu)
+}
+
+FUNCTION KTF(celsius (DegC)) (mV) {
+        KTF = ((25./293.15)*(celsius + 273.15))
+}
+
+
+FUNCTION efun(z) {
+	if (fabs(z) < 1e-4) {
+		efun = 1 - z/2
+	}else{
+		efun = z/(exp(z) - 1)
+	}
 }
