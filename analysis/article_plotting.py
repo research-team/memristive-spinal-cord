@@ -10,14 +10,16 @@ import matplotlib.patches as mpatches
 
 from colour import Color
 from itertools import chain
+from shapely import affinity
 from matplotlib import gridspec
-from scipy.stats import ks_2samp
 from collections import defaultdict
+from matplotlib.patches import Polygon
 from scipy.signal import argrelextrema
 from matplotlib.patches import Ellipse
 from rpy2.robjects.packages import STAP
+from shapely.geometry.point import Point
+from scipy.stats import ks_2samp, kstwobign
 from rpy2.robjects.numpy2ri import numpy2rpy
-from scipy.stats import kstwobign, anderson_ksamp
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import read_hdf5, trim_data, calibrate_data, get_boxplots, parse_filename, subsampling
 
@@ -963,29 +965,64 @@ class Analyzer:
 		#
 		slice_length = 50
 		ees = int(1 / metadata.rate * 1000)
-		#
+		# process each rat's data
 		for rat_id in rats:
+			print(f" rat ID {rat_id} (MONO)".center(30, "-"))
 			T = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
 			A = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
 			S = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 			D = metadata.get_myograms(rat_id, muscle='E')
+			# collect peaks' amplitudes which located inside of mono
+			monos = []
+			# plot myogram
 			for exp in D:
 				for i, data in enumerate(exp):
 					plt.plot(np.arange(len(data)) * metadata.dstep_to, data + i)
 			plt.plot(T, S, '.', c='k')
-
-
-			monos = []
+			# process each mono after EES
 			for i in range(0, slice_length, ees):
 				start = i + 3
 				end = i + 7.5
+				mask_inside_mono = (start <= T) & (T <= end)
+				monos.append(A[mask_inside_mono])
+				x, y = T[mask_inside_mono], S[mask_inside_mono]
 				plt.axvspan(xmin=start, xmax=end, alpha=0.5)
-				monos.append(A[(start <= T) & (T <= end)])
-
+				plt.plot(x, y, '.', color='r', ms=10)
+			# show ratio of average ampls
 			for i in range(1, len(monos)):
-				print(f"{np.median(monos[i]) / np.median(monos[0]):.2f}\t({np.median(monos[i]):.2f} / {np.median(monos[0]):.2f})")
-
+				print(f"mono #{i} with #0: avg ampls ratio "
+				      f"{np.median(monos[i]) / np.median(monos[0]):.3f}\t"
+				      f"({np.median(monos[i]):.3f} / {np.median(monos[0]):.3f})")
 			plt.show()
+
+	@staticmethod
+	def is_inside(points, rc, rx, ry, angle=0):
+		cos_angle = np.cos(np.radians(180 - angle))
+		sin_angle = np.sin(np.radians(180 - angle))
+
+		xc = points[:, 0] - rc[0]
+		yc = points[:, 1] - rc[1]
+
+		xct = xc * cos_angle - yc * sin_angle
+		yct = xc * sin_angle + yc * cos_angle
+
+		rad_cc = (xct ** 2 / rx ** 2) + (yct ** 2 / ry ** 2)
+		return rad_cc <= 1
+
+	def ellipse_form(self, meta_ellipse):
+		"""
+		create a shapely ellipse. adapted from
+		https://gis.stackexchange.com/a/243462
+		"""
+		ell_c, ell_w, ell_h, ell_angle = meta_ellipse
+		# create ellipse
+		circ = Point(ell_c).buffer(1)
+		ell = affinity.scale(circ, ell_w, ell_h)
+		ellipse = affinity.rotate(ell, ell_angle)
+		# form polygon for drawing
+		verts = np.array(ellipse.exterior.coords.xy)
+		patch = Polygon(verts.T, alpha=0.5)
+		return ellipse, patch
 
 	def plot_poly_Hz(self, source, rats):
 		""""""
@@ -1004,42 +1041,79 @@ class Analyzer:
 
 		shortname = metadata.shortname
 		ell_width = 25
+		ell_height = 6
+		# ellipse form
+		rx = ell_width / 2
+		ry = ell_height / 2
 		print(shortname)
 		slice_length = 50
 		ees = int(1 / metadata.rate * 1000)
 		#
 		for rat_id in rats:
+			print(f" rat ID {rat_id} (POLY)".center(30, "-"))
+			ellipses = []
+			#
 			plt.figure(figsize=(10, 5))
 			T = metadata.get_peak_times(rat_id, muscle='E', flat=True)
 			A = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
 			S = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 			D = metadata.get_myograms(rat_id, muscle='E')
 
-			for exp in D:
-				for islice, data in enumerate(exp):
-					plt.plot(np.arange(len(data)) * metadata.dstep_to, data + islice)
-					t = T[S == islice]
-					plt.plot(t * metadata.dstep_to, data[t] + islice, '.', c='k', ms=4)
-			#
-			is_inside = lambda point: (point[0] - rc[0]) ** 2 / rx ** 2 + (point[1] - rc[1]) ** 2 / ry ** 2 <= 1
-
-			rx = ell_width / 2
-			ry = 6 / 2
-
+			# process ellipses after each EES
 			for i in range(0, slice_length, ees):
 				mono_start = i + 3
 				mono_end = i + 7.5
 				rc = (mono_end + 2 + ell_width / 2, 2.5)
-				e = Ellipse(xy=rc, width=rx * 2, height=ry * 2, alpha=0.3, edgecolor='k')
-				plt.gca().add_artist(e)
-
-				plt.axvspan(xmin=mono_start, xmax=mono_end, alpha=0.5, color='r')
-
-				a = np.array([d for d in np.vstack((T * metadata.dstep_to, A)).T if is_inside(d)])
+				# find peaks (time, slice index, ampl) inside ellipse
+				points = np.vstack((T * metadata.dstep_to, S, A)).T
+				mask_inside = self.is_inside(points, rc=rc, rx=rx, ry=ry)
+				points = points[mask_inside]
+				ampls = A[mask_inside]
+				# remove points inside mono answers
 				for time in range(0, slice_length, ees):
-					a = a[(a[:, 0] < (time + 3)) | ((time + 7.5) < a[:, 0])]
-				print(a)
-				plt.plot(a[:, 0], [0] * len(a[:, 0]) , '.', c='r', ms=10)
+					mask_outside_mono = (points[:, 0] < (time + 3)) | ((time + 7.5) < points[:, 0])
+					points = points[mask_outside_mono]
+					ampls = ampls[mask_outside_mono]
+				if len(points) == 0:
+					continue
+				# ell = Ellipse(xy=rc, width=rx * 2, height=ry * 2, alpha=0.3, edgecolor='k')
+				# plt.gca().add_artist(ell)
+				ellipses.append((rc, rx, ry, 0, points, ampls))
+				print(f"Ellipse #{int(i / ees)} {rc, rx, ry, 0} ampls avg: {np.mean(ampls):.3f}")
+				# plot mono area
+				plt.axvspan(xmin=mono_start, xmax=mono_end, alpha=0.5, color='r')
+				plt.plot(points[:, 0], points[:, 1], '.', c='r', ms=10)
+
+			if len(ellipses) == 1:
+				ellipse, patch = self.ellipse_form(ellipses[0][:4])
+				plt.gca().add_patch(patch)
+			else:
+				for i in range(len(ellipses) - 1):
+					# first ellipse
+					meta_ell1 = ellipses[i]
+					ell_polygon1, patch1 = self.ellipse_form(meta_ell1[:4])
+					plt.gca().add_patch(patch1)
+					# second ellipse
+					meta_ell2 = ellipses[i + 1]
+					ell_polygon2, patch2 = self.ellipse_form(meta_ell2[:4])
+					plt.gca().add_patch(patch2)
+					# intersect
+					intersect = ell_polygon1.intersection(ell_polygon2)
+					if intersect:
+						verts3 = np.array(intersect.exterior.coords.xy)
+						patch3 = Polygon(verts3.T, facecolor='none', edgecolor='black')
+						plt.gca().add_patch(patch3)
+						mask_common = (meta_ell1[4][:, None] == meta_ell2[4]).all(-1).any(-1)
+						avg_ampls = np.mean(meta_ell1[5][mask_common])
+						print(f'area of intersect (#{i} and #{i + 1}): {intersect.area:.3f}, avg ampl in intersect: {avg_ampls:.3f}')
+			# just plot all peaks
+			for exp, texp in zip(D, metadata.get_peak_times(rat_id, muscle='E')):
+				for islice, (data, tdata) in enumerate(zip(exp, texp)):
+					plt.plot(np.arange(len(data)) * metadata.dstep_to, data + islice)
+					if tdata:
+						tdata = np.array(tdata)
+						plt.plot(tdata * metadata.dstep_to, data[tdata] + islice, '.', c='k', ms=4, zorder=4)
+
 			plt.xlim(0, 50)
 			plt.ylim(-1, 6)
 			plt.tight_layout()
