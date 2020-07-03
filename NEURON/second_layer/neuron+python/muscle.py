@@ -62,11 +62,11 @@ class muscle(object):
     self.muscle_unit.cm = 3.6  # cm uf/cm2
     self.muscle_unit.insert('pas')
     self.muscle_unit.g_pas = 0.004
-    self.muscle_unit.e_pas = -70
-    self.muscle_unit.Ra = 0.05
+    self.muscle_unit.e_pas = -65
+    self.muscle_unit.Ra = 1.1
 
     self.soma.cm = 3.6 # cm uf/cm2
-    self.soma.Ra = 0.05
+    self.soma.Ra = 1.1
     # self.soma.insert('Ca_conc')
     self.soma.insert('fastchannels')
     self.soma.insert('kir')
@@ -76,13 +76,13 @@ class muscle(object):
     self.soma.insert('cac1')
     # self.soma.insert('pas')
     # self.soma.g_pas = 0.0002
-    self.soma.gmax_cac1 = 0.003
-    self.soma.gbar_na14a = 0.55
+    self.soma.gmax_cac1 = 0.005
+    self.soma.gbar_na14a = 0.75
     self.soma.gkbar_kir = 0.03
-    self.soma.gnabar_fastchannels=0.45
+    self.soma.gnabar_fastchannels=0.55
     self.soma.gkbar_fastchannels=0.03
     self.soma.gl_fastchannels=0.004
-    self.soma.el_fastchannels=-70
+    self.soma.el_fastchannels=-65
     # self.soma.gnabar_hh = 0.35
     # self.soma.gkbar_hh = 0.02
     # self.soma.gl_hh = 0.002
@@ -90,7 +90,7 @@ class muscle(object):
     self.soma.gcalbar_cal = 0.003
 
     self.soma.ena = 55
-    self.soma.ek = -80
+    # self.soma.ek = -80
 
     # self.soma.gcaN_motoneuron = 0.0#001
     # self.soma.gnabar_motoneuron = 0.2

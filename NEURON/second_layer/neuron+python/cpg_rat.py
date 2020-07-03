@@ -226,11 +226,11 @@ class CPG:
         connectcells(self.Ia_aff_E, self.mns_E, 0.75, 2)
         connectcells(self.Ia_aff_F, self.mns_F, 0.75, 2)
 
-        connectcells(self.mns_E, self.muscle_E, 0.55, 1, False, 65)
-        connectcells(self.mns_E, self.muscle_F, 0.55, 1, False, 65)
+        connectcells(self.mns_E, self.muscle_E, 0.65, 1, False, 65)
+        connectcells(self.mns_E, self.muscle_F, 0.65, 1, False, 65)
 
         '''IP'''
-        for layer in range(2, 4):
+        for layer in range(1, 3):
             connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.3*layer, 2)
             connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.3*layer, 2)
         for layer in range(layers):
@@ -261,22 +261,22 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00045*k*speed, 2)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.0005*k*speed, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 2)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 2)
         # connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
         #
         '''C2'''
-        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.00045*k*speed, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00045*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0005*k*speed, 2)
+        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00035*k*speed, 2)
         connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00025*k*speed, 2)
         connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00005*k*speed, 2)
         # connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001*k*speed, 2)
         #
         '''C3'''
         # connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005*k*speed, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045*k*speed, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00045*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00035*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0004*k*speed, 2)
         connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002*k*speed, 2)
         connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001*k*speed, 2)
         #
@@ -312,7 +312,7 @@ class CPG:
         connectcells(self.IP_F, self.iIP_F, 0.5, 1)
         connectcells(self.iIP_F, self.IP_E, 0.02, 1, True)
         connectcells(self.iIP_F, self.iIP_E, 0.2, 1, True)
-        connectcells(self.iIP_F, self.Ia_aff_E, 0.2, 1, True)
+        connectcells(self.iIP_F, self.Ia_aff_E, 0.1, 1, True)
         connectcells(self.C_0, self.iIP_F, 0.2, 1)
 
         '''reflex arc'''
@@ -559,7 +559,7 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM3, OM1, 0.4, 1, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.35, 1)
+    connectcells(nucleus, nucleus, 0.45, 1)
 
 def spike_record(pool, version, muscle = False):
     ''' Records spikes from gids
