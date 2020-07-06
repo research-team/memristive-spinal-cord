@@ -22,6 +22,8 @@ p = 0.05
 # connectomes number
 N = 104
 
+steps = 10
+
 max_weights = []
 low_weights = []
 
@@ -73,8 +75,8 @@ def convert_to_hdf5(result_folder):
                             continue
 
                         length = len(data)
-                        start, end, l = 0, 0, int(length / 10)
-                        for i in range(10):
+                        start, end, l = 0, 0, int(length / steps)
+                        for i in range(steps):
                             end += l
                             arr = data[start:end]
                             start += l
@@ -107,11 +109,11 @@ class Individual:
 
     def __eq__(self, other):
         # return self.peaks_number == self.peaks_number
-        return self.pvalue == other.pvalue
+        return self.pvalue_amplitude == other.pvalue_amplitude
 
     def __gt__(self, other):
         # return self.peaks_number > self.peaks_number
-        return self.pvalue > other.pvalue
+        return self.pvalue_amplitude > other.pvalue_amplitude
 
     def __copy__(self):
 
@@ -153,38 +155,38 @@ class Individual:
 
         # Es ~ OMs
         for i in range(5):
-            self.set_weight(0.01, 0.5)
+            self.set_weight(0.01, 0.6)
 
         # CVs - OMs
         for i in range(16):
-            self.set_weight(0.06, 2)
+            self.set_weight(0.06, 2.2)
 
         # output to Flexor another OM
         for i in range(4):
-            self.set_weight(0.001, 0.01)
+            self.set_weight(0.001, 0.02)
 
         # output to eIP
         for i in range(10):
-            self.set_weight(0.1, 5)
+            self.set_weight(0.1, 6)
 
         for i in range(40):
-            self.set_weight(0.05, 1)
+            self.set_weight(0.05, 2)
 
         for i in range(15):
-            self.set_weight(0.01, 0.2)
+            self.set_weight(0.01, 0.3)
 
         for i in range(2):
-            self.set_weight(0.005, 0.06)
+            self.set_weight(0.005, 0.07)
 
         for i in range(4):
             self.set_weight(0.0005, 0.002)
 
         # eIP ~ MN
         for i in range(2):
-            self.set_weight(2, 15)
+            self.set_weight(1, 15)
 
         for i in range(6):
-            self.weights.append(0)
+            self.set_weight(0, 0)
 
         # init delays
         for i in range(N):
@@ -216,6 +218,10 @@ class Data:
         files.append(f"{path_to_dat_folder}/{i}/peaks.txt")
         files.append(f"{path_to_dat_folder}/{i}/{i}_MN_E.dat")
         files.append(f"{path_to_dat_folder}/{i}/{i}_MN_F.dat")
+        files.append(f"{path}/pickle/{i}/gras_PLT_6cms_40Hz_2pedal_0.025step.pickle")
+        files.append(f"{path}/pickle/{i}/gras_PLT_13.5cms_40Hz_2pedal_0.025step.pickle")
+        files.append(f"{path}/pickle/{i}/gras_PLT_21cms_40Hz_2pedal_0.025step.pickle")
+
 
     @staticmethod
     def delete(files_arr):
@@ -270,7 +276,9 @@ class Fitness:
             convert_to_hdf5(f"{path}/dat/{i}")
 
         # get p-value for 4 individuals
+        t = time.time()
         get_4_pvalue()
+        print(f"4 p-value calculated {time.time() - t}")
 
         # set p-value to this individuals
         for i in range(len(individuals)):
@@ -281,12 +289,23 @@ class Fitness:
             d2 = open(f'{path}/dat/{i}/d2.txt')
             peaks = open(f'{path}/dat/{i}/peaks.txt')
 
-            individual.pvalue_amplitude = float(ampls.readline())
-            individual.pvalue_times = float(times.readline())
-            individual.pvalue = float(d2.readline())
-            individual.peaks_number = float(peaks.readline())
+            try:
+                individual.pvalue_amplitude = float(ampls.readline())
+                individual.pvalue_times = float(times.readline())
+                individual.pvalue = float(d2.readline())
+                individual.peaks_number = float(peaks.readline())
 
-            Fitness.write_pvalue(individual, num_population)
+                fnameE = f"{path}/dat/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
+                fnameF = f"{path}/dat/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
+
+                Fitness.write_pvalue(individual, num_population)
+
+                if individual.pvalue_amplitude >= 0.05:
+                    os.rename(f"{fnameE}", f"{fnameE}_{individual.pvalue_amplitude}")
+                    os.rename(f"{fnameF}", f"{fnameF}_{individual.pvalue_amplitude}")
+
+            except:
+                continue
 
         Data.delete_files()
 
@@ -527,16 +546,24 @@ class Evolution:
                 individual.gen[i] = float(individual.gen[i])
 
         for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation3(individual))
+            r = random.randint(0, 100)
+            if r >= 50:
+                newPopulation.add_individual(Breeding.mutation3(individual))
 
         for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation2(individual))
+            r = random.randint(0, 100)
+            if r >= 50:
+                newPopulation.add_individual(Breeding.mutation2(individual))
 
         for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation4(individual))
+            r = random.randint(0, 100)
+            if r >= 50:
+                newPopulation.add_individual(Breeding.mutation4(individual))
 
         for individual in individuals:
-            newPopulation.add_individual(Breeding.mutation(individual))
+            r = random.randint(0, 100)
+            if r >= 50:
+                newPopulation.add_individual(Breeding.mutation(individual))
 
         for individual in individuals:
             if individual.is_correct():
