@@ -95,9 +95,9 @@ class interneuron(object):
 
     self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('fastchannels')
-    self.soma.gnabar_fastchannels = 0.4
-    self.soma.gkbar_fastchannels = 0.02
-    self.soma.gl_fastchannels = 0.0002
+    self.soma.gnabar_fastchannels = 0.25
+    self.soma.gkbar_fastchannels = 0.04
+    self.soma.gl_fastchannels = 0.002
     self.soma.el_fastchannels = -65
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
@@ -165,16 +165,15 @@ class interneuron(object):
         self.synlistex.append(s)
         s = h.Exp2Syn(self.soma(0.5)) # Inhibitory
         s.tau1 = 0.5
-        s.tau2 = 3
+        s.tau2 = 3.5
         s.e = -80
         self.synlistinh.append(s)
         s = h.ExpSyn(sec(0.5)) # Excitatory
         s.tau = 0.3
         s.e = 50
         self.synlistex.append(s)
-        s = h.Exp2Syn(sec(0.5)) # Inhibitory
-        s.tau1 = 0.5
-        s.tau2 = 3
+        s = h.ExpSyn(sec(0.5)) # Inhibitory
+        s.tau = 0.5
         s.e = -80
         self.synlistinh.append(s)
 
