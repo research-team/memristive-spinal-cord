@@ -91,14 +91,14 @@ class interneuron(object):
     if delay is true, adds 5ht receptors
     '''
     for sec in self.all:
-      sec.cm = random.gauss(1, 0.05) # cm uf/cm2 - membrane capacitance
+      sec.cm = random.gauss(1, 0.01) # cm uf/cm2 - membrane capacitance
 
     self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('fastchannels')
-    self.soma.gnabar_fastchannels = 0.25
-    self.soma.gkbar_fastchannels = 0.04
+    self.soma.gnabar_fastchannels = 0.15
+    self.soma.gkbar_fastchannels = 0.06
     self.soma.gl_fastchannels = 0.002
-    self.soma.el_fastchannels = -65
+    self.soma.el_fastchannels = -72
     self.soma.insert('extracellular') #adds extracellular mechanism for recording extracellular potential
 
     for sec in self.dend:
@@ -120,7 +120,7 @@ class interneuron(object):
       else:
         sec.insert('pas')
         sec.g_pas = 0.0002
-        sec.e_pas = -65
+        sec.e_pas = -70
 
     self.axon.Ra = 50
     self.axon.insert('hh')
