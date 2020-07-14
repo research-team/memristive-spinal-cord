@@ -1,6 +1,5 @@
-from neuron import h
+from neuron import h, gui
 import random
-h.load_file('stdlib.hoc') #for h.lambda_f
 
 import random
 
@@ -34,7 +33,7 @@ class interneuron(object):
     self.topol()
     self.subsets()
     self.geom()
-    self.geom_nseg()
+    # self.geom_nseg()
     self.biophys()
     self.synlistinh = []
     self.synlistex = []
@@ -106,17 +105,8 @@ class interneuron(object):
 
     for sec in self.dend:
       if self.delay:
-        distance = random.uniform(30, 1500)
         sec.insert('hh')
-        diff = h.slow_5HT(self.dend(0.5))
-        rec = h.r5ht3a(self.dend(0.5))
-        rec.gmax = random.uniform(0, 0.002)
-        diff.h = random.gauss(distance, distance/5)
-        diff.c0cleft = 2
-        diff.tx1 = 10+(diff.h/70)*1000
-        h.setpointer(diff._ref_serotonin, 'serotonin', rec)
-        self.diffs.append(diff)
-        self.recs.append(rec)
+        self.add_5HTreceptors(sec, 10, 15)
       else:
         sec.insert('pas')
         sec.g_pas = 0.0002
@@ -124,6 +114,31 @@ class interneuron(object):
 
     self.axon.Ra = 50
     self.axon.insert('hh')
+
+  def add_5HTreceptors(self, compartment, time, g):
+    '''
+    Adds 5HT receptors
+    Parameters
+    ----------
+    compartment: section of NEURON cell
+    part of neuron
+    x: int
+    x - coordinate of serotonin application
+    time: int (ms)
+    time of serotonin application
+    g: float
+    receptor conductance
+    '''
+    diff = h.slow_5HT(compartment(0.5))
+    diff.h = random.uniform(10, 2500)
+    diff.tx1 = time + 0 + (diff.h/50)*10#00
+    diff.c0cleft = 3
+    diff.a = 0.1
+    rec = h.r5ht3a(compartment(0.5))
+    rec.gmax = g
+    h.setpointer(diff._ref_serotonin, 'serotonin', rec)
+    self.diffs.append(diff)
+    self.recs.append(rec)
 
   def position(self, x, y, z):
     '''

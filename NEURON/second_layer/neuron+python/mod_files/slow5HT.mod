@@ -1,7 +1,7 @@
 TITLE slow 5HT diffusion
 NEURON{
 	POINT_PROCESS slow_5HT
-	RANGE serotonin,h,c0cleft, diff
+	RANGE serotonin,h,c0cleft, diff, a
 	RANGE tx1}
 
 UNITS{
@@ -13,12 +13,12 @@ UNITS{
 CONSTANT {
 	PI=3.1415927
 }
-PARAMETER { 
+PARAMETER {
 	c0cleft = 20 (uM):initial quantity atp
 	h(um)
 	tx1(ms)
 	k = 0.00055
-	vmax = 0.0175 
+	vmax = 0.0175
 	km = 0.005
 	a = 20 :coefficient of reuptake
  }
@@ -49,5 +49,5 @@ UNITSOFF
 }
 NET_RECEIVE (weight)
 {
-tx1=t 
+tx1=t
 }
