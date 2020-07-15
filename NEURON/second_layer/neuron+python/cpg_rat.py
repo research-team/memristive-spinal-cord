@@ -220,8 +220,8 @@ class CPG:
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.85, 1)
                     # connectcells(self.dict_C[layer], self.dict_2E[i], 0.75, 1, True)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.75, 1)
-        genconnect(self.ees, self.Ia_aff_F, 0.75, 1)
+        genconnect(self.ees, self.Ia_aff_E, 0.85, 1)
+        genconnect(self.ees, self.Ia_aff_F, 0.85, 1)
         genconnect(self.ees, self.dict_CV[0], 0.75, 2)
         genconnect(self.Iagener_E, self.Ia_aff_E, 0.001, 1, False, 15)
         genconnect(self.Iagener_F, self.Ia_aff_F, 0.001, 1, False, 15)
@@ -245,10 +245,10 @@ class CPG:
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.95, 2)
             connectcells(self.dict_IP_E[layer], self.mns_E, 1.2, 1)
-            if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0004, 1, True)
-            else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
+            # if layer > 3:
+            #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0004, 1, True)
+            # else:
+            #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.95, 2)
@@ -296,24 +296,24 @@ class CPG:
         # connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
 
         '''C=1 Extensor'''
-        connectcells(self.IP_E, self.iIP_E, 0.08, 1)
+        # connectcells(self.IP_E, self.iIP_E, 0.08, 1)
 
         for layer in range(layers):
             connectcells(self.dict_CV_1[layer], self.iIP_E, 0.8, 1)
             connectcells(self.dict_C[layer], self.iIP_E, 0.8, 1)
 
-        connectcells(self.iIP_E, self.OM1_0F, 1.5, 1, True)
+        connectcells(self.iIP_E, self.OM1_0F, 0.5, 1, True)
 
         for layer in range(layers - 1):
             connectcells(self.iIP_E, self.dict_2F[layer], 0.8, 2, True)
             connectcells(self.iIP_F, self.dict_2E[layer], 0.5, 2, True)
 
-        connectcells(self.iIP_E, self.IP_F, 1.5, 1, True)
+        connectcells(self.iIP_E, self.IP_F, 0.5, 1, True)
         connectcells(self.iIP_E, self.Ia_aff_F, 0.7, 1, True)
         connectcells(self.iIP_E, self.mns_F, 0.4, 1, True)
 
         '''C=0 Flexor'''
-        connectcells(self.IP_F, self.iIP_F, 0.05, 1)
+        # connectcells(self.IP_F, self.iIP_F, 0.05, 1)
         connectcells(self.iIP_F, self.IP_E, 0.06, 1, True)
         connectcells(self.iIP_F, self.iIP_E, 0.2, 1, True)
         connectcells(self.iIP_F, self.Ia_aff_E, 0.2, 1, True)
@@ -565,7 +565,7 @@ def createmotif(OM0, OM1, OM2, OM3):
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.45, 1)
 
-def spike_record(pool, version, muscle = False):
+def spike_record(pool, extra = False):
     ''' Records spikes from gids
       Parameters
       ----------
@@ -583,7 +583,10 @@ def spike_record(pool, version, muscle = False):
     for i in pool:
         cell = pc.gid2cell(i)
         vec = h.Vector()
-        vec.record(cell.soma(0.5)._ref_vext[1])
+        if extra:
+            vec.record(cell.soma(0.5)._ref_vext[0])
+        else:
+            vec.record(cell.soma(0.5)._ref_v)
         v_vec.append(vec)
     return v_vec
 
@@ -602,24 +605,6 @@ def motodiams(number):
                      np.random.normal(loc=loc_stanby, scale=scale_stanby, size=standby_size)])
 
     return x2
-
-
-def avgarr(z):
-    ''' Summarizes extracellular voltage in pool
-      Parameters
-      ----------
-      z: list
-        list of neurons voltage
-      Returns
-      -------
-      summa: list
-          list of summarized voltage
-    '''
-    summa = 0
-    for item in z:
-        summa += np.array(item)
-    return summa
-
 
 def spikeout(pool, name, version, v_vec):
     ''' Reports simulation results
@@ -642,7 +627,7 @@ def spikeout(pool, name, version, v_vec):
             outavg = []
             for j in range(len(pool)):
                 outavg.append(list(v_vec[j]))
-            outavg = avgarr(outavg)
+            outavg = np.mean(np.array(outavg), axis = 0)
             vec = vec.from_python(outavg)
         pc.barrier()
     pc.barrier()
@@ -650,9 +635,9 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0)
-        with hdf5.File('./res/{}.hdf5'.format(name), 'w') as file:
+        with hdf5.File('./res/PLT_{}_speed_{}.hdf5'.format(name, speed), 'w') as file:
           for i in range(step_number):
-              sl = slice((1000+i*(6 * speed + 125)*40),(1000+(i+1)*(6 * speed + 125)*40))
+              sl = slice((0+i*(6 * speed + 125)*40),(0+(i+1)*(6 * speed + 125)*40))
               file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
     else:
         logging.info(rank)
@@ -690,8 +675,12 @@ if __name__ == '__main__':
         cpg_ex = CPG(speed, ees_fr, 100, step_number, layers, extra_layers, N)
         logging.info("created")
         motorecorders = []
+        motorecorders_mem = []
         for group in cpg_ex.motogroups:
-            motorecorders.append(spike_record(group[k_nrns], i))
+            motorecorders.append(spike_record(group[k_nrns], True))
+
+        for group in cpg_ex.motogroups:
+            motorecorders_mem.append(spike_record(group[k_nrns]))
         # affrecorders = []
         # for group in cpg_ex.affgroups:
         #   affrecorders.append(spike_record(group[k_nrns], i))
@@ -708,6 +697,9 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
+
+        for group, recorder in zip(cpg_ex.motogroups, motorecorders_mem):
+            spikeout(group[k_nrns], f'mem_{group[k_name]}', i, recorder)
         # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
         #   spikeout(group[k_nrns], group[k_name], i, recorder)
         # for group, recorder in zip(cpg_ex.groups, recorders):
