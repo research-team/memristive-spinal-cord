@@ -16,7 +16,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
 step_number = 2 # number of steps
@@ -26,7 +26,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.017
+k = 0.02
 
 exnclist = []
 inhnclist = []
@@ -82,13 +82,13 @@ class CPG:
             self.dict_3 = {layer: f"OM{layer + 1}_3"}
             self.dict_C = {layer: f"C{layer + 1}"}
 
-        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
-        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
+        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "delay")
+        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "delay")
 
         '''addpool'''
         for layer in range(layers):
-            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
-            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
+            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "delay")
+            self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "delay")
             self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
             self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
             self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
@@ -204,9 +204,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.75, 2)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00042, 2)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00044, 2)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00044, 2)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00047, 2)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -220,17 +220,17 @@ class CPG:
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.85, 1)
                     # connectcells(self.dict_C[layer], self.dict_2E[i], 0.75, 1, True)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.85, 1)
-        genconnect(self.ees, self.Ia_aff_F, 0.85, 1)
+        genconnect(self.ees, self.Ia_aff_E, 0.95, 1)
+        genconnect(self.ees, self.Ia_aff_F, 0.95, 1)
         genconnect(self.ees, self.dict_CV[0], 0.75, 2)
         genconnect(self.Iagener_E, self.Ia_aff_E, 0.001, 1, False, 15)
         genconnect(self.Iagener_F, self.Ia_aff_F, 0.001, 1, False, 15)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 0.85, 1)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.85, 1)
+        connectcells(self.Ia_aff_E, self.mns_E, 1.5, 1)
+        connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1)
 
-        connectcells(self.mns_E, self.muscle_E, 10.5, 2, False, 55)
-        connectcells(self.mns_E, self.muscle_F, 10.5, 2, False, 55)
+        connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 55)
+        connectcells(self.mns_E, self.muscle_F, 15.5, 2, False, 55)
 
         '''IP'''
         for layer in range(1, 5):
@@ -244,7 +244,7 @@ class CPG:
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 0.95, 2)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 1.2, 1)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 1.05, 1)
             # if layer > 3:
             #     connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0004, 1, True)
             # else:
@@ -252,7 +252,7 @@ class CPG:
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 0.95, 2)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 1.2, 2)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 1.05, 2)
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -635,9 +635,9 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0)
-        with hdf5.File('./res/PLT_{}_speed_{}.hdf5'.format(name, speed), 'w') as file:
+        with hdf5.File('./res/QPZ_{}_speed_{}.hdf5'.format(name, speed), 'w') as file:
           for i in range(step_number):
-              sl = slice((0+i*(6 * speed + 125)*40),(0+(i+1)*(6 * speed + 125)*40))
+              sl = slice((1000+i*(6 * speed + 125)*40),(1000+(i+1)*(6 * speed + 125)*40))
               file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
     else:
         logging.info(rank)

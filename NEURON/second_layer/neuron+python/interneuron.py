@@ -94,7 +94,7 @@ class interneuron(object):
 
     self.soma.Ra = 100 # Ra ohm cm - membrane resistance
     self.soma.insert('fastchannels')
-    self.soma.gnabar_fastchannels = 0.15
+    self.soma.gnabar_fastchannels = 0.25
     self.soma.gkbar_fastchannels = 0.06
     self.soma.gl_fastchannels = 0.002
     self.soma.el_fastchannels = -72
@@ -105,8 +105,11 @@ class interneuron(object):
 
     for sec in self.dend:
       if self.delay:
-        sec.insert('hh')
-        self.add_5HTreceptors(sec, 10, 15)
+        sec.insert('fastchannels')
+        sec.gnabar_fastchannels = 0.35
+        sec.gkbar_fastchannels = 0.04
+        sec.gl_fastchannels = 0.001
+        self.add_5HTreceptors(sec, 10, 18)
       else:
         sec.insert('pas')
         sec.g_pas = 0.0002
