@@ -6,47 +6,44 @@ import numpy as np
 import h5py as hdf5
 import time
 import datetime
+import json
 
 from multi_gpu_build import Build
 from meta_plotting import get_4_pvalue
+from data import Data_settings
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-N_individuals_in_first_init = 500
-N_how_much_we_choose = 15
+N_how_much_we_choose = Data_settings.N_choose
 
 # p-value what we want or bigger
 p = 0.05
 
 # connectomes number
-N = 104
+N = Data_settings.N_connectomes
 
-steps = 10
+speed = Data_settings.speed
 
 max_weights = []
 low_weights = []
 
-low_delay = 0.5
+low_delay = 0.2
 max_delay = 6
-
-crit_peaks_number = 50
-
-speed = 6
 
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
 
 
 def write_zero(result_folder):
-    f = open(f"{result_folder}/time.txt", 'w')
-    f.write("0")
-    f.close()
-    f = open(f"{result_folder}/ampl.txt", 'w')
-    f.write("0")
-    f.close()
-    f = open(f"{result_folder}/2d.txt", 'w')
-    f.write("0")
-    f.close()
+    time_file = open(f"{result_folder}/time.txt", 'w')
+    time_file.write("0")
+    time_file.close()
+    ampl_file = open(f"{result_folder}/ampl.txt", 'w')
+    ampl_file.write("0")
+    ampl_file.close()
+    two_d_file = open(f"{result_folder}/2d.txt", 'w')
+    two_d_file.write("0")
+    two_d_file.close()
 
 
 def convert_to_hdf5(result_folder):
@@ -74,9 +71,15 @@ def convert_to_hdf5(result_folder):
                             write_zero(result_folder)
                             continue
 
+                        # data = np.array(data)
+                        # split_data = np.split(data, steps)
+                        #
+                        # for arr in split_data:
+                        #     hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr,
+                        #                              compression="gzip")
                         length = len(data)
-                        start, end, l = 0, 0, int(length / steps)
-                        for i in range(steps):
+                        start, end, l = 0, 0, int(length / Data_settings.steps)
+                        for i in range(Data_settings.steps):
                             end += l
                             arr = data[start:end]
                             start += l
@@ -84,6 +87,7 @@ def convert_to_hdf5(result_folder):
                                                      compression="gzip")
                     except:
                         continue
+
         # check that hdf5 file was written properly
         with hdf5.File(f"{result_folder}/{name}") as hdf5_file:
             assert all(map(len, hdf5_file.values()))
@@ -91,29 +95,31 @@ def convert_to_hdf5(result_folder):
 
 class Individual:
 
-    def __init__(self):
-        self.pvalue = 0.0
-        self.pvalue_amplitude = 0.0
-        self.pvalue_times = 0.0
-        self.peaks_number = 0.0
+    def __init__(self, pvalue=0.0, pvalue_amplitude=0.0, pvalue_times=0.0, peaks_number=0.0, id=0, origin="", dt=0.0):
+        self.pvalue = pvalue
+        self.pvalue_amplitude = pvalue_amplitude
+        self.pvalue_times = pvalue_times
+        self.peaks_number = peaks_number
+        self.dt = dt
+        self.id = id
+        self.origin = origin
         self.gen = []
         self.weights = []
         self.delays = []
-        self.id = 0
-        self.origin = ""
 
     def __str__(self):
-        return f"""p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, 
-        p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}, origin from {self.origin}\n
-        """
+        return f"Individual with p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, " \
+            f"p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}, origin from {self.origin}\n "
+
+    def __repr__(self):
+        return f"Individual with p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, " \
+            f"p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}, origin from {self.origin}\n"
 
     def __eq__(self, other):
-        # return self.peaks_number == self.peaks_number
-        return self.pvalue_amplitude == other.pvalue_amplitude
+        return self.pvalue_amplitude * self.pvalue == other.pvalue_amplitude * self.pvalue
 
     def __gt__(self, other):
-        # return self.peaks_number > self.peaks_number
-        return self.pvalue_amplitude > other.pvalue_amplitude
+        return self.pvalue_amplitude * self.pvalue > other.pvalue_amplitude * self.pvalue
 
     def __copy__(self):
 
@@ -130,17 +136,28 @@ class Individual:
         return len(self.gen)
 
     @staticmethod
+    def decode(individual_to_decode):
+        return {'id': individual_to_decode.id, 'p-value 2d': individual_to_decode.pvalue,
+                'p-value amplitude': individual_to_decode.pvalue_amplitude,
+                'p-value times': individual_to_decode.times, 'peaks number': individual_to_decode.peaks_number,
+                'weights and delays': individual_to_decode.gen}
+
+    @staticmethod
+    def encode(dct):
+        return Individual(id=dct['id'], pvalue=dct['p-value 2d'], pvalue_amplitude=dct['p-value times'],
+                          peaks_number=dct['peaks number'])
+
+    @staticmethod
     def format_weight(weight):
-        return float("{0:.4f}".format(weight))
+        return float("{0:.3f}".format(weight))
 
     @staticmethod
     def format_delay(delay):
         return float("{0:.1f}".format(delay))
 
     def is_correct(self):
-        # return self.peaks_number > 0
-        # ~ pvalue_times != 0 and pvalue_amplitude != 0 and pvalue != 0
-        return self.pvalue * self.pvalue_amplitude * self.pvalue_times != 0 and self.peaks_number >= crit_peaks_number
+        # ~ p-value_times != 0 and p-value_amplitude != 0 and pvalue != 0
+        return self.pvalue_amplitude * self.pvalue_times * self.pvalue != 0 and self.peaks_number >= Data_settings.min_peaks_number
 
     def set_weight(self, min_weight, max_weight):
         self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
@@ -193,7 +210,7 @@ class Individual:
             self.set_delay()
 
         self.gen = self.weights + self.delays
-        self.origin = "first init"
+        self.origin = "first init "
 
 
 class Data:
@@ -221,7 +238,6 @@ class Data:
         files.append(f"{path}/pickle/{i}/gras_PLT_6cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_13.5cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_21cms_40Hz_2pedal_0.025step.pickle")
-
 
     @staticmethod
     def delete(files_arr):
@@ -252,7 +268,7 @@ class Population:
 
     # init N_individuals_in_first_init individuals for first population
     def first_init(self):
-        for i in range(N_individuals_in_first_init):
+        for i in range(Data_settings.N_individuals_in_first_init):
             individual = Individual()
             individual.init()
             self.add_individual(individual)
@@ -290,6 +306,16 @@ class Fitness:
             peaks = open(f'{path}/dat/{i}/peaks.txt')
 
             try:
+                # individual.pvalue_amplitudes.append(float(ampls.readline()))
+                # individual.pvalue_timess.append(float(times.readline()))
+                # individual.pvalues.append(float(d2.readline()))
+                # individual.peaks_numbers.append(float(peaks.readline()))
+                #
+                # individual.pvalue_amplitude = np.mean(individual.pvalue_amplitudes)
+                # individual.pvalue_times = np.mean(individual.pvalue_timess)
+                # individual.pvalue = np.mean(individual.pvalues)
+                # individual.peaks_number = np.mean(individual.peaks_numbers)
+
                 individual.pvalue_amplitude = float(ampls.readline())
                 individual.pvalue_times = float(times.readline())
                 individual.pvalue = float(d2.readline())
@@ -300,9 +326,29 @@ class Fitness:
 
                 Fitness.write_pvalue(individual, num_population)
 
-                if individual.pvalue_amplitude >= 0.05:
-                    os.rename(f"{fnameE}", f"{fnameE}_{individual.pvalue_amplitude}")
-                    os.rename(f"{fnameF}", f"{fnameF}_{individual.pvalue_amplitude}")
+                # if individual.peaks_number >= 70:
+                #     os.rename(f"{fnameE}", f"{path}/dat/{i}/peaks{individual.peaks_number}ampl{individual.pvalue_amplitude}_E")
+                #     os.rename(f"{fnameF}", f"{path}/dat/{i}/peaks{individual.peaks_number}ampl{individual.pvalue_amplitude}_F")
+
+                if individual.pvalue_amplitude >= 0.05 and individual.pvalue_times >= 0.05 and individual.pvalue >= 0.05:
+                    os.rename(f"{fnameE}",
+                              f"{path}/dat/{i}/pampl{individual.pvalue_amplitude}pt{individual.pvalue_times}2d{individual.pvalue}_E_a_and_t_and_2d")
+                    os.rename(f"{fnameF}",
+                              f"{path}/dat/{i}/pampl{individual.pvalue_amplitude}pt{individual.pvalue_times}2d{individual.pvalue}_F_a_and_t_and_2d")
+                elif individual.pvalue_amplitude >= 0.05 and individual.pvalue_times >= 0.05:
+                    os.rename(f"{fnameE}",
+                              f"{path}/dat/{i}/pampl{individual.pvalue_amplitude}pt{individual.pvalue_times}_E_a_and_t")
+                    os.rename(f"{fnameF}",
+                              f"{path}/dat/{i}/pampl{individual.pvalue_amplitude}pt{individual.pvalue_times}_F_a_and_t")
+                elif individual.pvalue_amplitude >= 0.05:
+                    os.rename(f"{fnameE}", f"{path}/dat/{i}/{individual.pvalue_amplitude}_E_ampl")
+                    os.rename(f"{fnameF}", f"{individual.pvalue_amplitude}_F_ampl")
+                elif individual.pvalue >= 0.05:
+                    os.rename(f"{fnameE}", f"{path}/dat/{i}/{individual.pvalue}_E_2d")
+                    os.rename(f"{fnameF}", f"{individual.pvalue}_F_2d")
+                # elif individual.pvalue_times >= 0.05:
+                #     os.rename(f"{fnameE}", f"{path}/dat/{i}/{individual.pvalue_times}_E_times")
+                #     os.rename(f"{fnameF}", f"{path}/dat/{i}/{individual.pvalue_times}_F_times")
 
             except:
                 continue
@@ -313,6 +359,8 @@ class Fitness:
     def write_pvalue(individual, number):
 
         file = open(f'{path}/files/history.dat', 'a')
+
+        log_str = json.dumps(individual, default=Individual.encode)
 
         log_str = f"Population {number}:\n {str(individual)}"
 
@@ -367,7 +415,7 @@ class Breeding:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
-        new_individual.origin = "mutation2"
+        new_individual.origin += " mutation2"
 
         return new_individual
 
@@ -410,7 +458,7 @@ class Breeding:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
-        new_individual.origin = "mutation3"
+        new_individual.origin += " mutation3"
 
         return new_individual
 
@@ -431,7 +479,7 @@ class Breeding:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
-        new_individual.origin = "mutation4"
+        new_individual.origin += " mutation4"
 
         return new_individual
 
@@ -449,7 +497,7 @@ class Breeding:
             else:
                 new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
 
-        new_individual.origin = "mutation"
+        new_individual.origin += " mutation"
 
         return new_individual
 
@@ -487,16 +535,38 @@ class Breeding:
         # sort this individuals
         arr = sorted(newPopulation.individuals, reverse=True)
 
+        # arr_sorted_by_times = sorted(newPopulation.individuals, reverse=True)
+
         return arr[:N_how_much_we_choose] if len(arr) > N_how_much_we_choose else arr
 
     @staticmethod
     def calculate_tests_result(current_population, number):
+
+        individuals_in_current_population_with_uknown_pvalue = []
+        individuals_in_current_population_with_uknown_pvalue_count = 0
+        len_current_population = 0
+
+        for individual in current_population:
+            len_current_population += 1
+            if individual.pvalue_times == 0 and individual.pvalue_amplitude == 0:
+                individuals_in_current_population_with_uknown_pvalue.append(individual)
+                individuals_in_current_population_with_uknown_pvalue_count += 1
+
+        print(f"individuals_in_current_population_with_uknown_pvalue_count = "
+              f"{individuals_in_current_population_with_uknown_pvalue_count}")
+        print(f"Len current population was = {len_current_population}")
 
         arr1 = []
         l = len(current_population)
         b = int(l / 4)
         cp = current_population[0:b * 4]
         k = 0
+
+        # arr1 = []
+        # l = len(individuals_in_current_population_with_uknown_pvalue)
+        # b = int(l / 4)
+        # cp = individuals_in_current_population_with_uknown_pvalue[0:b * 4]
+        # k = 0
 
         while True:
             arr = []
@@ -545,26 +615,40 @@ class Evolution:
             for i in range(len(individual.gen)):
                 individual.gen[i] = float(individual.gen[i])
 
+        for individual in newPopulation.individuals:
+            r = random.randint(0, 100)
+            if r >= 60:
+                mn = random.randint(0, 3)
+                if mn == 0:
+                    newPopulation.add_individual(Breeding.mutation(individual))
+                elif mn == 1:
+                    newPopulation.add_individual(Breeding.mutation2(individual))
+                elif mn == 2:
+                    newPopulation.add_individual(Breeding.mutation3(individual))
+                elif mn == 3:
+                    newPopulation.add_individual(Breeding.mutation4(individual))
+
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 50:
+            if r >= 70:
                 newPopulation.add_individual(Breeding.mutation3(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 50:
+            if r >= 70:
                 newPopulation.add_individual(Breeding.mutation2(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 50:
+            if r >= 70:
                 newPopulation.add_individual(Breeding.mutation4(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 50:
+            if r >= 70:
                 newPopulation.add_individual(Breeding.mutation(individual))
 
+        # add old best individuals if new will be worst
         for individual in individuals:
             if individual.is_correct():
                 newPopulation.add_individual(individual)
