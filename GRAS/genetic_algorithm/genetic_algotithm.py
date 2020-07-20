@@ -32,6 +32,7 @@ low_delay = 0.2
 max_delay = 6
 
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
+# path = '/home/yuliya/Desktop/ga_v9'
 
 
 def write_zero(result_folder):
@@ -44,6 +45,9 @@ def write_zero(result_folder):
     two_d_file = open(f"{result_folder}/2d.txt", 'w')
     two_d_file.write("0")
     two_d_file.close()
+    dt_file = open(f"{result_folder}/dt.txt", 'w')
+    dt_file.write("0")
+    dt_file.close()
 
 
 def convert_to_hdf5(result_folder):
@@ -95,15 +99,26 @@ def convert_to_hdf5(result_folder):
 
 class Individual:
 
-    def __init__(self, pvalue=0.0, pvalue_amplitude=0.0, pvalue_times=0.0, peaks_number=0.0, id=0, origin="", dt=0.0):
+    def __init__(self,
+                 pvalue=0.0,
+                 pvalue_amplitude=0.0,
+                 pvalue_times=0.0,
+                 peaks_number=0.0,
+                 id=0,
+                 origin="",
+                 pvalue_dt=0.0,
+                 population_number=0,
+                 gen=[]):
+
         self.pvalue = pvalue
         self.pvalue_amplitude = pvalue_amplitude
         self.pvalue_times = pvalue_times
         self.peaks_number = peaks_number
-        self.dt = dt
+        self.pvalue_dt = pvalue_dt
         self.id = id
         self.origin = origin
-        self.gen = []
+        self.population_number = population_number
+        self.gen = gen
         self.weights = []
         self.delays = []
 
@@ -116,10 +131,10 @@ class Individual:
             f"p-value times = {self.pvalue_times}, peaks number = {self.peaks_number}, origin from {self.origin}\n"
 
     def __eq__(self, other):
-        return self.pvalue_amplitude * self.pvalue == other.pvalue_amplitude * self.pvalue
+        return self.pvalue_amplitude * self.pvalue * self.pvalue_dt == other.pvalue_amplitude * other.pvalue * other.pvalue_dt
 
     def __gt__(self, other):
-        return self.pvalue_amplitude * self.pvalue > other.pvalue_amplitude * self.pvalue
+        return self.pvalue_amplitude * self.pvalue * self.pvalue_dt > other.pvalue_amplitude * other.pvalue * other.pvalue_dt
 
     def __copy__(self):
 
@@ -136,16 +151,21 @@ class Individual:
         return len(self.gen)
 
     @staticmethod
-    def decode(individual_to_decode):
-        return {'id': individual_to_decode.id, 'p-value 2d': individual_to_decode.pvalue,
+    def encode(individual_to_decode):
+        return {'Population number': individual_to_decode.population_number,
+                'p-value 2d': individual_to_decode.pvalue,
                 'p-value amplitude': individual_to_decode.pvalue_amplitude,
-                'p-value times': individual_to_decode.times, 'peaks number': individual_to_decode.peaks_number,
+                'p-value times': individual_to_decode.pvalue_times,
+                'p-value dt': individual_to_decode.pvalue_dt,
+                'peaks number': individual_to_decode.peaks_number,
+                'origin': individual_to_decode.origin,
                 'weights and delays': individual_to_decode.gen}
 
     @staticmethod
-    def encode(dct):
-        return Individual(id=dct['id'], pvalue=dct['p-value 2d'], pvalue_amplitude=dct['p-value times'],
-                          peaks_number=dct['peaks number'])
+    def decode(dct):
+        return Individual(pvalue=dct['p-value 2d'], pvalue_amplitude=dct['p-value amplitude'],
+                          peaks_number=dct['peaks number'], pvalue_dt=dct['p-value dt'], pvalue_times=dct['p-value times'],
+                          population_number=dct['Population number'], gen=dct['weights and delays'], origin=dct['origin'])
 
     @staticmethod
     def format_weight(weight):
@@ -157,7 +177,7 @@ class Individual:
 
     def is_correct(self):
         # ~ p-value_times != 0 and p-value_amplitude != 0 and pvalue != 0
-        return self.pvalue_amplitude * self.pvalue_times * self.pvalue != 0 and self.peaks_number >= Data_settings.min_peaks_number
+        return self.pvalue_amplitude * self.pvalue_times * self.pvalue * self.pvalue_dt != 0 and self.peaks_number >= Data_settings.min_peaks_number
 
     def set_weight(self, min_weight, max_weight):
         self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
@@ -304,22 +324,14 @@ class Fitness:
             times = open(f'{path}/dat/{i}/t.txt')
             d2 = open(f'{path}/dat/{i}/d2.txt')
             peaks = open(f'{path}/dat/{i}/peaks.txt')
+            dt = open(f'{path}/dat/{i}/dt.txt')
 
             try:
-                # individual.pvalue_amplitudes.append(float(ampls.readline()))
-                # individual.pvalue_timess.append(float(times.readline()))
-                # individual.pvalues.append(float(d2.readline()))
-                # individual.peaks_numbers.append(float(peaks.readline()))
-                #
-                # individual.pvalue_amplitude = np.mean(individual.pvalue_amplitudes)
-                # individual.pvalue_times = np.mean(individual.pvalue_timess)
-                # individual.pvalue = np.mean(individual.pvalues)
-                # individual.peaks_number = np.mean(individual.peaks_numbers)
-
                 individual.pvalue_amplitude = float(ampls.readline())
                 individual.pvalue_times = float(times.readline())
                 individual.pvalue = float(d2.readline())
                 individual.peaks_number = float(peaks.readline())
+                # individual.pvalue_dt = float(dt.readline())
 
                 fnameE = f"{path}/dat/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
                 fnameF = f"{path}/dat/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
@@ -351,23 +363,17 @@ class Fitness:
                 #     os.rename(f"{fnameF}", f"{path}/dat/{i}/{individual.pvalue_times}_F_times")
 
             except:
+                print("Error in calculate_fitness")
                 continue
 
         Data.delete_files()
 
     @staticmethod
     def write_pvalue(individual, number):
+        individual.population_number = number
 
         file = open(f'{path}/files/history.dat', 'a')
-
-        log_str = json.dumps(individual, default=Individual.encode)
-
-        log_str = f"Population {number}:\n {str(individual)}"
-
-        if individual.is_correct():
-            log_str += f"Weighs and delays: {' '.join(map(str, individual.gen))}\n"
-
-        file.write(log_str)
+        file.write(f"{json.dumps(individual, default=Individual.encode)}\n")
         file.close()
 
     # choose best value of fitness function for population
@@ -681,34 +687,16 @@ class Evolution:
 class Debug:
 
     @staticmethod
-    def save(current_population, number):
-        best_individual = Fitness.best_fitness(current_population)
-
-        log_str = f"""Population number = {number}\n
-        {str(best_individual)}\n
-        Weights and delays:\n
-        {' '.join(map(str, best_individual.gen))}\n\n
-        """
-
-        f = open(f'{path}/files/history.dat', 'a')
-        f.write(log_str)
-
-    @staticmethod
     def log_of_bests(individuals, number):
         best_individual = individuals[0]
+        best_individual.population_number = number
 
         file_with_log_of_bests = open(f'{path}/files/log_of_bests.dat', 'a')
-        file_with_log_of_bests.write(f"{''.join(map(str, individuals))}\nWas chosen {best_individual}\n\n")
+        file_with_log_of_bests.write(f"{json.dumps(individuals, default=Individual.encode)}\n")
         file_with_log_of_bests.close()
 
-        log_str = f"""In population number {number} best pvalue = {best_individual.pvalue}
-        pvalue_ampl = {best_individual.pvalue_amplitude}, pvalue_times = {best_individual.pvalue_times}, 
-        origin {best_individual.origin}\n
-        {' '.join(map(str, best_individual.gen))}\n
-        """
-
         file = open(f'{path}/files/bests_pvalue.dat', 'a')
-        file.write(log_str)
+        file.write(f"{json.dumps(best_individual, default=Individual.encode)}\n")
         file.close()
 
 
@@ -732,8 +720,6 @@ if __name__ == "__main__":
         print(f"Population number = {population_number}")
 
         new_population = Evolution.start_gen_algorithm(population, population_number)
-
-        Debug.save(population, population_number)
 
         population = new_population
 
