@@ -66,6 +66,7 @@ def convert_to_hdf5(result_folder):
 
         with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
             for test_index, filename in enumerate(datfiles):
+                print(f"Test index = {test_index}")
                 with open(f"{result_folder}/{filename}") as datfile:
                     try:
                         data = [-float(v) for v in datfile.readline().split()]
@@ -75,12 +76,6 @@ def convert_to_hdf5(result_folder):
                             write_zero(result_folder)
                             continue
 
-                        # data = np.array(data)
-                        # split_data = np.split(data, steps)
-                        #
-                        # for arr in split_data:
-                        #     hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr,
-                        #                              compression="gzip")
                         length = len(data)
                         start, end, l = 0, 0, int(length / Data_settings.steps)
                         for i in range(Data_settings.steps):
@@ -253,11 +248,13 @@ class Data:
         files.append(f"{path_to_dat_folder}/{i}/t.txt")
         files.append(f"{path_to_dat_folder}/{i}/d2.txt")
         files.append(f"{path_to_dat_folder}/{i}/peaks.txt")
-        files.append(f"{path_to_dat_folder}/{i}/{i}_MN_E.dat")
-        files.append(f"{path_to_dat_folder}/{i}/{i}_MN_F.dat")
+        files.append(f"{path_to_dat_folder}/{i}/dtt.txt")
         files.append(f"{path}/pickle/{i}/gras_PLT_6cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_13.5cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_21cms_40Hz_2pedal_0.025step.pickle")
+        for j in range(4):
+            files.append(f"{path_to_dat_folder}/{i}/{j}_MN_E.dat")
+            files.append(f"{path_to_dat_folder}/{i}/{j}_MN_F.dat")
 
     @staticmethod
     def delete(files_arr):
@@ -324,14 +321,15 @@ class Fitness:
             times = open(f'{path}/dat/{i}/t.txt')
             d2 = open(f'{path}/dat/{i}/d2.txt')
             peaks = open(f'{path}/dat/{i}/peaks.txt')
-            dt = open(f'{path}/dat/{i}/dt.txt')
+            dt = open(f'{path}/dat/{i}/dtt.txt')
 
             try:
                 individual.pvalue_amplitude = float(ampls.readline())
                 individual.pvalue_times = float(times.readline())
                 individual.pvalue = float(d2.readline())
                 individual.peaks_number = float(peaks.readline())
-                # individual.pvalue_dt = float(dt.readline())
+                individual.pvalue_dt = float(dt.readline())
+
 
                 fnameE = f"{path}/dat/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
                 fnameF = f"{path}/dat/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
@@ -562,17 +560,17 @@ class Breeding:
               f"{individuals_in_current_population_with_uknown_pvalue_count}")
         print(f"Len current population was = {len_current_population}")
 
-        arr1 = []
-        l = len(current_population)
-        b = int(l / 4)
-        cp = current_population[0:b * 4]
-        k = 0
-
         # arr1 = []
-        # l = len(individuals_in_current_population_with_uknown_pvalue)
+        # l = len(current_population)
         # b = int(l / 4)
-        # cp = individuals_in_current_population_with_uknown_pvalue[0:b * 4]
+        # cp = current_population[0:b * 4]
         # k = 0
+
+        arr1 = []
+        l = len(individuals_in_current_population_with_uknown_pvalue)
+        b = int(l / 4)
+        cp = individuals_in_current_population_with_uknown_pvalue[0:b * 4]
+        k = 0
 
         while True:
             arr = []
@@ -623,7 +621,7 @@ class Evolution:
 
         for individual in newPopulation.individuals:
             r = random.randint(0, 100)
-            if r >= 60:
+            if r >= 50:
                 mn = random.randint(0, 3)
                 if mn == 0:
                     newPopulation.add_individual(Breeding.mutation(individual))
@@ -636,22 +634,22 @@ class Evolution:
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 70:
+            if r >= 50:
                 newPopulation.add_individual(Breeding.mutation3(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 70:
+            if r >= 50:
                 newPopulation.add_individual(Breeding.mutation2(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 70:
+            if r >= 50:
                 newPopulation.add_individual(Breeding.mutation4(individual))
 
         for individual in individuals:
             r = random.randint(0, 100)
-            if r >= 70:
+            if r >= 50:
                 newPopulation.add_individual(Breeding.mutation(individual))
 
         # add old best individuals if new will be worst
