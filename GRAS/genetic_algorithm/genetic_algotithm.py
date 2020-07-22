@@ -10,20 +10,20 @@ import json
 
 from multi_gpu_build import Build
 from meta_plotting import get_4_pvalue
-from data import Data_settings
+from data import DataSettings
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
 
-N_how_much_we_choose = Data_settings.N_choose
+N_how_much_we_choose = DataSettings.N_choose
 
 # p-value what we want or bigger
 p = 0.05
 
 # connectomes number
-N = Data_settings.N_connectomes
+N = DataSettings.N_connectomes
 
-speed = Data_settings.speed
+speed = DataSettings.speed
 
 max_weights = []
 low_weights = []
@@ -66,7 +66,6 @@ def convert_to_hdf5(result_folder):
 
         with hdf5.File(f"{result_folder}/{name}", 'w') as hdf5_file:
             for test_index, filename in enumerate(datfiles):
-                print(f"Test index = {test_index}")
                 with open(f"{result_folder}/{filename}") as datfile:
                     try:
                         data = [-float(v) for v in datfile.readline().split()]
@@ -77,12 +76,12 @@ def convert_to_hdf5(result_folder):
                             continue
 
                         length = len(data)
-                        start, end, l = 0, 0, int(length / Data_settings.steps)
-                        for i in range(Data_settings.steps):
+                        start, end, l = 0, 0, int(length / DataSettings.steps)
+                        for i in range(DataSettings.steps):
                             end += l
                             arr = data[start:end]
                             start += l
-                            hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{i}.fig", data=arr,
+                            hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{test_index}.fig", data=arr,
                                                      compression="gzip")
                     except:
                         continue
@@ -103,7 +102,10 @@ class Individual:
                  origin="",
                  pvalue_dt=0.0,
                  population_number=0,
-                 gen=[]):
+                 gen=None):
+
+        if gen is None:
+            gen = []
 
         self.pvalue = pvalue
         self.pvalue_amplitude = pvalue_amplitude
@@ -140,6 +142,14 @@ class Individual:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
+        new_individual.pvalue_dt = self.pvalue_dt
+        new_individual.pvalue = self.pvalue
+        new_individual.pvalue_times = self.pvalue_times
+        new_individual.pvalue_amplitude = self.pvalue_amplitude
+        new_individual.population_number = self.population_number
+        new_individual.peaks_number = self.peaks_number
+        new_individual.origin = self.origin
+
         return new_individual
 
     def __len__(self):
@@ -172,7 +182,7 @@ class Individual:
 
     def is_correct(self):
         # ~ p-value_times != 0 and p-value_amplitude != 0 and pvalue != 0
-        return self.pvalue_amplitude * self.pvalue_times * self.pvalue * self.pvalue_dt != 0 and self.peaks_number >= Data_settings.min_peaks_number
+        return self.pvalue_amplitude * self.pvalue_times * self.pvalue * self.pvalue_dt != 0 and self.peaks_number >= DataSettings.min_peaks_number
 
     def set_weight(self, min_weight, max_weight):
         self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
@@ -252,7 +262,7 @@ class Data:
         files.append(f"{path}/pickle/{i}/gras_PLT_6cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_13.5cms_40Hz_2pedal_0.025step.pickle")
         files.append(f"{path}/pickle/{i}/gras_PLT_21cms_40Hz_2pedal_0.025step.pickle")
-        for j in range(4):
+        for j in range(5):
             files.append(f"{path_to_dat_folder}/{i}/{j}_MN_E.dat")
             files.append(f"{path_to_dat_folder}/{i}/{j}_MN_F.dat")
 
@@ -285,7 +295,7 @@ class Population:
 
     # init N_individuals_in_first_init individuals for first population
     def first_init(self):
-        for i in range(Data_settings.N_individuals_in_first_init):
+        for i in range(DataSettings.N_individuals_in_first_init):
             individual = Individual()
             individual.init()
             self.add_individual(individual)
@@ -328,8 +338,12 @@ class Fitness:
                 individual.pvalue_times = float(times.readline())
                 individual.pvalue = float(d2.readline())
                 individual.peaks_number = float(peaks.readline())
-                individual.pvalue_dt = float(dt.readline())
+                pval_dt = float(dt.readline())
 
+                if pval_dt == pval_dt:
+                    individual.pvalue_dt = pval_dt
+                else:
+                    individual.pvalue_dt = 0.0
 
                 fnameE = f"{path}/dat/{i}/gras_E_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
                 fnameF = f"{path}/dat/{i}/gras_F_PLT_{speed}cms_40Hz_2pedal_0.025step.hdf5"
@@ -678,6 +692,9 @@ class Evolution:
                         individual.gen[j] = max_delay
 
             final_population.add_individual(individual)
+
+        del current_population
+        del newPopulation
 
         return final_population
 
