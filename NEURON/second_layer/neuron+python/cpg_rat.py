@@ -16,7 +16,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
 step_number = 2 # number of steps
@@ -26,7 +26,9 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.017
+k = 0.018
+
+time_sim = 25 + (6 * speed + 125) * step_number
 
 exnclist = []
 inhnclist = []
@@ -120,8 +122,8 @@ class CPG:
         self.mns_E = self.addpool(nMN, "mns_E", "moto")
         self.mns_F = self.addpool(nMN, "mns_F", "moto")
 
-        self.muscle_E = self.addpool(nMN*150, "muscle_E", "muscle")
-        self.muscle_F = self.addpool(nMN*100, "muscle_F", "muscle")
+        self.muscle_E = self.addpool(nMN*70, "muscle_E", "muscle")
+        self.muscle_F = self.addpool(nMN*50, "muscle_F", "muscle")
 
         '''reflex arc'''
         self.Ia_E = self.addpool(nInt, "Ia_E", "int")
@@ -204,9 +206,9 @@ class CPG:
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.75, 2)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00043, 2)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00045, 1)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00045, 2)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00048, 1)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -220,17 +222,17 @@ class CPG:
                     connectcells(self.dict_C[layer], self.dict_3[i], 0.85, 1)
                     # connectcells(self.dict_C[layer], self.dict_2E[i], 0.75, 1, True)
 
-        genconnect(self.ees, self.Ia_aff_E, 0.95, 1)
-        genconnect(self.ees, self.Ia_aff_F, 0.95, 1)
+        genconnect(self.ees, self.Ia_aff_E, 0.75, 1)
+        genconnect(self.ees, self.Ia_aff_F, 0.75, 1)
         genconnect(self.ees, self.dict_CV[0], 0.75, 2)
         genconnect(self.Iagener_E, self.Ia_aff_E, 0.001, 1, False, 15)
         genconnect(self.Iagener_F, self.Ia_aff_F, 0.001, 1, False, 15)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 1.5, 1)
-        connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1)
+        connectcells(self.Ia_aff_E, self.mns_E, 0.95, 1)
+        connectcells(self.Ia_aff_F, self.mns_F, 0.95, 1)
 
-        connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 55)
-        connectcells(self.mns_E, self.muscle_F, 15.5, 2, False, 55)
+        connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
+        connectcells(self.mns_E, self.muscle_F, 15.5, 2, False, 45)
 
         # '''IP'''
         # for layer in range(1, 4):
@@ -246,9 +248,9 @@ class CPG:
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 1.85, 1)
             connectcells(self.dict_IP_E[layer], self.mns_E, 1.85, 2)
             if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0004, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0008, 1, True)
             else:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0005, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 1.85, 2)
@@ -279,20 +281,20 @@ class CPG:
         '''C3'''
         # connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005*k*speed, 2)
         connectcells(self.dict_CV_1[2], self.dict_0[1], 0.00045*k*speed, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.0004*k*speed, 2)
+        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00045*k*speed, 2)
         connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002*k*speed, 2)
         connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001*k*speed, 2)
         #
         '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.0004*k*speed, 3)
+        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00042*k*speed, 3)
         connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.0004*k*speed, 3)
+        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00042*k*speed, 3)
         connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00035*k*speed, 3)
         connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001*k*speed, 3)
         connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001*k*speed, 3)
 
         '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025*k*speed, 3)
+        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00035*k*speed, 3)
         # connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
 
         '''C=1 Extensor'''
@@ -489,13 +491,13 @@ def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
-                    nc.weight[0] = 0 # str
+                    # nc.weight[0] = 0 # str
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
-                    nc.weight[0] = random.gauss(weight, weight / 6) # str
-                # nc.weight[0] = random.gauss(weight, weight / 6)
+                    # nc.weight[0] = random.gauss(weight, weight / 6) # str
+                nc.weight[0] = random.gauss(weight, weight / 6)
                 nc.delay = random.gauss(delay, delay / 8)
 
 
@@ -525,20 +527,20 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False, N = 50):
                 target = pc.gid2cell(i)
                 if inhtype:
                     syn = target.synlistinh[j]
-                    nc = pc.gid_connect(gen_gid, syn)
-                    stimnclist.append(nc)
-                    nc.delay = random.gauss(delay, delay / 6)
-                    nc.weight[0] = 0
+                    # nc = pc.gid_connect(gen_gid, syn)
+                    # stimnclist.append(nc)
+                    # nc.delay = random.gauss(delay, delay / 6)
+                    # nc.weight[0] = 0
                 else:
                     syn = target.synlistees[j]
-                    nc = pc.gid_connect(gen_gid, syn)
-                    stimnclist.append(nc)
-                    nc.delay = random.gauss(delay, delay / 6)
-                    nc.weight[0] = random.gauss(weight, weight / 6)
-                # nc = pc.gid_connect(gen_gid, syn)
-                # stimnclist.append(nc)
-                # nc.delay = random.gauss(delay, delay / 6)
-                # nc.weight[0] = random.gauss(weight, weight / 6)
+                    # nc = pc.gid_connect(gen_gid, syn)
+                    # stimnclist.append(nc)
+                    # nc.delay = random.gauss(delay, delay / 6)
+                    # nc.weight[0] = random.gauss(weight, weight / 6)
+                nc = pc.gid_connect(gen_gid, syn)
+                stimnclist.append(nc)
+                nc.delay = random.gauss(delay, delay / 6)
+                nc.weight[0] = random.gauss(weight, weight / 6)
 
 def createmotif(OM0, OM1, OM2, OM3):
     ''' Connects motif module
@@ -554,16 +556,16 @@ def createmotif(OM0, OM1, OM2, OM3):
       self.OM3: list
           list of self.OM3 pool gids
     '''
-    connectcells(OM0, OM1, 1.85, 3)
+    connectcells(OM0, OM1, 2.25, 3)
     connectcells(OM1, OM2, 0.95, 3)
     connectcells(OM2, OM1, 0.95, 4)
     connectcells(OM2, OM3, 0.0035, 3)
     connectcells(OM1, OM3, 0.0001, 3)
-    connectcells(OM3, OM2, 4.5, 1, True)
-    connectcells(OM3, OM1, 4.5, 1, True)
+    connectcells(OM3, OM2, 3.5, 1, True)
+    connectcells(OM3, OM1, 3.5, 1, True)
 
 def connectinsidenucleus(nucleus):
-    connectcells(nucleus, nucleus, 0.25, 0.5)
+    connectcells(nucleus, nucleus, 0.45, 0.5)
 
 def spike_record(pool, extra = False):
     ''' Records spikes from gids
@@ -582,7 +584,7 @@ def spike_record(pool, extra = False):
 
     for i in pool:
         cell = pc.gid2cell(i)
-        vec = h.Vector()
+        vec = h.Vector(np.zeros(int(time_sim/0.025 + 1), dtype=np.float32))
         if extra:
             vec.record(cell.soma(0.5)._ref_vext[0])
         else:
@@ -635,7 +637,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0)
-        with hdf5.File('./res/STR_{}_speed_{}.hdf5'.format(name, speed), 'w') as file:
+        with hdf5.File('./res/PLT_{}_speed_{}.hdf5'.format(name, speed), 'w') as file:
           for i in range(step_number):
               sl = slice((1000+i*(6 * speed + 125)*40),(1000+(i+1)*(6 * speed + 125)*40))
               file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
@@ -650,7 +652,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
-    tstop = 25 + (6 * speed + 125) * step_number
+    tstop = time_sim#25 + (6 * speed + 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
     pc.psolve(tstop)
@@ -678,15 +680,14 @@ if __name__ == '__main__':
         motorecorders_mem = []
         for group in cpg_ex.motogroups:
             motorecorders.append(spike_record(group[k_nrns], True))
-
         for group in cpg_ex.motogroups:
             motorecorders_mem.append(spike_record(group[k_nrns]))
-        affrecorders = []
-        for group in cpg_ex.affgroups:
-          affrecorders.append(spike_record(group[k_nrns], i))
-        recorders = []
-        for group in cpg_ex.groups:
-          recorders.append(spike_record(group[k_nrns], i))
+        # affrecorders = []
+        # for group in cpg_ex.affgroups:
+        #   affrecorders.append(spike_record(group[k_nrns], i))
+        # recorders = []
+        # for group in cpg_ex.groups:
+        #   recorders.append(spike_record(group[k_nrns], i))
         logging.info("added recorders")
 
         print("- " * 10, "\nstart")
@@ -697,13 +698,12 @@ if __name__ == '__main__':
 
         for group, recorder in zip(cpg_ex.motogroups, motorecorders):
             spikeout(group[k_nrns], group[k_name], i, recorder)
-
         for group, recorder in zip(cpg_ex.motogroups, motorecorders_mem):
             spikeout(group[k_nrns], f'mem_{group[k_name]}', i, recorder)
-        for group, recorder in zip(cpg_ex.affgroups, affrecorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.groups, recorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.groups, recorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
         logging.info("recorded")
 
     finish()
