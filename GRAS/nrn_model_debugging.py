@@ -8,6 +8,8 @@ Sterratt, D., Graham, B., Gillies, A., & Willshaw, D. (2011).
 Principles of Computational Modelling in Neuroscience. Cambridge: Cambridge University Press. 
 DOI:10.1017/CBO9780511975899
 '''
+muscle = True
+
 MICRO = 10 ** -6
 CENTI = 10 ** -1
 uF_m2 = 10 ** 4         # 1 microfarad per square centimeter = 10 000 microfarad per square meter
@@ -16,12 +18,23 @@ Cm = 1 * uF_m2          # convert [uF / cm2] to [uF / m2] membrane capacity
 E_Na = 50               # [mV] - reversal potential
 E_K = -90               # [mV] - reversal potential
 E_L = -72               # [mV] - reversal potential
-g_Na = 120 * mS_m2      # convert [mS / cm2] to [mS / m2]
-g_K = 36 * mS_m2        # convert [mS / cm2] to [mS / m2]
-g_L = 0.3 * mS_m2       # convert [mS / cm2] to [mS / m2]
-Ra = 100 * CENTI        # convert [Ohm cm] to [Ohm m]
-d = 6 * MICRO           # convert [um] to [m] - diameter
-x = 2 * MICRO           # convert [um] to [m] - length of one compartment
+x = 2 * MICRO
+
+if muscle:
+	g_Na = 10 * mS_m2   # convert [mS / cm2] to [mS / m2]
+	g_K = 1 * mS_m2     # convert [mS / cm2] to [mS / m2]
+	g_L = 0.3 * mS_m2   # convert [mS / cm2] to [mS / m2]
+	Ra = 1000 * CENTI   # convert [Ohm cm] to [Ohm m]
+	d = 5 * MICRO       # convert [um] to [m] - diameter
+	E_ex = 0            # [mV] reverse exc
+else:
+	g_Na = 120 * mS_m2
+	g_K = 36 * mS_m2
+	g_L = 0.3 * mS_m2
+	Ra = 100 * CENTI
+	d = 6 * MICRO
+	E_ex = 50
+
 dt = 0.025              # [ms] - sim step
 V_adj = -63             # [mV] - adjust voltage for -55 threshold
 Vm = [-72] * 3          # [mV] - array for three compartments volatge
@@ -33,16 +46,15 @@ I_K = [0] * 3           # [nA] ionic currents
 I_Na = [0] * 3          # [nA] ionic currents
 I_L = [0] * 3           # [nA] ionic currents
 g_inh, g_exc = 0, 0     # [mS] conductivity level
-E_ex = 50               # [mV] reverse exc
 E_in = -80              # [mV] reverse inh
 tau_syn_exc = 0.3       # [ms]
 tau_syn_inh = 2.0       # [ms]
 ref_time_timer = 0      # [steps]
 ref_time = int(3 / dt)  # [steps]
 V_extra = 0             # [mV] extracellular potential
-Re = 333 * 10 ** -4     # convert [Ohm cm] to [Ohm um] Resistance of extracellular space
+Re = 333 * 10 ** -1     # convert [Ohm cm] to [Ohm um] Resistance of extracellular space
 
-sim_time_steps = int(15 / dt)   # simulation time
+sim_time_steps = int(25 / dt)   # simulation time
 
 # lists for records
 ve_dat = []
@@ -93,11 +105,10 @@ for t in range(sim_time_steps):
 		elif comp == 1:
 			dv = const1 * (const2 * (Vm[OUT] - 2 * Vm[MID] + Vm[INP]) - I_Na[comp] - I_K[comp] - I_L[comp])
 			Vm[comp] += dv
-			Kek = g_K / mS_m2 * n[comp] ** 4 * (Vm[comp] - E_K)
-			Naek = g_Na / mS_m2 * m[comp] ** 3 * h[comp] * (Vm[comp] - E_Na)
-			Lek = g_L / mS_m2 * (Vm[comp] - E_L)
-			Ccon = dt / (Cm / uF_m2)
-			V_extra = -const3 * (Kek + Naek + Lek + (1 / Ccon) * dv)
+			ik = g_K / mS_m2 * n[comp] ** 4 * (Vm[comp] - E_K)
+			ina = g_Na / mS_m2 * m[comp] ** 3 * h[comp] * (Vm[comp] - E_Na)
+			il = g_L / mS_m2 * (Vm[comp] - E_L)
+			V_extra = -const3 * (ik + ina + il + (Cm / uF_m2) / dt * dv)
 		# output Vm comp
 		else:
 			Vm[comp] += const1 * (const2 * (2 * Vm[MID] - 2 * Vm[OUT]) - I_Na[comp] - I_K[comp] - I_L[comp])
