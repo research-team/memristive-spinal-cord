@@ -5,7 +5,6 @@ import logging
 import numpy as np
 import h5py as hdf5
 import time
-import datetime
 import json
 
 from multi_gpu_build import Build
@@ -32,29 +31,31 @@ low_delay = 0.2
 max_delay = 6
 
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
+
+
 # path = '/home/yuliya/Desktop/ga_v9'
 
 
-def write_zero(result_folder):
-    time_file = open(f"{result_folder}/time.txt", 'w')
-    time_file.write("0")
-    time_file.close()
-    ampl_file = open(f"{result_folder}/ampl.txt", 'w')
-    ampl_file.write("0")
-    ampl_file.close()
-    two_d_file = open(f"{result_folder}/2d.txt", 'w')
-    two_d_file.write("0")
-    two_d_file.close()
-    dt_file = open(f"{result_folder}/dt.txt", 'w')
-    dt_file.write("0")
-    dt_file.close()
+def write_zero(folder, filename, extension="txt"):
+    file_to_write_zero = open(f"{folder}/{filename}.{extension}", "w")
+    file_to_write_zero.write("0")
+    file_to_write_zero.close()
 
 
-def convert_to_hdf5(result_folder):
+def write_zeros(result_folder):
+    write_zero(result_folder, "time")
+    write_zero(result_folder, "ampl")
+    write_zero(result_folder, "2d")
+    write_zero(result_folder, "dt")
+
+
+def convert_to_hdf5(result_folder, tests=False):
     """
     Converts dat files into hdf5 with compression
     Args:
         result_folder (str): folder where is the dat files placed
+        :param result_folder:
+        :param tests:
     """
     # process only files with these muscle names
     for muscle in ["MN_E", "MN_F"]:
@@ -68,11 +69,13 @@ def convert_to_hdf5(result_folder):
             for test_index, filename in enumerate(datfiles):
                 with open(f"{result_folder}/{filename}") as datfile:
                     try:
+
                         data = [-float(v) for v in datfile.readline().split()]
+
                         # check on NaN values (!important)
                         if any(map(np.isnan, data)):
                             logging.info(f"{filename} has NaN... skip")
-                            write_zero(result_folder)
+                            write_zeros(result_folder)
                             continue
 
                         length = len(data)
@@ -81,9 +84,11 @@ def convert_to_hdf5(result_folder):
                             end += l
                             arr = data[start:end]
                             start += l
-                            hdf5_file.create_dataset(f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{test_index}.fig", data=arr,
-                                                     compression="gzip")
+                            hdf5_file.create_dataset(
+                                f"#1_112409_PRE_BIPEDAL_normal_21cms_burst7_Ton_{test_index if tests else i}.fig",
+                                data=arr, compression="gzip")
                     except:
+                        logging.info("Exception in converting file to hdf5")
                         continue
 
         # check that hdf5 file was written properly
@@ -97,10 +102,10 @@ class Individual:
                  pvalue=0.0,
                  pvalue_amplitude=0.0,
                  pvalue_times=0.0,
+                 pvalue_dt=0.0,
                  peaks_number=0.0,
                  id=0,
                  origin="",
-                 pvalue_dt=0.0,
                  population_number=0,
                  gen=None):
 
@@ -155,6 +160,23 @@ class Individual:
     def __len__(self):
         return len(self.gen)
 
+    def normalize(self):
+        for i in range(len(self)):
+
+            if i < N:
+
+                if self.gen[i] < low_weights[i]:
+                    self.gen[i] = low_weights[i]
+                if self.gen[i] > max_weights[i]:
+                    self.gen[i] = max_weights[i]
+
+            else:
+
+                if self.gen[i] < low_delay:
+                    self.gen[i] = low_delay
+                if self.gen[i] > max_delay:
+                    self.gen[i] = max_delay
+
     @staticmethod
     def encode(individual_to_decode):
         return {'Population number': individual_to_decode.population_number,
@@ -169,8 +191,10 @@ class Individual:
     @staticmethod
     def decode(dct):
         return Individual(pvalue=dct['p-value 2d'], pvalue_amplitude=dct['p-value amplitude'],
-                          peaks_number=dct['peaks number'], pvalue_dt=dct['p-value dt'], pvalue_times=dct['p-value times'],
-                          population_number=dct['Population number'], gen=dct['weights and delays'], origin=dct['origin'])
+                          peaks_number=dct['peaks number'], pvalue_dt=dct['p-value dt'],
+                          pvalue_times=dct['p-value times'],
+                          population_number=dct['Population number'], gen=dct['weights and delays'],
+                          origin=dct['origin'])
 
     @staticmethod
     def format_weight(weight):
@@ -303,6 +327,16 @@ class Population:
 
         print("Population 1 inited")
 
+    def normalize_hyperparameters(self):
+        final_population = Population()
+
+        for individual in self.individuals:
+            individual.normalize()
+
+            final_population.add_individual(individual)
+
+        return final_population
+
     # TODO first init for knowing part of weights and delays, it's needed ?
 
 
@@ -312,16 +346,14 @@ class Fitness:
     @staticmethod
     def calculate_fitness(individuals, num_population):
 
-        print("CALCULATE FITNESS FUNCTION")
-
         # converting 4 results data to hdf5
         for i in range(4):
-            convert_to_hdf5(f"{path}/dat/{i}")
+            convert_to_hdf5(f"{path}/dat/{i}", tests=DataSettings.is_tests)
 
         # get p-value for 4 individuals
-        t = time.time()
+        start = time.time()
         get_4_pvalue()
-        print(f"4 p-value calculated {time.time() - t}")
+        print(f"4 p-value calculated {time.time() - start}")
 
         # set p-value to this individuals
         for i in range(len(individuals)):
@@ -350,10 +382,6 @@ class Fitness:
 
                 Fitness.write_pvalue(individual, num_population)
 
-                # if individual.peaks_number >= 70:
-                #     os.rename(f"{fnameE}", f"{path}/dat/{i}/peaks{individual.peaks_number}ampl{individual.pvalue_amplitude}_E")
-                #     os.rename(f"{fnameF}", f"{path}/dat/{i}/peaks{individual.peaks_number}ampl{individual.pvalue_amplitude}_F")
-
                 if individual.pvalue_amplitude >= 0.05 and individual.pvalue_times >= 0.05 and individual.pvalue >= 0.05:
                     os.rename(f"{fnameE}",
                               f"{path}/dat/{i}/pampl{individual.pvalue_amplitude}pt{individual.pvalue_times}2d{individual.pvalue}_E_a_and_t_and_2d")
@@ -370,9 +398,6 @@ class Fitness:
                 elif individual.pvalue >= 0.05:
                     os.rename(f"{fnameE}", f"{path}/dat/{i}/{individual.pvalue}_E_2d")
                     os.rename(f"{fnameF}", f"{individual.pvalue}_F_2d")
-                # elif individual.pvalue_times >= 0.05:
-                #     os.rename(f"{fnameE}", f"{path}/dat/{i}/{individual.pvalue_times}_E_times")
-                #     os.rename(f"{fnameF}", f"{path}/dat/{i}/{individual.pvalue_times}_F_times")
 
             except:
                 print("Error in calculate_fitness")
@@ -398,21 +423,20 @@ class Breeding:
 
     @staticmethod
     def crossover(individual_1, individual_2):
-        length = len(individual_1)
 
-        crossover_point = random.randint(0, length)
+        crossover_point = random.randint(0, len(individual_1))
 
         new_individual_1 = Individual()
-        new_individual_1.gen = individual_1.gen[:crossover_point] + individual_2.gen[crossover_point:length]
+        new_individual_1.gen = individual_1.gen[:crossover_point] + individual_2.gen[crossover_point:]
         new_individual_1.weights = new_individual_1.gen[:int(len(new_individual_1) / 2)]
         new_individual_1.delays = new_individual_1.gen[int(len(new_individual_1) / 2):]
 
         new_individual_2 = Individual()
-        new_individual_2.gen = individual_2.gen[:crossover_point] + individual_1.gen[crossover_point:length]
+        new_individual_2.gen = individual_2.gen[:crossover_point] + individual_1.gen[crossover_point:]
         new_individual_2.weights = new_individual_1.gen[:int(len(new_individual_1) / 2)]
         new_individual_2.delays = new_individual_1.gen[int(len(new_individual_1) / 2):]
 
-        new_individual_1.origin, new_individual_2.origin = "crossover", "crossover"
+        new_individual_1.origin, new_individual_2.origin = "crossover1", "crossover2"
 
         return new_individual_1, new_individual_2
 
@@ -423,13 +447,13 @@ class Breeding:
 
         n = random.randint(1, 2)
 
-        for index, g in enumerate(individual.gen):
-            if index % n == n:
-                low, high = Breeding.get_low_high(g)
+        for index in range(len(individual)):
+            if index % 2 == n - 1:
+                low, high = Breeding.get_low_high(individual.gen[index])
                 if index < N:
-                    new_individual.weights.append(Individual().format_weight(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_weight(random.uniform(low, high))
                 else:
-                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -465,14 +489,14 @@ class Breeding:
 
         new_individual = individual.__copy__()
 
-        for index, g in enumerate(individual.gen):
+        for index in range(len(individual)):
             n = random.randint(0, 100)
             if n < 50:
-                low, high = Breeding.get_low_high(g)
+                low, high = Breeding.get_low_high(individual.gen[index])
                 if index < N:
-                    new_individual.weights.append(Individual().format_weight(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_weight(random.uniform(low, high))
                 else:
-                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -485,15 +509,16 @@ class Breeding:
 
         new_individual = individual.__copy__()
 
-        for index, g in enumerate(individual.gen):
+        for index in range(len(individual)):
             n = random.randint(0, 100)
             if n < 50:
                 m = random.randint(2, 10)
+                g = individual.gen[index]
                 low, high = g - g / m, g + g / m
                 if index < N:
-                    new_individual.gen.append(Individual().format_weight(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_weight(random.uniform(low, high))
                 else:
-                    new_individual.weights.append(Individual().format_delay(random.uniform(low, high)))
+                    new_individual.gen[index] = Individual().format_delay(random.uniform(low, high))
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
@@ -553,38 +578,36 @@ class Breeding:
         # sort this individuals
         arr = sorted(newPopulation.individuals, reverse=True)
 
-        # arr_sorted_by_times = sorted(newPopulation.individuals, reverse=True)
-
         return arr[:N_how_much_we_choose] if len(arr) > N_how_much_we_choose else arr
 
     @staticmethod
-    def calculate_tests_result(current_population, number):
-
-        individuals_in_current_population_with_uknown_pvalue = []
-        individuals_in_current_population_with_uknown_pvalue_count = 0
-        len_current_population = 0
-
-        for individual in current_population:
-            len_current_population += 1
-            if individual.pvalue_times == 0 and individual.pvalue_amplitude == 0:
-                individuals_in_current_population_with_uknown_pvalue.append(individual)
-                individuals_in_current_population_with_uknown_pvalue_count += 1
-
-        print(f"individuals_in_current_population_with_uknown_pvalue_count = "
-              f"{individuals_in_current_population_with_uknown_pvalue_count}")
-        print(f"Len current population was = {len_current_population}")
-
-        # arr1 = []
-        # l = len(current_population)
-        # b = int(l / 4)
-        # cp = current_population[0:b * 4]
-        # k = 0
+    def calculate(current_population, is_calculate_again=False):
 
         arr1 = []
-        l = len(individuals_in_current_population_with_uknown_pvalue)
-        b = int(l / 4)
-        cp = individuals_in_current_population_with_uknown_pvalue[0:b * 4]
-        k = 0
+
+        if is_calculate_again:
+            b = int(len(current_population) / 4)
+            cp = current_population[:b * 4]
+            k = 0
+
+            arr1.append(current_population[b * 4:])
+
+        else:
+            individuals_in_current_population_with_uknown_pvalue = []
+            individuals_in_current_population_with_uknown_pvalue_count = 0
+            len_current_population = 0
+
+            for individual in current_population:
+                len_current_population += 1
+                if individual.pvalue_times == 0 and individual.pvalue_amplitude == 0:
+                    individuals_in_current_population_with_uknown_pvalue.append(individual)
+                    individuals_in_current_population_with_uknown_pvalue_count += 1
+
+            b = int(len(individuals_in_current_population_with_uknown_pvalue) / 4)
+            cp = individuals_in_current_population_with_uknown_pvalue[:b * 4]
+            k = 0
+
+            arr1.append(individuals_in_current_population_with_uknown_pvalue[b * 4:])
 
         while True:
             arr = []
@@ -595,7 +618,12 @@ class Breeding:
             if k >= len(cp):
                 break
 
-        arr1.append(current_population[b * 4:l])
+        return arr1
+
+    @staticmethod
+    def calculate_tests_result(current_population, number):
+
+        arr1 = Breeding.calculate(current_population, is_calculate_again=False)
 
         for i in range(len(arr1)):
             Build.run_tests(arr1[i])
@@ -610,91 +638,71 @@ class Evolution:
     def start_gen_algorithm(current_population, number):
 
         Breeding.calculate_tests_result(current_population.individuals, number)
-        individuals = Breeding.select(current_population)
+        bests_individuals_in_current_population = Breeding.select(current_population)
 
-        Debug.log_of_bests(individuals, number)
+        Debug.log_of_bests(bests_individuals_in_current_population, number)
 
-        newPopulation = Population()
+        new_population = Population()
 
-        length_population = len(individuals)
+        length_population = len(bests_individuals_in_current_population)
 
         # each with each
         for i in range(length_population):
-            individual_1 = individuals[i]
+            individual_1 = bests_individuals_in_current_population[i]
             j = i
             while j + 1 < length_population:
                 j += 1
-                individual_2 = individuals[j]
+                individual_2 = bests_individuals_in_current_population[j]
                 crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
-                newPopulation.add_individual(crossover_individual_1)
-                newPopulation.add_individual(crossover_individual_2)
+                new_population.add_individual(crossover_individual_1)
+                new_population.add_individual(crossover_individual_2)
 
-        for individual in newPopulation.individuals:
+        for individual in new_population.individuals:
             for i in range(len(individual.gen)):
                 individual.gen[i] = float(individual.gen[i])
 
-        for individual in newPopulation.individuals:
+        for individual in new_population.individuals:
             r = random.randint(0, 100)
             if r >= 50:
                 mn = random.randint(0, 3)
                 if mn == 0:
-                    newPopulation.add_individual(Breeding.mutation(individual))
+                    new_population.add_individual(Breeding.mutation(individual))
                 elif mn == 1:
-                    newPopulation.add_individual(Breeding.mutation2(individual))
+                    new_population.add_individual(Breeding.mutation2(individual))
                 elif mn == 2:
-                    newPopulation.add_individual(Breeding.mutation3(individual))
+                    new_population.add_individual(Breeding.mutation3(individual))
                 elif mn == 3:
-                    newPopulation.add_individual(Breeding.mutation4(individual))
+                    new_population.add_individual(Breeding.mutation4(individual))
 
-        for individual in individuals:
+        for individual in bests_individuals_in_current_population:
             r = random.randint(0, 100)
             if r >= 50:
-                newPopulation.add_individual(Breeding.mutation3(individual))
+                new_population.add_individual(Breeding.mutation3(individual))
 
-        for individual in individuals:
+        for individual in bests_individuals_in_current_population:
             r = random.randint(0, 100)
             if r >= 50:
-                newPopulation.add_individual(Breeding.mutation2(individual))
+                new_population.add_individual(Breeding.mutation2(individual))
 
-        for individual in individuals:
+        for individual in bests_individuals_in_current_population:
             r = random.randint(0, 100)
             if r >= 50:
-                newPopulation.add_individual(Breeding.mutation4(individual))
+                new_population.add_individual(Breeding.mutation4(individual))
 
-        for individual in individuals:
+        for individual in bests_individuals_in_current_population:
             r = random.randint(0, 100)
             if r >= 50:
-                newPopulation.add_individual(Breeding.mutation(individual))
+                new_population.add_individual(Breeding.mutation(individual))
 
         # add old best individuals if new will be worst
-        for individual in individuals:
+        for individual in bests_individuals_in_current_population:
             if individual.is_correct():
-                newPopulation.add_individual(individual)
+                new_population.add_individual(individual)
 
-        final_population = Population()
-
-        for individual in newPopulation.individuals:
-
-            for j in range(len(individual)):
-
-                if j < N:
-
-                    if individual.gen[j] < low_weights[j]:
-                        individual.gen[j] = low_weights[j]
-                    if individual.gen[j] > max_weights[j]:
-                        individual.gen[j] = max_weights[j]
-
-                else:
-
-                    if individual.gen[j] < low_delay:
-                        individual.gen[j] = low_delay
-                    if individual.gen[j] > max_delay:
-                        individual.gen[j] = max_delay
-
-            final_population.add_individual(individual)
+        final_population = new_population.normalize_hyperparameters()
 
         del current_population
-        del newPopulation
+        del new_population
 
         return final_population
 
@@ -719,23 +727,18 @@ if __name__ == "__main__":
 
     Data().delete_all_files()
 
-    f = open(f"{path}/files/history.dat", "w")
-    f.write(f"{datetime.datetime.now()}\n")
-    f.close()
-
     Build.compile()
 
     # first initialization to population
     population = Population()
     population.first_init()
-
     population_number = 1
 
     while not Evolution.terminate_algorithm:
         print(f"Population number = {population_number}")
 
-        new_population = Evolution.start_gen_algorithm(population, population_number)
+        next_population = Evolution.start_gen_algorithm(population, population_number)
 
-        population = new_population
+        population = next_population
 
         population_number += 1

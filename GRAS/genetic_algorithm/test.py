@@ -7,7 +7,8 @@ from python_scripts.genetic_algotithm import Population
 from python_scripts.genetic_algotithm import Debug
 from python_scripts.genetic_algotithm import Fitness
 from python_scripts.genetic_algotithm import convert_to_hdf5
-
+from python_scripts.genetic_algotithm import max_weights, low_weights
+from python_scripts.genetic_algotithm import Breeding
 
 # python -m unittest test.py
 
@@ -104,11 +105,14 @@ class TestConvert(unittest.TestCase):
 class TestCopy(unittest.TestCase):
 
     def test(self):
-        for i in range(2):
+        gen = TestJson.i1.gen
+        for i in range(100):
             i = TestJson.i1.__copy__()
-            print(i.gen)
+            self.assertEqual(i.gen, gen)
+            self.assertEqual(i, TestJson.i1)
 
 
+@unittest.skip
 class TestSort(unittest.TestCase):
 
     @staticmethod
@@ -129,6 +133,54 @@ class TestSort(unittest.TestCase):
 
         arr = sorted(arr_pop2, reverse=True)
         print(arr)
+
+
+class TestIndividual(unittest.TestCase):
+    i1 = Individual()
+
+    def test_normalize(self):
+        self.i1.init()
+        self.i1.gen[0] = 100
+        self.i1.gen[1] = 0
+        self.i1.normalize()
+        arr = []
+        for i in range(len(self.i1)):
+            arr.append(self.i1.gen[i])
+
+        arr[0] = max_weights[0]
+        arr[1] = low_weights[1]
+        self.assertEqual(self.i1.gen, arr)
+
+
+class TestMutation(unittest.TestCase):
+
+    def test_mutation(self):
+        i = Individual()
+        i.init()
+        im = Breeding.mutation(i)
+
+        self.assertNotEqual(i.gen, im.gen)
+
+    def test_mutation2(self):
+        i = Individual()
+        i.init()
+        im = Breeding.mutation2(i)
+
+        self.assertNotEqual(i.gen, im.gen)
+
+    def test_mutation3(self):
+        i = Individual()
+        i.init()
+        im = Breeding.mutation3(i)
+
+        self.assertNotEqual(i.gen, im.gen)
+
+    def test_mutation4(self):
+        i = Individual()
+        i.init()
+        im = Breeding.mutation4(i)
+
+        self.assertNotEqual(i.gen, im.gen)
 
 
 if __name__ == "__main__":
