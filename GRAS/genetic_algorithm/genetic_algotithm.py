@@ -147,12 +147,12 @@ class Individual:
 
         new_individual.weights, new_individual.delays = new_individual.gen[:N], new_individual.gen[N:]
 
-        new_individual.pvalue_dt = self.pvalue_dt
-        new_individual.pvalue = self.pvalue
-        new_individual.pvalue_times = self.pvalue_times
-        new_individual.pvalue_amplitude = self.pvalue_amplitude
-        new_individual.population_number = self.population_number
-        new_individual.peaks_number = self.peaks_number
+        # new_individual.pvalue_dt = self.pvalue_dt
+        # new_individual.pvalue = self.pvalue
+        # new_individual.pvalue_times = self.pvalue_times
+        # new_individual.pvalue_amplitude = self.pvalue_amplitude
+        # new_individual.population_number = self.population_number
+        # new_individual.peaks_number = self.peaks_number
         new_individual.origin = self.origin
 
         return new_individual
@@ -317,15 +317,24 @@ class Population:
     def __len__(self):
         return len(self.individuals)
 
+    def first_init(self, known=False):
+        self.first_init_known() if known else self.first_init_unknown()
+
     # init N_individuals_in_first_init individuals for first population
-    def first_init(self):
+    def first_init_unknown(self):
         for i in range(DataSettings.N_individuals_in_first_init):
             individual = Individual()
             individual.init()
             self.add_individual(individual)
             individual.id = i
 
-        print("Population 1 inited")
+    def first_init_known(self):
+
+        with open(DataSettings.path_to_json_file_with_individuals) as file:
+            all_lines = file.readlines()
+
+        for line in all_lines:
+            self.add_individual(json.loads(line, object_hook=Individual.decode))
 
     def normalize_hyperparameters(self):
         final_population = Population()
@@ -336,8 +345,6 @@ class Population:
             final_population.add_individual(individual)
 
         return final_population
-
-    # TODO first init for knowing part of weights and delays, it's needed ?
 
 
 class Fitness:
