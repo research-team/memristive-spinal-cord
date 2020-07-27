@@ -95,7 +95,7 @@ float dn(float V, float n) {
 	float b = 0.125 * exp(-V / 80.0);
 	b = a - (a + b) * n;
 	if (b != b) return 0;
-	if (b + n >= 1) return 0.99 - n;
+//	if (b + n >= 1) return 0.99 - n;
 	return b;
 }
 
@@ -105,7 +105,7 @@ float dh(float V, float h) {
 	float b = 1.0 / (exp((30.0 - V) / 10.0) + 1.0);
 	b = a - (a + b) * h;
 	if (b != b) return 0;
-	if (b + h >= 1) return 0.99 - h;
+//	if (b + h >= 1) return 0.99 - h;
 	return b;
 }
 
@@ -115,7 +115,7 @@ float dm(float V, float m) {
 	float b = 4.0 * exp(-V / 18.0);
 	b = a - (a + b) * m;
 	if (b != b) return 0;
-	if (b + m >= 1) return 0.99 - m;
+//	if (b + m >= 1) return 0.99 - m;
 	return b;
 }
 
@@ -158,10 +158,10 @@ void neurons_kernel(float *V_extra,
 	const float E_L = -72.0;         // [mV] Reversal potential for the leak current
 	const float E_ex = 50.0;         // [mV] Reversal potential for excitatory input
 	const float E_in = -80.0;        // [mV] Reversal potential for inhibitory input
-	const float tau_syn_exc = 0.2;   // [ms] Decay time of excitatory synaptic current (ms)
+	const float tau_syn_exc = 0.3;   // [ms] Decay time of excitatory synaptic current (ms)
 	const float tau_syn_inh = 2.0;   // [ms] Decay time of inhibitory synaptic current (ms)
-	const float V_adj = -65.0;       // adjusts threshold to around -50 mV
-	const float g_bar = 5;           // [nS] the maximal possible conductivity
+	const float V_adj = -63.0;       // adjusts threshold to around -50 mV -65
+	const float g_bar = 80000;       // [uS] the maximal possible conductivity
 
 	float I_syn_exc, I_syn_inh;
 	float I_K, I_Na, I_L, V_out_old, dV_mid;
@@ -193,15 +193,16 @@ void neurons_kernel(float *V_extra,
 			if (tid == 304 && CV_activated == 5 && (sim_iter % 4 == 0)) has_spike[tid] = true;
 		}
 		// increased barrier for muscles
-		if (3463 <= tid && tid <= 3712) {
-			// the maximal value of input current
-			if (g_exc[tid] > 200) g_exc[tid] = 200;
-			if (g_inh[tid] > 200) g_inh[tid] = 200;
-		} else {
-			// the maximal value of input current
-			if (g_exc[tid] > g_bar) g_exc[tid] = g_bar;
-			if (g_inh[tid] > g_bar) g_inh[tid] = g_bar;
-		}
+//		if (3463 <= tid && tid <= 3712) {
+//			// the maximal value of input current
+//			if (g_exc[tid] > 200) g_exc[tid] = 200;
+//			if (g_inh[tid] > 200) g_inh[tid] = 200;
+//		} else {
+//			// the maximal value of input current
+//
+//		}
+		if (g_exc[tid] > g_bar) g_exc[tid] = g_bar;
+		if (g_inh[tid] > g_bar) g_inh[tid] = g_bar;
 		// synaptic currents
 		I_syn_exc = g_exc[tid] * (V_in[tid] - E_ex);
 		I_syn_inh = g_inh[tid] * (V_in[tid] - E_in);
@@ -221,22 +222,25 @@ void neurons_kernel(float *V_extra,
 		I_K = g_K[tid] * pow(n_in[tid], 4) * (V_in[tid] - E_K);
 		I_Na = g_Na[tid] * pow(m_in[tid], 3) * h_in[tid] * (V_in[tid] - E_Na);
 		I_L = g_L[tid] * (V_in[tid] - E_L);
-		V_in[tid] += const_coef2[tid] * (const_coef1[tid] * (2 * V_mid[tid] - 2 * V_in[tid]) - I_Na - I_K - I_L - I_syn_exc - I_syn_inh);
+		V_in[tid] += const_coef1[tid] * (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_in[tid]) - I_Na - I_K - I_L - I_syn_exc - I_syn_inh);
+
 		if (V_in[tid] != V_in[tid]) V_in[tid] = -72;
 
 		I_K = g_K[tid] * pow(n_mid[tid], 4) * (V_mid[tid] - E_K);
 		I_Na = g_Na[tid] * pow(m_mid[tid], 3) * h_mid[tid] * (V_mid[tid] - E_Na);
 		I_L = g_L[tid] * (V_mid[tid] - E_L);
-		dV_mid = const_coef2[tid] * (const_coef1[tid] * (V_out[tid] - 2 * V_mid[tid] + V_in[tid]) - I_Na - I_K - I_L);
+		dV_mid = const_coef1[tid] * (const_coef2[tid] * (V_out[tid] - 2 * V_mid[tid] + V_in[tid]) - I_Na - I_K - I_L);
 		V_mid[tid] += dV_mid;
 		if (V_mid[tid] != V_mid[tid]) V_mid[tid] = -72;
 
-		V_extra[tid] = const_coef3[tid] * (I_L + I_Na + I_K + (1 / const_coef2[tid]) * dV_mid);
+		V_extra[tid] = -const_coef3[tid] * (g_K[tid] / 10000 * pow(n_mid[tid], 4) * (V_mid[tid] - E_K) +
+				g_Na[tid] / 10000 * pow(m_mid[tid], 3) * h_mid[tid] * (V_mid[tid] - E_Na) +
+				g_L[tid] / 10000 * (V_mid[tid] - E_L) + (1 / const_coef1[tid]) * dV_mid);
 
 		I_K = g_K[tid] * pow(n_out[tid], 4) * (V_out[tid] - E_K);
 		I_Na = g_Na[tid] * pow(m_out[tid], 3) * h_out[tid] * (V_out[tid] - E_Na);
 		I_L = g_L[tid] * (V_out[tid] - E_L);
-		V_out[tid] += const_coef2[tid] * (const_coef1[tid] * (2 * V_mid[tid] - 2 * V_out[tid]) - I_Na - I_K - I_L);
+		V_out[tid] += const_coef1[tid] * (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_out[tid]) - I_Na - I_K - I_L);
 		if (V_out[tid] != V_out[tid]) V_out[tid] = -72;
 
 		// use temporary dV variable as V_m with adjust
@@ -330,10 +334,10 @@ void fill_array(type *array, unsigned int size, type value) {
 }
 
 template <typename type>
-type* init_gpu_arr(type* cpu_var, int count) {
+type* init_gpu_arr(type* cpu_var, int size) {
 	type* gpu_var;
-	cudaMalloc(&gpu_var, datasize<type>(count));
-	memcpyHtD<type>(gpu_var, cpu_var, count);
+	cudaMalloc(&gpu_var, sizeof(type) * size);
+	memcpyHtD<type>(gpu_var, cpu_var, size);
 	return gpu_var;
 }
 
@@ -351,7 +355,7 @@ type* init_cpu_arr_normal(int size, type mean, type stddev) {
 	default_random_engine generator(r());
 	normal_distribution<float> distr(mean, stddev);
 
-	type *array = new type[size];
+	auto *array = new type[size];
 	for(int i = 0; i < size; i++)
 		array[i] = (type)distr(generator);
 	return array;
@@ -510,14 +514,20 @@ void connect_fixed_outdegree(const Group& pre_neurons,
 	if (outdegree == 0)
 		outdegree = outdegree_num(generator);
 
+	int rand_post_id;
+	float syn_delay_distr;
+	float syn_weight_distr;
+
 	for (unsigned int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
 		for (int i = 0; i < outdegree; i++) {
-			int rand_post_id = id_distr(generator);
-			float syn_delay_distr = delay_distr_gen(generator);
+			rand_post_id = id_distr(generator);
+			syn_delay_distr = delay_distr_gen(generator);
+
 			if (syn_delay_distr <= 0.2) {
 				syn_delay_distr = 0.2;
 			}
-			float syn_weight_distr = weight_distr_gen(generator);
+			syn_weight_distr = weight_distr_gen(generator);
+
 			if (no_distr) {
 				all_synapses.emplace_back(pre_id, rand_post_id, syn_delay, syn_weight);
 			} else {
@@ -600,11 +610,11 @@ void init_network() {
 	Group muscle_F = form_group("muscle_F", 100);
 
 	/// connectomes
-	connect_fixed_outdegree(EES, E1, 1, 5);
-	connect_fixed_outdegree(E1, E2, 1, 2);
-	connect_fixed_outdegree(E2, E3, 1, 2);
-	connect_fixed_outdegree(E3, E4, 1, 2);
-	connect_fixed_outdegree(E4, E5, 1, 2);
+	connect_fixed_outdegree(EES, E1, 1, 1000);
+	connect_fixed_outdegree(E1, E2, 1, 1000);
+	connect_fixed_outdegree(E2, E3, 1, 1000);
+	connect_fixed_outdegree(E3, E4, 1, 1000);
+	connect_fixed_outdegree(E4, E5, 1, 1000);
 
 	connect_one_to_all(CV3, OM1_3, 0.1, 0.3);
 	connect_one_to_all(CV4, OM1_3, 0.1, 0.3);
@@ -736,7 +746,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	uniform_real_distribution<float> standard_uniform(0, 1);
 	uniform_real_distribution<float> d_inter_distr(3, 8);
 	uniform_real_distribution<float> d_Ia_aff_distr(10, 20);
-	uniform_real_distribution<float> d_muscle_dist(40, 50);
+	uniform_real_distribution<float> d_muscle_dist(4, 6);
 
 	const unsigned int skin_stim_time = get_skin_stim_time(cms);
 	const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS;
@@ -755,32 +765,40 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	const auto neurons_number = global_id;
 	const auto synapses_number = static_cast<int>(all_synapses.size());
 	/// CPU variables
-	auto *nrn_v_extra = init_cpu_arr<float>(neurons_number, 0);      // [mV] neuron extracellular membrane potential
-	auto *nrn_v_m_in = init_cpu_arr<float>(neurons_number, -72.5);   // [mV] input neuron intracellular membrane potential
-	auto *nrn_v_m_mid = init_cpu_arr<float>(neurons_number, -72.5);  // [mV] medial neuron intracellular membrane potential
-	auto *nrn_v_m_out = init_cpu_arr<float>(neurons_number, -72.5);  // [mV] output neuron intracellular membrane potential
-	auto *nrn_n_in = init_cpu_arr<float>(neurons_number, 0.01);      // [0..1] potassium channel activation probability
-	auto *nrn_n_mid = init_cpu_arr<float>(neurons_number, 0.01);     // --//--
-	auto *nrn_n_out = init_cpu_arr<float>(neurons_number, 0.01);     // --//--
-	auto *nrn_h_in = init_cpu_arr<float>(neurons_number, 0.99);      // [0..1] sodium channel activation probability
-	auto *nrn_h_mid = init_cpu_arr<float>(neurons_number, 0.99);     // --//--
-	auto *nrn_h_out = init_cpu_arr<float>(neurons_number, 0.99);     // --//--
-	auto *nrn_m_in = init_cpu_arr<float>(neurons_number, 0.01);      // [0..1] sodium channel inactivation probability
-	auto *nrn_m_mid = init_cpu_arr<float>(neurons_number, 0.01);     // --//--
-	auto *nrn_m_out = init_cpu_arr<float>(neurons_number, 0.01);     // --//--
-	auto *const_coef1 = init_cpu_arr<float>(neurons_number, 0);      // 2.25 * d / Ra
-	auto *const_coef2 = init_cpu_arr<float>(neurons_number, 0);      // dt / Cm
-	auto *const_coef3 = init_cpu_arr<float>(neurons_number, 0);      //
-	auto *nrn_g_Na = init_cpu_arr<float>(neurons_number, 0);         // [nS]
-	auto *nrn_g_K = init_cpu_arr<float>(neurons_number, 0);          // [nS]
-	auto *nrn_g_L = init_cpu_arr<float>(neurons_number, 0);          // [nS]
-	auto *nrn_g_exc = init_cpu_arr<float>(neurons_number, 0);        // [nS] excitatory synapse exponential conductance
-	auto *nrn_g_inh = init_cpu_arr<float>(neurons_number, 0);        // [nS] inhibitory synapse exponential conductance
-	auto *nrn_diameter = init_cpu_arr<float>(neurons_number, 0);     // [um] neuron diameter
+	auto *nrn_v_extra = init_cpu_arr<float>(neurons_number, 0);       // [mV] neuron extracellular membrane potential
+	auto *nrn_v_m_in = init_cpu_arr<float>(neurons_number, -72.5);    // [mV] input neuron intracellular membrane potential
+	auto *nrn_v_m_mid = init_cpu_arr<float>(neurons_number, -72.5);   // [mV] medial neuron intracellular membrane potential
+	auto *nrn_v_m_out = init_cpu_arr<float>(neurons_number, -72.5);   // [mV] output neuron intracellular membrane potential
+	auto *nrn_n_in = init_cpu_arr<float>(neurons_number, 0.01);       // [0..1] potassium channel activation probability
+	auto *nrn_n_mid = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
+	auto *nrn_n_out = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
+	auto *nrn_h_in = init_cpu_arr<float>(neurons_number, 0.99);       // [0..1] sodium channel activation probability
+	auto *nrn_h_mid = init_cpu_arr<float>(neurons_number, 0.99);      // --//--
+	auto *nrn_h_out = init_cpu_arr<float>(neurons_number, 0.99);      // --//--
+	auto *nrn_m_in = init_cpu_arr<float>(neurons_number, 0.01);       // [0..1] sodium channel inactivation probability
+	auto *nrn_m_mid = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
+	auto *nrn_m_out = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
+	auto *const_coef1 = init_cpu_arr<float>(neurons_number, 0);       // d / (4 * Ra * x * x)
+	auto *const_coef2 = init_cpu_arr<float>(neurons_number, 0);       // dt / Cm
+	auto *const_coef3 = init_cpu_arr<float>(neurons_number, 0);       // extracellular constant
+	auto *nrn_g_Na = init_cpu_arr<float>(neurons_number, 0);          // [nS]
+	auto *nrn_g_K = init_cpu_arr<float>(neurons_number, 0);           // [nS]
+	auto *nrn_g_L = init_cpu_arr<float>(neurons_number, 0);           // [nS]
+	auto *nrn_g_exc = init_cpu_arr<float>(neurons_number, 0);         // [nS] excitatory synapse exponential conductance
+	auto *nrn_g_inh = init_cpu_arr<float>(neurons_number, 0);         // [nS] inhibitory synapse exponential conductance
+	auto *nrn_diameter = init_cpu_arr<float>(neurons_number, 0);      // [um] neuron diameter
 	auto *nrn_has_spike = init_cpu_arr<bool>(neurons_number, false);  // neuron state - has spike or not
 	auto *nrn_ref_time_timer = init_cpu_arr<unsigned short>(neurons_number, 0);  // [step] neuron refractory time timer
 	auto *nrn_ref_time = init_cpu_arr_normal<unsigned short>(neurons_number, 3 / SIM_STEP, 0.4 / SIM_STEP);   // [step] neuron refractory time
 
+	// synapse variables
+	auto *synapses_pre_nrn_id = init_cpu_arr<int>(synapses_number, 0);    // Pre synaptic neuron's ID
+	auto *synapses_post_nrn_id = init_cpu_arr<int>(synapses_number, 0);   // Post synaptic neuron's ID
+	auto *synapses_weight = init_cpu_arr<float>(synapses_number, 0);      // Synaptic weight [mS]
+	auto *synapses_delay = init_cpu_arr<int>(synapses_number, 0);         // Synaptic delay [ms] -> [steps]
+	auto *synapses_delay_timer = init_cpu_arr<int>(synapses_number, -1);  // Synaptic delay timer [steps]
+
+	// CV timing
 	const unsigned int beg_C_spiking[5] = {ms_to_step(0),
 	                                       ms_to_step(skin_stim_time),
 	                                       ms_to_step(2 * skin_stim_time),
@@ -797,7 +815,14 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	for(int i = 0; i < neurons_number; i++)
 		nrn_diameter[i] = d_inter_distr(generator);
 
+	const float MICRO = pow(10, -6);
+	const float CENTI = pow(10, -1);
+	const float uF_m2 = pow(10, 4);   // 1 microfarad per square centimeter = 10 000 microfarad per square meter
+	const float mS_m2 = pow(10, 4);   // 1 millisiemens per square centimeter = 10 000 millisiemens per square meter
+	float Re = 333 * CENTI;           // convert [Ohm cm] to [Ohm m] Resistance of extracellular space
+
 	// set for EES, E1, E2, E3, E4, E5 constant diameter
+	// convert [um] to [m] - diameter
 	for (int i = 0; i < 300; i++)
 		nrn_diameter[i] = 5;
 
@@ -810,49 +835,36 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 
 	for (int i = 3463; i <= 3712; i++)
 		nrn_diameter[i] = d_muscle_dist(generator);
-	// S * cm-2 = 10 nS um-2
 	// set C_m, g_Na, g_K, g_L arrays based on the neuron's diameters
-	float S;
-	for(int i = 0; i < neurons_number; i++) {
-		// S = 2 Pi r h
-		S = M_PI * nrn_diameter[i] * nrn_diameter[i] / 3;
-		// const_coef1 = 2.25 * d / Ra
-		const_coef1[i] = 2.25 * nrn_diameter[i] / 100;
-		// const_coef2 = dt / Cm
+	float Ra, x, cm, d;
+	for (int i = 0; i < neurons_number; i++) {
+		// regular interneuron
+		cm = 1 * uF_m2;                // conductivity
+		d = nrn_diameter[i] * MICRO;   // compartment diameter
+		x = d / 3;                     // compartment length
+		nrn_g_Na[i] = 120 * mS_m2;     // convert [mS / cm2] to [mS / m2]
+		nrn_g_K[i] = 36 * mS_m2;       // convert [mS / cm2] to [mS / m2]
+		nrn_g_L[i] = 0.3 * mS_m2;      // convert [mS / cm2] to [mS / m2]
+		Ra = 100 * CENTI;              // convert [Ohm cm] to [Ohm m]
+		// motoneurons
 		if (1557 <= i && i <= 1946) {
-			const_coef2[i] = SIM_STEP / (S * 0.02);
-		} else {
-			// muscles
-			if (3463 <= i && i <= 3712) {
-				// Pi * d * l, l = 3mm = 3000um
-				S = M_PI * nrn_diameter[i] * 3000;
-				const_coef1[i] = 2.25 * nrn_diameter[i] / 100;
-				const_coef2[i] = SIM_STEP / (S * 0.036);
-			} else {
-				const_coef2[i] = SIM_STEP / (S * 0.01);
-			}
+			cm = 2 * uF_m2;
+			Ra = 200 * CENTI;
 		}
-		// sigma
-		const_coef3[i] = 0.0003 * log((sqrt(10) + 1) / (sqrt(10) - 1)) / (4 * M_PI * nrn_diameter[i] * 0.3);
-		nrn_g_K[i] = S * 0.4; // 0.07
-		nrn_g_L[i] = S * 0.02; // 0.01
-		nrn_g_Na[i] = S * 2.5; // 0.19
-
 		// muscles
 		if (3463 <= i && i <= 3712) {
-			const_coef3[i] = 0.0003 * log((sqrt(10) + 1) / (sqrt(10) - 1)) / (4 * M_PI * nrn_diameter[i] * 0.3);
-			nrn_g_K[i] = S * 0.1; // 0.07
-			nrn_g_L[i] = S * 0.1; // 0.01
-			nrn_g_Na[i] = S * 5.5; // 0.19
+			nrn_g_Na[i] = 10 * mS_m2;
+			nrn_g_K[i] = 1 * mS_m2;
+			nrn_g_L[i] = 0.3 * mS_m2;
+			Ra = 1000 * CENTI;
 		}
-	}
 
-	// synapse variables
-	auto *synapses_pre_nrn_id = init_cpu_arr<int>(synapses_number, 0);
-	auto *synapses_post_nrn_id = init_cpu_arr<int>(synapses_number, 0);
-	auto *synapses_weight = init_cpu_arr<float>(synapses_number, 0);
-	auto *synapses_delay = init_cpu_arr<int>(synapses_number, 0);
-	auto *synapses_delay_timer = init_cpu_arr<int>(synapses_number, -1);
+		const_coef1[i] = SIM_STEP / cm;
+		const_coef2[i] = d / (4 * Ra * x * x);
+		x /= MICRO;
+		d /= MICRO;
+		const_coef3[i] = (log(sqrt(pow(x, 2) + pow(d, 2)) + x) - log(sqrt(pow(x, 2) + pow(d, 2)) - x)) / (4 * M_PI * x * Re);
+	}
 
 	// fill arrays of synapses
 	unsigned int syn_id = 0;
