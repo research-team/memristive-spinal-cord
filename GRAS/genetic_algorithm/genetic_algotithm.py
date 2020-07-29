@@ -210,8 +210,9 @@ class Individual:
 
     def set_weight(self, min_weight, max_weight):
         self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
-        max_weights.append(max_weight)
-        low_weights.append(min_weight)
+        if len(max_weights) < N and len(low_weights) < N:
+            max_weights.append(max_weight)
+            low_weights.append(min_weight)
 
     def set_delay(self):
         self.delays.append(Individual().format_delay(random.uniform(low_delay, max_delay)))
@@ -329,6 +330,8 @@ class Population:
             individual.id = i
 
     def first_init_known(self):
+        individual = Individual()
+        individual.init()
 
         with open(DataSettings.path_to_json_file_with_individuals) as file:
             all_lines = file.readlines()
@@ -595,7 +598,6 @@ class Breeding:
         if is_calculate_again:
             b = int(len(current_population) / 4)
             cp = current_population[:b * 4]
-            k = 0
 
             arr1.append(current_population[b * 4:])
 
@@ -612,18 +614,20 @@ class Breeding:
 
             b = int(len(individuals_in_current_population_with_uknown_pvalue) / 4)
             cp = individuals_in_current_population_with_uknown_pvalue[:b * 4]
-            k = 0
 
             arr1.append(individuals_in_current_population_with_uknown_pvalue[b * 4:])
 
+        k = 0
         while True:
             arr = []
+            if k >= len(cp):
+                break
             for i in range(4):
+                if k >= len(cp):
+                    break
                 arr.append(cp[k])
                 k += 1
             arr1.append(arr)
-            if k >= len(cp):
-                break
 
         return arr1
 
@@ -738,8 +742,10 @@ if __name__ == "__main__":
 
     # first initialization to population
     population = Population()
-    population.first_init()
+    population.first_init(known=True)
     population_number = 1
+
+    # TODO add deleting log.err, log.out each 10 population
 
     while not Evolution.terminate_algorithm:
         print(f"Population number = {population_number}")

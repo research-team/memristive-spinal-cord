@@ -1,6 +1,8 @@
 import json
 import unittest
 import h5py
+import random
+import numpy as np
 
 from python_scripts.genetic_algotithm import Individual
 from python_scripts.genetic_algotithm import Population
@@ -109,7 +111,7 @@ class TestCopy(unittest.TestCase):
         for i in range(100):
             i = TestJson.i1.__copy__()
             self.assertEqual(i.gen, gen)
-            self.assertEqual(i, TestJson.i1)
+            self.assertNotEqual(i, TestJson.i1)
 
 
 @unittest.skip
@@ -181,6 +183,45 @@ class TestMutation(unittest.TestCase):
         im = Breeding.mutation4(i)
 
         self.assertNotEqual(i.gen, im.gen)
+
+    def test_low_high(self):
+        num = 100
+        low_high1 = Breeding.get_low_high(num)
+        low_high2 = Breeding.get_low_high(num)
+        self.assertEqual(low_high1, low_high2)
+
+    def test_t(self):
+        cp = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        arr1 = []
+        k = 0
+        while True:
+            arr = []
+            if k >= len(cp):
+                break
+            for i in range(4):
+                if k >= len(cp):
+                    break
+                arr.append(cp[k])
+                k += 1
+            arr1.append(arr)
+
+        print(arr1)
+
+    def test_init(self):
+        p = Population()
+        p.first_init(known=True)
+        g1 = p.individuals[0].gen
+        p.normalize_hyperparameters()
+        g2 = p.individuals[0].gen
+        self.assertEqual(g1, g2)
+
+    def test_low_w(self):
+        print(low_weights)
+        i = Individual()
+        i.init()
+        i2 = Individual()
+        i2.init()
+        print(len(low_weights))
 
 
 if __name__ == "__main__":

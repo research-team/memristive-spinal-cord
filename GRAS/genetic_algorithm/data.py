@@ -6,3 +6,5 @@ class DataSettings:
     N_connectomes = 104
     min_peaks_number = 70
     peaks_filter = 0.15
+    is_tests = True
+    path_to_json_file_with_individuals = "known.dat"
