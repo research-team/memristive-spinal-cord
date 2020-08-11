@@ -19,7 +19,7 @@ using namespace std;
 unsigned int global_id = 0;
 unsigned int SIM_TIME_IN_STEPS;
 const int LEG_STEPS = 1;             // [step] number of full cycle steps
-const float SIM_STEP = 0.025;        // [ms] simulation step
+const double SIM_STEP = 0.025;        // [ms] simulation step
 // stuff variables
 const int neurons_in_group = 50;     // number of neurons in a group
 const int neurons_in_ip = 196;       // number of neurons in a group
@@ -135,9 +135,9 @@ void neurons_kernel(float *V_extra,
                     const float *g_L,
                     float *g_exc,
                     float *g_inh,
-                    const float *const_coef1,
-                    const float *const_coef2,
-                    const float *const_coef3,
+                    const double *const_coef1,
+                    const double *const_coef2,
+                    const double *const_coef3,
                     bool *has_spike,
                     const unsigned short *nrn_ref_time,
                     unsigned short *nrn_ref_time_timer,
@@ -148,7 +148,7 @@ void neurons_kernel(float *V_extra,
                     const bool C0_early_activated,
                     const unsigned int sim_iter,
                     const int decrease_lvl_Ia_spikes,
-                    const float sim_step) {
+                    const double sim_step) {
 	/// neuron parameters
 	const float E_Na = 50.0;         // [mV] Reversal potential for the Sodium current
 	const float E_K = -90.0;         // [mV] Reversal potential for the Potassium current
@@ -158,7 +158,7 @@ void neurons_kernel(float *V_extra,
 	const float tau_syn_exc = 0.3;   // [ms] Decay time of excitatory synaptic current (ms)
 	const float tau_syn_inh = 2.0;   // [ms] Decay time of inhibitory synaptic current (ms)
 	const float V_adj = -63.0;       // adjusts threshold to around -50 mV -65
-	const float g_bar = 80000;       // [uS] the maximal possible conductivity
+	const float g_bar = 8000;       // [uS] the maximal possible conductivity
 
 	float I_syn_exc, I_syn_inh;
 	float I_K, I_Na, I_L, V_out_old, dV_mid;
@@ -361,10 +361,8 @@ int get_skin_stim_time(int cms) {
 
 void bimodal_distr_for_moto_neurons(float *nrn_diameter) {
 	int diameter_active = 27;
-	int scale_active = 3;
 	int diameter_standby = 57;
-	int scale_standby = 6;
-	// MN_E [1557 ... 1766] MN_F [1767 ... 1946]
+	// MN_E [1557 ... 1766] 210 MN_F [1767 ... 1946] 180
 	int MN_E_start = 1557;
 	int MN_E_end = 1766;
 	int MN_F_start = 1767;
@@ -382,8 +380,8 @@ void bimodal_distr_for_moto_neurons(float *nrn_diameter) {
 
 	random_device r1;
 	default_random_engine generator1(r1());
-	normal_distribution<float> d_active(diameter_active, scale_active);
-	normal_distribution<float> d_standby(diameter_standby, scale_standby);
+	normal_distribution<float> d_active(diameter_active, 3);
+	normal_distribution<float> d_standby(diameter_standby, 6);
 
 	for (int i = MN_E_start; i < MN_E_start + active_size_extensor; i++) {
 		nrn_diameter[i] = d_active(generator1);
@@ -600,11 +598,11 @@ void init_network() {
 	Group muscle_F = form_group("muscle_F", 100);
 
 	/// connectomes
-	connect_fixed_outdegree(EES, E1, 1, 1000);
-	connect_fixed_outdegree(E1, E2, 1, 1000);
-	connect_fixed_outdegree(E2, E3, 1, 1000);
-	connect_fixed_outdegree(E3, E4, 1, 1000);
-	connect_fixed_outdegree(E4, E5, 1, 1000);
+	connect_fixed_outdegree(EES, E1, 1, 1500);
+	connect_fixed_outdegree(E1, E2, 1, 1500);
+	connect_fixed_outdegree(E2, E3, 1, 1500);
+	connect_fixed_outdegree(E3, E4, 1, 1500);
+	connect_fixed_outdegree(E4, E5, 1, 1500);
 
 	connect_one_to_all(CV3, OM1_3, 0.1, 5000);
 	connect_one_to_all(CV4, OM1_3, 0.1, 5000);
@@ -614,23 +612,23 @@ void init_network() {
 	connect_one_to_all(CV5, OM3_3, 0.1, 5000);
 	connect_one_to_all(CV5, OM4_3, 0.1, 5000);
 
-	connect_one_to_all(OM1_2_E, eIP_E, 1.5, 1000);
-	connect_one_to_all(OM2_2_E, eIP_E, 2, 1000);
-	connect_one_to_all(OM3_2_E, eIP_E, 3, 1000);
-	connect_one_to_all(OM4_2_E, eIP_E, 4, 1000);
-	connect_one_to_all(OM5_2_E, eIP_E, 4.5, 1000);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 1.5, 1000, 100);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 1.5, 1000, 100);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 1.5, 1000, 100);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 1.5, 1000, 100);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 1.5, 1000, 100);
 
-	connect_fixed_outdegree(E1, OM1_0, 1, 490);
+	connect_fixed_outdegree(E1, OM1_0, 1, 520);
 	// input from sensory
 	connect_one_to_all(CV1, OM1_0, 0.1, 620);
 	connect_one_to_all(CV2, OM1_0, 0.1, 620);
 	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 2, 1000);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 2.5, 1025);
+	connect_fixed_outdegree(OM1_0, OM1_1, 1, 1000);
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 2.5, 1100);
 	connect_fixed_outdegree(OM1_1, OM1_3, 3, 350);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 900);
-	connect_fixed_outdegree(OM1_1, OM1_1, 2.5, 130);
-	connect_fixed_outdegree(OM1_2_E, OM1_2_E, 2.5, 130);
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 3, 820);
+	connect_fixed_outdegree(OM1_1, OM1_1, 2.5, 300);
+	connect_fixed_outdegree(OM1_2_E, OM1_2_E, 2.5, 300);
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 3, 350);
 	connect_fixed_outdegree(OM1_3, OM1_1, 3, -500);
 	connect_fixed_outdegree(OM1_3, OM1_2_E, 3, -500);
@@ -641,11 +639,11 @@ void init_network() {
 	connect_one_to_all(CV3, OM2_0, 0.1, 620);
 	// inner connectomes
 	connect_fixed_outdegree(OM2_0, OM2_1, 2, 1000);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 2.5, 1025);
+	connect_fixed_outdegree(OM2_1, OM2_2_E, 2.5, 1100);
 	connect_fixed_outdegree(OM2_1, OM2_3, 3, 350);
-	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 900);
-	connect_fixed_outdegree(OM2_1, OM2_1, 2.5, 130);
-	connect_fixed_outdegree(OM2_2_E, OM2_2_E, 2.5, 130);
+	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 820);
+	connect_fixed_outdegree(OM2_1, OM2_1, 2.5, 300);
+	connect_fixed_outdegree(OM2_2_E, OM2_2_E, 2.5, 300);
 	connect_fixed_outdegree(OM2_2_E, OM2_3, 3, 350);
 	connect_fixed_outdegree(OM2_3, OM2_1, 3, -500);
 	connect_fixed_outdegree(OM2_3, OM2_2_E, 3, -500);
@@ -656,11 +654,11 @@ void init_network() {
 	connect_one_to_all(CV4, OM3_0, 0.1, 620);
 	// inner connectomes
 	connect_fixed_outdegree(OM3_0, OM3_1, 2, 1000);
-	connect_fixed_outdegree(OM3_1, OM3_2_E, 2.5, 1025);
+	connect_fixed_outdegree(OM3_1, OM3_2_E, 2.5, 1100);
 	connect_fixed_outdegree(OM3_1, OM3_3, 3, 350);
-	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 900);
-	connect_fixed_outdegree(OM3_1, OM3_1, 2.5, 130);
-	connect_fixed_outdegree(OM3_2_E, OM3_2_E, 2.5, 130);
+	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 820);
+	connect_fixed_outdegree(OM3_1, OM3_1, 2.5, 300);
+	connect_fixed_outdegree(OM3_2_E, OM3_2_E, 2.5, 300);
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 3, 350);
 	connect_fixed_outdegree(OM3_3, OM3_1, 3, -500);
 	connect_fixed_outdegree(OM3_3, OM3_2_E, 3, -500);
@@ -671,11 +669,11 @@ void init_network() {
 	connect_one_to_all(CV5, OM4_0, 0.1, 620);
 	// inner connectomes
 	connect_fixed_outdegree(OM4_0, OM4_1, 2, 1000);
-	connect_fixed_outdegree(OM4_1, OM4_2_E, 2.5, 1025);
-	connect_fixed_outdegree(OM4_1, OM4_3, 3, 350);
-	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 900);
-	connect_fixed_outdegree(OM4_1, OM4_1, 2.5, 130);
-	connect_fixed_outdegree(OM4_2_E, OM4_2_E, 2.5, 130);
+	connect_fixed_outdegree(OM4_1, OM4_2_E, 2.5, 1000);
+	connect_fixed_outdegree(OM4_1, OM4_3, 3, 330);
+	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 820);
+	connect_fixed_outdegree(OM4_1, OM4_1, 2.5, 320);
+	connect_fixed_outdegree(OM4_2_E, OM4_2_E, 2.5, 320);
 	connect_fixed_outdegree(OM4_2_E, OM4_3, 3, 350);
 	connect_fixed_outdegree(OM4_3, OM4_1, 3, -500);
 	connect_fixed_outdegree(OM4_3, OM4_2_E, 3, -500);
@@ -691,8 +689,8 @@ void init_network() {
 	connect_fixed_outdegree(OM5_1, OM5_1, 2.5, 130);
 	connect_fixed_outdegree(OM5_2_E, OM5_2_E, 2.5, 130);
 	connect_fixed_outdegree(OM5_2_E, OM5_3, 3, 350);
-	connect_fixed_outdegree(OM5_3, OM5_1, 3, -500);
-	connect_fixed_outdegree(OM5_3, OM5_2_E, 3, -500);
+	connect_fixed_outdegree(OM5_3, OM5_1, 3, -1000);
+	connect_fixed_outdegree(OM5_3, OM5_2_E, 3, -1000);
 
 	/// reflex arc
 	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -1);
@@ -703,11 +701,11 @@ void init_network() {
 	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM4_2_F, 0.5, -0.5);
 
-	connect_fixed_outdegree(EES, Ia_E_aff, 1, 10);
-	connect_fixed_outdegree(EES, Ia_F_aff, 1, 10);
+	connect_fixed_outdegree(EES, Ia_E_aff, 1, 5000);
+	connect_fixed_outdegree(EES, Ia_F_aff, 1, 5000);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 3, 1000); // 2.2
-	connect_fixed_outdegree(eIP_F, MN_F, 3, 13);
+	connect_fixed_outdegree(eIP_E, MN_E, 2, 1000, 120); // 2.2
+	connect_fixed_outdegree(eIP_F, MN_F, 2, 1000, 120);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 1);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 1);
@@ -717,15 +715,15 @@ void init_network() {
 	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -1);
 	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1);
 
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 50);
-	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 50);
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 4000, 120);
+	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 4000, 120);
 
 	connect_fixed_outdegree(MN_E, R_E, 2, 1);
 	connect_fixed_outdegree(MN_F, R_F, 2, 1);
 
-	connect_fixed_outdegree(MN_E, muscle_E, 2, 100);
-	connect_fixed_outdegree(MN_F, muscle_F, 2, 100);
-	connect_fixed_outdegree(EES, muscle_E, 1, 150);
+	connect_fixed_outdegree(MN_E, muscle_E, 2, 1000, 140);
+	connect_fixed_outdegree(MN_F, muscle_F, 2, 1000, 120);
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 2000, 140);
 
 	connect_fixed_outdegree(R_E, MN_E, 2, -0.5);
 	connect_fixed_outdegree(R_E, R_F, 2, -1);
@@ -744,11 +742,12 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	uniform_real_distribution<float> d_Ia_aff_distr(10, 20);
 	uniform_real_distribution<float> d_muscle_dist(4, 6);
 
-	normal_distribution<float> c_m_dist(1, 0.05);
-	normal_distribution<float> g_Na_dist(120, 4);
-	normal_distribution<float> g_K_dist(36, 2.5);
-	normal_distribution<float> g_L_dist(0.3, 0.035);
-	normal_distribution<float> R_dist(100, 3.2);
+	normal_distribution<double> c_m_dist(1, 0.05);
+	normal_distribution<double> c_m_moto_dist(2, 0.06);
+	normal_distribution<double> g_Na_dist(120, 3.7);
+	normal_distribution<double> g_K_dist(36, 2.3);
+	normal_distribution<double> g_L_dist(0.3, 0.033);
+	normal_distribution<double> R_dist(100, 3.1);
 	//
 	const unsigned int skin_stim_time = get_skin_stim_time(cms);
 	const unsigned int T_simulation = 11 * skin_stim_time * LEG_STEPS;
@@ -779,9 +778,9 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	auto *nrn_m_in = init_cpu_arr<float>(neurons_number, 0.01);       // [0..1] sodium channel inactivation probability
 	auto *nrn_m_mid = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
 	auto *nrn_m_out = init_cpu_arr<float>(neurons_number, 0.01);      // --//--
-	auto *const_coef1 = init_cpu_arr<float>(neurons_number, 0);       // d / (4 * Ra * x * x)
-	auto *const_coef2 = init_cpu_arr<float>(neurons_number, 0);       // dt / Cm
-	auto *const_coef3 = init_cpu_arr<float>(neurons_number, 0);       // extracellular constant
+	auto *const_coef1 = init_cpu_arr<double>(neurons_number, 0);       // d / (4 * Ra * x * x)
+	auto *const_coef2 = init_cpu_arr<double>(neurons_number, 0);       // dt / Cm
+	auto *const_coef3 = init_cpu_arr<double>(neurons_number, 0);       // extracellular constant
 	auto *nrn_g_Na = init_cpu_arr<float>(neurons_number, 0);          // [nS]
 	auto *nrn_g_K = init_cpu_arr<float>(neurons_number, 0);           // [nS]
 	auto *nrn_g_L = init_cpu_arr<float>(neurons_number, 0);           // [nS]
@@ -816,11 +815,11 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	for (int i = 0; i < neurons_number; i++)
 		nrn_diameter[i] = d_inter_distr(generator);
 
-	const float MICRO = pow(10, -6);
-	const float CENTI = pow(10, -1);
-	const float uF_m2 = pow(10, 4);   // 1 microfarad per square centimeter = 10 000 microfarad per square meter
-	const float mS_m2 = pow(10, 4);   // 1 millisiemens per square centimeter = 10 000 millisiemens per square meter
-	float Re = 333 * CENTI;           // convert [Ohm cm] to [Ohm m] Resistance of extracellular space
+	const double MICRO = pow(10, -6);
+	const double CENTI = pow(10, -1);
+	const double uF_m2 = pow(10, 4);   // 1 microfarad per square centimeter = 10 000 microfarad per square meter
+	const double mS_m2 = pow(10, 4);   // 1 millisiemens per square centimeter = 10 000 millisiemens per square meter
+	float Re = 333 * CENTI;            // convert [Ohm cm] to [Ohm m] Resistance of extracellular space
 
 	// set for EES, E1, E2, E3, E4, E5 constant diameter
 	// convert [um] to [m] - diameter
@@ -837,7 +836,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	for (int i = 3463; i <= 3712; i++)
 		nrn_diameter[i] = d_muscle_dist(generator);
 	// set C_m, g_Na, g_K, g_L arrays based on the neuron's diameters
-	float Ra, x, cm, d;
+	double Ra, x, cm, d;
 	for (int i = 0; i < neurons_number; i++) {
 		// regular interneuron
 		cm = c_m_dist(generator) * uF_m2;  // conductivity
@@ -847,12 +846,12 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		nrn_g_Na[i] = g_Na_dist(generator) * mS_m2;  // convert [mS / cm2] to [mS / m2]
 		nrn_g_K[i] = g_K_dist(generator) * mS_m2;    // convert [mS / cm2] to [mS / m2]
 		nrn_g_L[i] = g_L_dist(generator) * mS_m2;    // convert [mS / cm2] to [mS / m2]
-
 		Ra = R_dist(generator) * CENTI;     // convert [Ohm cm] to [Ohm m]
 		// motoneurons
 		if (1557 <= i && i <= 1946) {
-			cm = 2 * uF_m2;
+			cm = c_m_moto_dist(generator) * uF_m2;
 			Ra = 200 * CENTI;
+			x = 3 * MICRO;
 		}
 		// muscles
 		if (3463 <= i && i <= 3712) {
@@ -864,11 +863,12 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 
 		const_coef1[i] = SIM_STEP / cm;
 		const_coef2[i] = d / (4 * Ra * x * x);
+		cout << i << "\tD=" << d << "\tCm=" << cm << "\tRa=" << Ra << "\tC1=" << const_coef1[i] << "\tC2=" << const_coef2[i] << "\n";
+
 		x /= MICRO;
 		d /= MICRO;
 		const_coef3[i] = (log(sqrt(pow(x, 2) + pow(d, 2)) + x) - log(sqrt(pow(x, 2) + pow(d, 2)) - x)) / (4 * M_PI * x * Re);
 	}
-
 	// fill arrays of synapses
 	unsigned int syn_id = 0;
 	for (SynapseMetadata metadata : all_synapses) {
@@ -899,9 +899,9 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 	auto *gpu_nrn_g_L = init_gpu_arr<float>(nrn_g_L, neurons_number);
 	auto *gpu_nrn_g_exc = init_gpu_arr<float>(nrn_g_exc, neurons_number);
 	auto *gpu_nrn_g_inh = init_gpu_arr<float>(nrn_g_inh, neurons_number);
-	auto *gpu_const_coef1 = init_gpu_arr<float>(const_coef1, neurons_number);
-	auto *gpu_const_coef2 = init_gpu_arr<float>(const_coef2, neurons_number);
-	auto *gpu_const_coef3 = init_gpu_arr<float>(const_coef3, neurons_number);
+	auto *gpu_const_coef1 = init_gpu_arr<double>(const_coef1, neurons_number);
+	auto *gpu_const_coef2 = init_gpu_arr<double>(const_coef2, neurons_number);
+	auto *gpu_const_coef3 = init_gpu_arr<double>(const_coef3, neurons_number);
 	auto *gpu_nrn_has_spike = init_gpu_arr<bool>(nrn_has_spike, neurons_number);
 	auto *gpu_nrn_ref_time = init_gpu_arr<unsigned short>(nrn_ref_time, neurons_number);
 	auto *gpu_nrn_ref_time_timer = init_gpu_arr<unsigned short>(nrn_ref_time_timer, neurons_number);
@@ -1017,10 +1017,12 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			if (save_all == 0) {
 				if (metadata.group.group_name == "MN_E")
 					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
-				if (metadata.group.group_name == "MN_F")
+				if (metadata.group.group_name == "MN_F") {
 					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
-			} else
+				}
+			} else {
 				copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+			}
 		}
 
 		// invoke GPU kernel for synapses
