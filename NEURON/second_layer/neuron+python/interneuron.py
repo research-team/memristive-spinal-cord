@@ -106,14 +106,17 @@ class interneuron(object):
     for sec in self.dend:
       if self.delay:
         sec.insert('fastchannels')
-        sec.gnabar_fastchannels = 0.35
+        sec.gnabar_fastchannels = 0.25
         sec.gkbar_fastchannels = 0.04
         sec.gl_fastchannels = 0.001
-        self.add_5HTreceptors(sec, 10, 18)
+        self.add_5HTreceptors(sec, 10, 5)
       else:
         sec.insert('pas')
         sec.g_pas = 0.0002
         sec.e_pas = -70
+
+    if self.delay:
+        self.add_5HTreceptors(self.soma, 10, 5)
 
     self.axon.Ra = 50
     self.axon.insert('hh')
@@ -168,7 +171,7 @@ class interneuron(object):
         connection between neurons
     '''
     nc = h.NetCon(self.axon(1)._ref_v, target, sec = self.axon)
-    nc.threshold = 10
+    nc.threshold = -10
     return nc
 
   def synapses(self):
