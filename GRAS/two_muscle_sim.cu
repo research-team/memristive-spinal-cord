@@ -496,7 +496,7 @@ void connect_fixed_outdegree(const Group &pre_neurons,
 	default_random_engine generator(r());
 	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
 	uniform_int_distribution<int> outdegree_num(30, 50);
-	normal_distribution<float> delay_distr_gen(syn_delay, syn_delay / 5);
+	normal_distribution<float> delay_distr_gen(syn_delay, syn_delay / 3);
 	normal_distribution<float> weight_distr_gen(syn_weight, syn_weight / 50);
 
 	if (outdegree == 0)
@@ -511,8 +511,8 @@ void connect_fixed_outdegree(const Group &pre_neurons,
 			rand_post_id = id_distr(generator);
 			syn_delay_distr = delay_distr_gen(generator);
 
-			if (syn_delay_distr <= 0.2) {
-				syn_delay_distr = 0.2;
+			if (syn_delay_distr < 0.1) {
+				syn_delay_distr = 0.1;
 			}
 			syn_weight_distr = weight_distr_gen(generator);
 
@@ -597,49 +597,49 @@ void init_network() {
 	Group muscle_E = form_group("muscle_E", 150);
 	Group muscle_F = form_group("muscle_F", 100);
 
-	/// connectomes
+	/// E1-5 ()
 	connect_fixed_outdegree(EES, E1, 1, 1500);
 	connect_fixed_outdegree(E1, E2, 1, 1500);
 	connect_fixed_outdegree(E2, E3, 1, 1500);
 	connect_fixed_outdegree(E3, E4, 1, 1500);
 	connect_fixed_outdegree(E4, E5, 1, 1500);
+	///
+	connect_one_to_all(CV3, OM1_3, 0.1, 5100);
+	connect_one_to_all(CV4, OM1_3, 0.1, 5100);
+	connect_one_to_all(CV5, OM1_3, 0.1, 5100);
+	connect_one_to_all(CV4, OM2_3, 0.1, 5100);
+	connect_one_to_all(CV5, OM2_3, 0.1, 5100);
+	connect_one_to_all(CV5, OM3_3, 0.1, 5100);
+	connect_one_to_all(CV5, OM4_3, 0.1, 5100);
 
-	connect_one_to_all(CV3, OM1_3, 0.1, 5000);
-	connect_one_to_all(CV4, OM1_3, 0.1, 5000);
-	connect_one_to_all(CV5, OM1_3, 0.1, 5000);
-	connect_one_to_all(CV4, OM2_3, 0.1, 5000);
-	connect_one_to_all(CV5, OM2_3, 0.1, 5000);
-	connect_one_to_all(CV5, OM3_3, 0.1, 5000);
-	connect_one_to_all(CV5, OM4_3, 0.1, 5000);
-
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 1.5, 1000, 100);
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 1.5, 1000, 100);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 1.5, 1000, 100);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 1.5, 1000, 100);
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 1.5, 1000, 100);
-
-	connect_fixed_outdegree(E1, OM1_0, 1, 520);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 3, 2000, 100);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 2000, 100);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 2000, 100);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 2000, 100);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 3, 2000, 100);
+	/// [1] level
+	connect_fixed_outdegree(E1, OM1_0, 0.1, 580);
 	// input from sensory
-	connect_one_to_all(CV1, OM1_0, 0.1, 620);
-	connect_one_to_all(CV2, OM1_0, 0.1, 620);
+	connect_one_to_all(CV1, OM1_0, 0.1, 700);
+	connect_one_to_all(CV2, OM1_0, 0.1, 700);
 	// inner connectomes
-	connect_fixed_outdegree(OM1_0, OM1_1, 1, 1000);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 2.5, 1100);
+	connect_fixed_outdegree(OM1_0, OM1_1, 0.1, 1300); // 1
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 1, 1200); // 2
 	connect_fixed_outdegree(OM1_1, OM1_3, 3, 350);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 3, 820);
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 2.5, 820);
 	connect_fixed_outdegree(OM1_1, OM1_1, 2.5, 300);
 	connect_fixed_outdegree(OM1_2_E, OM1_2_E, 2.5, 300);
 	connect_fixed_outdegree(OM1_2_E, OM1_3, 3, 350);
 	connect_fixed_outdegree(OM1_3, OM1_1, 3, -500);
 	connect_fixed_outdegree(OM1_3, OM1_2_E, 3, -500);
-
-	connect_fixed_outdegree(E2, OM2_0, 1, 490);
+	/// [2] level
+	connect_fixed_outdegree(E2, OM2_0, 0.1, 490);
 	// input from sensory
 	connect_one_to_all(CV2, OM2_0, 0.1, 620);
 	connect_one_to_all(CV3, OM2_0, 0.1, 620);
 	// inner connectomes
-	connect_fixed_outdegree(OM2_0, OM2_1, 2, 1000);
-	connect_fixed_outdegree(OM2_1, OM2_2_E, 2.5, 1100);
+	connect_fixed_outdegree(OM2_0, OM2_1, 0.1, 1300);
+	connect_fixed_outdegree(OM2_1, OM2_2_E, 1, 1100);
 	connect_fixed_outdegree(OM2_1, OM2_3, 3, 350);
 	connect_fixed_outdegree(OM2_2_E, OM2_1, 2.5, 820);
 	connect_fixed_outdegree(OM2_1, OM2_1, 2.5, 300);
@@ -647,14 +647,14 @@ void init_network() {
 	connect_fixed_outdegree(OM2_2_E, OM2_3, 3, 350);
 	connect_fixed_outdegree(OM2_3, OM2_1, 3, -500);
 	connect_fixed_outdegree(OM2_3, OM2_2_E, 3, -500);
-	///
-	connect_fixed_outdegree(E3, OM3_0, 1, 490);
+	/// [3] level
+	connect_fixed_outdegree(E3, OM3_0, 0.1, 490);
 	// input from sensory
 	connect_one_to_all(CV3, OM3_0, 0.1, 620);
 	connect_one_to_all(CV4, OM3_0, 0.1, 620);
 	// inner connectomes
-	connect_fixed_outdegree(OM3_0, OM3_1, 2, 1000);
-	connect_fixed_outdegree(OM3_1, OM3_2_E, 2.5, 1100);
+	connect_fixed_outdegree(OM3_0, OM3_1, 0.1, 1300);
+	connect_fixed_outdegree(OM3_1, OM3_2_E, 1, 1100);
 	connect_fixed_outdegree(OM3_1, OM3_3, 3, 350);
 	connect_fixed_outdegree(OM3_2_E, OM3_1, 2.5, 820);
 	connect_fixed_outdegree(OM3_1, OM3_1, 2.5, 300);
@@ -662,14 +662,14 @@ void init_network() {
 	connect_fixed_outdegree(OM3_2_E, OM3_3, 3, 350);
 	connect_fixed_outdegree(OM3_3, OM3_1, 3, -500);
 	connect_fixed_outdegree(OM3_3, OM3_2_E, 3, -500);
-	///
-	connect_fixed_outdegree(E4, OM4_0, 1, 490);
+	/// [4] level
+	connect_fixed_outdegree(E4, OM4_0, 0.1, 490);
 	// input from sensory
 	connect_one_to_all(CV4, OM4_0, 0.1, 620);
 	connect_one_to_all(CV5, OM4_0, 0.1, 620);
 	// inner connectomes
-	connect_fixed_outdegree(OM4_0, OM4_1, 2, 1000);
-	connect_fixed_outdegree(OM4_1, OM4_2_E, 2.5, 1000);
+	connect_fixed_outdegree(OM4_0, OM4_1, 0.1, 1300);
+	connect_fixed_outdegree(OM4_1, OM4_2_E, 1, 1000);
 	connect_fixed_outdegree(OM4_1, OM4_3, 3, 330);
 	connect_fixed_outdegree(OM4_2_E, OM4_1, 2.5, 820);
 	connect_fixed_outdegree(OM4_1, OM4_1, 2.5, 320);
@@ -677,13 +677,13 @@ void init_network() {
 	connect_fixed_outdegree(OM4_2_E, OM4_3, 3, 350);
 	connect_fixed_outdegree(OM4_3, OM4_1, 3, -500);
 	connect_fixed_outdegree(OM4_3, OM4_2_E, 3, -500);
-	///
-	connect_fixed_outdegree(E5, OM5_0, 1, 490);
+	/// [5] level
+	connect_fixed_outdegree(E5, OM5_0, 0.1, 490);
 	// input from sensory
 	connect_one_to_all(CV5, OM5_0, 0.1, 620);
 	// inner connectomes
-	connect_fixed_outdegree(OM5_0, OM5_1, 2, 1000);
-	connect_fixed_outdegree(OM5_1, OM5_2_E, 2.5, 1025);
+	connect_fixed_outdegree(OM5_0, OM5_1, 0.1, 1300);
+	connect_fixed_outdegree(OM5_1, OM5_2_E, 1, 1025);
 	connect_fixed_outdegree(OM5_1, OM5_3, 3, 350);
 	connect_fixed_outdegree(OM5_2_E, OM5_1, 2.5, 900);
 	connect_fixed_outdegree(OM5_1, OM5_1, 2.5, 130);
@@ -696,6 +696,8 @@ void init_network() {
 	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -1);
 	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -1);
 
+	connect_fixed_outdegree(eIP_E, eIP_E, 2.5, 400);
+	//
 	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.5);
@@ -704,8 +706,8 @@ void init_network() {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 5000);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 5000);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 2, 1000, 120); // 2.2
-	connect_fixed_outdegree(eIP_F, MN_F, 2, 1000, 120);
+	connect_fixed_outdegree(eIP_E, MN_E, 4, 1000, 120);
+	connect_fixed_outdegree(eIP_F, MN_F, 4, 1000, 120);
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 1);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 1);
