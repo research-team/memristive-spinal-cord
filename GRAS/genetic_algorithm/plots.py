@@ -8,13 +8,15 @@ from python_scripts.genetic_algotithm import Individual
 
 # sudo apt-get install sshpass
 
-password = '"there is should be password"'
+password = '"P@ssw0rd!@"'
 
 path_to_save1 = "/Desktop/ga_v9/logs"
 
 path_to_file_with_bests_pvalue = "/GRAS/multi_gpu_test/files/bests_pvalue.dat"
 path_to_file_history = "/GRAS/multi_gpu_test/files/history.dat"
 path_to_file_log_of_bests = "/GRAS/multi_gpu_test/files/log_of_bests.dat"
+
+folder_to_save_plots = "/home/yuliya/Desktop/ga_v9/logs"
 
 
 def get_file(path_to_file=path_to_file_with_bests_pvalue, path_to_save=path_to_save1):
@@ -123,12 +125,14 @@ def draw_plot(download=True):
     ax[1, 0].set(xlabel='population', ylabel='p-value 2d')
     ax[1, 1].set(xlabel='population', ylabel='p-value dt')
 
+    fig.savefig(f"{folder_to_save_plots}/maxs.png")
     fig.show()
 
     plt.close(fig)
     plt.plot(array_with_ampl_pvalue, label='ampls p-value')
-    plt.plot(array_with_time_pvalue, label='times p-value')
+    # plt.plot(array_with_time_pvalue, label='times p-value')
     plt.plot(array_with_2d_pvalue,  label='2d p-value')
+    plt.plot(array_with_2d_pvalue, label='dt p-vallue')
     plt.plot(ff,  label='fitness function')
 
     plt.legend(fontsize='medium')
@@ -136,7 +140,7 @@ def draw_plot(download=True):
     plt.show()
 
 
-def draw_15(download=True):
+def draw_15(download=True, with_maxs=False):
     plt.close()
 
     if download:
@@ -149,10 +153,6 @@ def draw_15(download=True):
     for line in all_lines:
         arr_pack15.append(json.loads(line, object_hook=Individual.decode))
 
-    means_pvalue = []
-    means_pvalue_ampls = []
-    means_pvalue_times = []
-    means_pvalue_dt = []
     pvalue = []
     pvalue_ampls = []
     pvalue_times = []
@@ -167,57 +167,157 @@ def draw_15(download=True):
             arr_pval_ampls.append(j.pvalue_amplitude)
             arr_pval_times.append(j.pvalue_times)
             arr_pval_dt.append(j.pvalue_dt)
-        means_pvalue.append(np.mean(arr_pval))
-        means_pvalue_ampls.append(np.mean(arr_pval_ampls))
-        means_pvalue_times.append(np.mean(arr_pval_times))
-        means_pvalue_dt.append(np.mean(arr_pval_dt))
+
         pvalue.append(arr_pval)
         pvalue_ampls.append(arr_pval_ampls)
         pvalue_times.append(arr_pval_times)
         pvalue_dt.append(arr_pval_dt)
 
+    means_pvalue = list(map(np.mean, pvalue))
+    means_pvalue_ampls = list(map(np.mean, pvalue_ampls))
+    means_pvalue_times = list(map(np.mean, pvalue_times))
+    means_pvalue_dt = list(map(np.mean, pvalue_dt))
+
+    median_pvalue = list(map(np.median, pvalue))
+    median_pvalue_ampls = list(map(np.median, pvalue_ampls))
+    median_pvalue_times = list(map(np.median, pvalue_times))
+    median_pvalue_dt = list(map(np.median, pvalue_dt))
+
+    max_pvalue = list(map(np.max, pvalue))
+    max_pvalue_ampls = list(map(np.max, pvalue_ampls))
+    max_pvalue_times = list(map(np.max, pvalue_times))
+    max_pvalue_dt = list(map(np.max, pvalue_dt))
+
     fig, ax = plt.subplots(2, 2)
     fig.suptitle('Means p-value')
     fig.set_size_inches(8, 8)
-    ax[0, 0].plot(means_pvalue)
-    ax[0, 1].plot(means_pvalue_times)
-    ax[1, 0].plot(means_pvalue_ampls)
-    ax[1, 1].plot(means_pvalue_dt)
+
+    lines = []
+    labels = []
+
+    l1 = ax[0, 0].plot(means_pvalue, color='b')
+    ax[0, 1].plot(means_pvalue_times, color='b')
+    ax[1, 0].plot(means_pvalue_ampls, color='b')
+    ax[1, 1].plot(means_pvalue_dt, color='b')
+    lines.append(l1)
+    labels.append('Mean')
+
+    l2 = ax[0, 0].plot(median_pvalue, color='g')
+    ax[0, 1].plot(median_pvalue_times, color='g')
+    ax[1, 0].plot(median_pvalue_ampls, color='g')
+    ax[1, 1].plot(median_pvalue_dt, color='g')
+    lines.append(l2)
+    labels.append('Median')
+
+    if with_maxs:
+        l3 = ax[0, 0].plot(max_pvalue, color='r')
+        ax[0, 1].plot(max_pvalue_times, color='r')
+        ax[1, 0].plot(max_pvalue_ampls, color='r')
+        ax[1, 1].plot(max_pvalue_dt, color='r')
+        lines.append(l3)
+        labels.append('Max')
 
     ax[0, 0].set(xlabel='population', ylabel='means p-value 2d')
     ax[0, 1].set(xlabel='population', ylabel='means p-value times')
     ax[1, 0].set(xlabel='population', ylabel='means p-value ampls')
     ax[1, 1].set(xlabel='population', ylabel='means p-value dt')
 
+    # Create the legend
+    fig.legend(lines, labels=labels, loc="upper right", borderaxespad=0.2)
+
+    fig.savefig(f"{folder_to_save_plots}/means.png")
     fig.show()
+    plt.close(fig)
 
     fig, ax = plt.subplots(2, 2)
-    fig.suptitle('p-value 25')
+    fig.suptitle('Speed p-value')
     fig.set_size_inches(8, 8)
-    ax[0, 0].boxplot(pvalue)
-    ax[0, 1].boxplot(pvalue_times)
-    ax[1, 0].boxplot(pvalue_ampls)
-    ax[1, 1].boxplot(pvalue_dt)
 
-    ax[0, 0].set(xlabel='population', ylabel='p-value 2d')
-    ax[0, 1].set(xlabel='population', ylabel='p-value times')
-    ax[1, 0].set(xlabel='population', ylabel='p-value ampls')
-    ax[1, 1].set(xlabel='population', ylabel='p-value dt')
+    ax[0, 0].plot(np.diff(means_pvalue), color='b')
+    ax[0, 1].plot(np.diff(means_pvalue_times), color='b')
+    ax[1, 0].plot(np.diff(means_pvalue_ampls), color='b')
+    ax[1, 1].plot(np.diff(means_pvalue_dt), color='b')
 
+    ax[0, 0].plot(np.diff(median_pvalue), color='g')
+    ax[0, 1].plot(np.diff(median_pvalue_times), color='g')
+    ax[1, 0].plot(np.diff(median_pvalue_ampls), color='g')
+    ax[1, 1].plot(np.diff(median_pvalue_dt), color='g')
+
+    ax[0, 0].plot(np.diff(max_pvalue), color='r')
+    ax[0, 1].plot(np.diff(max_pvalue_times), color='r')
+    ax[1, 0].plot(np.diff(max_pvalue_ampls), color='r')
+    ax[1, 1].plot(np.diff(max_pvalue_dt), color='r')
+
+    fig.savefig(f"{folder_to_save_plots}/speed.png")
     fig.show()
+    plt.close(fig)
 
-    # raise Exception
-    #
-    # for i in range(len(arr_pack15[0])):
-    #     print(arr_pack15[11][i])
-    #     print(arr_pack15[14][i])
-    #
-    # print(arr_pack15[10][0].gen)
-    # print(arr_pack15[10][1].gen)
+
+def draw_history(dowloand=False):
+    with open("../logs/history.dat") as file:
+        all_lines = file.readlines()
+
+    arr = []
+
+    for line in all_lines:
+        arr.append(json.loads(line, object_hook=Individual.decode))
+
+    spa = []
+
+    i = 0
+    while i < len(arr):
+        a = []
+        pn = arr[i].population_number
+        while pn == arr[i].population_number:
+            a.append(arr[i])
+            i += 1
+            if i == len(arr):
+                break
+        spa.append(a)
+
+    print(len(spa))
+
+    af = []
+    for i in spa:
+        arrr = []
+        for j in i:
+            arrr.append(j.pvalue * j.pvalue_dt * j.pvalue_amplitude)
+
+        af.append(np.mean(arrr))
+
+    plt.plot(af)
+    plt.show()
+
+
+def log():
+    with open("../logs/log_of_bests.dat") as file:
+        all_lines = file.readlines()
+
+    arr_pack15 = []
+    for line in all_lines:
+        arr_pack15.append(json.loads(line, object_hook=Individual.decode))
+
+    gens = []
+    for p in range(len(arr_pack15)):
+        for i in range(len(arr_pack15[0][0].gen)):
+            for j in range(len(arr_pack15[0])):
+                a = arr_pack15[p][j].gen[i]
+
+    individuals = arr_pack15[len(arr_pack15) - 1]
+
+    print(individuals)
+
+    for i in range(len(individuals) - 1):
+        if individuals[i].gen == individuals[i + 1].gen:
+            print("same")
 
 
 if __name__ == "__main__":
 
-    # draw_plot()
+    draw_plot(download=False)
+    # # #
+    # draw_15(download=True, with_maxs=False)
 
-    draw_15(False)
+    log()
+
+    # draw_history()

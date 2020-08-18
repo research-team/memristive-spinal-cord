@@ -30,6 +30,8 @@ low_weights = []
 low_delay = 0.2
 max_delay = 6
 
+ttl = 15
+
 path = '/gpfs/GLOBAL_JOB_REPO_KPFU/openlab/GRAS/multi_gpu_test'
 
 
@@ -108,7 +110,8 @@ class Individual:
                  id=0,
                  origin="",
                  population_number=0,
-                 gen=None):
+                 gen=None,
+                 generation=0):
 
         if gen is None:
             gen = []
@@ -124,6 +127,7 @@ class Individual:
         self.gen = gen
         self.weights = []
         self.delays = []
+        self.generation = generation
 
     def __str__(self):
         return f"Individual with p-value = {self.pvalue}, p-value amplitude = {self.pvalue_amplitude}, " \
@@ -208,7 +212,7 @@ class Individual:
 
     def is_correct(self):
         # ~ p-value_times != 0 and p-value_amplitude != 0 and pvalue != 0
-        return self.pvalue_amplitude * self.pvalue_times * self.pvalue * self.pvalue_dt != 0 and self.peaks_number >= DataSettings.min_peaks_number
+        return self.pvalue_amplitude * self.pvalue_times * self.pvalue * self.pvalue_dt != 0 and self.peaks_number >= DataSettings.min_peaks_number and self.generation <= ttl
 
     def set_weight(self, min_weight, max_weight):
         # self.weights.append(Individual().format_weight(random.uniform(min_weight, max_weight)))
@@ -284,6 +288,7 @@ class Population:
         self.individuals = []
 
     def add_individual(self, individual):
+        individual.generation += 1
         self.individuals.append(individual)
 
     def __len__(self):
@@ -314,9 +319,14 @@ class Population:
         final_population = Population()
 
         for individual in self.individuals:
-            individual.normalize()
+            if individual is None:
+                print("individual is None WTF")
+                print(individual)
+                continue
+            else:
+                individual.normalize()
 
-            final_population.add_individual(individual)
+                final_population.add_individual(individual)
 
         return final_population
 
@@ -544,6 +554,10 @@ class Breeding:
                 else:
                     new_individual.gen[index] = Individual().format_delay(random.uniform(low_delay, max_delay))
 
+        new_individual.origin += " mutation5"
+
+        return new_individual
+
     @staticmethod
     def mutation(individual):
 
@@ -672,17 +686,20 @@ class Evolution:
             while j + 1 < length_population:
                 j += 1
                 individual_2 = bests_individuals_in_current_population[j]
+                crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
+                new_population.add_individual(crossover_individual_1)
+                new_population.add_individual(crossover_individual_2)
                 # new_population.add_individual(Breeding.crossover2(individual_1, individual_2))
-                if i * j <= 100:
-                    crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
-                    new_population.add_individual(crossover_individual_1)
-                    new_population.add_individual(crossover_individual_2)
-                else:
-                    r = random.randint(0, 100)
-                    if r <= 10:
-                        crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
-                        new_population.add_individual(crossover_individual_1)
-                        new_population.add_individual(crossover_individual_2)
+                # if i * j <= 100:
+                #     crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
+                #     new_population.add_individual(crossover_individual_1)
+                #     new_population.add_individual(crossover_individual_2)
+                # else:
+                #     r = random.randint(0, 100)
+                #     if r <= 10:
+                #         crossover_individual_1, crossover_individual_2 = Breeding.crossover(individual_1, individual_2)
+                #         new_population.add_individual(crossover_individual_1)
+                #         new_population.add_individual(crossover_individual_2)
 
         for individual in new_population.individuals:
             for i in range(len(individual.gen)):
@@ -690,7 +707,7 @@ class Evolution:
 
         for individual in new_population.individuals:
             r = random.randint(0, 100)
-            if r <= 10:
+            if r <= 50:
                 mn = random.randint(0, 4)
                 if mn == 0:
                     new_population.add_individual(Breeding.mutation(individual))
@@ -703,25 +720,25 @@ class Evolution:
                 elif mn == 4:
                     new_population.add_individual(Breeding.mutation5(individual))
 
-        # for individual in bests_individuals_in_current_population:
-        #     r = random.randint(0, 100)
-        #     if r <= 25:
-        #         new_population.add_individual(Breeding.mutation3(individual))
-        #
-        # for individual in bests_individuals_in_current_population:
-        #     r = random.randint(0, 100)
-        #     if r <= 25:
-        #         new_population.add_individual(Breeding.mutation2(individual))
-        #
-        # for individual in bests_individuals_in_current_population:
-        #     r = random.randint(0, 100)
-        #     if r <= 25:
-        #         new_population.add_individual(Breeding.mutation4(individual))
-        #
-        # for individual in bests_individuals_in_current_population:
-        #     r = random.randint(0, 100)
-        #     if r <= 25:
-        #         new_population.add_individual(Breeding.mutation(individual))
+        for individual in bests_individuals_in_current_population:
+            r = random.randint(0, 100)
+            if r <= 50:
+                new_population.add_individual(Breeding.mutation3(individual))
+
+        for individual in bests_individuals_in_current_population:
+            r = random.randint(0, 100)
+            if r <= 50:
+                new_population.add_individual(Breeding.mutation2(individual))
+
+        for individual in bests_individuals_in_current_population:
+            r = random.randint(0, 100)
+            if r <= 50:
+                new_population.add_individual(Breeding.mutation4(individual))
+
+        for individual in bests_individuals_in_current_population:
+            r = random.randint(0, 100)
+            if r <= 50:
+                new_population.add_individual(Breeding.mutation(individual))
 
         for individual in bests_individuals_in_current_population:
             r = random.randint(0, 100)
@@ -765,7 +782,7 @@ if __name__ == "__main__":
 
     # first initialization to population
     population = Population()
-    population.first_init(known=False)
+    population.first_init(known=True)
     population_number = 1
 
     # TODO add deleting log.err, log.out each 10 population
