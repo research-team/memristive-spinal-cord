@@ -158,7 +158,7 @@ void neurons_kernel(float *V_extra,
 	const float tau_syn_exc = 0.3;   // [ms] Decay time of excitatory synaptic current (ms)
 	const float tau_syn_inh = 2.0;   // [ms] Decay time of inhibitory synaptic current (ms)
 	const float V_adj = -63.0;       // adjusts threshold to around -50 mV -65
-	const float g_bar = 8000;       // [uS] the maximal possible conductivity
+	const float g_bar = 15000;       // [uS] the maximal possible conductivity
 
 	float I_syn_exc, I_syn_inh;
 	float I_K, I_Na, I_L, V_out_old, dV_mid;
@@ -594,8 +594,8 @@ void init_network() {
 	Group iIP_E = form_group("iIP_E", neurons_in_ip);
 	Group iIP_F = form_group("iIP_F", neurons_in_ip);
 
-	Group muscle_E = form_group("muscle_E", 150);
-	Group muscle_F = form_group("muscle_F", 100);
+	Group muscle_E = form_group("muscle_E", 200);
+	Group muscle_F = form_group("muscle_F", 200);
 
 	/// E1-5 ()
 	connect_fixed_outdegree(EES, E1, 1, 1500);
@@ -612,11 +612,11 @@ void init_network() {
 	connect_one_to_all(CV5, OM3_3, 0.1, 5100);
 	connect_one_to_all(CV5, OM4_3, 0.1, 5100);
 
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 3, 2000, 100);
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 3, 2000, 100);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 3, 2000, 100);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 3, 2000, 100);
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 3, 2000, 100);
+	connect_fixed_outdegree(OM1_2_E, eIP_E, 4.5, 1400, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_E, eIP_E, 4.5, 1400, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_E, eIP_E, 4.5, 1400, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E, 4.5, 1400, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E, 4.5, 1400, neurons_in_ip);
 	/// [1] level
 	connect_fixed_outdegree(E1, OM1_0, 0.1, 580);
 	// input from sensory
@@ -696,8 +696,6 @@ void init_network() {
 	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -1);
 	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -1);
 
-	connect_fixed_outdegree(eIP_E, eIP_E, 2.5, 400);
-	//
 	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM3_2_F, 0.5, -0.5);
@@ -706,8 +704,10 @@ void init_network() {
 	connect_fixed_outdegree(EES, Ia_E_aff, 1, 5000);
 	connect_fixed_outdegree(EES, Ia_F_aff, 1, 5000);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 4, 1000, 120);
-	connect_fixed_outdegree(eIP_F, MN_F, 4, 1000, 120);
+	connect_fixed_outdegree(eIP_E, eIP_E, 2, 450);
+
+	connect_fixed_outdegree(eIP_E, MN_E, 2, 200, neurons_in_ip); // 250
+	connect_fixed_outdegree(eIP_F, MN_F, 2, 200, neurons_in_ip); // 250
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 1);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 1);
@@ -717,15 +717,16 @@ void init_network() {
 	connect_fixed_outdegree(Ia_F_pool, MN_E, 1, -1);
 	connect_fixed_outdegree(Ia_F_pool, Ia_E_pool, 1, -1);
 
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 4000, 120);
-	connect_fixed_outdegree(Ia_F_aff, MN_F, 2, 4000, 120);
+	connect_fixed_outdegree(Ia_E_aff, MN_E, 0.5, 4000, 120);
+	connect_fixed_outdegree(Ia_F_aff, MN_F, 0.5, 4000, 120);
+
+	connect_fixed_outdegree(MN_E, MN_E, 2.5, 350);
 
 	connect_fixed_outdegree(MN_E, R_E, 2, 1);
 	connect_fixed_outdegree(MN_F, R_F, 2, 1);
 
-	connect_fixed_outdegree(MN_E, muscle_E, 2, 1000, 140);
-	connect_fixed_outdegree(MN_F, muscle_F, 2, 1000, 120);
-	connect_fixed_outdegree(Ia_E_aff, MN_E, 2, 2000, 140);
+	connect_fixed_outdegree(MN_E, muscle_E, 0.5, 200, 200);
+	connect_fixed_outdegree(MN_F, muscle_F, 0.5, 200, 200);
 
 	connect_fixed_outdegree(R_E, MN_E, 2, -0.5);
 	connect_fixed_outdegree(R_E, R_F, 2, -1);
@@ -856,7 +857,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			x = 3 * MICRO;
 		}
 		// muscles
-		if (3463 <= i && i <= 3712) {
+		if (3463 <= i && i <= 3862) {
 			nrn_g_Na[i] = 10 * mS_m2;
 			nrn_g_K[i] = 1 * mS_m2;
 			nrn_g_L[i] = 0.3 * mS_m2;
@@ -1012,6 +1013,7 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		memcpyDtH<float>(nrn_v_m_mid, gpu_nrn_v_m_mid, neurons_number);
 		memcpyDtH<float>(nrn_g_exc, gpu_nrn_g_exc, neurons_number);
 		memcpyDtH<float>(nrn_g_inh, gpu_nrn_g_inh, neurons_number);
+		memcpyDtH<float>(nrn_v_extra, gpu_nrn_v_extra, neurons_number);
 		memcpyDtH<bool>(nrn_has_spike, gpu_nrn_has_spike, neurons_number);
 
 		// fill records arrays
@@ -1019,11 +1021,14 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 			if (save_all == 0) {
 				if (metadata.group.group_name == "MN_E")
 					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
-				if (metadata.group.group_name == "MN_F") {
+				if (metadata.group.group_name == "MN_F")
 					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
-				}
+
 			} else {
-				copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+				if (metadata.group.group_name == "muscle_E")
+					copy_data_to(metadata, nrn_v_m_mid, nrn_v_extra, nrn_v_extra, nrn_has_spike, sim_iter);
+				else
+					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
 			}
 		}
 
