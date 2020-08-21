@@ -179,6 +179,7 @@ void neurons_kernel(float *V_extra,
 				}
 			}
 		}
+
 		// generate spikes for EES
 		if (tid < 50 && EES_activated) has_spike[tid] = true;
 		// skin stimulations
@@ -192,6 +193,15 @@ void neurons_kernel(float *V_extra,
 		// increased barrier for muscles
 		if (g_exc[tid] > g_bar) g_exc[tid] = g_bar;
 		if (g_inh[tid] > g_bar) g_inh[tid] = g_bar;
+
+		if (3463 <= tid && tid <= 3862 && sim_iter % 50 == 0) {
+			V_in[tid] += 6;
+		}
+
+		if (1557 <= tid && tid <= 1946 && sim_iter % 50 == 0) {
+			V_in[tid] += 6;
+		}
+
 		// synaptic currents
 		I_syn_exc = g_exc[tid] * (V_in[tid] - E_ex);
 		I_syn_inh = g_inh[tid] * (V_in[tid] - E_in);
@@ -207,12 +217,12 @@ void neurons_kernel(float *V_extra,
 			I_syn_exc = 0;
 			I_syn_inh = 0;
 		}
+
 		// ionic currents
 		I_K = g_K[tid] * pow(n_in[tid], 4) * (V_in[tid] - E_K);
 		I_Na = g_Na[tid] * pow(m_in[tid], 3) * h_in[tid] * (V_in[tid] - E_Na);
 		I_L = g_L[tid] * (V_in[tid] - E_L);
-		V_in[tid] += const_coef1[tid] *
-		             (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_in[tid]) - I_Na - I_K - I_L - I_syn_exc - I_syn_inh);
+		V_in[tid] += const_coef1[tid] * (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_in[tid]) - I_Na - I_K - I_L - I_syn_exc - I_syn_inh);
 
 		if (V_in[tid] != V_in[tid]) V_in[tid] = -72;
 
@@ -222,10 +232,7 @@ void neurons_kernel(float *V_extra,
 		dV_mid = const_coef1[tid] * (const_coef2[tid] * (V_out[tid] - 2 * V_mid[tid] + V_in[tid]) - I_Na - I_K - I_L);
 		V_mid[tid] += dV_mid;
 		if (V_mid[tid] != V_mid[tid]) V_mid[tid] = -72;
-
-		V_extra[tid] = -const_coef3[tid] * (g_K[tid] / 10000 * pow(n_mid[tid], 4) * (V_mid[tid] - E_K) +
-		                                    g_Na[tid] / 10000 * pow(m_mid[tid], 3) * h_mid[tid] * (V_mid[tid] - E_Na) +
-		                                    g_L[tid] / 10000 * (V_mid[tid] - E_L) + (1 / const_coef1[tid]) * dV_mid);
+		V_extra[tid] = const_coef3[tid] * (I_K  + I_Na  + I_L + const_coef1[tid] * dV_mid);
 
 		I_K = g_K[tid] * pow(n_out[tid], 4) * (V_out[tid] - E_K);
 		I_Na = g_Na[tid] * pow(m_out[tid], 3) * h_out[tid] * (V_out[tid] - E_Na);
@@ -296,7 +303,6 @@ void synapses_kernel(const bool *neuron_has_spike,     // array of bools -- is n
 		}
 	}
 }
-
 
 // copy data from host to device
 template<typename type>
