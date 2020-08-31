@@ -191,13 +191,19 @@ void neurons_kernel(float *V_extra,
 			if (tid == 304 && CV_activated == 5 && (sim_iter % 4 == 0)) has_spike[tid] = true;
 		}
 		// increased barrier for muscles
-		if (g_exc[tid] > g_bar) g_exc[tid] = g_bar;
-		if (g_inh[tid] > g_bar) g_inh[tid] = g_bar;
-
-		if (3463 <= tid && tid <= 3862 && sim_iter % 50 == 0) {
-			V_in[tid] += 6;
+		if (3467 <= tid && tid <= 52966 && sim_iter % 50 == 0) {
+			if (g_exc[tid] > 500000) g_exc[tid] = g_bar;
+			if (g_inh[tid] > 500000) g_inh[tid] = g_bar;
+		} else {
+			if (g_exc[tid] > g_bar) g_exc[tid] = g_bar;
+			if (g_inh[tid] > g_bar) g_inh[tid] = g_bar;
 		}
 
+		// muscle
+		if (3467 <= tid && tid <= 52966 && sim_iter % 50 == 0) {
+			V_in[tid] += 6;
+		}
+		// MN
 		if (1557 <= tid && tid <= 1946 && sim_iter % 50 == 0) {
 			V_in[tid] += 6;
 		}
@@ -206,8 +212,8 @@ void neurons_kernel(float *V_extra,
 		I_syn_exc = g_exc[tid] * (V_in[tid] - E_ex);
 		I_syn_inh = g_inh[tid] * (V_in[tid] - E_in);
 		V_out_old = V_out[tid];
-
-		if (3463 <= tid && tid <= 3712) {
+		// muscle
+		if (3467 <= tid && tid <= 52966) {
 			I_syn_exc = g_exc[tid] * (V_in[tid] - 0);
 			I_syn_inh = g_inh[tid] * (V_in[tid] - E_in);
 		}
@@ -219,23 +225,23 @@ void neurons_kernel(float *V_extra,
 		}
 
 		// ionic currents
-		I_K = g_K[tid] * pow(n_in[tid], 4) * (V_in[tid] - E_K);
-		I_Na = g_Na[tid] * pow(m_in[tid], 3) * h_in[tid] * (V_in[tid] - E_Na);
+		I_K = g_K[tid] * n_in[tid] * n_in[tid] * n_in[tid] * n_in[tid] * (V_in[tid] - E_K);
+		I_Na = g_Na[tid] * m_in[tid] * m_in[tid] * m_in[tid] * h_in[tid] * (V_in[tid] - E_Na);
 		I_L = g_L[tid] * (V_in[tid] - E_L);
 		V_in[tid] += const_coef1[tid] * (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_in[tid]) - I_Na - I_K - I_L - I_syn_exc - I_syn_inh);
 
 		if (V_in[tid] != V_in[tid]) V_in[tid] = -72;
 
-		I_K = g_K[tid] * pow(n_mid[tid], 4) * (V_mid[tid] - E_K);
-		I_Na = g_Na[tid] * pow(m_mid[tid], 3) * h_mid[tid] * (V_mid[tid] - E_Na);
+		I_K = g_K[tid] * n_mid[tid] * n_mid[tid] * n_mid[tid] * n_mid[tid] * (V_mid[tid] - E_K);
+		I_Na = g_Na[tid] * m_mid[tid] * m_mid[tid] * m_mid[tid] * h_mid[tid] * (V_mid[tid] - E_Na);
 		I_L = g_L[tid] * (V_mid[tid] - E_L);
 		dV_mid = const_coef1[tid] * (const_coef2[tid] * (V_out[tid] - 2 * V_mid[tid] + V_in[tid]) - I_Na - I_K - I_L);
 		V_mid[tid] += dV_mid;
 		if (V_mid[tid] != V_mid[tid]) V_mid[tid] = -72;
 		V_extra[tid] = const_coef3[tid] * (I_K  + I_Na  + I_L + const_coef1[tid] * dV_mid);
 
-		I_K = g_K[tid] * pow(n_out[tid], 4) * (V_out[tid] - E_K);
-		I_Na = g_Na[tid] * pow(m_out[tid], 3) * h_out[tid] * (V_out[tid] - E_Na);
+		I_K = g_K[tid] * n_out[tid] * n_out[tid] * n_out[tid] * n_out[tid] * (V_out[tid] - E_K);
+		I_Na = g_Na[tid] * m_out[tid] * m_out[tid] * m_out[tid] * h_out[tid] * (V_out[tid] - E_Na);
 		I_L = g_L[tid] * (V_out[tid] - E_L);
 		V_out[tid] += const_coef1[tid] * (const_coef2[tid] * (2 * V_mid[tid] - 2 * V_out[tid]) - I_Na - I_K - I_L);
 		if (V_out[tid] != V_out[tid]) V_out[tid] = -72;
@@ -594,14 +600,18 @@ void init_network() {
 	Group Ia_E_pool = form_group("Ia_E_pool", neurons_in_ip);
 	Group Ia_F_pool = form_group("Ia_F_pool", neurons_in_ip);
 
-	Group eIP_E = form_group("eIP_E", neurons_in_ip);
+	Group eIP_E_1 = form_group("eIP_E_1", 40);
+	Group eIP_E_2 = form_group("eIP_E_2", 40);
+	Group eIP_E_3 = form_group("eIP_E_3", 40);
+	Group eIP_E_4 = form_group("eIP_E_4", 40);
+	Group eIP_E_5 = form_group("eIP_E_5", 40);
 	Group eIP_F = form_group("eIP_F", neurons_in_ip);
 
 	Group iIP_E = form_group("iIP_E", neurons_in_ip);
 	Group iIP_F = form_group("iIP_F", neurons_in_ip);
 
-	Group muscle_E = form_group("muscle_E", 200);
-	Group muscle_F = form_group("muscle_F", 200);
+	Group muscle_E = form_group("muscle_E", 15 * 210);
+	Group muscle_F = form_group("muscle_F", 10 * 180);
 
 	/// E1-5 ()
 	connect_fixed_outdegree(EES, E1, 1, 1500);
@@ -618,11 +628,11 @@ void init_network() {
 	connect_one_to_all(CV5, OM3_3, 0.1, 5100);
 	connect_one_to_all(CV5, OM4_3, 0.1, 5100);
 
-	connect_fixed_outdegree(OM1_2_E, eIP_E, 4.5, 2000, neurons_in_ip);
-	connect_fixed_outdegree(OM2_2_E, eIP_E, 4.5, 1500, neurons_in_ip);
-	connect_fixed_outdegree(OM3_2_E, eIP_E, 4.5, 2000, neurons_in_ip);
-	connect_fixed_outdegree(OM4_2_E, eIP_E, 4.5, 1500, neurons_in_ip);
-	connect_fixed_outdegree(OM5_2_E, eIP_E, 4.5, 1500, neurons_in_ip);
+	connect_fixed_outdegree(OM1_2_E, eIP_E_1, 4.5, 2000, neurons_in_ip);
+	connect_fixed_outdegree(OM2_2_E, eIP_E_2, 4.5, 1500, neurons_in_ip);
+	connect_fixed_outdegree(OM3_2_E, eIP_E_3, 4.5, 2000, neurons_in_ip);
+	connect_fixed_outdegree(OM4_2_E, eIP_E_4, 4.5, 1500, neurons_in_ip);
+	connect_fixed_outdegree(OM5_2_E, eIP_E_5, 4.5, 1500, neurons_in_ip);
 	/// [1] level
 	connect_fixed_outdegree(E1, OM1_0, 1, 400);
 	// input from sensory
@@ -700,7 +710,12 @@ void init_network() {
 
 	/// reflex arc
 	connect_fixed_outdegree(iIP_E, eIP_F, 0.5, -1);
-	connect_fixed_outdegree(iIP_F, eIP_E, 0.5, -1);
+
+	connect_fixed_outdegree(iIP_F, eIP_E_1, 0.5, -1);
+	connect_fixed_outdegree(iIP_F, eIP_E_2, 0.5, -1);
+	connect_fixed_outdegree(iIP_F, eIP_E_3, 0.5, -1);
+	connect_fixed_outdegree(iIP_F, eIP_E_4, 0.5, -1);
+	connect_fixed_outdegree(iIP_F, eIP_E_5, 0.5, -1);
 
 	connect_fixed_outdegree(iIP_E, OM1_2_F, 0.5, -0.5);
 	connect_fixed_outdegree(iIP_E, OM2_2_F, 0.5, -0.5);
@@ -710,10 +725,19 @@ void init_network() {
 	connect_fixed_outdegree(EES, Ia_E_aff, 2.5, 5000);
 	connect_fixed_outdegree(EES, Ia_F_aff, 2.5, 5000);
 
-	connect_fixed_outdegree(eIP_E, eIP_E, 2, 450);
+	connect_fixed_outdegree(eIP_E_1, eIP_E_1, 2, 450);
+	connect_fixed_outdegree(eIP_E_2, eIP_E_2, 2, 450);
+	connect_fixed_outdegree(eIP_E_3, eIP_E_3, 2, 450);
+	connect_fixed_outdegree(eIP_E_4, eIP_E_4, 2, 450);
+	connect_fixed_outdegree(eIP_E_5, eIP_E_5, 2, 450);
 
-	connect_fixed_outdegree(eIP_E, MN_E, 2, 100, neurons_in_ip); // 250
-	connect_fixed_outdegree(eIP_F, MN_F, 2, 100, neurons_in_ip); // 250
+	connect_fixed_outdegree(eIP_E_1, MN_E, 2, 350, 150); // 250
+	connect_fixed_outdegree(eIP_E_2, MN_E, 2, 350, 150); // 250
+	connect_fixed_outdegree(eIP_E_3, MN_E, 2, 350, 150); // 250
+	connect_fixed_outdegree(eIP_E_4, MN_E, 2, 350, 150); // 250
+	connect_fixed_outdegree(eIP_E_5, MN_E, 2, 350, 150); // 250
+
+	connect_fixed_outdegree(eIP_F, MN_F, 2, 350, neurons_in_ip); // 250
 
 	connect_fixed_outdegree(iIP_E, Ia_E_pool, 1, 1);
 	connect_fixed_outdegree(iIP_F, Ia_F_pool, 1, 1);
@@ -731,8 +755,8 @@ void init_network() {
 	connect_fixed_outdegree(MN_E, R_E, 2, 1);
 	connect_fixed_outdegree(MN_F, R_F, 2, 1);
 
-	connect_fixed_outdegree(MN_E, muscle_E, 0.1, 250, 200);
-	connect_fixed_outdegree(MN_F, muscle_F, 0.1, 250, 200);
+	connect_fixed_outdegree(MN_E, muscle_E, 1, 5000, 1500);
+	connect_fixed_outdegree(MN_F, muscle_F, 1, 5000, 1500);
 
 	connect_fixed_outdegree(R_E, MN_E, 2, -0.5);
 	connect_fixed_outdegree(R_E, R_F, 2, -1);
@@ -859,15 +883,15 @@ void simulate(int cms, int ees, int inh, int ped, int ht5, int save_all, int ite
 		// motoneurons
 		if (1557 <= i && i <= 1946) {
 			cm = c_m_moto_dist(generator) * uF_m2;
-			Ra = 200 * CENTI;
+			Ra = R_dist(generator) * 2 * CENTI;
 			x = d / 5; // 3
 		}
 		// muscles
-		if (3463 <= i && i <= 3862) {
+		if (3467 <= i && i <= 52966) {
 			nrn_g_Na[i] = 10 * mS_m2;
 			nrn_g_K[i] = 1 * mS_m2;
 			nrn_g_L[i] = 0.3 * mS_m2;
-			Ra = 1000 * CENTI;
+			Ra = R_dist(generator) * 10 * CENTI;
 		}
 
 		const_coef1[i] = SIM_STEP / cm;
