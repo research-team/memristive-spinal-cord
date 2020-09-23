@@ -56,10 +56,6 @@ struct SynapseMetadata {
 
 };
 
-bool comp(SynapseMetadata m1, SynapseMetadata m2) {
-    return m1.pre_id < m1.post_id;
-}
-
 // struct for human-readable initialization of connectomes
 struct GroupMetadata {
     Group group;
@@ -483,7 +479,7 @@ void save(int test_index, GroupMetadata &metadata, const string &folder) {
     ofstream file;
     string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
 
-    file.open(folder_2 + file_name);
+    file.open(folder + file_name);
     // save voltage
     for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
         file << metadata.voltage_array[sim_iter] << " ";
@@ -581,8 +577,8 @@ void connect_fixed_outdegree(const Group &pre_neurons,
     normal_distribution<float> weight_distr_gen(syn_weight, syn_weight / 50);
 
     if (outdegree == 0)
-        outdegree = 50;
-//        outdegree = outdegree_num(generator);
+        outdegree = outdegree_num(generator);
+//        outdegree = 50;
 
     int rand_post_id;
     float syn_delay_distr;
@@ -724,8 +720,8 @@ void init_network() {
     Group iIP_E = form_group("iIP_E", neurons_in_ip);
     Group iIP_F = form_group("iIP_F", neurons_in_ip);
 
-//    Group muscle_E = form_group("muscle_E", 150 * 210); // 1500
-//    Group muscle_F = form_group("muscle_F", 100 * 180); // 1500
+    Group muscle_E = form_group("muscle_E", 150 * 210); // 1500
+    Group muscle_F = form_group("muscle_F", 100 * 180); // 1500
 
     /// E1-5 ()
     connect_fixed_outdegree(EES, E1, 2, 1500);
@@ -869,8 +865,8 @@ void init_network() {
     connect_fixed_outdegree(MN_E, R_E, 2, 1);
     connect_fixed_outdegree(MN_F, R_F, 2, 1);
 
-//    connect_fixed_indegree(MN_E, muscle_E, 1, 1800, 50);
-//    connect_fixed_indegree(MN_F, muscle_F, 1, 1800, 50);
+    connect_fixed_indegree(MN_E, muscle_E, 1, 1800, 50);
+    connect_fixed_indegree(MN_F, muscle_F, 1, 1800, 50);
 
     connect_fixed_outdegree(R_E, MN_E, 2, -0.5);
     connect_fixed_outdegree(R_E, R_F, 2, -1);
