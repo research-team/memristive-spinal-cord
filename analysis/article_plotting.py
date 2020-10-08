@@ -792,15 +792,16 @@ class Analyzer:
 			f = metadata.get_fMEP_count(rat_id, muscle=muscle)
 			v = metadata.get_latency_volume(rat_id, muscle=muscle)
 			print(f"{metadata.shortname} | {rat_id} | {f} | {c} | {h} | {v}")
-			x = metadata.get_peak_ampls(rat_id, muscle='F', flat=True) * 100#* metadata.dstep_to
-			X = np.linspace(0, 150, 100)
+			x = metadata.get_peak_times(rat_id, muscle='F', flat=True) * metadata.dstep_to
+			# x = metadata.get_peak_ampls(rat_id, muscle='F', flat=True) * 100
+			X = np.linspace(0, 25, 100)
 			dx = st.gaussian_kde(x)
 			dx.set_bandwidth(bw_method=0.175)
 			dx = dx(X)
 			# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
 			# distr = {1: 'uni', 2: 'bi'}
 			# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
-			plt.plot(np.arange(len(dx)) * 0.015, dx, label=metadata.shortname)
+			plt.plot(np.arange(len(dx)) * 0.25, dx, label=metadata.shortname)
 		print("- " * 10)
 
 	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
@@ -1184,13 +1185,18 @@ class Analyzer:
 		volumes = []
 		#
 		for rat_id in rats:
-			X = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
-			Y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
+			X = metadata.get_peak_ampls(rat_id, muscle='F', flat=True)
+			Y = metadata.get_peak_slices(rat_id, muscle='F', flat=True)
+			times = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
+			# mask = (times <= 3) | (8 <= times)
+			#
+			# X = X[mask]
+			# Y = Y[mask]
 
 			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
-			xmax, ymax = 2, max(Y)
-			xborder_l, xborder_r = 0, 2
+			xmax, ymax = 1, max(Y)
+			xborder_l, xborder_r = 0, 1
 
 			gridsize_x, gridsize_y = factor * xmax, factor * ymax
 			xmesh, ymesh = np.meshgrid(np.linspace(0, xmax, gridsize_x),
@@ -1762,10 +1768,10 @@ class Analyzer:
 		colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 		# plot filled contour
 		ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-		# z_mid = (np.max(z) + np.min(z)) / 2
-		# mid_contours = plt.contour(xx, yy, z, levels=[z_mid], alpha=0).allsegs[0]
-		# for contour in mid_contours:
-		# 	plt.plot(contour[:, 0], contour[:, 1], c='#f2aa2e', linewidth=4)
+		z_mid = (np.max(z) + np.min(z)) / 2.3
+		mid_contours = plt.contour(xx, yy, z, levels=[z_mid], alpha=0).allsegs[0]
+		for contour in mid_contours:
+			plt.plot(contour[:, 0], contour[:, 1], c='#f2aa2e', linewidth=4)
 
 
 		if addtan:
@@ -1781,10 +1787,11 @@ class Analyzer:
 			print(sorted_x)
 			print(sorted_y)
 
-			mask = ((sorted_x >= 9) & (sorted_x <= 20))
+			mask = ((sorted_x >= 18) & (sorted_x <= 20) & (sorted_y < 21))
 			masked_x = sorted_x[mask]
 			masked_y = sorted_y[mask]
 			print(masked_x)
+			print(masked_y)
 
 			t,c,k = interpolate.splrep(masked_x, masked_y, k=3)
 			b = interpolate.BSpline(t, c, k)
@@ -1793,21 +1800,22 @@ class Analyzer:
 			print(fsec)
 			# print(interpolate.sproot((t, c - fsec, k)))
 
-			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[0]
+			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[-2]
 			print(interpolate.sproot((fsec.t, fsec.c, k)))
 			spl = interpolate.splrep(sorted_x, sorted_y, k=1)
-			small_t = np.arange(pointcur - 2.5, pointcur + 3, 0.5)
+			small_t = np.arange(pointcur - 8.8, pointcur + 2.7, 0.1)
 			print(small_t)
-			fa = interpolate.splev(pointcur, spl, der=0)     # f(a)
+			t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
+			fa = interpolate.splev(pointcur, (t,c,k), der=0)     # f(a)
 			print(fa)
-			fprime = interpolate.splev(pointcur, spl, der=1) # f'(a)
+			fprime = interpolate.splev(pointcur, (t,c,k), der=1) # f'(a)
 
 			tan = fa + fprime * (small_t - pointcur) # tangent
 			print(tan)
 			slopedegree = math.atan2((small_t[-1] - small_t[0]), (tan[-1] - tan[0])) * 180 / math.pi
 			print(f'SLOPE IN DEGREE - {slopedegree}')
 			plt.plot(small_t, tan, c='#a6261d', linewidth=5)
-			# plt.plot(pointcur, fa, 'om')
+			plt.plot(pointcur, fa, 'om')
 
 		ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=0)
 		# ax.scatter(x, y, s=0.1, color=color)
