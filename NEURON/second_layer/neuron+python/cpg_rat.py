@@ -19,7 +19,7 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
+step_number = 10 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -195,7 +195,7 @@ class CPG:
             createmotif(self.dict_0[layer], self.dict_1[layer], self.dict_2F[layer], self.dict_3[layer])
 
         for layer in range(1, layers):
-            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 2.85, 2)
+            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 3.5, 2)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.45, 2)
@@ -229,12 +229,12 @@ class CPG:
 
         genconnect(self.ees, self.Ia_aff_E, 1.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 1.5, 1)
-        genconnect(self.ees, self.dict_CV[0], 1.75, 2)
+        genconnect(self.ees, self.dict_CV[0], 1.5, 2)
         # genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 15)
         genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 15)
 
-        connectcells(self.Ia_aff_E, self.mns_E, 1.15, 1.5)
-        connectcells(self.Ia_aff_F, self.mns_F, 1.15, 1.5)
+        connectcells(self.Ia_aff_E, self.mns_E, 1.75, 1.5)
+        connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1.5)
 
         connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
         connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
@@ -253,13 +253,13 @@ class CPG:
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
             connectcells(self.dict_IP_E[layer], self.mns_E, 3.75, 3)
             if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0005, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.00035, 1, True)
             else:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 3.15, 2)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 4.5, 2)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 3.85, 2)
 
         for layer in range(layers+1):
             '''skin inputs'''
@@ -312,7 +312,7 @@ class CPG:
         connectcells(self.iIP_E, self.OM1_0F, 1.9, 1, True)
 
         for layer in range(layers):
-            connectcells(self.iIP_E, self.dict_2F[layer], 1.8, 2, True)
+            connectcells(self.iIP_E, self.dict_2F[layer], 0.8, 2, True)
             connectcells(self.iIP_F, self.dict_2E[layer], 0.5, 2, True)
 
         connectcells(self.iIP_E, self.IP_F, 0.5, 1, True)
@@ -563,9 +563,9 @@ def createmotif(OM0, OM1, OM2, OM3):
           list of self.OM3 pool gids
     '''
     connectcells(OM0, OM1, 2.95, 3)
-    connectcells(OM1, OM2, 2.95, 3)
+    connectcells(OM1, OM2, 3.5, 3)
     connectcells(OM2, OM1, 1.75, 4)
-    connectcells(OM2, OM3, 0.00055, 3)
+    connectcells(OM2, OM3, 0.0007, 3)
     connectcells(OM1, OM3, 0.00005, 3)
     connectcells(OM3, OM2, 5.5, 2, True)
     connectcells(OM3, OM1, 5.5, 2, True)
