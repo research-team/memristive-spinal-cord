@@ -245,13 +245,13 @@ class CPG:
         #     connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.45*layer, 2)
         for layer in range(layers):
             '''Extensor'''
-            # connectinsidenucleus(self.dict_IP_E[layer])
+            connectinsidenucleus(self.dict_IP_F[layer])
             # connectinsidenucleus(self.dict_1[layer])
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 3.75, 3)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 3.5, 3)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.00035, 1, True)
             else:
@@ -271,7 +271,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.001*k*speed, 3)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00055*k*speed, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 3)
         # connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
@@ -312,7 +312,7 @@ class CPG:
         connectcells(self.iIP_E, self.OM1_0F, 1.9, 1, True)
 
         for layer in range(layers):
-            connectcells(self.iIP_E, self.dict_2F[layer], 0.8, 2, True)
+            connectcells(self.iIP_E, self.dict_2F[layer], 1.8, 2, True)
             connectcells(self.iIP_F, self.dict_2E[layer], 0.5, 2, True)
 
         connectcells(self.iIP_E, self.IP_F, 0.5, 1, True)
@@ -563,12 +563,12 @@ def createmotif(OM0, OM1, OM2, OM3):
           list of self.OM3 pool gids
     '''
     connectcells(OM0, OM1, 2.95, 3)
-    connectcells(OM1, OM2, 3.5, 3)
-    connectcells(OM2, OM1, 1.75, 4)
+    connectcells(OM1, OM2, 2.85, 3)
+    connectcells(OM2, OM1, 1.95, 3)
     connectcells(OM2, OM3, 0.0007, 3)
     connectcells(OM1, OM3, 0.00005, 3)
-    connectcells(OM3, OM2, 5.5, 2, True)
-    connectcells(OM3, OM1, 5.5, 2, True)
+    connectcells(OM3, OM2, 4.5, 3, True)
+    connectcells(OM3, OM1, 4.5, 3, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.75, 0.5)

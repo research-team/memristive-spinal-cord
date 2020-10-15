@@ -56,6 +56,14 @@ class Metadata:
 			return [list(flatten(d)) for d in data]
 		return data
 
+	def get_peak_durations(self, rat, muscle='E', flat=False, unslice=False):
+		data = self.pdata['rats_data'][muscle][rat]['durations']
+		if flat:
+			return np.array(list(flatten(flatten(data))))
+		if unslice:
+			return [list(flatten(d)) for d in data]
+		return data
+
 	def get_peak_ampls(self, rat, muscle='E', flat=False, unslice=False):
 		data = self.pdata['rats_data'][muscle][rat]['ampls']
 		if flat:
@@ -205,7 +213,7 @@ class Analyzer:
 		kde_ax.set_ylim(border[2], border[3])
 		plt.tight_layout()
 
-	def outside_compare(self, comb, border, axis, per_step=False, plot=False, show=False):
+	def outside_compare(self, comb, border, axis, muscletype='E', per_step=False, plot=False, show=False):
 		if len(comb) != 2:
 			raise Exception("Only pairing analysis")
 		#
@@ -236,9 +244,9 @@ class Analyzer:
 					dataXY = []
 
 					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
-						t = m.get_peak_times(rat=r, unslice=True, muscle='F')
-						a = m.get_peak_ampls(rat=r, unslice=True, muscle='F')
-						s = m.get_peak_slices(rat=r, unslice=True, muscle='F')
+						t = m.get_peak_times(rat=r, unslice=True, muscle='E')
+						a = m.get_peak_ampls(rat=r, unslice=True, muscle='E')
+						s = m.get_peak_slices(rat=r, unslice=True, muscle='E')
 						maxlen = max(map(len, t))
 						t = np.array([d + [-9999] * (maxlen - len(d)) for d in t]) * m.dstep_to
 						a = np.array([d + [-9999] * (maxlen - len(d)) for d in a])
@@ -296,9 +304,9 @@ class Analyzer:
 					"""
 					dataXY = []
 					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
-						t = m.get_peak_times(rat=r, flat=True, muscle='F') * m.dstep_to
-						a = m.get_peak_ampls(rat=r, flat=True, muscle='F')
-						s = m.get_peak_slices(rat=r, flat=True, muscle='F')
+						t = m.get_peak_times(rat=r, flat=True, muscle=muscletype) * m.dstep_to
+						a = m.get_peak_ampls(rat=r, flat=True, muscle=muscletype)
+						s = m.get_peak_slices(rat=r, flat=True, muscle=muscletype)
 						if border == 'poly_tail':
 							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
 							mask = 8 <= t
@@ -316,10 +324,10 @@ class Analyzer:
 					# plt.show()
 					# calc the p-value by KDE test
 					pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1])
-					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
-					      f"'{axis[0]} merged': {pval_t:.3f}; "
-					      f"'{axis[1]} merged': {pval_a:.3f}; "
-					      f"2D merged: {pval_2d:.3f}")
+					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} - {muscletype} muscle"
+					      f"'{axis[0]} merged': {pval_t}; "
+					      f"'{axis[1]} merged': {pval_a}; "
+					      f"2D merged: {pval_2d}")
 					# plot data if necessary
 					if plot:
 						kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
