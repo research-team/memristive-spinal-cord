@@ -19,7 +19,7 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 10 # number of steps
+step_number = 2 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 200
@@ -195,7 +195,7 @@ class CPG:
             createmotif(self.dict_0[layer], self.dict_1[layer], self.dict_2F[layer], self.dict_3[layer])
 
         for layer in range(1, layers):
-            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 3.5, 2)
+            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.5*(10-layer), 2)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.45, 2)
@@ -204,7 +204,7 @@ class CPG:
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
         connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.dict_2F[0], 2.5, 3)
+        connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
         '''extensor'''
@@ -271,7 +271,7 @@ class CPG:
         '''C'''
 
         '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00055*k*speed, 3)
+        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00075*k*speed, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 3)
         connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 3)
         # connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
