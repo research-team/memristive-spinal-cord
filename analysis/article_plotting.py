@@ -782,7 +782,7 @@ class Analyzer:
 			ytick_labels[i] = yticks_indices[i]
 		return ytick_labels
 
-	def print_metainfo(self, source, rats, muscle='E'):
+	def print_metainfo(self, source, rats):
 		if type(source) is not Metadata:
 			metadata = Metadata(self.pickle_folder, source)
 		else:
@@ -793,24 +793,26 @@ class Analyzer:
 		if type(rats) is int:
 			rats = [rats]
 
-		print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
-		for rat_id in rats:
-			c = metadata.get_peak_counts(rat_id, border=[0, 25], muscle=muscle)
-			h = metadata.get_peak_median_height(rat_id, border='poly_tail', muscle=muscle)
-			f = metadata.get_fMEP_count(rat_id, muscle=muscle)
-			v = metadata.get_latency_volume(rat_id, muscle=muscle)
-			print(f"{metadata.shortname} | {rat_id} | {f} | {c} | {h} | {v}")
-			x = metadata.get_peak_times(rat_id, muscle='F', flat=True) * metadata.dstep_to
-			# x = metadata.get_peak_ampls(rat_id, muscle='F', flat=True) * 100
-			X = np.linspace(0, 25, 100)
-			dx = st.gaussian_kde(x)
-			dx.set_bandwidth(bw_method=0.175)
-			dx = dx(X)
-			# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
-			# distr = {1: 'uni', 2: 'bi'}
-			# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
-			plt.plot(np.arange(len(dx)) * 0.25, dx, label=metadata.shortname)
-		print("- " * 10)
+		for muscle in ['E', 'F']:
+			print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
+			for rat_id in rats:
+				c = metadata.get_peak_counts(rat_id, border=[0, 25], muscle=muscle)
+				h = metadata.get_peak_median_height(rat_id, border='poly_tail', muscle=muscle)
+				f = metadata.get_fMEP_count(rat_id, muscle=muscle)
+				v = metadata.get_latency_volume(rat_id, muscle=muscle)
+				print(f"{metadata.shortname} _ {muscle} | {rat_id} | {f} | {c} | {h} | {v}")
+
+				x = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * metadata.dstep_to
+				# x = metadata.get_peak_ampls(rat_id, muscle='F', flat=True) * 100
+				X = np.linspace(0, 25, 100)
+				dx = st.gaussian_kde(x)
+				dx.set_bandwidth(bw_method=0.175)
+				dx = dx(X)
+				# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
+				# distr = {1: 'uni', 2: 'bi'}
+				# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
+				plt.plot(np.arange(len(dx)) * 0.25, dx, label=metadata.shortname)
+			print("- " * 10)
 
 	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
 		if type(source) is not Metadata:
