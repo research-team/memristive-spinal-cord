@@ -195,7 +195,7 @@ class CPG:
             createmotif(self.dict_0[layer], self.dict_1[layer], self.dict_2F[layer], self.dict_3[layer])
 
         for layer in range(1, layers):
-            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 3.5, 2)
+            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 1.5, 3.5)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.45, 2)
@@ -203,13 +203,13 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.00035, 3)
+        connectcells(self.V0v, self.OM1_0F, 2.5, 3)
 
         '''between delays via excitatory pools'''
         '''extensor'''
         for layer in range(1, layers+1):
-            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.65, 2.5)
+            connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.75, 2.5)
 
         connectcells(self.dict_CV[0], self.OM1_0E, 0.00046, 3)
         for layer in range(1, layers):
@@ -241,8 +241,8 @@ class CPG:
 
         # '''IP'''
         for layer in range(1, 4):
-            connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.45*layer, 2)
-            connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.45*layer, 2)
+            # connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.45*layer, 2)
+            connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.75*layer, 1)
         for layer in range(layers):
             '''Extensor'''
             # connectinsidenucleus(self.dict_IP_F[layer])
@@ -250,15 +250,15 @@ class CPG:
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 3.5, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 2)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 3.75, 2)
             if layer > 3:
-                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.00035, 1, True)
+                connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0003, 1, True)
             else:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0002, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 2.85, 2)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 2.75, 2)
             connectcells(self.dict_IP_F[layer], self.mns_F, 3.85, 2)
             connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.0002, 1, True)
 
@@ -266,7 +266,7 @@ class CPG:
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.15*k*speed, 2)
 
-        connectcells(self.IP_F, self.Ia_aff_F, 0.0015, 2, True)
+        connectcells(self.IP_F, self.Ia_aff_F, 0.005, 2, True)
         # connectcells(self.IP_E, self.Ia_aff_E, 0.0015, 2, True)
 
         '''C'''
@@ -564,12 +564,12 @@ def createmotif(OM0, OM1, OM2, OM3):
           list of self.OM3 pool gids
     '''
     connectcells(OM0, OM1, 2.95, 3)
-    connectcells(OM1, OM2, 2.85, 3)
+    connectcells(OM1, OM2, 2.95, 3)
     connectcells(OM2, OM1, 1.95, 3)
-    connectcells(OM2, OM3, 0.0007, 3)
+    connectcells(OM2, OM3, 0.00075, 3)
     connectcells(OM1, OM3, 0.00005, 3)
-    connectcells(OM3, OM2, 4.5, 3, True)
-    connectcells(OM3, OM1, 4.5, 3, True)
+    connectcells(OM3, OM2, 4.5, 1, True)
+    connectcells(OM3, OM1, 4.5, 1, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.75, 0.5)
