@@ -80,6 +80,13 @@ ref_time_timer = np.full(nrns, 0, dtype=np.float)   # [steps] refractory period 
 E_Ca = np.full(nrn_shape, 131, dtype=np.float)      # [mV]
 old_Vm = np.full(nrns, -70, dtype=np.float)         # [mV] old value of Vm
 
+NODE_RHS = np.zeros(shape=nrn_shape, dtype=np.float) # right hand side in node equation
+NODE_D = np.zeros(shape=nrn_shape, dtype=np.float)   # diagonal element in node equation
+NODE_A = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of this node on the parent node's equation
+NODE_B = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
+
+_nt_ncell = 1
+_nt_end = 3
 INP, MID, OUT = 0, 1, 2
 spikes = []
 # todo recheck
@@ -121,13 +128,9 @@ def get_neuron_data():
 	return neuron_data
 
 
-_nt_ncell = 1
-_nt_end = 3
-NODE_rhs = np.zeros(shape=segs)
-NODE_D = np.zeros(shape=segs)
-
-
 def current(nrn, seg, voltage):
+	global m, h, p, n, mc, hc, cai, I_Na, I_K, I_L, I_Ca, E_Ca
+
 	I_Na[nrn, seg] = gnabar * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - E_Na)
 	I_K[nrn, seg] = gkrect * n[nrn, seg] ** 4 * (voltage - E_K) + \
 	                gcak * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - E_K)
@@ -138,6 +141,8 @@ def current(nrn, seg, voltage):
 	return I_Na[nrn, seg] + I_K[nrn, seg] + I_L[nrn, seg] + I_Ca[nrn, seg]
 
 def recalc_channels(nrn, seg, V, NRN=None):
+	global m, h, p, n, mc, hc, cai
+
 	a = alpham(V)
 	b = betam(V)
 	# m
@@ -181,9 +186,12 @@ def recalc_channels(nrn, seg, V, NRN=None):
 
 # three segments as default [CAP seg CAP]
 def simulation():
+	global NODE_RHS, NODE_D, NODE_A, NODE_B, Vm, GRAS_data
 	i1 = 0
 	i2 = i1 + _nt_ncell
 	i3 = _nt_end
+	# a is the effect of this node on the parent node's equation
+	# b is the effect of the parent node on this node's equation
 	A = -39.269908
 	B = -0.5
 	# for t in range(sim_time_steps):
@@ -201,17 +209,22 @@ def simulation():
 			# 	# [uS]
 			# 	g_exc[0] += 5.5
 			####################################################
+			################ setup_tree_matrix #################
 			####################################################
-			####################################################
+			'''calculate right hand side of
+			cm*dvm/dt = -i(vm) + is(vi) + ai_j*(vi_j - vi)
+			cx*dvx/dt - cm*dvm/dt = -gx*(vx - ex) + i(vm) + ax_j*(vx_j - vx)
+			This is a common operation for fixed step, cvode, and daspk methods'''
+
 			"""void nrn_rhs(NrnThread *_nt)"""
 			# make _rhs zero
 			for i in range(i1, i3):
-				NODE_rhs[i] = 0
+				NODE_RHS[nrn, i] = 0
 			# update rhs from MOD, CAPS has 0 current!
 			for seg in range(segs):
 				if seg == INP or seg == OUT:
 					continue
-				V = Voltage_NRN#Vm[nrn, seg]
+				V = Voltage_NRN # Vm[nrn, seg]
 				# calc K/NA/L currents
 				recalc_channels(nrn, seg, V)
 				# calc additional stuff
@@ -219,102 +232,114 @@ def simulation():
 				print(_rhs, _rhs_NRN)
 				_g = current(nrn, seg, V + 0.001)
 				_g = (_g - _rhs) / 0.001
-				NODE_rhs[seg] += _rhs
+				NODE_RHS[nrn, seg] += _rhs
 			# end FOR segments
-
+			'''
 			# activsynapse_rhs()
-			#  if EXTRA
-			#       nrn_rhs_ext(_nt);
+			NODE_rhs[nrn, seg] += 0
+			# if EXTRA
+			# Cannot have any axial terms yet so that i(vm) can be calculated from
+			# i(vm)+is(vi) and is(vi) which are stored in rhs vector
+			# nrn_rhs_ext(_nt);
+			NODE_rhs[nrn, seg] += 0
+			# nrn_rhs_ext has also computed the the internal axial current
+			# for those nodes containing the extracellular mechanism
 			# activstim_rhs()
+			NODE_rhs[nrn, seg] += 0
 			# activclamp_rhs()
+			NODE_rhs[nrn, seg] += 0
+			'''
 			for i in range(i2, i3):
 				nd = i
 				pnd = i - 1
 				# double dv = NODEV(pnd) - NODEV(nd);
 				dv = Vm[nrn, pnd] - Vm[nrn, nd]
-				NODE_rhs[nd] -= B * dv
-				NODE_rhs[pnd] -= A * dv
-			print(f"NODE_rhs[MID] = {NODE_rhs[MID]}")
-			####################################################
-			####################################################
-			####################################################
+				NODE_RHS[nrn, nd] -= B * dv
+				NODE_RHS[nrn, pnd] -= A * dv
+			print(f"NODE_rhs[MID] = {NODE_RHS[nrn, MID]}")
+
 			"""void nrn_lhs(NrnThread *_nt)"""
 			# make _lhs zero
 			for i in range(i1, i3):
-				NODE_D[i] = 0
-			# note that CAP has no jacob
-
-			NODE_D[MID] += _g
-
-			print(f"NODE_D[MID] = {NODE_D[MID]}")
-			print()
-			GRAS_data.append([t * dt, cai[0, 0], I_L[0, 0], I_Na[0, 0], I_K[0, 0],
-			                  I_Ca[0, 0], E_Ca[0, 0], Vm[0, 0], m[0, 0], h[0, 0],
-			                  n[0, 0], p[0, 0], mc[0, 0], hc[0, 0], g_exc[0], 0, _g, NODE_rhs])
-			continue
-
-
-			####################################################
-			####################################################
-			####################################################
-
-
-
-			# save old value of Vm
-			old_Vm[nrn] = Vm[nrn, INP]
-			# calculate synaptic currents
-			# [nA] = [uS] * [mV]
-			I_syn_exc = g_exc[nrn] * (Vm[nrn, INP] - E_ex)
-			# [nA] = [uS] * [mV]
-			I_syn_inh = g_inh[nrn] * (Vm[nrn, INP] - E_in)
-
-			# update compartments
+				NODE_D[nrn, i] = 0
+			# update rhs from MOD, CAPS has 0 current!
 			for seg in range(segs):
-				if seg == INP or seg == MID:
-					NODE_rhs[seg] = 0
+				if seg == INP or seg == OUT:
+					continue
+				# note that CAP has no jacob
+				#todo check info about _g updating (where is it stored?)
+				NODE_D[nrn, MID] += _g
+			'''
+			if (secondorder) { nt->cj = 2.0/dt; }
+			else { nt->cj = 1.0/dt; }
+			'''
+			# nrn_cap_jacob(_nt, _nt->tml->ml);
+			cj = 1 / dt
+			# cfac = .001 * _nt->cj
+			cfac = 0.001 * cj
+			# or (i=0; i < count; ++i) {
+			for i in range(_nt_ncell):
+				NODE_D[nrn, i] += cfac * Cm
+			'''
+			# activsynapse_lhs()
+			NODE_D[nrn, seg] += 0
+			#nrn_setup_ext(_nt);
+			NODE_D[nrn, seg] += 0
+			# activclamp_lhs();
+			NODE_D[nrn, seg] += 0
+			'''
+			for i in range(i2, i3):
+				nd = i2
+				pnd = i2 - 1
+				# NODED(_nt->_v_node[i]) -= NODEB(_nt->_v_node[i]);
+				# NODED(_nt->_v_parent[i]) -= NODEA(_nt->_v_node[i]);
+				NODE_D[nrn, nd] -= B
+				NODE_D[nrn, pnd] -= A
 
-				# - [mA / cm2]
-				area = np.pi * x * d
-				I_leak = I_L[nrn, seg]
-				I_ionic = (I_K[nrn, seg] + I_Na[nrn, seg] + I_Ca[nrn, seg])
-				# I inj = I syn [mA / cm2]
-				# https://www.neuron.yale.edu/phpBB/viewtopic.php?t=4081
-				# [mA / cm2] = [nA] / (area [um2] * 0.01)
-				I_syn = syn_NRN #(I_syn_exc + I_syn_inh) / (area * 0.01 * 10)
+			####################################################
+			################### nrn_solve ######################
+			####################################################
+			'''void nrn_solve(NrnThread* _nt)'''
+			# triang(_nt);
+			for i in range(i3 - 1, i2 + 1, -1):
+				nd = i
+				pnd = i - 1
+				'''
+				p = NODEA(nd) / NODED(nd);
+				NODED(pnd) -= p * NODEB(nd);
+				NODERHS(pnd) -= p * NODERHS(nd);
+				'''
+				ppp = A / NODE_D[nrn, nd]
+				NODE_D[nrn, pnd] -= ppp * B
+				NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nd]
 
-				if seg == INP:
-					Vm[nrn, seg] += (dt / Cm) * (-I_leak + -I_ionic + _rhs_NRN)
-				#todo fix axonal after test
-				# else:
-				# 	dV = (dt / Cm) * (I_leak + I_ionic)
-				# 	Vm[nrn_id, segment] += dV
-				# 	# if segment == MID:
-				# 	V_extra[nrn_id] = -const3 * (I_leak + I_ionic * 100 + Cm / dt * dV)
+			'''void bksub(NrnThread* _nt)'''
+			# bksub(_nt);
+			for i in range(i1, i2):
+				NODE_RHS[nrn, i] /= NODE_D[nrn, i]
+			for i in range(i2, i3):
+				nd = i
+				pnd = i - 1
+				'''
+				NODERHS(cnd) -= NODEB(cnd) * NODERHS(nd);
+				NODERHS(cnd) /= NODED(cnd);
+				'''
+				NODE_RHS[nrn, nd] -= B * NODE_RHS[nrn, pnd]
+				NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
 
-				# FAST SODIUM
-				V = Vm[nrn, seg]
+			print(f"NODE_D[MID] = {NODE_D[nrn, MID]}")
 
+			####################################################
+			##################### update #######################
+			####################################################
+			for i in range(i1, i2):
+				Vm[nrn, i] += NODE_RHS[nrn, i]
 
-			# end FOR segment
-			# recalc conductivity
-			# [uS] -= [uS] / [ms] * [ms]
-			if nrn == 0:
-				# area = np.pi * x * d
-				# _g = g_NRN * (Voltage_NRN + .001 - E_ex) # [nA] = [uS] * [mV]
-				# _rhs = g_NRN * (Voltage_NRN - E_ex) # [nA]
-				# isyn = _rhs  # [nA]
-				#
-				# _g = (_g - _rhs) / .001
-				# _g *= 100 / area # [mA / cm2]
-				# _rhs *= 100 / area # [mA / cm2]
-
-				GRAS_data.append([t * dt, cai[0, 0], I_L[0, 0], I_Na[0, 0], I_K[0, 0],
-				                  I_Ca[0, 0], E_Ca[0, 0], Vm[0, 0], m[0, 0], h[0, 0],
-				                  n[0, 0], p[0, 0], mc[0, 0], hc[0, 0], g_exc[0], isyn, _g, NODE_rhs])
+			# nrn_update_2d(_nt);
 
 			g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
 			g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
-			#todo
+			# todo
 			# check on spike
 			# if ref_time_timer[nrn_id] == 0 and -55 <= Vm[nrn_id, 0]:
 			# 	ref_time_timer[nrn_id] = ref_time
@@ -322,6 +347,11 @@ def simulation():
 			# update refractory period timer
 			if ref_time_timer[nrn] > 0:
 				ref_time_timer[nrn] -= 1
+			print("= " * 10)
+
+		GRAS_data.append([t * dt, cai[0, 0], I_L[0, 0], I_Na[0, 0], I_K[0, 0],
+		                  I_Ca[0, 0], E_Ca[0, 0], Vm[0, 0], m[0, 0], h[0, 0],
+		                  n[0, 0], p[0, 0], mc[0, 0], hc[0, 0], g_exc[0], 0, _g, NODE_RHS[0, 0]])
 
 
 def plot(gras_data, neuron_data):
@@ -355,57 +385,56 @@ if __name__ == "__main__":
 	NEURON_data = get_neuron_data()[:xlength, :]
 	log.info(f"GRAS shape {GRAS_data.shape}")
 	log.info(f"NEURON shape {NEURON_data.shape}")
-
 	plot(GRAS_data, NEURON_data)
 
 
 """
-				if test_inter:
-					# fixme Vm[nrn_id, segment] += np.random.uniform(-0.5, 0.5)
-					# calc K/NA/L currents
-					I_Na[nrn_id, segment] = g_Na * m[nrn_id, segment] ** 3 * h[nrn_id, segment] * (
-							E_Na - Vm[nrn_id, segment])
-					I_K[nrn_id, segment] = g_K * n[nrn_id, segment] ** 4 * (E_K - Vm[nrn_id, segment])
-					I_L[nrn_id, segment] = g_L * (E_L - Vm[nrn_id, segment])
-					# first segment
-					if segment == 0:
-						vv1 = 0
-						vv2 = Vm[nrn_id, segment + 1] - Vm[nrn_id, segment]
-					# the last segment
-					elif segment == segs - 1:
-						vv1 = Vm[nrn_id, segment - 1] - Vm[nrn_id, segment]
-						vv2 = 0
-					else:
-						vv1 = Vm[nrn_id, segment - 1] - Vm[nrn_id, segment]
-						vv2 = Vm[nrn_id, segment + 1] - Vm[nrn_id, segment]
-					#
-					I_leak = g_L * (E_L - Vm[nrn_id, segment])
-					I_ionic = (I_K[nrn_id, segment] + I_Na[nrn_id, segment]) / (np.pi * x * d)
-					I_axonal = d / (4 * x * x * Ra) * (vv1 + vv2) * 10000
-					I_syn = (I_syn_exc + I_syn_inh) / (np.pi * x * d) * 10000
-					#
-					if segment == INP:
-						if ref_time_timer[nrn_id] > 0:
-							I_syn = 0
-						Vm[nrn_id, segment] += (dt / Cm) * (I_leak + I_ionic + I_axonal + I_syn)
-					else:
-						dV = (dt / Cm) * (I_leak + I_ionic + I_axonal)
-						Vm[nrn_id, segment] += dV
-					#fixme
-					# if segment == MID:
-					# 	V_extra[nrn_id] = -const3 * (I_leak + I_ionic * 100 + Cm / dt * dV)
-					dV = Vm[nrn_id, segment] - V_adj
-					# K act
-					a = 0.032 * (15 - dV) / (np.exp((15 - dV) / 5) - 1)
-					b = 0.5 * np.exp((10 - dV) / 40)
-					n[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - n[nrn_id, segment])
-					# Na act
-					a = 0.32 * (13 - dV) / (np.exp((13 - dV) / 4) - 1)
-					b = 0.28 * (dV - 40) / (np.exp((dV - 40) / 5) - 1)
-					m[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - m[nrn_id, segment])
-					# Na inact
-					a = 0.128 * np.exp((17 - dV) / 18)
-					b = 4 / (1 + np.exp((40 - dV) / 5))
-					h[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - h[nrn_id, segment])
-				else:
-				"""
+if test_inter:
+	# fixme Vm[nrn_id, segment] += np.random.uniform(-0.5, 0.5)
+	# calc K/NA/L currents
+	I_Na[nrn_id, segment] = g_Na * m[nrn_id, segment] ** 3 * h[nrn_id, segment] * (
+			E_Na - Vm[nrn_id, segment])
+	I_K[nrn_id, segment] = g_K * n[nrn_id, segment] ** 4 * (E_K - Vm[nrn_id, segment])
+	I_L[nrn_id, segment] = g_L * (E_L - Vm[nrn_id, segment])
+	# first segment
+	if segment == 0:
+		vv1 = 0
+		vv2 = Vm[nrn_id, segment + 1] - Vm[nrn_id, segment]
+	# the last segment
+	elif segment == segs - 1:
+		vv1 = Vm[nrn_id, segment - 1] - Vm[nrn_id, segment]
+		vv2 = 0
+	else:
+		vv1 = Vm[nrn_id, segment - 1] - Vm[nrn_id, segment]
+		vv2 = Vm[nrn_id, segment + 1] - Vm[nrn_id, segment]
+	#
+	I_leak = g_L * (E_L - Vm[nrn_id, segment])
+	I_ionic = (I_K[nrn_id, segment] + I_Na[nrn_id, segment]) / (np.pi * x * d)
+	I_axonal = d / (4 * x * x * Ra) * (vv1 + vv2) * 10000
+	I_syn = (I_syn_exc + I_syn_inh) / (np.pi * x * d) * 10000
+	#
+	if segment == INP:
+		if ref_time_timer[nrn_id] > 0:
+			I_syn = 0
+		Vm[nrn_id, segment] += (dt / Cm) * (I_leak + I_ionic + I_axonal + I_syn)
+	else:
+		dV = (dt / Cm) * (I_leak + I_ionic + I_axonal)
+		Vm[nrn_id, segment] += dV
+	#fixme
+	# if segment == MID:
+	# 	V_extra[nrn_id] = -const3 * (I_leak + I_ionic * 100 + Cm / dt * dV)
+	dV = Vm[nrn_id, segment] - V_adj
+	# K act
+	a = 0.032 * (15 - dV) / (np.exp((15 - dV) / 5) - 1)
+	b = 0.5 * np.exp((10 - dV) / 40)
+	n[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - n[nrn_id, segment])
+	# Na act
+	a = 0.32 * (13 - dV) / (np.exp((13 - dV) / 4) - 1)
+	b = 0.28 * (dV - 40) / (np.exp((dV - 40) / 5) - 1)
+	m[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - m[nrn_id, segment])
+	# Na inact
+	a = 0.128 * np.exp((17 - dV) / 18)
+	b = 4 / (1 + np.exp((40 - dV) / 5))
+	h[nrn_id, segment] += (1 - np.exp(-dt * (a + b))) * (a / (a + b) - h[nrn_id, segment])
+else:
+"""
