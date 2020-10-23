@@ -16,7 +16,7 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
 step_number = 2 # number of steps
@@ -26,7 +26,7 @@ nMN = 200
 nAff = 120
 nInt = 196
 N = 50
-k = 0.018
+k = 0.0018
 
 one_step_time = 6 * speed + 125
 time_sim = 25 + one_step_time * step_number
@@ -203,17 +203,17 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.dict_2F[0], 2.5, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.00015, 3)
+        # connectcells(self.V0v, self.dict_2F[0], 2.5, 3)
 
         '''between delays via excitatory pools'''
         '''extensor'''
         for layer in range(1, layers):
             connectcells(self.dict_CV[layer - 1], self.dict_CV[layer], 0.75, 3)
 
-        connectcells(self.dict_CV[0], self.OM1_0E, 0.00047, 3)
+        connectcells(self.dict_CV[0], self.OM1_0E, 0.00043, 3)
         for layer in range(1, layers):
-            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00048, 3)
+            connectcells(self.dict_CV[layer], self.dict_0[layer], 0.00045, 3)
 
         '''inhibitory projections'''
         '''extensor'''
@@ -230,8 +230,8 @@ class CPG:
         genconnect(self.ees, self.Ia_aff_E, 1.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 1.5, 1)
         genconnect(self.ees, self.dict_CV[0], 1.5, 2)
-        # genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 15)
-        genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 15)
+        genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 15)
+        # genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 15)
 
         connectcells(self.Ia_aff_E, self.mns_E, 1.75, 1.5)
         connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1.5)
@@ -566,7 +566,7 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 2.95, 3)
     connectcells(OM1, OM2, 2.85, 3)
     connectcells(OM2, OM1, 1.95, 3)
-    connectcells(OM2, OM3, 0.00065, 3)
+    connectcells(OM2, OM3, 0.0065, 3)
     connectcells(OM1, OM3, 0.00005, 3)
     connectcells(OM3, OM2, 4.5, 1, True)
     connectcells(OM3, OM1, 4.5, 1, True)
@@ -644,7 +644,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/PLT_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/AIR_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
                 sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
                 file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
