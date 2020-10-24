@@ -13,7 +13,9 @@ DOI:10.1017/CBO9780511975899
 test_inter = False
 debug = False
 dt = 0.025  # [ms] - sim step
-nrns = 1
+nrns_number = 1
+nrns = list(range(nrns_number))
+
 segs = 3
 sim_time = 500
 stimulus = (np.arange(11, sim_time, 25) / dt).astype(int)
@@ -58,7 +60,7 @@ else:
 	R = 8.314472    # (k-mole) (joule/degC) const
 	F = 96485.34    # (faraday) (kilocoulombs) const
 
-nrn_shape = (nrns, segs)
+nrn_shape = (nrns_number, segs)
 
 Vm = np.full(nrn_shape, -70, dtype=np.float)        # [mV] - array for three compartments volatge
 n = np.full(nrn_shape, 0.105, dtype=np.float)       # [0..1] compartments channel
@@ -73,17 +75,19 @@ I_K = np.full(nrn_shape, 0, dtype=np.float)         # [nA] ionic currents
 I_Na = np.full(nrn_shape, 0, dtype=np.float)        # [nA] ionic currents
 I_L = np.full(nrn_shape, 0, dtype=np.float)         # [nA] ionic currents
 I_Ca = np.full(nrn_shape, -0.0004, dtype=np.float)  # [nA] ionic currents
-g_exc = np.full(nrns, 0, dtype=np.float)            # [S] conductivity level
-g_inh = np.full(nrns, 0, dtype=np.float)            # [S] conductivity level
-ref_time_timer = np.full(nrns, 0, dtype=np.float)   # [steps] refractory period timer
+g_exc = np.full(nrns_number, 0, dtype=np.float)            # [S] conductivity level
+g_inh = np.full(nrns_number, 0, dtype=np.float)            # [S] conductivity level
+ref_time_timer = np.full(nrns_number, 0, dtype=np.float)   # [steps] refractory period timer
 
 E_Ca = np.full(nrn_shape, 131, dtype=np.float)      # [mV]
-old_Vm = np.full(nrns, -70, dtype=np.float)         # [mV] old value of Vm
+old_Vm = np.full(nrns_number, -70, dtype=np.float)         # [mV] old value of Vm
 
 NODE_RHS = np.zeros(shape=nrn_shape, dtype=np.float) # right hand side in node equation
 NODE_D = np.zeros(shape=nrn_shape, dtype=np.float)   # diagonal element in node equation
 NODE_A = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of this node on the parent node's equation
 NODE_B = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
+NODE_INV = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
+NODE_AREA = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
 
 _nt_ncell = 1
 _nt_end = 3
@@ -186,14 +190,53 @@ def recalc_channels(nrn, seg, V, NRN=None):
 
 # three segments as default [CAP seg CAP]
 def simulation():
-	global NODE_RHS, NODE_D, NODE_A, NODE_B, Vm, GRAS_data
+	global NODE_RHS, NODE_D, NODE_A, NODE_B, NODE_INV, NODE_AREA, Vm, GRAS_data
 	i1 = 0
 	i2 = i1 + _nt_ncell
 	i3 = _nt_end
-	# a is the effect of this node on the parent node's equation
-	# b is the effect of the parent node on this node's equation
-	A = -39.269908
-	B = -0.5
+	nnode = 2
+
+	for nrn in range(nrns_number):
+		for seg in range(segs):
+			NODE_AREA[nrn, seg] = np.pi * x * d
+
+	# void nrn_area_ri(Section *sec) [790] treeset.c
+	# area for right circular cylinders. Ri as right half of parent + left half of this
+	for nrn in range(nrns_number):
+		rright = 0
+		for i in range(0, nnode - 1):
+			rleft = 1e-2 * Ra * (x / 2) / (np.pi * d * d / 4) # left half segment Megohms
+			NODE_INV[nrn, i] = 1 / (rleft + rright) # uS
+			rright = rleft
+		# last segment has 0 length. area is 1e2 in dimensionless units
+		i = nnode - 1
+		NODE_AREA[nrn, i] = 1.e2
+		NODE_INV[nrn, i] = 1 / rright
+	##################
+
+	# void connection_coef(void)  [854] treeset.c
+	# set NODE_A and NODE_B
+	# NODE_A is the effect of this node on the parent node's equation
+	# NODE_B is the effect of the parent node on this node's equation
+	for nrn in nrns:
+		# first the effect of node on parent equation. Note That
+		# last nodes have area = 1.e2 in dimensionless units so that
+		# last nodes have units of microsiemens
+		nd = 0
+		area = NODE_AREA[nrn, nd] # parentnode
+		# ClassicalNODEA
+		# sec->prop->dparam[4].val = 1
+		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_INV[nrn, nd] / area
+
+		for j in range(1, nnode):
+			nd = j
+			#ClassicalNODEA
+			NODE_A[nrn, nd] = -1.e2 * NODE_INV[nrn, nd] / NODE_AREA[nrn, nd - 1]
+
+		# now the effect of parent on node equation
+		for i in range(0, nnode):
+			NODE_B[nrn, i] = -1.e2 * NODE_INV[nrn, i] / NODE_AREA[nrn, i]
+
 	# for t in range(sim_time_steps):
 	# get_neuron_data()[:, 5] is hard inserted voltage from NEURON data
 	for t, NRN_DATA in zip(range(sim_time_steps), get_neuron_data()):
@@ -204,10 +247,15 @@ def simulation():
 		if t % 10 == 0 and debug:
 			log.info(headformat.format(*debug_headers))
 
-		for nrn in range(nrns):
-			# if t in stimulus:
-			# 	# [uS]
-			# 	g_exc[0] += 5.5
+		for nrn in range(nrns_number):
+			# where is it placed???
+			g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
+			g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
+
+			if t in stimulus:
+				# [uS]
+				g_exc[0] += 5.5
+
 			####################################################
 			################ setup_tree_matrix #################
 			####################################################
@@ -254,8 +302,8 @@ def simulation():
 				pnd = i - 1
 				# double dv = NODEV(pnd) - NODEV(nd);
 				dv = Vm[nrn, pnd] - Vm[nrn, nd]
-				NODE_RHS[nrn, nd] -= B * dv
-				NODE_RHS[nrn, pnd] -= A * dv
+				NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
+				NODE_RHS[nrn, pnd] -= NODE_A[nrn, nd] * dv
 			print(f"NODE_rhs[MID] = {NODE_RHS[nrn, MID]}")
 
 			"""void nrn_lhs(NrnThread *_nt)"""
@@ -289,12 +337,12 @@ def simulation():
 			NODE_D[nrn, seg] += 0
 			'''
 			for i in range(i2, i3):
-				nd = i2
-				pnd = i2 - 1
+				nd = i
+				pnd = i - 1
 				# NODED(_nt->_v_node[i]) -= NODEB(_nt->_v_node[i]);
 				# NODED(_nt->_v_parent[i]) -= NODEA(_nt->_v_node[i]);
-				NODE_D[nrn, nd] -= B
-				NODE_D[nrn, pnd] -= A
+				NODE_D[nrn, nd] -= NODE_B[nrn, nd]
+				NODE_D[nrn, pnd] -= NODE_A[nrn, nd]
 
 			####################################################
 			################### nrn_solve ######################
@@ -309,8 +357,8 @@ def simulation():
 				NODED(pnd) -= p * NODEB(nd);
 				NODERHS(pnd) -= p * NODERHS(nd);
 				'''
-				ppp = A / NODE_D[nrn, nd]
-				NODE_D[nrn, pnd] -= ppp * B
+				ppp = NODE_A[nrn, nd] / NODE_D[nrn, nd]
+				NODE_D[nrn, pnd] -= ppp * NODE_B[nrn, nd]
 				NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nd]
 
 			'''void bksub(NrnThread* _nt)'''
@@ -324,7 +372,7 @@ def simulation():
 				NODERHS(cnd) -= NODEB(cnd) * NODERHS(nd);
 				NODERHS(cnd) /= NODED(cnd);
 				'''
-				NODE_RHS[nrn, nd] -= B * NODE_RHS[nrn, pnd]
+				NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * NODE_RHS[nrn, pnd]
 				NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
 
 			print(f"NODE_D[MID] = {NODE_D[nrn, MID]}")
@@ -337,8 +385,12 @@ def simulation():
 
 			# nrn_update_2d(_nt);
 
-			g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
-			g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
+			if nrn == 0:
+				GRAS_data.append([t * dt, cai[0, MID], I_L[0, MID], I_Na[0, MID], I_K[0, MID],
+				                  I_Ca[0, MID], E_Ca[0, MID], Vm[0, MID], m[0, MID], h[0, MID],
+				                  n[0, MID], p[0, MID], mc[0, MID], hc[0, MID], g_exc[0], 0, _g, NODE_RHS[0, MID]])
+
+
 			# todo
 			# check on spike
 			# if ref_time_timer[nrn_id] == 0 and -55 <= Vm[nrn_id, 0]:
@@ -348,11 +400,6 @@ def simulation():
 			if ref_time_timer[nrn] > 0:
 				ref_time_timer[nrn] -= 1
 			print("= " * 10)
-
-		GRAS_data.append([t * dt, cai[0, 0], I_L[0, 0], I_Na[0, 0], I_K[0, 0],
-		                  I_Ca[0, 0], E_Ca[0, 0], Vm[0, 0], m[0, 0], h[0, 0],
-		                  n[0, 0], p[0, 0], mc[0, 0], hc[0, 0], g_exc[0], 0, _g, NODE_RHS[0, 0]])
-
 
 def plot(gras_data, neuron_data):
 	plt.close()
@@ -369,6 +416,11 @@ def plot(gras_data, neuron_data):
 		passed = np.mean(np.abs(neuron_data - gras_data)) / (np.max(neuron_data) - np.min(neuron_data)) * 100
 		ax[row, col].set_title(f"{name} [{passed:.2f}%]")
 		ax[row, col].set_xlim(0, sim_time)
+	plt.tight_layout()
+
+	mng = plt.get_current_fig_manager()
+	mng.window.showMaximized()
+
 	plt.show()
 
 
