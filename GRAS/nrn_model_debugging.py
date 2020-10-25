@@ -16,20 +16,19 @@ dt = 0.025  # [ms] - sim step
 nrns_number = 1
 nrns = list(range(nrns_number))
 
-segs = 3
 sim_time = 500
 stimulus = (np.arange(11, sim_time, 25) / dt).astype(int)
 
-E_Na = 50  # [mV] - reversal potential
-E_K = -80  # [mV] - reversal potential
-E_L = -70  # [mV] - reversal potential
-E_ex = 50  # [mV] - reversal potential
-E_in = -100  # [mV] reverse inh
-V_adj = -63  # [mV] - adjust voltage for -55 threshold
-tau_syn_exc = 0.3  # [ms]
-tau_syn_inh = 2.0  # [ms]
+Re = 333        # [Ohm cm] Resistance of extracellular space
+E_Na = 50       # [mV] - reversal potential
+E_K = -80       # [mV] - reversal potential
+E_L = -70       # [mV] - reversal potential
+E_ex = 50       # [mV] - reversal potential
+E_in = -100     # [mV] reverse inh
+V_adj = -63     # [mV] - adjust voltage for -55 threshold
+tau_syn_exc = 0.3   # [ms]
+tau_syn_inh = 2.0   # [ms]
 ref_time = int(3 / dt)  # [steps]
-Re = 333  # [Ohm cm] Resistance of extracellular space
 
 if test_inter:
 	Cm = 1          # [uF/cm2] membrane capacity
@@ -37,16 +36,16 @@ if test_inter:
 	g_K = 36        # [S / cm2]
 	g_L = 0.3       # [S / cm2]
 	Ra = 100        # [Ohm cm]
-	d = 6           # [um]
-	x = 2           # [um]
+	diam = 6           # [um]
+	dx = 2           # [um]
 else:
 	Cm = 2          # [uF/cm2] membrane capacity
 	gnabar = 0.05   # [S/cm2]
 	gkrect = 0.3    # [S/cm2]
 	g_L = 0.002     # [S/cm2]
 	Ra = 200        # [Ohm cm]
-	d = 50          # [um] diameter
-	x = 50          # [um] compartment length
+	diam = 50          # [um] diameter
+	dx = 50          # [um] compartment length
 	gcaN = 0.05     # const ???
 	gcaL = 0.0001   # const ???
 	gcak = 0.3      # const ???
@@ -60,7 +59,12 @@ else:
 	R = 8.314472    # (k-mole) (joule/degC) const
 	F = 96485.34    # (faraday) (kilocoulombs) const
 
-nrn_shape = (nrns_number, segs)
+_nt_ncell = 1       # analogous to old rootnodecount
+nnode = 2           # Number of nodes for ith section
+_nt_end = 3         # 1 + position of last in v_node array
+segs = list(range(_nt_end))
+
+nrn_shape = (nrns_number, _nt_end)
 
 Vm = np.full(nrn_shape, -70, dtype=np.float)        # [mV] - array for three compartments volatge
 n = np.full(nrn_shape, 0.105, dtype=np.float)       # [0..1] compartments channel
@@ -89,12 +93,9 @@ NODE_B = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the pare
 NODE_INV = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
 NODE_AREA = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
 
-_nt_ncell = 1
-_nt_end = 3
-INP, MID, OUT = 0, 1, 2
 spikes = []
 # todo recheck
-const3 = (np.log(np.sqrt(x ** 2 + d ** 2) + x) - np.log(np.sqrt(x ** 2 + d ** 2) - x)) / (4 * np.pi * x * Re)
+const3 = (np.log(np.sqrt(dx ** 2 + diam ** 2) + dx) - np.log(np.sqrt(dx ** 2 + diam ** 2) - dx)) / (4 * np.pi * dx * Re)
 
 axes_names = 'time cai I_L I_Na I_K I_Ca E_Ca Voltage m h n p mc hc gsyn isyn _g _rhs'
 debug_headers = "iter Vm vv1 vv2 INa IK1 IK2 IL ECa ICa1 ICa2 m h p n mc hc cai".split()
@@ -178,42 +179,45 @@ def recalc_channels(nrn, seg, V, NRN=None):
 		hc[nrn, seg] += (1 - np.exp(-dt * (1 / tau_hc))) * (hc_inf / tau_hc / (1 / tau_hc) - hc[nrn, seg])
 		cai[nrn, seg] += (1 - np.exp(-dt * 0.04)) * (-0.01 * I_Ca[nrn, seg] / 0.04 - cai[nrn, seg])
 
-	template = f"ERROR {nrn} neuron [{seg}] seg"
-	assert 0 <= cai[nrn, seg] <= 0.1, f"cai " + template
-	assert -200 <= Vm[nrn, seg] <= 200, f"Vm " + template
-	assert 0 <= m[nrn, seg] <= 1, f"m " + template
-	assert 0 <= n[nrn, seg] <= 1, f"n " + template
-	assert 0 <= h[nrn, seg] <= 1, f"h " + template
-	assert 0 <= p[nrn, seg] <= 1, f"p " + template
-	assert 0 <= mc[nrn, seg] <= 1, f"mc " + template
-	assert 0 <= hc[nrn, seg] <= 1, f"hc " + template
+	assert 0 <= cai[nrn, seg] <= 0.1
+	assert -200 <= Vm[nrn, seg] <= 200
+	assert 0 <= m[nrn, seg] <= 1
+	assert 0 <= n[nrn, seg] <= 1
+	assert 0 <= h[nrn, seg] <= 1
+	assert 0 <= p[nrn, seg] <= 1
+	assert 0 <= mc[nrn, seg] <= 1
+	assert 0 <= hc[nrn, seg] <= 1
 
 # three segments as default [CAP seg CAP]
+# Segment is 1
 def simulation():
 	global NODE_RHS, NODE_D, NODE_A, NODE_B, NODE_INV, NODE_AREA, Vm, GRAS_data
 	i1 = 0
 	i2 = i1 + _nt_ncell
 	i3 = _nt_end
-	nnode = 2
 
-	for nrn in range(nrns_number):
-		for seg in range(segs):
-			NODE_AREA[nrn, seg] = np.pi * x * d
+	for nrn in nrns:
+		for seg in segs:
+			NODE_AREA[nrn, seg] = np.pi * dx * diam
+	NODE_AREA[:, 0] = 100
+	NODE_AREA[:, -1] = 100
 
 	# void nrn_area_ri(Section *sec) [790] treeset.c
 	# area for right circular cylinders. Ri as right half of parent + left half of this
-	for nrn in range(nrns_number):
+	for nrn in nrns:
 		rright = 0
-		for i in range(0, nnode - 1):
-			rleft = 1e-2 * Ra * (x / 2) / (np.pi * d * d / 4) # left half segment Megohms
-			NODE_INV[nrn, i] = 1 / (rleft + rright) # uS
+		for nd in range(0, nnode - 1):
+			# todo sec->pnode needs +1 index
+			nd += 1
+			rleft = 1e-2 * Ra * (dx / 2) / (np.pi * diam * diam / 4) # left half segment Megohms
+			NODE_INV[nrn, nd] = 1 / (rleft + rright) # uS
 			rright = rleft
 		# last segment has 0 length. area is 1e2 in dimensionless units
-		i = nnode - 1
-		NODE_AREA[nrn, i] = 1.e2
-		NODE_INV[nrn, i] = 1 / rright
-	##################
+		nd = nnode - 1 + 1
+		# NODE_AREA[nrn, nd] = 1.e2 todo: look above [CAP area CAP]
+		NODE_INV[nrn, nd] = 1 / rright
 
+	##################
 	# void connection_coef(void)  [854] treeset.c
 	# set NODE_A and NODE_B
 	# NODE_A is the effect of this node on the parent node's equation
@@ -222,21 +226,32 @@ def simulation():
 		# first the effect of node on parent equation. Note That
 		# last nodes have area = 1.e2 in dimensionless units so that
 		# last nodes have units of microsiemens
-		nd = 0
-		area = NODE_AREA[nrn, nd] # parentnode
+		#todo sec->pnode needs +1 index
+		nd = 1
+		area = NODE_AREA[nrn, nd - 1] # parentnode
 		# ClassicalNODEA
 		# sec->prop->dparam[4].val = 1
 		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_INV[nrn, nd] / area
 
 		for j in range(1, nnode):
-			nd = j
+			# todo sec->pnode needs +1 index
+			nd = j + 1
+			pnd = j - 1 + 1
 			#ClassicalNODEA
-			NODE_A[nrn, nd] = -1.e2 * NODE_INV[nrn, nd] / NODE_AREA[nrn, nd - 1]
+			NODE_A[nrn, nd] = -1.e2 * NODE_INV[nrn, nd] / NODE_AREA[nrn, pnd]
 
 		# now the effect of parent on node equation
-		for i in range(0, nnode):
-			NODE_B[nrn, i] = -1.e2 * NODE_INV[nrn, i] / NODE_AREA[nrn, i]
+		for nd in range(0, nnode):
+			# todo sec->pnode needs +1 index
+			nd += 1
+			NODE_B[nrn, nd] = -1.e2 * NODE_INV[nrn, nd] / NODE_AREA[nrn, nd]
 
+
+	print("A", NODE_A[0, :], [0, -39.269908, -0.5])
+	print("B", NODE_B[0, :], [0, -0.5, -39.269908])
+	print("D", NODE_D[0, :], [5.458247, 0.580715, 39.269908])
+	print("INV", NODE_INV[0, :], [0, 39.269908, 39.269908])
+	print("AREA", NODE_AREA[0, :])
 	# for t in range(sim_time_steps):
 	# get_neuron_data()[:, 5] is hard inserted voltage from NEURON data
 	for t, NRN_DATA in zip(range(sim_time_steps), get_neuron_data()):
@@ -266,21 +281,24 @@ def simulation():
 
 			"""void nrn_rhs(NrnThread *_nt)"""
 			# make _rhs zero
-			for i in range(i1, i3):
-				NODE_RHS[nrn, i] = 0
-			# update rhs from MOD, CAPS has 0 current!
-			for seg in range(segs):
-				if seg == INP or seg == OUT:
+			for nd in range(i1, i3):
+				NODE_RHS[nrn, nd] = 0
+			# update rhs from MOD, CAPS has no current!
+			for seg in segs:
+				# todo fix
+				if seg != 1:
 					continue
+				print(seg)
 				V = Voltage_NRN # Vm[nrn, seg]
 				# calc K/NA/L currents
 				recalc_channels(nrn, seg, V)
 				# calc additional stuff
-				_rhs = current(nrn, seg, V)
-				print(_rhs, _rhs_NRN)
 				_g = current(nrn, seg, V + 0.001)
+				_rhs = current(nrn, seg, V)
 				_g = (_g - _rhs) / 0.001
-				NODE_RHS[nrn, seg] += _rhs
+				NODE_RHS[nrn, seg] -= _rhs
+				print(_rhs)
+
 			# end FOR segments
 			'''
 			# activsynapse_rhs()
@@ -297,37 +315,40 @@ def simulation():
 			# activclamp_rhs()
 			NODE_rhs[nrn, seg] += 0
 			'''
-			for i in range(i2, i3):
-				nd = i
-				pnd = i - 1
+			for nd in range(i2, i3):
+				pnd = nd - 1
 				# double dv = NODEV(pnd) - NODEV(nd);
 				dv = Vm[nrn, pnd] - Vm[nrn, nd]
+				# our connection coefficients are negative so
 				NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
-				NODE_RHS[nrn, pnd] -= NODE_A[nrn, nd] * dv
-			print(f"NODE_rhs[MID] = {NODE_RHS[nrn, MID]}")
+				NODE_RHS[nrn, pnd] += NODE_A[nrn, nd] * dv
 
 			"""void nrn_lhs(NrnThread *_nt)"""
 			# make _lhs zero
-			for i in range(i1, i3):
-				NODE_D[nrn, i] = 0
+			for nd in range(i1, i3):
+				NODE_D[nrn, nd] = 0
 			# update rhs from MOD, CAPS has 0 current!
-			for seg in range(segs):
-				if seg == INP or seg == OUT:
+			for seg in segs:
+				# todo fix
+				if seg != 1:
 					continue
 				# note that CAP has no jacob
 				#todo check info about _g updating (where is it stored?)
-				NODE_D[nrn, MID] += _g
+				NODE_D[nrn, seg] += _g
+				print("LHS ->", _g)
 			'''
 			if (secondorder) { nt->cj = 2.0/dt; }
 			else { nt->cj = 1.0/dt; }
 			'''
+
+			# note, the first is CAP
 			# nrn_cap_jacob(_nt, _nt->tml->ml);
 			cj = 1 / dt
 			# cfac = .001 * _nt->cj
 			cfac = 0.001 * cj
-			# or (i=0; i < count; ++i) {
-			for i in range(_nt_ncell):
-				NODE_D[nrn, i] += cfac * Cm
+			# or (i=0; i < nodecount; ++i) { nodecount = 1
+			for nd in range(0, 1):
+				NODE_D[nrn, nd] += cfac * Cm
 			'''
 			# activsynapse_lhs()
 			NODE_D[nrn, seg] += 0
@@ -336,9 +357,8 @@ def simulation():
 			# activclamp_lhs();
 			NODE_D[nrn, seg] += 0
 			'''
-			for i in range(i2, i3):
-				nd = i
-				pnd = i - 1
+			for nd in range(i2, i3):
+				pnd = nd - 1
 				# NODED(_nt->_v_node[i]) -= NODEB(_nt->_v_node[i]);
 				# NODED(_nt->_v_parent[i]) -= NODEA(_nt->_v_node[i]);
 				NODE_D[nrn, nd] -= NODE_B[nrn, nd]
@@ -349,7 +369,9 @@ def simulation():
 			####################################################
 			'''void nrn_solve(NrnThread* _nt)'''
 			# triang(_nt);
-			for i in range(i3 - 1, i2 + 1, -1):
+			i = i3 - 1
+			# for i in range(i3 - 1, i2 + 1, -1):
+			while i >= i2:
 				nd = i
 				pnd = i - 1
 				'''
@@ -358,16 +380,20 @@ def simulation():
 				NODERHS(pnd) -= p * NODERHS(nd);
 				'''
 				ppp = NODE_A[nrn, nd] / NODE_D[nrn, nd]
+				print("ppp", ppp)
+				print("NODE_D[nrn, nd]", NODE_D[nrn, :])
+				print("NODE_A[nrn, nd]", NODE_A[nrn, :])
+				print("NODE_B[nrn, nd]", NODE_B[nrn, :])
 				NODE_D[nrn, pnd] -= ppp * NODE_B[nrn, nd]
-				NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nd]
-
+				NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nrn, nd]
+				i -= 1
 			'''void bksub(NrnThread* _nt)'''
 			# bksub(_nt);
-			for i in range(i1, i2):
-				NODE_RHS[nrn, i] /= NODE_D[nrn, i]
-			for i in range(i2, i3):
-				nd = i
-				pnd = i - 1
+			for nd in range(i1, i2):
+				NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
+
+			for nd in range(i2, i3):
+				pnd = nd - 1
 				'''
 				NODERHS(cnd) -= NODEB(cnd) * NODERHS(nd);
 				NODERHS(cnd) /= NODED(cnd);
@@ -375,21 +401,19 @@ def simulation():
 				NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * NODE_RHS[nrn, pnd]
 				NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
 
-			print(f"NODE_D[MID] = {NODE_D[nrn, MID]}")
-
 			####################################################
 			##################### update #######################
 			####################################################
-			for i in range(i1, i2):
-				Vm[nrn, i] += NODE_RHS[nrn, i]
+			for nd in range(i1, i2):
+				Vm[nrn, nd] += NODE_RHS[nrn, nd]
 
 			# nrn_update_2d(_nt);
 
 			if nrn == 0:
+				MID = 1
 				GRAS_data.append([t * dt, cai[0, MID], I_L[0, MID], I_Na[0, MID], I_K[0, MID],
 				                  I_Ca[0, MID], E_Ca[0, MID], Vm[0, MID], m[0, MID], h[0, MID],
 				                  n[0, MID], p[0, MID], mc[0, MID], hc[0, MID], g_exc[0], 0, _g, NODE_RHS[0, MID]])
-
 
 			# todo
 			# check on spike
@@ -425,19 +449,21 @@ def plot(gras_data, neuron_data):
 
 
 if __name__ == "__main__":
+	simulation()
+
 	try:
-		simulation()
+		pass
 	except AssertionError as mycheck:
 		log.info(f'Assert error {mycheck}')
 	except Exception as err:
 		log.info(f'Common Exception: {err}')
-
-	GRAS_data = np.array(GRAS_data)
-	xlength = GRAS_data.shape[0]
-	NEURON_data = get_neuron_data()[:xlength, :]
-	log.info(f"GRAS shape {GRAS_data.shape}")
-	log.info(f"NEURON shape {NEURON_data.shape}")
-	plot(GRAS_data, NEURON_data)
+	else:
+		GRAS_data = np.array(GRAS_data)
+		xlength = GRAS_data.shape[0]
+		NEURON_data = get_neuron_data()[:xlength, :]
+		log.info(f"GRAS shape {GRAS_data.shape}")
+		log.info(f"NEURON shape {NEURON_data.shape}")
+		plot(GRAS_data, NEURON_data)
 
 
 """
