@@ -9,13 +9,15 @@ Based on the NEURON repository
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import logging as log
+import matplotlib.pyplot as plt
 
 log.basicConfig(level=log.INFO)
 
+def init0(shape, dtype=np.float):
+	return np.zeros(shape, dtype=dtype)
+
 test_inter = False
-debug = False
 dt = 0.025  # [ms] - sim step
 nrns_number = 1
 nrns = list(range(nrns_number))
@@ -67,61 +69,53 @@ _nt_ncell = 1       # analogous to old rootnodecount
 nnode = 2           # Number of nodes for ith section
 _nt_end = 3         # 1 + position of last in v_node array
 segs = list(range(_nt_end))
-
 i1 = 0
 i2 = i1 + _nt_ncell
 i3 = _nt_end
 
 nrn_shape = (nrns_number, _nt_end)
 
-Vm = np.full(nrn_shape, -70, dtype=np.float)        # [mV] - array for three compartments volatge
-n = np.full(nrn_shape, 0, dtype=np.float)       # [0..1] compartments channel
-m = np.full(nrn_shape, 0, dtype=np.float)       # [0..1] compartments channel
-h = np.full(nrn_shape, 0, dtype=np.float)        # [0..1] compartments channel
-cai = np.full(nrn_shape, 0, dtype=np.float)    # [0..1] compartments channel
-hc = np.full(nrn_shape, 1, dtype=np.float)      # [0..1] compartments channel
-mc = np.full(nrn_shape, 0, dtype=np.float)     # [0..1] compartments channel
-p = np.full(nrn_shape, 0, dtype=np.float)     # [0..1] compartments channel
-
-I_K = np.full(nrn_shape, 0, dtype=np.float)         # [nA] ionic currents
-I_Na = np.full(nrn_shape, 0, dtype=np.float)        # [nA] ionic currents
-I_L = np.full(nrn_shape, 0, dtype=np.float)         # [nA] ionic currents
-I_Ca = np.full(nrn_shape, -0.0004, dtype=np.float)  # [nA] ionic currents
-g_exc = np.full(nrns_number, 0, dtype=np.float)     # [S] conductivity level
-g_inh = np.full(nrns_number, 0, dtype=np.float)     # [S] conductivity level
-ref_time_timer = np.full(nrns_number, 0, dtype=np.float)   # [steps] refractory period timer
-
-E_Ca = np.full(nrn_shape, 131, dtype=np.float)      # [mV]
-old_Vm = np.full(nrns_number, -70, dtype=np.float)  # [mV] old value of Vm
-
-NODE_RHS = np.zeros(shape=nrn_shape, dtype=np.float) # right hand side in node equation
-NODE_D = np.zeros(shape=nrn_shape, dtype=np.float)   # diagonal element in node equation
-NODE_A = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of this node on the parent node's equation
-NODE_B = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
-NODE_RINV = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
-NODE_AREA = np.zeros(shape=nrn_shape, dtype=np.float)   # is the effect of the parent node on this node's equation
+# global variables
+Vm = init0(nrn_shape)           # [mV] - array for three compartments volatge
+n = init0(nrn_shape)            # [0..1] compartments channel
+m = init0(nrn_shape)            # [0..1] compartments channel
+h = init0(nrn_shape)            # [0..1] compartments channel
+cai = init0(nrn_shape)          # [0..1] compartments channel
+hc = init0(nrn_shape)           # [0..1] compartments channel
+mc = init0(nrn_shape)           # [0..1] compartments channel
+p = init0(nrn_shape)            # [0..1] compartments channel
+I_K = init0(nrn_shape)          # [nA] ionic currents
+I_Na = init0(nrn_shape)         # [nA] ionic currents
+I_L = init0(nrn_shape)          # [nA] ionic currents
+E_Ca = init0(nrn_shape)         # [mV]
+I_Ca = init0(nrn_shape)         # [nA] ionic currents
+g_exc = init0(nrns_number)      # [S] conductivity level
+g_inh = init0(nrns_number)      # [S] conductivity level
+NODE_A = init0(nrn_shape)       # is the effect of this node on the parent node's equation
+NODE_B = init0(nrn_shape)       # is the effect of the parent node on this node's equation
+NODE_D = init0(nrn_shape)       # diagonal element in node equation
+NODE_RHS = init0(nrn_shape)     # right hand side in node equation
+NODE_RINV = init0(nrn_shape)    # is the effect of the parent node on this node's equation
+NODE_AREA = init0(nrn_shape)    # is the effect of the parent node on this node's equation
+old_Vm = init0(nrns_number)     # [mV] old value of Vm
+ref_time_timer = init0(nrns_number)   # [steps] refractory period timer
 
 spikes = []
+GRAS_data = []
 # todo recheck
 const3 = (np.log(np.sqrt(dx ** 2 + diam ** 2) + dx) - np.log(np.sqrt(dx ** 2 + diam ** 2) - dx)) / (4 * np.pi * dx * Re)
 
-axes_names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
-debug_headers = "iter Vm vv1 vv2 INa IK1 IK2 IL ECa ICa1 ICa2 m h p n mc hc cai".split()
-strformat = "{:<15.6f}" * len(debug_headers)
-headformat = "{:<15}" * len(debug_headers)
 rows = 5
 cols = 6
-GRAS_data = []
-sim_time_steps = int(sim_time / dt)  # simulation time
+sim_time_steps = int(sim_time / dt)
 
 def get_neuron_data():
 	with open("/home/alex/NEURTEST/tablelog") as file:
 		file.readline()
-		neuron_data = np.array([line.split("\t") for line in file]).astype(float)
+		neuron_data = [line.split("\t") for line in file]
+		neuron_data.append(neuron_data[-1])
+		neuron_data = np.array(neuron_data).astype(np.float)
 	return neuron_data
-
-########################
-data = get_neuron_data()
 
 def Exp(volt):
 	if volt < -100:
@@ -243,7 +237,8 @@ def save_data(to_end=False):
 		GRAS_data.append([cai[0, MID], I_L[0, MID], I_Na[0, MID], I_K[0, MID], I_Ca[0, MID],
 		                  E_Ca[0, MID], m[0, MID], h[0, MID], n[0, MID], p[0, MID], mc[0, MID], hc[0, MID]])
 
-def nrn_rhs(nrn, t):
+
+def nrn_rhs(nrn):
 	"""
 	void nrn_rhs(NrnThread *_nt) combined with the first part of nrn_lhs
 	calculate right hand side of
@@ -259,11 +254,8 @@ def nrn_rhs(nrn, t):
 	for seg in segs:
 		if seg == 0 or seg == nnode:
 			continue
-		if t == -1:
-			V = -70
-		else:
-			V = data[t, 22] # Vm[nrn, seg]
-# SYNAPTIC update
+		V = Vm[nrn, seg]
+		# SYNAPTIC update
 		# static void nrn_cur
 		_g = syn_current(nrn, V + 0.001)
 		_rhs = syn_current(nrn, V)
@@ -302,8 +294,6 @@ def nrn_rhs(nrn, t):
 		pnd = nd - 1
 		# double dv = NODEV(pnd) - NODEV(nd);
 		dv = Vm[nrn, pnd] - Vm[nrn, nd]
-		# fixme remove after Vm fixing
-		dv = 0
 		# our connection coefficients are negative so
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
 		NODE_RHS[nrn, pnd] += NODE_A[nrn, nd] * dv
@@ -315,7 +305,7 @@ def nrn_lhs(nrn):
 	"""
 	# nt->cj = 2/dt if (secondorder) else 1/dt
 	# note, the first is CAP
-	# nrn_cap_jacob(_nt, _nt->tml->ml);
+	# function nrn_cap_jacob(_nt, _nt->tml->ml);
 	cj = 1 / dt
 	cfac = 0.001 * cj
 	nodecount = 1
@@ -366,11 +356,11 @@ def nrn_solve(nrn):
 	triang(nrn)
 	bksub(nrn)
 
-def setup_tree_matrix(nrn, t):
+def setup_tree_matrix(nrn):
 	"""
 	void setup_tree_matrix(NrnThread* _nt)
 	"""
-	nrn_rhs(nrn, t)
+	nrn_rhs(nrn)
 	nrn_lhs(nrn)
 
 def update(nrn):
@@ -390,16 +380,25 @@ def update(nrn):
 	if ref_time_timer[nrn] > 0:
 		ref_time_timer[nrn] -= 1
 
-def nrn_fixed_step_lastpart(nrn, t):
-	# new V
-	V = data[t + 1][22]
-	recalc_synaptic(nrn)
-	for seg in segs:
-		recalc_channels(nrn, seg, V)
-
-def NET_RECEIVE(t):
+def deliver_net_events(t):
+	"""
+	void deliver_net_events(NrnThread* nt)
+	"""
 	if t in stimulus:
 		g_exc[0] += 5.5  # [uS]
+
+def nrn_deliver_events(nrn):
+	# spikes
+	pass
+
+def nrn_fixed_step_lastpart(nrn):
+	"""
+
+	"""
+	recalc_synaptic(nrn)
+	for seg in segs:
+		recalc_channels(nrn, seg, Vm[nrn, seg])
+	nrn_deliver_events(nrn)
 
 def nrn_area_ri():
 	"""
@@ -416,7 +415,6 @@ def nrn_area_ri():
 			rright = rleft
 		nd = nnode - 1 + 1
 		# last segment has 0 length. area is 1e2 in dimensionless units
-		# NODE_AREA[nrn, nd] = 1.e2
 		NODE_AREA[:, 0] = 100
 		NODE_AREA[:, nd] = 100
 		NODE_RINV[nrn, nd] = 1 / rright
@@ -430,20 +428,16 @@ def connection_coef():
 	# NODE_A is the effect of this node on the parent node's equation
 	# NODE_B is the effect of the parent node on this node's equation
 	for nrn in nrns:
-		# first the effect of node on parent equation. Note That
-		# last nodes have area = 1.e2 in dimensionless units so that
-		# last nodes have units of microsiemens
+		# first the effect of node on parent equation. Note that last nodes have area = 1.e2 in dimensionless
+		# units so that last nodes have units of microsiemens
 		#todo sec->pnode needs +1 index
 		nd = 1
-		area = NODE_AREA[nrn, nd - 1] # parentnode
-		# ClassicalNODEA
-		# sec->prop->dparam[4].val = 1
+		area = NODE_AREA[nrn, nd - 1]
+		# sec->prop->dparam[4].val = 1, what is dparam[4].val
 		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_RINV[nrn, nd] / area
 		# todo sec->pnode needs +1 index
-		for j in range(1 + 1, nnode + 1):
-			nd = j
-			pnd = j - 1
-			# ClassicalNODEA
+		for nd in range(1 + 1, nnode + 1):
+			pnd = nd - 1
 			NODE_A[nrn, nd] = -1.e2 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, pnd]
 		# now the effect of parent on node equation
 		# todo sec->pnode needs +1 index
@@ -457,29 +451,22 @@ def finitialize(v_init=-70):
 	connection_coef()
 	for nrn in nrns:
 		for seg in segs:
+			Vm[nrn, seg] = v_init
 			nrn_initial(nrn, seg, v_init)
-		setup_tree_matrix(nrn, -1)
-	# clean saved data
+		setup_tree_matrix(nrn)
 	GRAS_data.clear()
-	print(NODE_A[0, :])
-	print(NODE_RHS[0, :])
 
 def nrn_fixed_step_thread(t):
 	"""
 	void *nrn_fixed_step_thread(NrnThread *nth)
 	"""
-	print(f"=========== {t} ==============")
-
 	# update data for each neuron
 	for nrn in nrns:
-		# add stimulus
-		NET_RECEIVE(t)
-		setup_tree_matrix(nrn, t)
+		deliver_net_events(t)
+		setup_tree_matrix(nrn)
 		nrn_solve(nrn)
 		update(nrn)
-		nrn_fixed_step_lastpart(nrn, t)
-
-	print("=========== END UPDATE ==============")
+		nrn_fixed_step_lastpart(nrn)
 
 def simulation():
 	"""
@@ -487,26 +474,27 @@ def simulation():
 	"""
 	finitialize()
 	# start simulation loop
-	for t in range(sim_time_steps - 2):
+	for t in range(sim_time_steps):
 		nrn_fixed_step_thread(t)
 
 def plot(gras_data, neuron_data):
 	"""
 
 	"""
+	names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
+
 	plt.close()
 	fig, ax = plt.subplots(rows, cols, sharex='all')
 	xticks = np.arange(neuron_data.shape[0]) * dt
 	# plot NEURON and GRAS
-	for index, (neuron_d, gras_d, name) in enumerate(zip(neuron_data.T, gras_data.T, axes_names.split())):
+	for index, (neuron_d, gras_d, name) in enumerate(zip(neuron_data.T, gras_data.T, names.split())):
 		row = int(index / cols)
 		col = index % cols
 		if row >= rows:
 			break
-		if all(np.abs(neuron_d - gras_d) <= 5 * 1e-5):
+		if all(np.abs(neuron_d - gras_d) <= 1e-5):
 			ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3, ls='--')
 		else:
-			print(name, max(np.abs(neuron_d - gras_d)))
 			ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3)
 			ax[row, col].plot(xticks, gras_d, label='GRAS', lw=1, color='r')
 		# ax[row, col].plot(spikes, [np.mean(neuron_data)] * len(spikes), '.', color='r', ms=10)
