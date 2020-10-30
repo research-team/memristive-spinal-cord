@@ -17,7 +17,8 @@ log.basicConfig(level=log.INFO)
 def init0(shape, dtype=np.float):
 	return np.zeros(shape, dtype=dtype)
 
-test_inter = False
+
+test_model = 'moto' # 'inter' 'muscle'
 dt = 0.025  # [ms] - sim step
 nrns_number = 1
 nrns = list(range(nrns_number))
@@ -25,18 +26,20 @@ nrns = list(range(nrns_number))
 sim_time = 50
 stimulus = (np.arange(11, sim_time, 25) / dt).astype(int)
 
-Re = 333        # [Ohm cm] Resistance of extracellular space
 E_Na = 50       # [mV] - reversal potential
 E_K = -80       # [mV] - reversal potential
 E_L = -70       # [mV] - reversal potential
 E_ex = 50       # [mV] - reversal potential
-E_in = -100     # [mV] reverse inh
+E_in = -80     # [mV] reverse inh
 V_adj = -63     # [mV] - adjust voltage for -55 threshold
 tau_syn_exc = 0.3       # [ms]
 tau_syn_inh = 2.0       # [ms]
 ref_time = int(3 / dt)  # [steps]
 
-if test_inter:
+if test_model == 'inter':
+	'''
+	
+	'''
 	Cm = 1          # [uF/cm2] membrane capacity
 	g_Na = 120      # [S / cm2]
 	g_K = 36        # [S / cm2]
@@ -44,7 +47,10 @@ if test_inter:
 	Ra = 100        # [Ohm cm]
 	diam = 6        # [um]
 	dx = 2          # [um]
-else:
+elif test_model == 'moto':
+	'''
+	
+	'''
 	Cm = 2          # [uF/cm2] membrane capacity
 	gnabar = 0.05   # [S/cm2]
 	g_L = 0.002     # [S/cm2]
@@ -64,10 +70,41 @@ else:
 	bmC = 5         # const ???
 	R = 8.314472    # (k-mole) (joule/degC) const
 	F = 96485.34    # (faraday) (kilocoulombs) const
+elif test_model == 'muscle':
+	'''
+	state
+	m h n s l
+	'''
+	Cm = 3.6
+	Ra = 1.1
+	E_Na = 55
+	E_K = -80
+	dx = 3000
+	diam = 40
+	gnabar = 0.15   # (S/cm2)
+	gkbar = 0.03    # (S/cm2)
+	gl = 0.0002     # (mV)
+	el = -72        # (mV)
+	g_kno = 0.01    # (S/cm2)
+	g_kir = 0.03    # (S/cm2)
+	ena = 50        # (mV)
+	ek = -90        # (mV)
+	celsius = 36    # (degC)
+	# Boltzman steady state curve
+	vhalfl = -98.92     # (mV) fitted to patch data, Stegen et al. 2012
+	kl = 10.89          # (mV) Stegen et al. 2012
+	# tau_infty
+	vhalft = 67.0828    # (mV) fitted #100 uM sens curr 350a,  Stegen et al. 2012
+	at = 0.00610779     # (/ ms) Stegen et al. 2012
+	bt = 0.0817741      # (/ ms) Note: typo in Stegen et al. 2012
+	# Temperature dependence
+	q10 = 1             # temperature scaling
+else:
+	raise Exception("Choose the model")
 
-_nt_ncell = 1       # analogous to old rootnodecount
-nnode = 2           # Number of nodes for ith section
-_nt_end = 3         # 1 + position of last in v_node array
+_nt_ncell = 1       # neurons count
+nnode = 2           # number of nodes for ith section
+_nt_end = 3         # _nt_ncell * segs + 2 * segs or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
 segs = list(range(_nt_end))
 i1 = 0
 i2 = i1 + _nt_ncell
@@ -80,37 +117,36 @@ Vm = init0(nrn_shape)           # [mV] - array for three compartments volatge
 n = init0(nrn_shape)            # [0..1] compartments channel
 m = init0(nrn_shape)            # [0..1] compartments channel
 h = init0(nrn_shape)            # [0..1] compartments channel
-cai = init0(nrn_shape)          # [0..1] compartments channel
+l = init0(nrn_shape)            # [0..1] compartments channel
+s = init0(nrn_shape)            # [0..1] compartments channel
+p = init0(nrn_shape)            # [0..1] compartments channel
 hc = init0(nrn_shape)           # [0..1] compartments channel
 mc = init0(nrn_shape)           # [0..1] compartments channel
-p = init0(nrn_shape)            # [0..1] compartments channel
+cai = init0(nrn_shape)          # [0..1] compartments channel
+I_L = init0(nrn_shape)          # [nA] ionic currents
 I_K = init0(nrn_shape)          # [nA] ionic currents
 I_Na = init0(nrn_shape)         # [nA] ionic currents
-I_L = init0(nrn_shape)          # [nA] ionic currents
-E_Ca = init0(nrn_shape)         # [mV]
 I_Ca = init0(nrn_shape)         # [nA] ionic currents
+E_Ca = init0(nrn_shape)         # [mV]
 g_exc = init0(nrns_number)      # [S] conductivity level
 g_inh = init0(nrns_number)      # [S] conductivity level
+
 NODE_A = init0(nrn_shape)       # is the effect of this node on the parent node's equation
 NODE_B = init0(nrn_shape)       # is the effect of the parent node on this node's equation
 NODE_D = init0(nrn_shape)       # diagonal element in node equation
 NODE_RHS = init0(nrn_shape)     # right hand side in node equation
 NODE_RINV = init0(nrn_shape)    # is the effect of the parent node on this node's equation
 NODE_AREA = init0(nrn_shape)    # is the effect of the parent node on this node's equation
-old_Vm = init0(nrns_number)     # [mV] old value of Vm
-ref_time_timer = init0(nrns_number)   # [steps] refractory period timer
+
+old_Vm = init0(nrns_number)             # [mV] old value of Vm
+ref_time_timer = init0(nrns_number)     # [steps] refractory period timer
 
 spikes = []
 GRAS_data = []
-# todo recheck
-const3 = (np.log(np.sqrt(dx ** 2 + diam ** 2) + dx) - np.log(np.sqrt(dx ** 2 + diam ** 2) - dx)) / (4 * np.pi * dx * Re)
-
-rows = 5
-cols = 6
 sim_time_steps = int(sim_time / dt)
 
 def get_neuron_data():
-	with open("/home/alex/NEURTEST/tablelog") as file:
+	with open("/home/alex/NRNTEST/classic/tablelog") as file:
 		file.readline()
 		neuron_data = [line.split("\t") for line in file]
 		neuron_data.append(neuron_data[-1])
@@ -138,7 +174,7 @@ def syn_current(nrn, voltage):
 	"""
 	return g_exc[nrn] * (voltage - E_ex) + g_inh[nrn] * (voltage - E_in)
 
-def nrn_current(nrn, seg, voltage):
+def nrn_moto_current(nrn, seg, voltage):
 	"""
 
 	"""
@@ -156,6 +192,20 @@ def nrn_current(nrn, seg, voltage):
 
 	return ina + ik + il + ica
 
+def nrn_muscle_current(nrn, seg, voltage):
+	"""
+
+	"""
+	ina = gnabar * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - E_Na)
+	ik = gkbar * n[nrn, seg] ** 4 * (voltage - E_K)
+	il = g_L * (voltage - E_L)
+	# save
+	I_Na[nrn, seg] = ina
+	I_K[nrn, seg] = ik
+	I_L[nrn, seg] = il
+
+	return ina + ik + il
+
 def recalc_synaptic(nrn):
 	"""
 
@@ -163,7 +213,7 @@ def recalc_synaptic(nrn):
 	g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
 	g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
 
-def nrn_initial(nrn, seg, V):
+def nrn_moto_initial(nrn, seg, V):
 	"""
 	evaluate_fct cropped
 	"""
@@ -184,7 +234,28 @@ def nrn_initial(nrn, seg, V):
 	hc[nrn, seg] = hc_inf
 	cai[nrn, seg] = 0.0001
 
-def recalc_channels(nrn, seg, V):
+def nrn_muslce_initial(nrn, seg, V):
+	"""
+	evaluate_fct cropped
+	"""
+	V_mem = V - V_adj
+	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
+	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
+	m_inf = a / (a + b)
+
+	a = 0.128 * np.exp((17 - V_mem) / 18)
+	b = 4 / (1 + np.exp((40 - V_mem) / 5))
+	h_inf = a / (a + b)
+
+	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
+	b = 0.5 * np.exp((10 - V_mem) / 40)
+	n_inf = a / (a + b)
+	"""INITIAL"""
+	m[nrn, seg] = m_inf
+	h[nrn, seg] = h_inf
+	n[nrn, seg] = n_inf
+
+def recalc_moto_channels(nrn, seg, V):
 	"""
 
 	"""
@@ -226,6 +297,51 @@ def recalc_channels(nrn, seg, V):
 	assert 0 <= p[nrn, seg] <= 1
 	assert 0 <= mc[nrn, seg] <= 1
 	assert 0 <= hc[nrn, seg] <= 1
+
+def recalc_muslce_channels(nrn, seg, V):
+	"""
+
+	"""
+	# BREAKPOINT -> states -> evaluate_fct
+	"""evaluate_fct"""
+	V_mem = V - V_adj
+	#
+	a = 0.32 * (13.0 - V_mem) / (np.exp((13.0 - V_mem) / 4.0) - 1.0)
+	b = 0.28 * (V_mem - 40.0) / (np.exp((V_mem - 40.0) / 5.0) - 1.0)
+	tau_m = 1.0 / (a + b)
+	m_inf = a / (a + b)
+	#
+	a = 0.128 * np.exp((17.0 - V_mem) / 18.0)
+	b = 4.0 / (1.0 + np.exp((40.0 - V_mem) / 5.0))
+	tau_h = 1.0 / (a + b)
+	h_inf = a / (a + b)
+	#
+	a = 0.032 * (15.0 - V_mem) / (np.exp((15.0 - V_mem) / 5.0) - 1.0)
+	b = 0.5 * np.exp((10.0 - V_mem) / 40.0)
+	tau_n = 1 / (a + b)
+	n_inf = a / (a + b)
+	#
+	qt = q10 ** ((celsius - 33.0) / 10.0)
+	linf = 1.0 / (1.0 + np.exp((V - vhalfl) / kl))
+	taul = 1.0 / (qt * (at * np.exp(-V / vhalft) + bt * np.exp(V / vhalft)))
+	alpha = 0.3 / (1.0 + np.exp((V + 43.0) / - 5.0))
+	beta = 0.03 / (1.0 + np.exp((V + 80.0) / - 1.0))
+	summ = alpha + beta
+	stau = 1.0 / summ
+	sinf = alpha / summ
+	"""states"""
+	m[nrn, seg] += (1 - np.exp(dt * (-1 / tau_m))) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(dt * (-1 / tau_h))) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(dt * (-1 / tau_n))) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
+	l[nrn, seg] += (1 - np.exp(dt * (-1 / taul))) * (-(linf / taul) / (-1 / taul) - l[nrn, seg])
+	s[nrn, seg] += (1 - np.exp(dt * (-1 / stau))) * (-(sinf / stau) / (-1 / stau) - s[nrn, seg])
+
+	assert -200 <= Vm[nrn, seg] <= 200
+	assert 0 <= m[nrn, seg] <= 1
+	assert 0 <= n[nrn, seg] <= 1
+	assert 0 <= h[nrn, seg] <= 1
+	assert 0 <= l[nrn, seg] <= 1
+	assert 0 <= s[nrn, seg] <= 1
 
 def save_data(to_end=False):
 	if to_end:
@@ -269,8 +385,8 @@ def nrn_rhs(nrn):
 
 		# NEURON update
 		# static void nrn_cur
-		_g = nrn_current(nrn, seg, V + 0.001)
-		_rhs = nrn_current(nrn, seg, V)
+		_g = nrn_moto_current(nrn, seg, V + 0.001)
+		_rhs = nrn_moto_current(nrn, seg, V)
 		# save data like in NEURON (after .mod nrn_cur)
 		save_data()
 		_g = (_g - _rhs) / 0.001
@@ -320,7 +436,7 @@ def nrn_lhs(nrn):
 	# activclamp_lhs();
 	# NODE_D[nrn, seg] += 0
 
-	# updating D
+	# updating DЗ
 	for nd in range(i2, i3):
 		pnd = nd - 1
 		NODE_D[nrn, nd] -= NODE_B[nrn, nd]
@@ -397,7 +513,7 @@ def nrn_fixed_step_lastpart(nrn):
 	"""
 	recalc_synaptic(nrn)
 	for seg in segs:
-		recalc_channels(nrn, seg, Vm[nrn, seg])
+		recalc_moto_channels(nrn, seg, Vm[nrn, seg])
 	nrn_deliver_events(nrn)
 
 def nrn_area_ri():
@@ -452,7 +568,7 @@ def finitialize(v_init=-70):
 	for nrn in nrns:
 		for seg in segs:
 			Vm[nrn, seg] = v_init
-			nrn_initial(nrn, seg, v_init)
+			nrn_moto_initial(nrn, seg, v_init)
 		setup_tree_matrix(nrn)
 	GRAS_data.clear()
 
@@ -482,6 +598,8 @@ def plot(gras_data, neuron_data):
 
 	"""
 	names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
+	rows = 5
+	cols = 6
 
 	plt.close()
 	fig, ax = plt.subplots(rows, cols, sharex='all')
