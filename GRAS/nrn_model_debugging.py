@@ -13,105 +13,73 @@ import matplotlib.pyplot as plt
 
 log.basicConfig(level=log.INFO)
 
-def init0(shape, dtype=np.float):
-	return np.zeros(shape, dtype=dtype)
-
-
-test_model = 'moto' # 'inter' 'muscle'
 dt = 0.025  # [ms] - sim step
 sim_time = 50
+sim_time_steps = int(sim_time / dt)
+save_neuron_id = 1
 stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
 
-E_Na = 50       # [mV] - reversal potential
-E_K = -80       # [mV] - reversal potential
-E_L = -70       # [mV] - reversal potential
-E_ex = 50       # [mV] - reversal potential
-E_in = -80      # [mV] reverse inh
-V_adj = -63     # [mV] - adjust voltage for -55 threshold
-tau_syn_exc = 0.3       # [ms]
-tau_syn_inh = 2.0       # [ms]
-ref_time = int(3 / dt)  # [steps]
+"""common const"""
+E_ex = 50           # [mV] reversal potential
+E_in = -80          # [mV] reverse inh
+V_adj = -63         # [mV] adjust voltage for -55 threshold
+tau_syn_exc = 0.3   # [ms] todo
+tau_syn_inh = 2.0   # [ms] todo
+"""moto const"""
+ca0 = 2         # const ??? todo
+amA = 0.4       # const ??? todo
+amB = 66        # const ??? todo
+amC = 5         # const ??? todo
+bmA = 0.4       # const ??? todo
+bmB = 32        # const ??? todo
+bmC = 5         # const ??? todo
+R_const = 8.314472    # [k-mole] or [joule/degC] const
+F_const = 96485.34    # [faraday] or [kilocoulombs] const
+"""muscle const"""
+g_kno = 0.01    # [S/cm2] ?? todo
+g_kir = 0.03    # [S/cm2] ?? todo
+# Boltzman steady state curve
+vhalfl = -98.92 # [mV] fitted to patch data, Stegen et al. 2012
+kl = 10.89      # [mV] Stegen et al. 2012
+# tau_infty
+vhalft = 67.0828    # [mV] fitted #100 uM sens curr 350a, Stegen et al. 2012
+at = 0.00610779     # [/ ms] Stegen et al. 2012
+bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
+# Temperature dependence
+q10 = 1         # temperature scaling
+celsius = 36    # [degC]
 
-if test_model == 'inter':
-	'''
-	
-	'''
-	Cm = 1          # [uF/cm2] membrane capacity
-	g_Na = 120      # [S / cm2]
-	g_K = 36        # [S / cm2]
-	g_L = 0.3       # [S / cm2]
-	Ra = 100        # [Ohm cm]
-	diam = 6        # [um]
-	dx = 2          # [um]
-elif test_model == 'moto':
-	'''
-	
-	'''
-	Cm = 2          # [uF/cm2] membrane capacity
-	gnabar = 0.05   # [S/cm2]
-	g_L = 0.002     # [S/cm2]
-	gkrect = 0.3    # [S/cm2]
-	gcaN = 0.05     # const ???
-	gcaL = 0.0001   # const ???
-	gcak = 0.3      # const ???
-	Ra = 200        # [Ohm cm]
-	diam = 50       # [um] diameter
-	dx = 50         # [um] compartment length
-	ca0 = 2         # const ???
-	amA = 0.4       # const ???
-	amB = 66        # const ???
-	amC = 5         # const ???
-	bmA = 0.4       # const ???
-	bmB = 32        # const ???
-	bmC = 5         # const ???
-	R = 8.314472    # (k-mole) (joule/degC) const
-	F = 96485.34    # (faraday) (kilocoulombs) const
-elif test_model == 'muscle':
-	'''
-	state
-	m h n s l
-	'''
-	Cm = 3.6
-	Ra = 1.1
-	E_Na = 55
-	E_K = -80
-	dx = 3000
-	diam = 40
-	gnabar = 0.15   # (S/cm2)
-	gkbar = 0.03    # (S/cm2)
-	gl = 0.0002     # (mV)
-	el = -72        # (mV)
-	g_kno = 0.01    # (S/cm2)
-	g_kir = 0.03    # (S/cm2)
-	ena = 50        # (mV)
-	ek = -90        # (mV)
-	celsius = 36    # (degC)
-	# Boltzman steady state curve
-	vhalfl = -98.92     # (mV) fitted to patch data, Stegen et al. 2012
-	kl = 10.89          # (mV) Stegen et al. 2012
-	# tau_infty
-	vhalft = 67.0828    # (mV) fitted #100 uM sens curr 350a,  Stegen et al. 2012
-	at = 0.00610779     # (/ ms) Stegen et al. 2012
-	bt = 0.0817741      # (/ ms) Note: typo in Stegen et al. 2012
-	# Temperature dependence
-	q10 = 1             # temperature scaling
-else:
-	raise Exception("Choose the model")
+_nt_ncell = 1   # neurons count
+nnode = 2       # number of nodes for ith section
+_nt_end = 3     # _nt_ncell * segs + 2 * segs or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
 
-_nt_ncell = 1       # neurons count
-nnode = 2           # number of nodes for ith section
-_nt_end = 3         # _nt_ncell * segs + 2 * segs or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
 segs = list(range(_nt_end))
 i1 = 0
 i2 = i1 + _nt_ncell
 i3 = _nt_end
 
-# 0 generator
-# 1 inter
-# 2 moto
-# 3 muscle
-models = (0, 1, 2, 3)
+def init0(shape, dtype=np.float):
+	return np.zeros(shape, dtype=dtype)
+
 nrns_number = 0
+nrn_models = []
+# common properties
+Cm = init0(100)         # [uF/cm2] membrane capacity
+gnabar = init0(100)     # [S / cm2] todo
+gkbar = init0(100)      # [S / cm2]g_K todo
+gl = init0(100)         # [S / cm2] todo
+Ra = init0(100)         # [Ohm cm]
+diam = init0(100)       # [um] diameter
+dx = init0(100)         # [um] compartment length
+ena = init0(100)        # [mV] todo
+ek = init0(100)         # [mV] todo
+el = init0(100)         # [mV] todo
+# moto properties
+gkrect = init0(100)     # [S / cm2] todo
+gcaN = init0(100)       # [S / cm2] todo
+gcaL = init0(100)       # [S / cm2] todo
+gcak = init0(100)       # [S / cm2] todo
+# synapses data
 syn_pre_nrn = []
 syn_post_nrn = []
 syn_weight = []
@@ -119,9 +87,87 @@ syn_delay = []
 syn_delay_timer = []
 
 def create(number, model='inter'):
-	global nrns_number
+	"""
+
+	"""
+	global nrns_number, nrn_models, Cm, gnabar, gkbar, gl, Ra, diam, dx
 	ids = list(range(nrns_number, nrns_number + number))
+	#
+	__Cm = None
+	__gnabar = None
+	__gkbar = None
+	__gl = None
+	__Ra = None
+	__ena = None
+	__ek = None
+	__el = None
+	__diam = None
+	__dx = None
+	__gkrect = None
+	__gcaN = None
+	__gcaL = None
+	__gcak = None
+	# without random at first stage of debugging
+	for nrnid in ids:
+		if model == 'inter':
+			__Cm = 1
+			__gnabar = 120
+			__gkbar = 36
+			__gl = 0.3
+			__Ra = 100
+			__ena = 50
+			__ek = -80
+			__el = -70
+			__diam = 6
+			__dx = 6
+		elif model == 'moto':
+			__Cm = 2
+			__gnabar = 0.05
+			__gl = 0.002
+			__Ra = 200
+			__ena = 50
+			__ek = -80
+			__el = -70
+			__diam = 50
+			__dx = 50
+			__gkrect = 0.3
+			__gcaN = 0.05
+			__gcaL = 0.0001
+			__gcak = 0.3
+		elif model == 'muscle':
+			__Cm = 3.6
+			__gnabar = 0.15
+			__gkbar = 0.03
+			__gl = 0.0002
+			__Ra = 1.1
+			__ena = 55
+			__ek = -80
+			__el = -72
+			__diam = 40
+			__dx = 3000
+		elif model == 'generator':
+			pass
+		else:
+			raise Exception("Choose the model")
+
+		# common properties
+		Cm[nrnid] = __Cm
+		gnabar[nrnid] = __gnabar
+		gkbar[nrnid] = __gkbar
+		gl[nrnid] = __gl
+		el[nrnid] = __el
+		ena[nrnid] = __ena
+		ek[nrnid] = __ek
+		Ra[nrnid] = __Ra
+		diam[nrnid] = __diam
+		dx[nrnid] = __dx
+		gkrect[nrnid] = __gkrect
+		gcaN[nrnid] = __gcaN
+		gcaL[nrnid] = __gcaL
+		gcak[nrnid] = __gcak
+
 	nrns_number += number
+	nrn_models += [model] * number
 	return ids
 
 def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
@@ -137,15 +183,17 @@ def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
 				syn_delay.append(int(delay / dt))
 				syn_delay_timer.append(-1)
 
-gen = create(1, 'gen')
-n1 = create(1, 'moto')
+gen = create(1, model='generator')
+n1 = create(1, model='moto')
+m1 = create(1, model='muscle')
 connect(gen, n1, delay=1, weight=5.5, typ='all-to-all')
+connect(n1, m1, delay=1, weight=40.5, typ='all-to-all')
 
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
 
 # global variables
-Vm = init0(nrn_shape)           # [mV] - array for three compartments volatge
+Vm = init0(nrn_shape)           # [mV] array for three compartments volatge
 n = init0(nrn_shape)            # [0..1] compartments channel
 m = init0(nrn_shape)            # [0..1] compartments channel
 h = init0(nrn_shape)            # [0..1] compartments channel
@@ -155,52 +203,55 @@ p = init0(nrn_shape)            # [0..1] compartments channel
 hc = init0(nrn_shape)           # [0..1] compartments channel
 mc = init0(nrn_shape)           # [0..1] compartments channel
 cai = init0(nrn_shape)          # [0..1] compartments channel
-I_L = init0(nrn_shape)          # [nA] ionic currents
-I_K = init0(nrn_shape)          # [nA] ionic currents
-I_Na = init0(nrn_shape)         # [nA] ionic currents
-I_Ca = init0(nrn_shape)         # [nA] ionic currents
-E_Ca = init0(nrn_shape)         # [mV]
-g_exc = init0(nrns_number)      # [S] conductivity level
-g_inh = init0(nrns_number)      # [S] conductivity level
-has_spike = init0(nrns_number, dtype=bool)  # [S] conductivity level
-
-NODE_A = init0(nrn_shape)       # is the effect of this node on the parent node's equation
-NODE_B = init0(nrn_shape)       # is the effect of the parent node on this node's equation
+I_L = init0(nrn_shape)          # [nA] leak ionic currents
+I_K = init0(nrn_shape)          # [nA] K ionic currents
+I_Na = init0(nrn_shape)         # [nA] Na ionic currents
+I_Ca = init0(nrn_shape)         # [nA] Ca ionic currents
+E_Ca = init0(nrn_shape)         # [mV] Ca reversal potential
+g_exc = init0(nrns_number)      # [S] excitatory conductivity level
+g_inh = init0(nrns_number)      # [S] inhibitory conductivity level
+NODE_A = init0(nrn_shape)       # the effect of this node on the parent node's equation
+NODE_B = init0(nrn_shape)       # the effect of the parent node on this node's equation
 NODE_D = init0(nrn_shape)       # diagonal element in node equation
 NODE_RHS = init0(nrn_shape)     # right hand side in node equation
-NODE_RINV = init0(nrn_shape)    # is the effect of the parent node on this node's equation
-NODE_AREA = init0(nrn_shape)    # is the effect of the parent node on this node's equation
-
-old_Vm = init0(nrns_number)             # [mV] old value of Vm
-ref_time_timer = init0(nrns_number)     # [steps] refractory period timer
+NODE_RINV = init0(nrn_shape)    # conductance uS from node to parent
+NODE_AREA = init0(nrn_shape)    # area of a node in um^2
+has_spike = init0(nrns_number, dtype=bool)  # spike flag for each neuron
 
 spikes = []
 GRAS_data = []
-sim_time_steps = int(sim_time / dt)
-
 
 def get_neuron_data():
-	with open("/home/alex/NRNTEST/classic/tablelog") as file:
+	with open("/home/alex/NRNTEST/classic/motoneuron.log") as file:
 		file.readline()
 		neuron_data = [line.split("\t") for line in file]
 		neuron_data.append(neuron_data[-1])
 		neuron_data = np.array(neuron_data).astype(np.float)
 	return neuron_data
 
+def save_data(to_end=False):
+	inrn = save_neuron_id
+	if to_end:
+		GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
+		                  NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
+		                  NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
+	else:
+		MID = 1
+		GRAS_data.append([cai[inrn, MID], I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], I_Ca[inrn, MID],
+		                  E_Ca[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], p[inrn, MID], mc[inrn, MID], hc[inrn, MID]])
+
 def Exp(volt):
-	if volt < -100:
-		return 0
-	return np.exp(volt)
+	return 0 if volt < -100 else np.exp(volt)
 
 def alpham(volt):
 	if abs((volt + amB) / amC) < 1e-6:
 		return amA * amC
-	return (amA * (volt + amB)) / (1 - Exp(-(volt + amB) / amC))
+	return amA * (volt + amB) / (1 - Exp(-(volt + amB) / amC))
 
 def betam(volt):
 	if abs((volt + bmB) / bmC) < 1e-6:
 		return -bmA * bmC
-	return (bmA * (-(volt + bmB))) / (1 - Exp((volt + bmB) / bmC))
+	return -bmA * (volt + bmB) / (1 - Exp((volt + bmB) / bmC))
 
 def syn_current(nrn, voltage):
 	"""
@@ -212,11 +263,11 @@ def nrn_moto_current(nrn, seg, voltage):
 	"""
 
 	"""
-	ina = gnabar * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - E_Na)
-	ik = gkrect * n[nrn, seg] ** 4 * (voltage - E_K) + gcak * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - E_K)
-	il = g_L * (voltage - E_L)
-	Eca = (1000 * R * 309.15 / (2 * F)) * np.log(ca0 / cai[nrn, seg])
-	ica = gcaN * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - Eca) + gcaL * p[nrn, seg] * (voltage - Eca)
+	ina = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	ik = gkrect[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn]) + gcak[nrn] * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - ek[nrn])
+	il = gl[nrn] * (voltage - el[nrn])
+	Eca = (1000 * R_const * 309.15 / (2 * F_const)) * np.log(ca0 / cai[nrn, seg])
+	ica = gcaN[nrn] * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - Eca) + gcaL[nrn] * p[nrn, seg] * (voltage - Eca)
 	# save
 	I_Na[nrn, seg] = ina
 	I_K[nrn, seg] = ik
@@ -230,9 +281,9 @@ def nrn_muscle_current(nrn, seg, voltage):
 	"""
 
 	"""
-	ina = gnabar * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - E_Na)
-	ik = gkbar * n[nrn, seg] ** 4 * (voltage - E_K)
-	il = g_L * (voltage - E_L)
+	ina = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	ik = gkbar[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn])
+	il = gl[nrn] * (voltage - el[nrn])
 	# save
 	I_Na[nrn, seg] = ina
 	I_K[nrn, seg] = ik
@@ -254,6 +305,27 @@ def recalc_synaptic(nrn):
 		# fixme is worth?
 		if g_inh[nrn] < 1e-10:
 			g_inh[nrn] = 0
+
+def nrn_inter_initial(nrn, seg, V):
+	"""
+	evaluate_fct cropped
+	"""
+	V_mem = V - V_adj
+	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
+	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
+	m_inf = a / (a + b)
+
+	a = 0.128 * np.exp((17 - V_mem) / 18)
+	b = 4 / (1 + np.exp((40 - V_mem) / 5))
+	h_inf = a / (a + b)
+
+	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
+	b = 0.5 * np.exp((10 - V_mem) / 40)
+	n_inf = a / (a + b)
+	"""INITIAL"""
+	m[nrn, seg] = m_inf
+	h[nrn, seg] = h_inf
+	n[nrn, seg] = n_inf
 
 def nrn_moto_initial(nrn, seg, V):
 	"""
@@ -372,6 +444,7 @@ def recalc_muslce_channels(nrn, seg, V):
 	stau = 1.0 / summ
 	sinf = alpha / summ
 	"""states"""
+
 	m[nrn, seg] += (1 - np.exp(dt * (-1 / tau_m))) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
 	h[nrn, seg] += (1 - np.exp(dt * (-1 / tau_h))) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
 	n[nrn, seg] += (1 - np.exp(dt * (-1 / tau_n))) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
@@ -384,18 +457,6 @@ def recalc_muslce_channels(nrn, seg, V):
 	assert 0 <= h[nrn, seg] <= 1
 	assert 0 <= l[nrn, seg] <= 1
 	assert 0 <= s[nrn, seg] <= 1
-
-def save_data(to_end=False):
-	inrn = 1
-	if to_end:
-		GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
-		                  NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
-		                  NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
-	else:
-		MID = 1
-		GRAS_data.append([cai[inrn, MID], I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], I_Ca[inrn, MID],
-		                  E_Ca[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], p[inrn, MID], mc[inrn, MID], hc[inrn, MID]])
-
 
 def nrn_rhs(nrn):
 	"""
@@ -428,10 +489,21 @@ def nrn_rhs(nrn):
 
 		# NEURON update
 		# static void nrn_cur
-		_g = nrn_moto_current(nrn, seg, V + 0.001)
-		_rhs = nrn_moto_current(nrn, seg, V)
+		if nrn_models[nrn] == 'inter':
+			# muscle and inter has the same fast_channel function
+			_g = nrn_muscle_current(nrn, seg, V + 0.001)
+			_rhs = nrn_muscle_current(nrn, seg, V)
+		elif nrn_models[nrn] == 'moto':
+			_g = nrn_moto_current(nrn, seg, V + 0.001)
+			_rhs = nrn_moto_current(nrn, seg, V)
+		elif nrn_models[nrn] == 'muscle':
+			# muscle and inter has the same fast_channel function
+			_g = nrn_muscle_current(nrn, seg, V + 0.001)
+			_rhs = nrn_muscle_current(nrn, seg, V)
+		else:
+			raise Exception('No nrn model found')
 		# save data like in NEURON (after .mod nrn_cur)
-		if nrn == 1:
+		if nrn == save_neuron_id:
 			save_data()
 		_g = (_g - _rhs) / 0.001
 		NODE_RHS[nrn, seg] -= _rhs
@@ -449,7 +521,7 @@ def nrn_rhs(nrn):
 	# activclamp_rhs()
 	# NODE_rhs[nrn, seg] += 0
 
-	# todo always 0, because Vm0 = Vm1 = Vm2 at CAP node CAP model
+	# todo always 0, because Vm0 = Vm1 = Vm2 at [CAP node CAP] model (1 section)
 	for nd in range(i2, i3):
 		pnd = nd - 1
 		# double dv = NODEV(pnd) - NODEV(nd);
@@ -471,7 +543,7 @@ def nrn_lhs(nrn):
 	nodecount = 1
 	# fixme +1 for nodelist
 	for nd in range(0 + 1, nodecount + 1):
-		NODE_D[nrn, nd] += cfac * Cm
+		NODE_D[nrn, nd] += cfac * Cm[nrn]
 
 	# activsynapse_lhs()
 	# NODE_D[nrn, seg] += 0
@@ -480,7 +552,7 @@ def nrn_lhs(nrn):
 	# activclamp_lhs();
 	# NODE_D[nrn, seg] += 0
 
-	# updating DЗ
+	# updating NODED
 	for nd in range(i2, i3):
 		pnd = nd - 1
 		NODE_D[nrn, nd] -= NODE_B[nrn, nd]
@@ -531,15 +603,8 @@ def update(nrn):
 		Vm[nrn, nd] += NODE_RHS[nrn, nd]
 
 	# save data like in NEURON (after .mod nrn_cur)
-	if nrn == 1:
+	if nrn == save_neuron_id:
 		save_data(to_end=True)
-	# check on spike
-	# if ref_time_timer[nrn_id] == 0 and -55 <= Vm[nrn_id, 0]:
-	# 	ref_time_timer[nrn_id] = ref_time
-	# spikes.append(t * dt)
-	# update refractory period timer
-	if ref_time_timer[nrn] > 0:
-		ref_time_timer[nrn] -= 1
 
 def deliver_net_events(t):
 	"""
@@ -561,13 +626,13 @@ def deliver_net_events(t):
 	# reset spikes
 	has_spike[:] = False
 
-
 def nrn_deliver_events(nrn):
 	"""
 
 	"""
-	if V_adj + 30 <= Vm[nrn, 1] < old_Vm[nrn]:
-		has_spike[nrn] = True
+	# if V_adj + 30 <= Vm[nrn, 1] < old_Vm[nrn]:
+	# 	has_spike[nrn] = True
+	pass
 
 def nrn_fixed_step_lastpart(nrn):
 	"""
@@ -577,7 +642,6 @@ def nrn_fixed_step_lastpart(nrn):
 	for seg in segs:
 		recalc_moto_channels(nrn, seg, Vm[nrn, seg])
 	nrn_deliver_events(nrn)
-
 
 def nrn_area_ri():
 	"""
@@ -589,8 +653,8 @@ def nrn_area_ri():
 		# todo sec->pnode needs +1 index
 		for nd in range(0 + 1, nnode - 1 + 1):
 			# Todo take in action that hard code
-			NODE_AREA[nrn, nd] = np.pi * dx * diam
-			rleft = 1e-2 * Ra * (dx / 2) / (np.pi * diam * diam / 4) # left half segment Megohms
+			NODE_AREA[nrn, nd] = np.pi * dx[nrn] * diam[nrn]
+			rleft = 1e-2 * Ra[nrn] * (dx[nrn] / 2) / (np.pi * diam[nrn] * diam[nrn] / 4) # left half segment Megohms
 			NODE_RINV[nrn, nd] = 1 / (rleft + rright) # uS
 			rright = rleft
 		nd = nnode - 1 + 1
@@ -628,12 +692,27 @@ def finitialize(v_init=-70):
 	"""
 
 	"""
+	# todo do not invoke for generators
 	connection_coef()
+	# for different models -- different init function
 	for nrn in nrns:
+		# do not init neuron state for generator
+		if nrn_models[nrn] == 'generator':
+			continue
+		# for each segment init the neuron model
 		for seg in segs:
 			Vm[nrn, seg] = v_init
-			nrn_moto_initial(nrn, seg, v_init)
+			if nrn_models[nrn] == 'inter':
+				nrn_inter_initial(nrn, seg, v_init)
+			elif nrn_models[nrn] == 'moto':
+				nrn_moto_initial(nrn, seg, v_init)
+			elif nrn_models[nrn] == 'muscle':
+				nrn_muslce_initial(nrn, seg, v_init)
+			else:
+				raise Exception("No nrn model found")
+		# init RHS/LHS
 		setup_tree_matrix(nrn)
+	# initialization process should not be recorderd
 	GRAS_data.clear()
 
 def nrn_fixed_step_thread(t):
@@ -644,7 +723,7 @@ def nrn_fixed_step_thread(t):
 	deliver_net_events(t)
 	for nrn in nrns:
 		# if generator
-		if nrn in [0]:
+		if nrn_models[nrn] == 'generator':
 			if t in stimulus:
 				has_spike[nrn] = True
 		else:
@@ -652,7 +731,6 @@ def nrn_fixed_step_thread(t):
 			nrn_solve(nrn)
 			update(nrn)
 			nrn_fixed_step_lastpart(nrn)
-
 
 def simulation():
 	"""
