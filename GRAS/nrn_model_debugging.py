@@ -7,7 +7,6 @@ DOI:10.1017/CBO9780511975899
 
 Based on the NEURON repository
 """
-
 import numpy as np
 import logging as log
 import matplotlib.pyplot as plt
@@ -20,17 +19,14 @@ def init0(shape, dtype=np.float):
 
 test_model = 'moto' # 'inter' 'muscle'
 dt = 0.025  # [ms] - sim step
-nrns_number = 1
-nrns = list(range(nrns_number))
-
 sim_time = 50
-stimulus = (np.arange(11, sim_time, 25) / dt).astype(int)
+stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
 
 E_Na = 50       # [mV] - reversal potential
 E_K = -80       # [mV] - reversal potential
 E_L = -70       # [mV] - reversal potential
 E_ex = 50       # [mV] - reversal potential
-E_in = -80     # [mV] reverse inh
+E_in = -80      # [mV] reverse inh
 V_adj = -63     # [mV] - adjust voltage for -55 threshold
 tau_syn_exc = 0.3       # [ms]
 tau_syn_inh = 2.0       # [ms]
@@ -110,6 +106,42 @@ i1 = 0
 i2 = i1 + _nt_ncell
 i3 = _nt_end
 
+# 0 generator
+# 1 inter
+# 2 moto
+# 3 muscle
+models = (0, 1, 2, 3)
+nrns_number = 0
+syn_pre_nrn = []
+syn_post_nrn = []
+syn_weight = []
+syn_delay = []
+syn_delay_timer = []
+
+def create(number, model='inter'):
+	global nrns_number
+	ids = list(range(nrns_number, nrns_number + number))
+	nrns_number += number
+	return ids
+
+def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
+	"""
+
+	"""
+	if typ == 'all-to-all':
+		for pre in pre_nrns:
+			for post in post_nrns:
+				syn_pre_nrn.append(pre)
+				syn_post_nrn.append(post)
+				syn_weight.append(weight)
+				syn_delay.append(int(delay / dt))
+				syn_delay_timer.append(-1)
+
+gen = create(1, 'gen')
+n1 = create(1, 'moto')
+connect(gen, n1, delay=1, weight=5.5, typ='all-to-all')
+
+nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
 
 # global variables
@@ -130,6 +162,7 @@ I_Ca = init0(nrn_shape)         # [nA] ionic currents
 E_Ca = init0(nrn_shape)         # [mV]
 g_exc = init0(nrns_number)      # [S] conductivity level
 g_inh = init0(nrns_number)      # [S] conductivity level
+has_spike = init0(nrns_number, dtype=bool)  # [S] conductivity level
 
 NODE_A = init0(nrn_shape)       # is the effect of this node on the parent node's equation
 NODE_B = init0(nrn_shape)       # is the effect of the parent node on this node's equation
@@ -144,6 +177,7 @@ ref_time_timer = init0(nrns_number)     # [steps] refractory period timer
 spikes = []
 GRAS_data = []
 sim_time_steps = int(sim_time / dt)
+
 
 def get_neuron_data():
 	with open("/home/alex/NRNTEST/classic/tablelog") as file:
@@ -210,8 +244,16 @@ def recalc_synaptic(nrn):
 	"""
 
 	"""
-	g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
-	g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
+	if g_exc[nrn] != 0:
+		g_exc[nrn] -= g_exc[nrn] / tau_syn_exc * dt
+		# fixme is worth?
+		if g_exc[nrn] < 1e-10:
+			g_exc[nrn] = 0
+	if g_inh[nrn] != 0:
+		g_inh[nrn] -= g_inh[nrn] / tau_syn_inh * dt
+		# fixme is worth?
+		if g_inh[nrn] < 1e-10:
+			g_inh[nrn] = 0
 
 def nrn_moto_initial(nrn, seg, V):
 	"""
@@ -344,14 +386,15 @@ def recalc_muslce_channels(nrn, seg, V):
 	assert 0 <= s[nrn, seg] <= 1
 
 def save_data(to_end=False):
+	inrn = 1
 	if to_end:
-		GRAS_data[-1] += [NODE_A[0, 0], NODE_B[0, 0], NODE_D[0, 0], NODE_RINV[0, 0], Vm[0, 0], NODE_RHS[0, 0],
-		                  NODE_A[0, 1], NODE_B[0, 1], NODE_D[0, 1], NODE_RINV[0, 1], Vm[0, 1], NODE_RHS[0, 1],
-		                  NODE_A[0, 2], NODE_B[0, 2], NODE_D[0, 2], NODE_RINV[0, 2], Vm[0, 2], NODE_RHS[0, 2]]
+		GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
+		                  NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
+		                  NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
 	else:
 		MID = 1
-		GRAS_data.append([cai[0, MID], I_L[0, MID], I_Na[0, MID], I_K[0, MID], I_Ca[0, MID],
-		                  E_Ca[0, MID], m[0, MID], h[0, MID], n[0, MID], p[0, MID], mc[0, MID], hc[0, MID]])
+		GRAS_data.append([cai[inrn, MID], I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], I_Ca[inrn, MID],
+		                  E_Ca[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], p[inrn, MID], mc[inrn, MID], hc[inrn, MID]])
 
 
 def nrn_rhs(nrn):
@@ -388,7 +431,8 @@ def nrn_rhs(nrn):
 		_g = nrn_moto_current(nrn, seg, V + 0.001)
 		_rhs = nrn_moto_current(nrn, seg, V)
 		# save data like in NEURON (after .mod nrn_cur)
-		save_data()
+		if nrn == 1:
+			save_data()
 		_g = (_g - _rhs) / 0.001
 		NODE_RHS[nrn, seg] -= _rhs
 		# todo check info about _g updating (where is it stored?)
@@ -487,7 +531,8 @@ def update(nrn):
 		Vm[nrn, nd] += NODE_RHS[nrn, nd]
 
 	# save data like in NEURON (after .mod nrn_cur)
-	save_data(to_end=True)
+	if nrn == 1:
+		save_data(to_end=True)
 	# check on spike
 	# if ref_time_timer[nrn_id] == 0 and -55 <= Vm[nrn_id, 0]:
 	# 	ref_time_timer[nrn_id] = ref_time
@@ -500,12 +545,29 @@ def deliver_net_events(t):
 	"""
 	void deliver_net_events(NrnThread* nt)
 	"""
-	if t in stimulus:
-		g_exc[0] += 5.5  # [uS]
+	for index, pre_nrn in enumerate(syn_pre_nrn):
+		if has_spike[pre_nrn] and syn_delay_timer[index] == -1:
+			syn_delay_timer[index] = syn_delay[index] + 1
+		if syn_delay_timer[index] == 0:
+			post_id = syn_post_nrn[index]
+			weight = syn_weight[index]
+			if weight >= 0:
+				g_exc[post_id] += weight
+			else:
+				g_inh[post_id] += -weight
+			syn_delay_timer[index] = -1
+		if syn_delay_timer[index] > 0:
+			syn_delay_timer[index] -= 1
+	# reset spikes
+	has_spike[:] = False
+
 
 def nrn_deliver_events(nrn):
-	# spikes
-	pass
+	"""
+
+	"""
+	if V_adj + 30 <= Vm[nrn, 1] < old_Vm[nrn]:
+		has_spike[nrn] = True
 
 def nrn_fixed_step_lastpart(nrn):
 	"""
@@ -516,6 +578,7 @@ def nrn_fixed_step_lastpart(nrn):
 		recalc_moto_channels(nrn, seg, Vm[nrn, seg])
 	nrn_deliver_events(nrn)
 
+
 def nrn_area_ri():
 	"""
 	void nrn_area_ri(Section *sec) [790] treeset.c
@@ -525,6 +588,7 @@ def nrn_area_ri():
 		rright = 0
 		# todo sec->pnode needs +1 index
 		for nd in range(0 + 1, nnode - 1 + 1):
+			# Todo take in action that hard code
 			NODE_AREA[nrn, nd] = np.pi * dx * diam
 			rleft = 1e-2 * Ra * (dx / 2) / (np.pi * diam * diam / 4) # left half segment Megohms
 			NODE_RINV[nrn, nd] = 1 / (rleft + rright) # uS
@@ -577,17 +641,24 @@ def nrn_fixed_step_thread(t):
 	void *nrn_fixed_step_thread(NrnThread *nth)
 	"""
 	# update data for each neuron
+	deliver_net_events(t)
 	for nrn in nrns:
-		deliver_net_events(t)
-		setup_tree_matrix(nrn)
-		nrn_solve(nrn)
-		update(nrn)
-		nrn_fixed_step_lastpart(nrn)
+		# if generator
+		if nrn in [0]:
+			if t in stimulus:
+				has_spike[nrn] = True
+		else:
+			setup_tree_matrix(nrn)
+			nrn_solve(nrn)
+			update(nrn)
+			nrn_fixed_step_lastpart(nrn)
+
 
 def simulation():
 	"""
 
 	"""
+	# create_nrns()
 	finitialize()
 	# start simulation loop
 	for t in range(sim_time_steps):
