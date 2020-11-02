@@ -26,13 +26,13 @@ V_adj = -63         # [mV] adjust voltage for -55 threshold
 tau_syn_exc = 0.3   # [ms] todo
 tau_syn_inh = 2.0   # [ms] todo
 """moto const"""
-ca0 = 2         # const ??? todo
-amA = 0.4       # const ??? todo
-amB = 66        # const ??? todo
-amC = 5         # const ??? todo
-bmA = 0.4       # const ??? todo
-bmB = 32        # const ??? todo
-bmC = 5         # const ??? todo
+ca0 = 2     # const ??? todo
+amA = 0.4   # const ??? todo
+amB = 66    # const ??? todo
+amC = 5     # const ??? todo
+bmA = 0.4   # const ??? todo
+bmB = 32    # const ??? todo
+bmC = 5     # const ??? todo
 R_const = 8.314472    # [k-mole] or [joule/degC] const
 F_const = 96485.34    # [faraday] or [kilocoulombs] const
 """muscle const"""
@@ -49,10 +49,11 @@ bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
 q10 = 1         # temperature scaling
 celsius = 36    # [degC]
 
+# fixme
 _nt_ncell = 1   # neurons count
-nnode = 2       # number of nodes for ith section
-_nt_end = 3     # _nt_ncell * segs + 2 * segs or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
-
+_nt_end = 1 * _nt_ncell + 2 * _nt_ncell # or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
+nnode = _nt_end - 1       # number of nodes for ith section
+print(_nt_end)
 segs = list(range(_nt_end))
 i1 = 0
 i2 = i1 + _nt_ncell
@@ -90,7 +91,7 @@ def create(number, model='inter'):
 	"""
 
 	"""
-	global nrns_number, nrn_models, Cm, gnabar, gkbar, gl, Ra, diam, dx
+	global nrns_number, nrn_models
 	ids = list(range(nrns_number, nrns_number + number))
 	#
 	__Cm = None
@@ -184,10 +185,10 @@ def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
 				syn_delay_timer.append(-1)
 
 gen = create(1, model='generator')
-n1 = create(1, model='moto')
+# n1 = create(1, model='moto')
 m1 = create(1, model='muscle')
-connect(gen, n1, delay=1, weight=5.5, typ='all-to-all')
-connect(n1, m1, delay=1, weight=40.5, typ='all-to-all')
+connect(gen, m1, delay=1, weight=40.5, typ='all-to-all')
+# connect(n1, m1, delay=1, weight=40.5, typ='all-to-all')
 
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
@@ -222,23 +223,32 @@ spikes = []
 GRAS_data = []
 
 def get_neuron_data():
-	with open("/home/alex/NRNTEST/classic/motoneuron.log") as file:
-		file.readline()
-		neuron_data = [line.split("\t") for line in file]
-		neuron_data.append(neuron_data[-1])
+	# with open("/home/alex/NRNTEST/classic/motoneuron.log") as file:
+	# 	file.readline()
+	# 	neuron_data = [line.split("\t") for line in file]
+	# 	neuron_data.append(neuron_data[-1])
+	# 	neuron_data = np.array(neuron_data[::6]).astype(np.float)
+	# return neuron_data
+	with open("/home/alex/NRNTEST/muscle/kek2") as file:
+		# il, ina, ik, m, h, n, v
+		neuron_data = []
+		for line in file:
+			neuron_data.append(line.replace('BREAKPOINT currents ', '').split("\t"))
+		neuron_data = neuron_data[3::6]
 		neuron_data = np.array(neuron_data).astype(np.float)
 	return neuron_data
 
 def save_data(to_end=False):
 	inrn = save_neuron_id
 	if to_end:
-		GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
-		                  NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
-		                  NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
+		# GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
+		#                   NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
+		#                   NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
+		GRAS_data[-1] += [Vm[inrn, 1]]
 	else:
 		MID = 1
-		GRAS_data.append([cai[inrn, MID], I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], I_Ca[inrn, MID],
-		                  E_Ca[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], p[inrn, MID], mc[inrn, MID], hc[inrn, MID]])
+		# il, ina, ik, m, h, n, l, s, v
+		GRAS_data.append([I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], l[inrn, MID], s[inrn, MID]])
 
 def Exp(volt):
 	return 0 if volt < -100 else np.exp(volt)
@@ -444,7 +454,6 @@ def recalc_muslce_channels(nrn, seg, V):
 	stau = 1.0 / summ
 	sinf = alpha / summ
 	"""states"""
-
 	m[nrn, seg] += (1 - np.exp(dt * (-1 / tau_m))) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
 	h[nrn, seg] += (1 - np.exp(dt * (-1 / tau_h))) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
 	n[nrn, seg] += (1 - np.exp(dt * (-1 / tau_n))) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
@@ -640,7 +649,14 @@ def nrn_fixed_step_lastpart(nrn):
 	"""
 	recalc_synaptic(nrn)
 	for seg in segs:
-		recalc_moto_channels(nrn, seg, Vm[nrn, seg])
+		if nrn_models[nrn] == 'inter':
+			recalc_muslce_channels(nrn, seg, Vm[nrn, seg])
+		elif nrn_models[nrn] == 'moto':
+			recalc_moto_channels(nrn, seg, Vm[nrn, seg])
+		elif nrn_models[nrn] == 'muscle':
+			recalc_muslce_channels(nrn, seg, Vm[nrn, seg])
+		else:
+			raise Exception("No model")
 	nrn_deliver_events(nrn)
 
 def nrn_area_ri():
@@ -726,6 +742,7 @@ def nrn_fixed_step_thread(t):
 		if nrn_models[nrn] == 'generator':
 			if t in stimulus:
 				has_spike[nrn] = True
+			continue
 		else:
 			setup_tree_matrix(nrn)
 			nrn_solve(nrn)
@@ -746,7 +763,8 @@ def plot(gras_data, neuron_data):
 	"""
 
 	"""
-	names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
+	# names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
+	names = 'il, ina, ik, m, h, n, l, s, v'
 	rows = 5
 	cols = 6
 
