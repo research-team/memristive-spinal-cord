@@ -46,29 +46,25 @@ class Metadata:
 	def get_myograms(self, rat, muscle='E'):
 		return self.pdata['rats_data'][muscle][rat]['data']
 
-	def get_peak_times(self, rat, muscle='E', flat=False, unslice=False):
-		data = self.pdata['rats_data'][muscle][rat]['times']
+	def __get(self, parameter, rat, muscle='E', flat=False, unslice=False):
+		data = self.pdata['rats_data'][muscle][rat][parameter]
 		if flat:
 			return np.array(list(flatten(flatten(data))))
 		if unslice:
 			return [list(flatten(d)) for d in data]
 		return data
+
+	def get_peak_times(self, rat, muscle='E', flat=False, unslice=False):
+		return self.__get('times', rat, muscle, flat, unslice)
+
+	def get_peak_durations(self, rat, muscle='E', flat=False, unslice=False):
+		return self.__get('durations', rat, muscle, flat, unslice)
 
 	def get_peak_ampls(self, rat, muscle='E', flat=False, unslice=False):
-		data = self.pdata['rats_data'][muscle][rat]['ampls']
-		if flat:
-			return np.array(list(flatten(flatten(data))))
-		if unslice:
-			return [list(flatten(d)) for d in data]
-		return data
+		return self.__get('ampls', rat, muscle, flat, unslice)
 
 	def get_peak_slices(self, rat, muscle='E', flat=False, unslice=False):
-		data = self.pdata['rats_data'][muscle][rat]['slices']
-		if flat:
-			return np.array(list(flatten(flatten(data))))
-		if unslice:
-			return [list(flatten(d)) for d in data]
-		return data
+		return self.__get('slices', rat, muscle, flat, unslice)
 
 	def get_fMEP_count(self, rat, muscle='E'):
 		return len(self.pdata['rats_data'][muscle][rat]['data'])
@@ -183,22 +179,30 @@ class Analyzer:
 		kde_ax.spines['top'].set_visible(False)
 		kde_ax.spines['right'].set_visible(False)
 		label_pathes = []
-		#
+
+		# yticks = list(range(1, max(xy1[1]) + 2))
+		# self.axis_article_style(kde_ax, axis='x', ticks_width=1.5, ticks_len=6)
+		# kde_ax.set_yticks(yticks)
+		# kde_ax.set_yticklabels(self._form_ticklabels(ticks=yticks, ticklabels=yticks))
+		# for tick in kde_ax.xaxis.get_major_ticks():
+		# 	tick.label.set_fontsize(23)
+		# for tick in kde_ax.yaxis.get_major_ticks():
+		# 	tick.label.set_fontsize(23)
 		for (x, y), name, color in zip([xy1, xy2],
 		                               [f"{names[0]} {rats[0]}", f"{names[1]} {rats[1]}"],
 		                               ['#A6261D', '#472650']):
-			self._contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0],
-			                   borders=border, levels_num=15)
+			# y += 1
+			self._contour_plot(x=x, y=y, color=color, ax=kde_ax, z_prev=[0], borders=border, levels_num=10)
 			t, r = self.joint_plot(x, y, kde_ax, gs, **{"color": color}, borders=border, with_boxplot=False)
 			label_pathes.append(mpatches.Patch(color=color, label=f"{name}"))
-			kde_ax.plot(x, y, '.', c=color)
+			# kde_ax.plot(x, y, '.', c=color)
 			t.set_xticklabels([])
 			r.set_yticklabels([])
 
 			t.set_xlim(border[0], border[1])
 			r.set_ylim(border[2], border[3])
 
-		kde_ax.legend(handles=label_pathes, fontsize=17)
+		# kde_ax.legend(handles=label_pathes, fontsize=17)
 		kde_ax.set_xlim(border[0], border[1])
 		kde_ax.set_ylim(border[2], border[3])
 		plt.tight_layout()
@@ -213,8 +217,10 @@ class Analyzer:
 		# do not change an order!
 		axis_names = ('time', 'ampl', 'slice')  # do not change an order!
 		axis_borders = ([8, 28] if border == 'poly_tail' else border,
-		                (0, 1.5),
-		                (-1, max(metadata1.slice_count, metadata2.slice_count) + 1))
+		                (0, 0.99),
+		                # (0, 1.5),
+		                # (-1, max(metadata1.slice_count, metadata2.slice_count) ))
+		                (0, max(metadata1.slice_count, metadata2.slice_count) + 1))
 		#
 		ax1_index = axis_names.index(axis[0])
 		ax2_index = axis_names.index(axis[1])
@@ -233,26 +239,35 @@ class Analyzer:
 					"""
 					dataXY = []
 
-					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
-						t = m.get_peak_times(rat=r, unslice=True)
-						a = m.get_peak_ampls(rat=r, unslice=True)
-						s = m.get_peak_slices(rat=r, unslice=True)
-						maxlen = max(map(len, t))
-						t = np.array([d + [-9999] * (maxlen - len(d)) for d in t]) * m.dstep_to
-						a = np.array([d + [-9999] * (maxlen - len(d)) for d in a])
-						s = np.array([d + [-9999] * (maxlen - len(d)) for d in s])
-						shape = t.shape
+					for rat_id, meta in zip((rat1, rat2), (metadata1, metadata2)):
+						times = meta.get_peak_times(rat=rat_id, unslice=True)
+						times = meta.get_peak_times(rat=rat_id, unslice=True)
+						ampls = meta.get_peak_ampls(rat=rat_id, unslice=True)
+						slices = meta.get_peak_slices(rat=rat_id, unslice=True)
+						counts = meta.get_peak_durations(rat=rat_id, unslice=True)
+						for i in range(len(times)):
+							deltas = np.hstack([range(count) for count in counts[i]])
+							times[i] = list(np.repeat(times[i], repeats=counts[i]) + deltas)
+							# only with time axis do *counts, not necesary for slices/ampls
+							if ax1_index == 0 or ax2_index == 0:
+								slices[i] = list(np.repeat(slices[i], repeats=counts[i]))
+								ampls[i] = list(np.repeat(ampls[i], repeats=counts[i]))
+						maxlen = max(map(len, times))
+						times = np.array([d + [-9999] * (maxlen - len(d)) for d in times]) * meta.dstep_to
+						ampls = np.array([d + [-9999] * (maxlen - len(d)) for d in ampls])
+						slices = np.array([d + [-9999] * (maxlen - len(d)) for d in slices])
+						shape = times.shape
 
 						if border == 'poly_tail':
-							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
-							mask = t >= 8
+							times[times <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
+							mask = times >= 8
 						else:
-							mask = (border[0] <= t) & (t <= border[1])
+							mask = (border[0] <= times) & (times <= border[1])
 
 						# pick the data which corresponds to the axis name with saving shape
-						data = (np.where(mask, t, -9999).reshape(shape),
-						        np.where(mask, a, -9999).reshape(shape),
-						        np.where(mask, s, -9999).reshape(shape))
+						data = (np.where(mask, times, -9999).reshape(shape),
+						        np.where(mask, ampls, -9999).reshape(shape),
+						        np.where(mask, slices, -9999).reshape(shape))
 						X, Y = data[ax1_index], data[ax2_index]
 
 						# number of point must be more than 16!
@@ -265,68 +280,117 @@ class Analyzer:
 							print('EMPTY')
 							break
 						dataXY.append((X, Y))
-					else:
-						# !
-						# todo about .T
-						pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1]).T
-						print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
-						      f"'{axis[0]} by step': {np.median(pval_t):.3f}; "
-						      f"'{axis[1]} by step': {np.median(pval_a):.3f}; "
-						      f"2D by step: {np.median(pval_2d):.3f}")
-						# plot data if necessary
-						if plot:
-							kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
-							for xstep1, ystep1 in zip(*dataXY[0]):
-								for xstep2, ystep2 in zip(*dataXY[1]):
-									xy1 = xstep1[xstep1 >= 0], ystep1[ystep1 >= 0]
-									xy2 = xstep2[xstep2 >= 0], ystep2[ystep2 >= 0]
-									self.KDE_plot(xy1, xy2, meta_names, (rat1, rat2), kde_border)
-									filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
-									plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
-									if show:
-										plt.show()
-									plt.close()
+					# !
+					# todo about .T
+					pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1]).T
+					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
+					      f"'{axis[0]} by step': {np.median(pval_t):.5f}; "
+					      f"'{axis[1]} by step': {np.median(pval_a):.5f}; "
+					      f"2D by step: {np.median(pval_2d):.5f}")
+					# plot data if necessary
+					if plot:
+						kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
+						for xstep1, ystep1 in zip(*dataXY[0]):
+							for xstep2, ystep2 in zip(*dataXY[1]):
+								xy1 = xstep1[xstep1 >= 0], ystep1[ystep1 >= 0]
+								xy2 = xstep2[xstep2 >= 0], ystep2[ystep2 >= 0]
+								self.KDE_plot(xy1, xy2, meta_names, (rat1, rat2), kde_border)
+								filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
+								plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
+								if show:
+									plt.show()
+								plt.close()
 				else:
 					"""
 					The simpliest way to compare data -- 1D representation.
 					That way all steps merged into one dataset.
 					P-value will critical differ from median p-value of step-by-step analysis
 					"""
+					'''
+					xs = np.linspace(10, 25, 200)
+					labels = [metadata1.shortname, metadata2.shortname]
+
+					# colors = plt.cm.bwr(np.linspace(0, 1, 12))
+					#colors = ["#275b78", "#386272", "#49686c", "#5a6f65", "#6b755f", "#7c7c59", "#8d8253", "#9d894d", "#ae9047", "#bf9641", "#d09d3a", "#e1a334", "#f2aa2e"]
+					#colors = ["#275b78", "#325770", "#3c5269", "#474e61", "#51495a", "#5c4552", "#67414b", "#713c43", "#7c383b", "#863334", "#912f2c", "#9b2a25", "#a6261d"]
+					colors = ["#275b78", "#274a7c", "#263780", "#292684", "#3f2587", "#56258b", "#70248f", "#8c2393", "#972284", "#9b216b", "#9e2050", "#a21e33", "#a6261d"]
+					from colour import Color
+					red = Color("red")
+					colors = list(red.range_to(Color("green"), slices))
+					# colors[0] = '#ff0000'
+					# colors[-1] = '#00ff00'
+
+					top = plt.cm.get_cmap('RdBu')
+
+					newcolors = np.vstack((top(np.linspace(0, 1, slices))))
+					print(newcolors)
+					print(newcolors.size)
+					for islice, dpair in enumerate(ls):
+						x1 = np.array(dpair[0])
+						x1 = x1[x1 >= 10]
+						x2 = np.array(dpair[1])
+						x2 = x2[x2 >= 10]
+						y1 = np.random.uniform(0, 10, x1.size)
+						y2 = np.random.uniform(0, 10, x2.size)
+						pval_t, pval_a, pval_2d = self._multi_R_KDE_test(x1, y1, x2, y2)
+						print(f"#{islice + 1} std1 {np.std(x1):.4f} std2 {np.std(x2):.4f} \t {pval_t:.4f}")
+
+						density1 = gaussian_kde(x1)
+						density2 = gaussian_kde(x2)
+						plt.plot(xs, density1(xs), label=labels[0], color=newcolors[islice])
+					plt.savefig(f'/home/alex/slices/bio.pdf', format='pdf')
+					plt.show()
+					'''
 					dataXY = []
-					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
-						t = m.get_peak_times(rat=r, flat=True) * m.dstep_to
-						a = m.get_peak_ampls(rat=r, flat=True)
-						s = m.get_peak_slices(rat=r, flat=True)
+					for rat_id, meta in zip((rat1, rat2), (metadata1, metadata2)):
+						dstep = meta.dstep_to
+						times = meta.get_peak_times(rat=rat_id, flat=True) * dstep
+						ampls = meta.get_peak_ampls(rat=rat_id, flat=True)
+						slices = meta.get_peak_slices(rat=rat_id, flat=True)
+						# if duration
+						counts = meta.get_peak_durations(rat=rat_id, flat=True)
+						#
 						if border == 'poly_tail':
-							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
-							mask = 8 <= t
+							times[times <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
+							mask = times >= 8
 						else:
-							mask = (border[0] <= t) & (t <= border[1])
+							mask = (border[0] <= times) & (times <= border[1])
+						times, ampls, slices, counts = times[mask], ampls[mask], slices[mask], counts[mask]
+
+						deltas = np.hstack([range(count) for count in counts]) * dstep
+						times = np.repeat(times, repeats=counts) + deltas
+						# only with time axis do *counts, not necesary for slices/ampls
+						if ax1_index == 0 or ax2_index == 0:
+							slices = np.repeat(slices, repeats=counts)
+							ampls = np.repeat(ampls, repeats=counts)
 						# pick the data which corresponds to the axis name
-						d = (t[mask], a[mask], s[mask])
+						d = (times, ampls, slices)
 						X, Y = d[ax1_index], d[ax2_index]
 						dataXY.append((X, Y))
-					# plt.close()
-					# print(m.shortname, r)
-					# for si in range(0, max(s) + 1):
-					# 	plt.boxplot(a[s == si], positions=[si], whis=[5, 95])
-					# plt.ylim(0, 1.7)
-					# plt.show()
-					# calc the p-value by KDE test
-					pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1])
-					print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
-					      f"'{axis[0]} merged': {pval_t:.3f}; "
-					      f"'{axis[1]} merged': {pval_a:.3f}; "
-					      f"2D merged: {pval_2d:.3f}")
-					# plot data if necessary
 					if plot:
 						kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
 						self.KDE_plot(dataXY[0], dataXY[1], meta_names, (rat1, rat2), kde_border)
-						filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
+						# filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_merged"
+						filename = f"{meta_names[0]}_rat{rat1}"
 						plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
 						if show:
 							plt.show()
 						plt.close()
+						# plt.plot(xs, density2(xs), label=labels[1])
+						# plt.suptitle(f"Slice {islice + 1}, std1 {np.std(x1):.3f}, std2 {np.std(x2):.3f}, p-val: {pval_t:.4f}")
+						# plt.legend()
+						# plt.savefig(f'/home/alex/slices/{rat1}_{rat2}_slice_{islice + 1}.png', format='png')
+						# # plt.show()
+						# plt.close()
+
+					# calc the p-value by KDE test
+				pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1])
+				print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} "
+				      f"'{axis[0]} merged': {pval_t:.3f}; "
+				      f"'{axis[1]} merged': {pval_a:.3f}; "
+				      f"2D merged: {pval_2d:.3f}")
+				exit()
+			# plot data if necessary
 
 	def plot_cumulative(self, cmltv, border, order=None, pval_slices_peak=False):
 		"""
@@ -613,7 +677,6 @@ class Analyzer:
 			dataset = read_hdf5(abs_filename, rat=rat_id)
 			if dataset is None:
 				continue
-
 			dataset = subsampling(dataset, dstep_from=dstep_from, dstep_to=dstep_to)
 			if source == "bio":
 				# get the size of the data which we are waiting for
@@ -663,11 +726,11 @@ class Analyzer:
 						splitted_per_slice = [stepdata[beg:beg + int(50 / dstep_to)] for beg in slices_begin_indexes]
 						splitted_per_slice = splitted_per_slice[:2]
 						# remove tails
-						print(list(map(len, splitted_per_slice)))
 						K.append(np.array(splitted_per_slice))
 				sliced_data = np.array(K)
 			else:
 				if muscle == "E":
+					# sliced_data = [beg[int(50 / 0.025)] for beg in prepared_data]]
 					sliced_data = [np.array_split(beg, e_slices_number) for beg in prepared_data]
 				else:
 					sliced_data = [np.array_split(beg, f_slices_number) for beg in prepared_data]
@@ -676,18 +739,15 @@ class Analyzer:
 			print(sliced_data.shape)
 
 			if len(sliced_data) == 0:
-				metadata['rats_data'][muscle][rat_id] = dict(data=None,
-				                                             times=None,
-				                                             ampls=None,
-				                                             slices=None,
-				                                             latency_volume=None)
+				metadata['rats_data'][muscle][rat_id] = dict(data=None, times=None, ampls=None, slices=None, latency_volume=None)
 				continue
 			#
-			sliced_time, sliced_ampls, sliced_index = self._get_peaks(sliced_data, dstep_to,
-			                                                          [0, slise_in_ms], filter_val, debug=self.debug)
+			sliced_time, sliced_ampls, sliced_index, sliced_duration = \
+				self._get_peaks(sliced_data, dstep_to, [0, slise_in_ms], filter_val, debug=self.debug)
 
 			metadata['rats_data'][muscle][rat_id] = dict(data=sliced_data,
 			                                             times=sliced_time,
+			                                             durations=sliced_duration,
 			                                             ampls=sliced_ampls,
 			                                             slices=sliced_index)
 
@@ -745,11 +805,11 @@ class Analyzer:
 			with open(pickle_save, 'wb') as handle:
 				pickle.dump(metadata, handle)
 			logging.info(pickle_save)
-
 			del metadata
 
+
 	@staticmethod
-	def _form_ticklabels(ticks_length):
+	def _form_ticklabels(ticks_length=None, ticks=None, ticklabels=None):
 		"""
 		Form a ticklabels there are 4 ticks: begin, 1/3, 2/3 and the end
 		Args:
@@ -757,19 +817,223 @@ class Analyzer:
 		Returns:
 			list: prepared ticklabels
 		"""
+		if ticks:
+			yticks_indices = ticks
+			ticks_length = len(ticks)
+		else:
+			yticks_indices = range(1, ticks_length + 1)
+
 		ytick_labels = [None] * ticks_length
-		yticks_indices = range(1, ticks_length + 1)
-		for i in [0, -1, int(1 / 3 * ticks_length), int(2 / 3 * ticks_length)]:
-			ytick_labels[i] = yticks_indices[i]
+		if ticks_length <= 6:
+			ytick_labels = yticks_indices
+		else:
+			for i in [0, -1, int(1 / 3 * ticks_length), int(2 / 3 * ticks_length)]:
+				ytick_labels[i] = yticks_indices[i]
 		return ytick_labels
 
-	def print_metainfo(self, source, rats, muscle='E'):
-		if type(source) is not Metadata:
-			metadata = Metadata(self.pickle_folder, source)
-		else:
-			metadata = source
+	def plot_fullstep_density(self, source, rats, muscle='E'):
+		"""
+
+		Args:
+			source:
+			rats:
+			muscle:
+
+		Returns:
+
+		"""
+		metadata = source if isinstance(source, Metadata) else Metadata(self.pickle_folder, source)
 
 		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		for rat_id in rats:
+			'''
+			###################################
+			# Variant 1 Max
+			plt.close()
+			fig, ax = plt.subplots()
+			times = metadata.get_peak_times(rat_id, muscle='F', flat=True) * metadata.dstep_to
+			s = metadata.get_peak_slices(rat_id, muscle='F', flat=True)
+			times += s * 25
+			duration = metadata.get_peak_durations(rat_id, muscle='F', flat=True) * metadata.dstep_to
+	
+			borders = 0, 25 * np.max(s + 1), 0, np.max(duration) + 1
+			self._contour_plot(x=times, y=duration, color='#23ffe5', ax=ax, z_prev=[0], borders=borders, levels_num=15)
+			plt.plot(times, duration, '.')
+			plt.show()
+			plt.close()
+			###################################
+			'''
+			print(metadata.shortname, rat_id)
+			plt.close()
+			fig, ax = plt.subplots(figsize=(10, 6))
+			dstep = metadata.dstep_to
+			slices = metadata.get_peak_slices(rat_id, muscle=muscle, flat=True)
+			slices_num = np.max(slices) + 1
+			times = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * dstep + slices * 25
+			durations = metadata.get_peak_durations(rat_id, muscle=muscle, flat=True) * dstep
+			counts = (durations / dstep).astype(int)
+			# fill
+			multi = []
+			for peak_time, count in zip(times, counts):
+				multi += (np.full(count, peak_time) + np.arange(count) * dstep).tolist()
+			multi = np.array(multi)
+
+			for slice_begin in range(slices_num + 1):
+				plt.axvline(x=slice_begin * 25, color='gray', ls='--', zorder=-2)
+
+			grid_points = 1000
+			xmax = 25 * slices_num
+			scale = xmax / grid_points
+
+			X = np.linspace(0, xmax, grid_points)
+			dx = st.gaussian_kde(multi)
+			if muscle == 'E':
+				dx.set_bandwidth(bw_method=0.07)
+			else:
+				dx.set_bandwidth(bw_method=0.05)
+			density_x = dx(X)
+			plt.plot(np.arange(len(density_x)) * scale, density_x)
+
+			# Plot peak-duration blocks -- peak time start `t` is the left side, `t` + peak duration is the right side
+			times = metadata.get_peak_times(rat_id, muscle=muscle)
+			durations = metadata.get_peak_durations(rat_id, muscle=muscle)
+			top = 0
+			height = max(density_x) / len(times) / 2
+			# get data of each experiment (step)
+			for step_data_times, step_data_dur in zip(times, durations):
+				# get data of each slice
+				for i_slice, (slice_times, slice_durs) in enumerate(zip(step_data_times, step_data_dur)):
+					# get each peak time and duration
+					for peak_time, peak_dur in zip(slice_times, slice_durs):
+						# tope left corner
+						rect = plt.Rectangle((peak_time * dstep + i_slice * 25, top),
+						                     width=peak_dur * dstep, height=height, facecolor='r', edgecolor='k', alpha=0.2)
+						ax.add_patch(rect)
+				top += height
+
+			plt.ylim(0, max(density_x))
+			plt.xlim(0, slices_num * 25)
+			plt.tight_layout()
+			plt.savefig(f"{self.plots_folder}/gap_{metadata.shortname}_rat{rat_id}.pdf", format="pdf")
+			plt.show()
+			plt.close()
+
+	def plot_gap_density(self, source, rats, muscle='E'):
+		"""
+
+		Args:
+			source:
+			rats:
+			muscle:
+
+		Returns:
+
+		"""
+		metadata = source if isinstance(source, Metadata) else Metadata(self.pickle_folder, source)
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		for rat_id in rats:
+			print(metadata.shortname, rat_id)
+			peak_times = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * metadata.dstep_to
+			peak_slices = metadata.get_peak_slices(rat_id, muscle=muscle, flat=True)
+			peak_times += peak_slices * 25
+
+			grid_points = 10000
+			xmax = 25 * (np.max(peak_slices) + 1)
+			scale = xmax / grid_points
+
+			X = np.linspace(0, xmax, grid_points)
+			dx = st.gaussian_kde(peak_times)
+			if muscle == 'E':
+				dx.set_bandwidth(bw_method=0.07)
+			else:
+				dx.set_bandwidth(bw_method=0.05)
+			density_x = dx(X)
+
+			ex_density_min_ind, ex_density_min_val = self._find_extrema(density_x, np.less)
+			ex_density_max_ind, ex_density_max_val = self._find_extrema(density_x, np.greater)
+			gradient = np.gradient(density_x) * 100
+			ex_gradient_max_ind, ex_gradient_max_val = self._find_extrema(gradient, np.greater)
+			ex_gradient_min_ind, ex_gradient_min_val = self._find_extrema(gradient, np.less)
+			# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
+			# distr = {1: 'uni', 2: 'bi'}
+			# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
+			# plt.close()
+			plt.close()
+			plt.figure(figsize=(16, 7))
+			for i in range(25, xmax + 1, 25):
+				plt.axvline(x=i, color='k')
+
+			map_of_extrema_dens = np.zeros(len(density_x), dtype=bool)
+			map_of_extrema_dens[ex_density_max_ind] = True
+
+			map_of_extrema_grad = np.zeros(len(gradient), dtype=bool)
+			map_of_extrema_grad[ex_gradient_max_ind] = True
+
+			for myogram in metadata.get_myograms(rat_id, muscle=muscle):
+				myogram = myogram.flatten()
+				plt.plot(np.arange(len(myogram)) * metadata.dstep_to, myogram / 100, alpha=0.3, color='k')
+
+			plt.plot(peak_times, [0] * len(peak_times), '|', ms=25, alpha=1)
+			plt.plot(X, density_x, label=metadata.shortname, color='orange')
+			plt.plot(X, gradient, color='r', lw=2)
+
+			if ex_gradient_max_ind[0] < ex_gradient_min_ind[0]:
+				pairs = zip(ex_gradient_min_ind, ex_gradient_max_ind[1:])
+			else:
+				pairs = zip(ex_gradient_min_ind, ex_gradient_max_ind)
+
+			def slice_time(t):
+				s = 0
+				current = 0
+				while t > 0:
+					s += 1
+					current = t
+					t -= 25
+				return current, s
+
+			for pair in pairs:
+				left, right = None, None
+				for dens_ind_min in ex_density_min_ind:
+					if pair[0] <= dens_ind_min <= pair[1]:
+						left, right = pair
+						break
+				if left and right and right * scale - left * scale >= 3:
+					# plt.plot([left * scale, right * scale],
+					#          [density_x[left], density_x[right]], color='k', lw=2,
+					#          ls='-' if right * scale - left * scale > 3 else '--')
+					plt.axvspan(xmin=left * scale, xmax=right * scale, color='b', alpha=0.3)
+					l = slice_time(left * scale)
+					r = slice_time(right * scale)
+					print(f"{l[0]:.2f} (slice {l[1]}) - {r[0]:.2f} (slice {r[1]})", end='\t')
+			plt.xlim(0, xmax)
+			plt.tight_layout()
+			plt.savefig(f"{self.plots_folder}/gap_analysis_{metadata.shortname}_rat{rat_id}.pdf", format="pdf")
+			plt.show()
+			plt.close()
+
+	def print_metainfo(self, source, rats=all, muscle='E'):
+		"""
+
+		Args:
+			source:
+			rats:
+			muscle:
+
+		Returns:
+
+		"""
+		metadata = source if isinstance(source, Metadata) else Metadata(self.pickle_folder, source)
+
+		if rats is all:
 			rats = metadata.get_rats_id()
 		if type(rats) is int:
 			rats = [rats]
@@ -777,18 +1041,26 @@ class Analyzer:
 		print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
 		for rat_id in rats:
 			c = metadata.get_peak_counts(rat_id, border=[0, 25], muscle=muscle)
-			h = metadata.get_peak_median_height(rat_id, border='poly_tail', muscle=muscle)
+			h = metadata.get_peak_median_height(rat_id, border=[5, 10], muscle=muscle)
 			f = metadata.get_fMEP_count(rat_id, muscle=muscle)
 			v = metadata.get_latency_volume(rat_id, muscle=muscle)
-			print(f"{metadata.shortname} | {rat_id} | {f} | {c} | {h} | {v}")
-		print("- " * 10)
+			print(f"{metadata.shortname} | {rat_id} | {f} | {c:.3f} | {h:.3f} | {v:.3f}")
 
-	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
-		if type(source) is not Metadata:
-			metadata = Metadata(self.pickle_folder, source)
-		else:
-			metadata = source
 
+	def plot_fMEP_boxplots(self, source, borders, rats=None, muscle='E', show=False, slice_ms=None):
+		"""
+
+		Args:
+			source:
+			borders:
+			rats:
+			show:
+			slice_ms:
+
+		Returns:
+
+		"""
+		metadata = source if isinstance(source, Metadata) else Metadata(self.pickle_folder, source)
 		if rats is None or rats is all:
 			rats = metadata.get_rats_id()
 		if type(rats) is int:
@@ -801,11 +1073,10 @@ class Analyzer:
 			slice_in_ms = metadata.slice_in_ms
 		else:
 			slice_in_ms = slice_ms
-
 		# plot per each rat
 		for rat_id in rats:
-			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
-			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
+			rat_myograms = metadata.get_myograms(rat_id, muscle=muscle)
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle=muscle)
 
 			total_rat_steps = rat_myograms.shape[0]
 			total_slices = rat_myograms.shape[1]
@@ -863,7 +1134,7 @@ class Analyzer:
 						self._recolor(bx, color="#287a72", fill_color="#287a72", fill_alpha=0.2)
 				logging.info(f"{shortname}, rat {rat_id}, {passed / alles * 100:.1f}% of peaks prob. at {border}ms")
 
-			save_filename = f"{shortname}_{rat_id}_fMEP_boxplot"
+			save_filename = f"{shortname}_{rat_id}_{muscle}_fMEP_boxplot"
 			plt.grid(which='both', axis='x')
 			self.axis_article_style(ax, axis='x')
 			plt.yticks(range(0, total_slices), self._form_ticklabels(total_slices), fontsize=30)
@@ -1074,6 +1345,10 @@ class Analyzer:
 					mask_outside_mono = (points[:, 0] < (time + 3)) | ((time + 7.5) < points[:, 0])
 					points = points[mask_outside_mono]
 					ampls = ampls[mask_outside_mono]
+
+				plt.axvspan(xmin=mono_start, xmax=mono_end, alpha=0.5, color='r')
+				# plt.plot(points[:, 0], points[:, 1], '.', c='r', ms=10)
+
 				if len(points) == 0:
 					continue
 				# ell = Ellipse(xy=rc, width=rx * 2, height=ry * 2, alpha=0.3, edgecolor='k')
@@ -1081,8 +1356,7 @@ class Analyzer:
 				ellipses.append((rc, rx, ry, 0, points, ampls))
 				print(f"Ellipse #{int(i / ees)} {rc, rx, ry, 0} ampls avg: {np.mean(ampls):.3f}")
 				# plot mono area
-				plt.axvspan(xmin=mono_start, xmax=mono_end, alpha=0.5, color='r')
-				plt.plot(points[:, 0], points[:, 1], '.', c='r', ms=10)
+
 
 			if len(ellipses) == 1:
 				ellipse, patch = self.ellipse_form(ellipses[0][:4])
@@ -1101,7 +1375,7 @@ class Analyzer:
 					intersect = ell_polygon1.intersection(ell_polygon2)
 					if intersect:
 						verts3 = np.array(intersect.exterior.coords.xy)
-						patch3 = Polygon(verts3.T, facecolor='none', edgecolor='black')
+						patch3 = Polygon(verts3.T, fc='none', ec='black', lw=3)
 						plt.gca().add_patch(patch3)
 						mask_common = (meta_ell1[4][:, None] == meta_ell2[4]).all(-1).any(-1)
 						avg_ampls = np.mean(meta_ell1[5][mask_common])
@@ -1116,8 +1390,12 @@ class Analyzer:
 
 			plt.xlim(0, 50)
 			plt.ylim(-1, 6)
+			plt.xticks(fontsize=18)
+			plt.yticks(range(6), range(1, 7), fontsize=18)
 			plt.tight_layout()
-			plt.show()
+			plt.savefig(f"{self.plots_folder}/poly_HZ_{shortname}_{rat_id}.pdf", format='pdf')
+			plt.close()
+			# plt.show()
 
 	def plot_density_3D(self, source, rats, factor=8, show=False, only_volume=False, slice_ms=25):
 		"""
@@ -1150,13 +1428,20 @@ class Analyzer:
 		volumes = []
 		#
 		for rat_id in rats:
-			X = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
+			# todo make the xy choice 
+			# X = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
+			X = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
 			Y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
+
+			if len(X) == 0 or len(Y) == 0:
+				volumes.append(0)
+				continue
 
 			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
-			xmax, ymax = slice_ms, max(Y)
-			xborder_l, xborder_r = 5, slice_ms - 5
+			# xmax, ymax = slice_ms, max(Y)
+			xmax, ymax = 2, max(Y)
+			xborder_l, xborder_r = 0, 2
 
 			gridsize_x, gridsize_y = factor * xmax, factor * ymax
 			xmesh, ymesh = np.meshgrid(np.linspace(0, xmax, gridsize_x),
@@ -1175,9 +1460,25 @@ class Analyzer:
 				z_mid = (np.max(z) + np.min(z)) / 2
 			else:
 				z_mid = (np.max(z) + np.min(z)) / 3 * 2
+				# z_mid = (np.max(z) - np.min(z)) / 2 + np.min(z)
 
 			conty_ymax = -np.inf
 			conty_ymin = np.inf
+
+			for i, cont in enumerate(plt.contour(xmesh, ymesh, z, levels=10, alpha=0).allsegs[::-1]):
+				if cont:
+					contour = max(cont, key=np.size)
+					for islice in range(ymax + 1):
+						mask = contour[:, 1].astype(int) == islice
+						if any(mask):
+							# print(f"slice {islice}, ampl = {contour[mask, 0][-1]}")
+							print(f"{contour[mask, 0][-1]:.3f}", end='\t')
+						else:
+							print(0, end='\t')
+					print()
+				else:
+					print("empty contour")
+			print("=====")
 
 			mid_contours = plt.contour(xmesh, ymesh, z, levels=[z_mid], alpha=0).allsegs[0]
 			for contour in mid_contours:
@@ -1204,7 +1505,7 @@ class Analyzer:
 			surface = go.Surface(contours=dict(z={"show": True,
 			                                      "start": np.min(z) - 0.00001,
 			                                      "end": np.max(z) + 0.00001,
-			                                      "size": (np.max(z) - np.min(z)) / 16,
+			                                      "size": (np.max(z) - np.min(z)) / 12,
 			                                      'width': 1,
 			                                      "color": "gray"}),
 			                     x=xmesh,
@@ -1216,33 +1517,33 @@ class Analyzer:
 			plane1 = go.Surface(x=[xborder_l, xborder_l],
 			                    y=[0, ymax],
 			                    z=[[np.min(z), np.max(z)], [np.min(z), np.max(z)]],
-			                    showscale=False, surfacecolor=[0] * 4, opacity=0.7, cmax=1, cmin=0)
+			                    showscale=False, surfacecolor=[0] * 4, opacity=0, cmax=1, cmin=0)
 			# right plane of time border [20]
 			plane2 = go.Surface(x=[xborder_r, xborder_r],
 			                    y=[0, ymax],
 			                    z=[[np.min(z), np.max(z)], [np.min(z), np.max(z)]],
-			                    showscale=False, surfacecolor=[0] * 4, opacity=0.7, cmax=1, cmin=0)
+			                    showscale=False, surfacecolor=[0] * 4, opacity=0, cmax=1, cmin=0)
 			# bottom plane of slice border
 			plane3 = go.Surface(x=[xborder_l, xborder_r],
 			                    y=[conty_ymin, conty_ymin],
 			                    z=[[np.min(z), np.min(z)], [np.max(z), np.max(z)]],
-			                    showscale=False, surfacecolor=[0] * 4, opacity=0.7, cmax=1, cmin=0)
+			                    showscale=False, surfacecolor=[0] * 4, opacity=0, cmax=1, cmin=0)
 			# top plane of slice border
 			plane4 = go.Surface(x=[xborder_l, xborder_r],
 			                    y=[conty_ymax, conty_ymax],
 			                    z=[[np.min(z), np.min(z)], [np.max(z), np.max(z)]],
-			                    showscale=False, surfacecolor=[0] * 4, opacity=0.7, cmax=1, cmin=0)
+			                    showscale=False, surfacecolor=[0] * 4, opacity=0, cmax=1, cmin=0)
 			# form data pack to visualize all in one axes
 			data = [surface, plane1, plane2, plane3, plane4]
 			# plot isoline
-			for contour in mid_contours:
-				data.append(go.Scatter3d(x=contour[:, 0], y=contour[:, 1], z=[z_mid] * len(contour[:, 0]),
-				                         line=dict(color='#000000', width=6), mode='lines', showlegend=False))
-			# plot dots under isoline
-			data.append(go.Scatter3d(x=xmesh[xslice, yslice][zclip <= z_mid].ravel(), # X under isoline
-			                         y=ymesh[xslice, yslice][zclip <= z_mid].ravel(), # Y under isoline
-			                         z=zunder.ravel(), # Z under isoline
-			                         mode='markers', marker=dict(size=2, color=['rgb(0,0,0)'] * len(zunder.ravel()))))
+			# for contour in mid_contours:
+			# 	data.append(go.Scatter3d(x=contour[:, 0], y=contour[:, 1], z=[z_mid] * len(contour[:, 0]),
+			# 	                         line=dict(color='#000000', width=6), mode='lines', showlegend=False))
+			# # plot dots under isoline
+			# data.append(go.Scatter3d(x=xmesh[xslice, yslice][zclip <= z_mid].ravel(), # X under isoline
+			#                          y=ymesh[xslice, yslice][zclip <= z_mid].ravel(), # Y under isoline
+			#                          z=zunder.ravel(), # Z under isoline
+			#                          mode='markers', marker=dict(size=2, color=['rgb(0,0,0)'] * len(zunder.ravel()))))
 			# plot all
 			fig = go.Figure(data=data)
 			# change a camera view and etc
@@ -1255,7 +1556,7 @@ class Analyzer:
 				                  eye=dict(x=-1.25, y=-1.25, z=1.25)
 			                  ),
 			                  scene=dict(
-				                  xaxis=dict(title_text="Time, ms",
+				                  xaxis=dict(title_text="Ampl",
 				                             titlefont=dict(size=30),
 				                             ticktext=list(range(26))),
 				                  yaxis=dict(title_text="Slices",
@@ -1271,14 +1572,23 @@ class Analyzer:
 			return volumes
 
 	def plot_shadow_slices(self, source, rats=None, only_extensor=False, add_kde=False, show=False):
+		"""
+
+		Args:
+			source:
+			rats:
+			only_extensor:
+			add_kde:
+			show:
+
+		Returns:
+
+		"""
 		shadow_color = "#472650"
 		kde_color = "#287a72"
 		k_fliers_high, k_fliers_low = 5, 6
 
-		if type(source) is not Metadata:
-			metadata = Metadata(self.pickle_folder, source)
-		else:
-			metadata = source
+		metadata = source if isinstance(source, Metadata) else Metadata(self.pickle_folder, source)
 
 		if rats is None or rats is all:
 			rats = metadata.get_rats_id()
@@ -1368,7 +1678,8 @@ class Analyzer:
 			             f"saved to {self.plots_folder}/{save_filename}")
 
 	@staticmethod
-	def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None, xmax=None):
+	def axis_article_style(ax, axis='both', auto_nbins=False, xshift=None, xmin=None, xmax=None,
+						   ticks_width=None, ticks_len=None):
 		"""
 		ToDo add info
 		Args:
@@ -1383,7 +1694,9 @@ class Analyzer:
 		ax.spines['right'].set_visible(False)
 		ax.spines['top'].set_visible(False)
 		# make ticks more visible
-		ax.tick_params(which='major', length=10, width=3, labelsize=30)
+		ax.tick_params(which='major',
+					   length=ticks_len if ticks_len else 10,
+					   width=ticks_width if ticks_width else 3, labelsize=30)
 		ax.tick_params(which='minor', length=4, width=2, labelsize=30)
 		# set automatical locator for chosen axis
 		if axis == 'x' or axis == 'both':
@@ -1454,7 +1767,6 @@ class Analyzer:
 		indexes = np.array([index for index, diff in zip(indexes, diff_nearby_extrema) if diff > 0] + [indexes[-1]])
 		# get values based on filtered indexes
 		values = array[indexes]
-
 		return indexes, values
 
 	@staticmethod
@@ -1486,6 +1798,7 @@ class Analyzer:
 		# interpritate shape of dataset
 		tests_count, slices_count, slice_length = sliced_datasets.shape
 		peak_per_slice_list = self._list3d(h=tests_count, w=slices_count)
+		peak_duration_list = self._list3d(h=tests_count, w=slices_count)
 		ampl_per_slice_list = self._list3d(h=tests_count, w=slices_count)
 		peak_slice_num_list = self._list3d(h=tests_count, w=slices_count)
 		# find all peaks times and amplitudes per slice
@@ -1498,6 +1811,8 @@ class Analyzer:
 			# find all extrema
 			e_maxima_indexes, e_maxima_values = self._find_extrema(y, np.greater)
 			e_minima_indexes, e_minima_values = self._find_extrema(y, np.less)
+			if e_maxima_indexes is None  or e_minima_indexes is None:
+				return [], [], [], []
 			# start pairing extrema from maxima
 			if e_minima_indexes[0] < e_maxima_indexes[0]:
 				comb = list(zip(e_maxima_indexes, e_minima_indexes[1:]))
@@ -1533,6 +1848,10 @@ class Analyzer:
 						plt.text(max_index * dstep, y[max_index], f"({peak_time * dstep:.1f}, {slice_index})")
 					if borders[0] <= peak_time * dstep < borders[1]:
 						peak_per_slice_list[experiment_index][slice_index].append(peak_time)
+
+						#experimental
+						peak_duration_list[experiment_index][slice_index].append(dT)
+
 						ampl_per_slice_list[experiment_index][slice_index].append(dA)
 						peak_slice_num_list[experiment_index][slice_index].append(slice_index)
 
@@ -1546,7 +1865,7 @@ class Analyzer:
 			if debug:
 				plt.show()
 
-		return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list
+		return peak_per_slice_list, ampl_per_slice_list, peak_slice_num_list, peak_duration_list
 
 	@staticmethod
 	def _example_bio_sample(folder, filename):
