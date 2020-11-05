@@ -90,7 +90,7 @@ def read_hdf5(filepath, rat):
 	with hdf5.File(filepath, 'r') as file:
 		for test_name, test_values in file.items():
 			#todo fix me
-			if ("#1" in test_name or "#3" in test_name) and 'bio_' in filepath and "PLT_13.5cms_40Hz_2pedal" in filepath:
+			if ("#1" in test_name) and 'bio_' in filepath and "PLT_13.5cms_40Hz_2pedal" in filepath:
 				continue
 			if "#1" in test_name and 'bio_' in filepath and "PLT_6cms_40Hz_2pedal" in filepath:
 				continue
@@ -326,19 +326,27 @@ def calibrate_data(dataset, source):
 	"""
 	prepared_data = []
 
+	# def smooth(y, box_pts):
+	# 	box = np.ones(box_pts) / box_pts
+	# 	y_smooth = np.convolve(y, box, mode='same')
+	# 	return y_smooth
+
 	for data_per_test in dataset:
 		data_per_test = np.array(data_per_test)
+		# plt.plot(data_per_test, color='r')
 		if source == "bio":
 			centered_data = center_data_by_line(data_per_test)
 		elif source == "nest":
 			centered_data = data_per_test
 		elif source == "neuron":
-			centered_data = data_per_test + 0.57
+			centered_data = data_per_test
 		elif source == "gras":
 			centered_data = data_per_test - data_per_test[0]
 		else:
 			raise Exception(f"Cannot recognize '{source}' source")
+
 		normalized_data = normalization(centered_data, save_centering=True)
+
 		prepared_data.append(normalized_data.tolist())
 
 	return prepared_data
@@ -373,7 +381,8 @@ def parse_filename(filename):
 
 	rate = int(meta[4].replace("Hz", ""))
 	if rate not in range(5, 201, 5):
-		raise Exception("Cannot recognize Hz rate")
+		print(meta)
+		raise Exception(f"Cannot recognize '{rate}' rate")
 
 	pedal = meta[5].replace("pedal", "")
 	if pedal not in ['2', '4']:
