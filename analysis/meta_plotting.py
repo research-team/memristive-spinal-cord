@@ -26,6 +26,7 @@ comb = [
 for filename, rats in comb:
 	analyzer.plot_density_3D(source=filename, rats=rats, show=False)
 	analyzer.print_metainfo(source=filename, rats=rats)
+	analyzer.plot_fullstep_density(source=filename, rats=rats, muscle='E')
 	analyzer.plot_fMEP_boxplots(source=filename, rats=rats, borders=[[3, 8], [8, 25]], show=True)
 	analyzer.plot_shadow_slices(source=filename, rats=rats, add_kde=True, show=True)
 """
