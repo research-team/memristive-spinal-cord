@@ -50,10 +50,11 @@ q10 = 1         # temperature scaling
 celsius = 36    # [degC]
 
 # fixme
+nodecount = 3   # segments
 _nt_ncell = 1   # neurons count
-_nt_end = 1 * _nt_ncell + 2 * _nt_ncell # or segs * (1 + _nt_ncell), (1 + position of last in v_node array)
-nnode = _nt_end - 1       # number of nodes for ith section
-print(_nt_end)
+# fixme ONLY FOR REALIZATION WITH ONE NEURON/ARRAY
+_nt_end = nodecount + 2  # 1 + position of last in v_node array)
+nnode = nodecount + 1    # number of nodes for ith section
 segs = list(range(_nt_end))
 i1 = 0
 i2 = i1 + _nt_ncell
@@ -71,7 +72,7 @@ gkbar = init0(100)      # [S / cm2]g_K todo
 gl = init0(100)         # [S / cm2] todo
 Ra = init0(100)         # [Ohm cm]
 diam = init0(100)       # [um] diameter
-dx = init0(100)         # [um] compartment length
+length = init0(100)         # [um] compartment length
 ena = init0(100)        # [mV] todo
 ek = init0(100)         # [mV] todo
 el = init0(100)         # [mV] todo
@@ -161,7 +162,7 @@ def create(number, model='inter'):
 		ek[nrnid] = __ek
 		Ra[nrnid] = __Ra
 		diam[nrnid] = __diam
-		dx[nrnid] = __dx
+		length[nrnid] = __dx
 		gkrect[nrnid] = __gkrect
 		gcaN[nrnid] = __gcaN
 		gcaL[nrnid] = __gcaL
@@ -234,7 +235,7 @@ def get_neuron_data():
 		neuron_data = []
 		for line in file:
 			neuron_data.append(line.replace('BREAKPOINT currents ', '').split("\t"))
-		neuron_data = neuron_data[3::6]
+		neuron_data = neuron_data[::6]
 		neuron_data = np.array(neuron_data).astype(np.float)
 	return neuron_data
 
@@ -291,15 +292,10 @@ def nrn_muscle_current(nrn, seg, voltage):
 	"""
 
 	"""
-	ina = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
-	ik = gkbar[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn])
-	il = gl[nrn] * (voltage - el[nrn])
-	# save
-	I_Na[nrn, seg] = ina
-	I_K[nrn, seg] = ik
-	I_L[nrn, seg] = il
-
-	return ina + ik + il
+	I_Na[nrn, seg] = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	I_K[nrn, seg] = gkbar[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn])
+	I_L[nrn, seg] = gl[nrn] * (voltage - el[nrn])
+	return I_Na[nrn, seg] + I_K[nrn, seg] + I_L[nrn, seg]
 
 def recalc_synaptic(nrn):
 	"""
@@ -481,7 +477,7 @@ def nrn_rhs(nrn):
 		NODE_D[nrn, nd] = 0
 	# update MOD rhs, CAPS has no current [CAP MOD CAP]!
 	for seg in segs:
-		if seg == 0 or seg == nnode:
+		if seg == segs[0] or seg == segs[-1]:
 			continue
 		V = Vm[nrn, seg]
 		# SYNAPTIC update
@@ -512,7 +508,7 @@ def nrn_rhs(nrn):
 		else:
 			raise Exception('No nrn model found')
 		# save data like in NEURON (after .mod nrn_cur)
-		if nrn == save_neuron_id:
+		if nrn == save_neuron_id and seg == 2:
 			save_data()
 		_g = (_g - _rhs) / 0.001
 		NODE_RHS[nrn, seg] -= _rhs
@@ -538,6 +534,7 @@ def nrn_rhs(nrn):
 		# our connection coefficients are negative so
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
 		NODE_RHS[nrn, pnd] += NODE_A[nrn, nd] * dv
+	print("After LHS JACOB NODED", NODE_D[nrn, :])
 
 def nrn_lhs(nrn):
 	"""
@@ -547,12 +544,14 @@ def nrn_lhs(nrn):
 	# nt->cj = 2/dt if (secondorder) else 1/dt
 	# note, the first is CAP
 	# function nrn_cap_jacob(_nt, _nt->tml->ml);
+	print(f"After LHS JACOB NODED (above) {NODE_D[nrn, :]}")
+
 	cj = 1 / dt
 	cfac = 0.001 * cj
-	nodecount = 1
 	# fixme +1 for nodelist
 	for nd in range(0 + 1, nodecount + 1):
 		NODE_D[nrn, nd] += cfac * Cm[nrn]
+	print(f"before activsynapse_lhs NODED= {NODE_D[nrn, :]}")
 
 	# activsynapse_lhs()
 	# NODE_D[nrn, seg] += 0
@@ -566,6 +565,7 @@ def nrn_lhs(nrn):
 		pnd = nd - 1
 		NODE_D[nrn, nd] -= NODE_B[nrn, nd]
 		NODE_D[nrn, pnd] -= NODE_A[nrn, nd]
+	print(f"After AXIAL currents NODED {NODE_D[nrn, :]}")
 
 def bksub(nrn):
 	"""
@@ -577,11 +577,13 @@ def bksub(nrn):
 		pnd = nd - 1
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * NODE_RHS[nrn, pnd]
 		NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
+	print(f"bksub nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 
 def triang(nrn):
 	"""
 	void triang(NrnThread* _nt)
 	"""
+	print(f"triang nrn before {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 	nd = i3 - 1
 	while nd >= i2:
 		pnd = nd - 1
@@ -589,6 +591,8 @@ def triang(nrn):
 		NODE_D[nrn, pnd] -= ppp * NODE_B[nrn, nd]
 		NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nrn, nd]
 		nd -= 1
+	print(f"triang nrn {nrn} NODE_D: {NODE_D[nrn, :]}")
+	print(f"triang nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 
 def nrn_solve(nrn):
 	"""
@@ -615,7 +619,7 @@ def update(nrn):
 	if nrn == save_neuron_id:
 		save_data(to_end=True)
 
-def deliver_net_events(t):
+def deliver_net_events():
 	"""
 	void deliver_net_events(NrnThread* nt)
 	"""
@@ -665,12 +669,14 @@ def nrn_area_ri():
 	area for right circular cylinders. Ri as right half of parent + left half of this
 	"""
 	for nrn in nrns:
+		# dx = section_length(sec) / ((double) (sec->nnode - 1));
+		dx = length[nrn] / nodecount # divide by the last index of node (or segments count)
 		rright = 0
 		# todo sec->pnode needs +1 index
 		for nd in range(0 + 1, nnode - 1 + 1):
-			# Todo take in action that hard code
-			NODE_AREA[nrn, nd] = np.pi * dx[nrn] * diam[nrn]
-			rleft = 1e-2 * Ra[nrn] * (dx[nrn] / 2) / (np.pi * diam[nrn] * diam[nrn] / 4) # left half segment Megohms
+			# area for right circular cylinders. Ri as right half of parent + left half of this
+			NODE_AREA[nrn, nd] = np.pi * dx * diam[nrn]
+			rleft = 1e-2 * Ra[nrn] * (dx / 2) / (np.pi * diam[nrn] * diam[nrn] / 4) # left half segment Megohms
 			NODE_RINV[nrn, nd] = 1 / (rleft + rright) # uS
 			rright = rleft
 		nd = nnode - 1 + 1
@@ -692,9 +698,8 @@ def connection_coef():
 		# units so that last nodes have units of microsiemens
 		#todo sec->pnode needs +1 index
 		nd = 1
-		area = NODE_AREA[nrn, nd - 1]
 		# sec->prop->dparam[4].val = 1, what is dparam[4].val
-		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_RINV[nrn, nd] / area
+		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, nd - 1]
 		# todo sec->pnode needs +1 index
 		for nd in range(1 + 1, nnode + 1):
 			pnd = nd - 1
@@ -736,11 +741,12 @@ def nrn_fixed_step_thread(t):
 	void *nrn_fixed_step_thread(NrnThread *nth)
 	"""
 	# update data for each neuron
-	deliver_net_events(t)
+	deliver_net_events()
 	for nrn in nrns:
 		# if generator
 		if nrn_models[nrn] == 'generator':
 			if t in stimulus:
+				print("@@@@@", t)
 				has_spike[nrn] = True
 			continue
 		else:
@@ -758,6 +764,7 @@ def simulation():
 	# start simulation loop
 	for t in range(sim_time_steps):
 		nrn_fixed_step_thread(t)
+		print("=======")
 
 def plot(gras_data, neuron_data):
 	"""
@@ -777,11 +784,13 @@ def plot(gras_data, neuron_data):
 		col = index % cols
 		if row >= rows:
 			break
-		if all(np.abs(neuron_d - gras_d) <= 1e-5):
-			ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3, ls='--')
-		else:
-			ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3)
-			ax[row, col].plot(xticks, gras_d, label='GRAS', lw=1, color='r')
+		print(gras_d)
+		print(neuron_d)
+		# if all(np.abs(neuron_d - gras_d) <= 1e-5):
+		# 	ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3, ls='--')
+		# else:
+		ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3)
+		ax[row, col].plot(xticks, gras_d, label='GRAS', lw=1, color='r')
 		# ax[row, col].plot(spikes, [np.mean(neuron_data)] * len(spikes), '.', color='r', ms=10)
 		# ax[row, col].plot(spikes, [np.mean(gras_data)] * len(spikes), '.', color='b', ms=5)
 		passed = np.abs(np.mean(neuron_d) / np.mean(gras_d)) * 100 - 100
