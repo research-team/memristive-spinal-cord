@@ -1,6 +1,6 @@
 NEURON	{
   POINT_PROCESS IaGenerator
-    POINTER fhill
+    POINTER fhill, fhill2
   RANGE y
   RANGE interval, number, start
   RANGE noise, freq, mean, vel, invl
@@ -25,6 +25,8 @@ ASSIGNED {
   fhill
   vel
   fhill0
+  fhill2
+  len2
 }
 
 PROCEDURE seed(x) {
@@ -61,16 +63,19 @@ PROCEDURE init_sequence(t(ms)) {
 }
 
 FUNCTION invl(t (ms)) (ms) {
+  len2 = 1.5*fhill2*(t-t0)
   if (fhill > fhill0){
-    vel = v0 + 0.005*fhill*(t-t0) + 0.00015*fhill*(t-t0)*(t-t0)
+    vel = v0 + len2 + 0.15*fhill*(t-t0)*(t-t0)
     if (vel < 0){vel = 1}
   }else{
-    vel = v0 - 0.02*fhill*(t-t0) - 0.0004*fhill*(t-t0)*(t-t0)
+    vel = v0 - len2 - 0.4*fhill*(t-t0)*(t-t0)
     if (vel < 0){vel = 1}
   }
   v0 = vel
   fhill0 = fhill
   mean = 1000/vel
+  printf("time: %g, mean: %g \n", t, mean)
+
   t0 = t
 	if (noise == 0) {
 		invl = mean
