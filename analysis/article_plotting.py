@@ -712,9 +712,9 @@ class Analyzer:
 
 			# do not calculate volume for FLEXOR (is redundant)
 			if muscle == 'E':
-				latency_volume = None#self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
+				latency_volume = self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
 			else:
-				latency_volume = None
+				latency_volume = self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
 
 			metadata['rats_data'][muscle][rat_id]['latency_volume'] = latency_volume
 
@@ -835,8 +835,8 @@ class Analyzer:
 
 		# plot per each rat
 		for rat_id in rats:
-			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
-			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
+			rat_myograms = metadata.get_myograms(rat_id, muscle='F')
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle='F')
 
 			total_rat_steps = rat_myograms.shape[0]
 			total_slices = rat_myograms.shape[1]
@@ -1195,13 +1195,13 @@ class Analyzer:
 		volumes = []
 		#
 		for rat_id in rats:
-			X = metadata.get_peak_ampls(rat_id, muscle='F', flat=True)
-			Y = metadata.get_peak_slices(rat_id, muscle='F', flat=True)
+			X = metadata.get_peak_ampls(rat_id, muscle='E', flat=True)
+			Y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 			times = metadata.get_peak_times(rat_id, muscle='E', flat=True) * metadata.dstep_to
-			# mask = (times <= 3) | (8 <= times)
-			#
-			# X = X[mask]
-			# Y = Y[mask]
+			mask = (times <= 3) | (8 <= times)
+
+			X = X[mask]
+			Y = Y[mask]
 
 			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
@@ -1411,7 +1411,7 @@ class Analyzer:
 				x = metadata.get_peak_times(rat_id, muscle='E', flat=True) * dstep_to
 				y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 				borders = 0, slice_in_ms, -1, e_slices_number
-				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15, addtan=False)
+				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15)
 				if flexor_flag:
 					'''flexor'''
 					x = metadata.get_peak_times(rat_id, muscle='F', flat=True) * dstep_to
@@ -1742,7 +1742,7 @@ class Analyzer:
 		return np.asarray(r_pkg.KDE_test(rx1, ry1, rx2, ry2))
 
 	@staticmethod
-	def _contour_plot(x, y, color, ax, z_prev, borders, levels_num, addtan = False):
+	def _contour_plot(x, y, color, ax, z_prev, borders, levels_num, addtan = True):
 		"""
 
 		Args:
@@ -1778,7 +1778,7 @@ class Analyzer:
 		colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 		# plot filled contour
 		ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-		z_mid = (np.max(z) + np.min(z)) / 2.3
+		z_mid = (np.max(z) + np.min(z)) / 3 * 2
 		mid_contours = plt.contour(xx, yy, z, levels=[z_mid], alpha=0).allsegs[0]
 		for contour in mid_contours:
 			plt.plot(contour[:, 0], contour[:, 1], c='#f2aa2e', linewidth=4)
@@ -1797,7 +1797,7 @@ class Analyzer:
 			print(sorted_x)
 			print(sorted_y)
 
-			mask = ((sorted_x >= 18) & (sorted_x <= 20) & (sorted_y < 21))
+			mask = ((sorted_x >= 8) & (sorted_x <= 20) & (sorted_y > 4))
 			masked_x = sorted_x[mask]
 			masked_y = sorted_y[mask]
 			print(masked_x)
@@ -1810,22 +1810,22 @@ class Analyzer:
 			print(fsec)
 			# print(interpolate.sproot((t, c - fsec, k)))
 
-			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[-2]
+			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[-1]
 			print(interpolate.sproot((fsec.t, fsec.c, k)))
 			spl = interpolate.splrep(sorted_x, sorted_y, k=1)
-			small_t = np.arange(pointcur - 8.8, pointcur + 2.7, 0.1)
+			small_t = np.arange(pointcur - 1.2, pointcur + 0.7, 0.1)
 			print(small_t)
-			t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
-			fa = interpolate.splev(pointcur, (t,c,k), der=0)     # f(a)
+			# t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
+			fa = interpolate.splev(pointcur, spl, der=0)     # f(a)
 			print(fa)
-			fprime = interpolate.splev(pointcur, (t,c,k), der=1) # f'(a)
+			fprime = interpolate.splev(pointcur, spl, der=1) # f'(a)
 
 			tan = fa + fprime * (small_t - pointcur) # tangent
 			print(tan)
 			slopedegree = math.atan2((small_t[-1] - small_t[0]), (tan[-1] - tan[0])) * 180 / math.pi
 			print(f'SLOPE IN DEGREE - {slopedegree}')
 			plt.plot(small_t, tan, c='#a6261d', linewidth=5)
-			plt.plot(pointcur, fa, 'om')
+			# plt.plot(pointcur, fa, 'om')
 
 		ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=0)
 		# ax.scatter(x, y, s=0.1, color=color)
