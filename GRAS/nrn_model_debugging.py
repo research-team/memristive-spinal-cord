@@ -20,6 +20,7 @@ save_neuron_id = 1
 stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
 
 """common const"""
+V_th = -40
 E_ex = 50           # [mV] reversal potential
 E_in = -80          # [mV] reverse inh
 V_adj = -63         # [mV] adjust voltage for -55 threshold
@@ -219,6 +220,7 @@ NODE_RHS = init0(nrn_shape)     # right hand side in node equation
 NODE_RINV = init0(nrn_shape)    # conductance uS from node to parent
 NODE_AREA = init0(nrn_shape)    # area of a node in um^2
 has_spike = init0(nrns_number, dtype=bool)  # spike flag for each neuron
+spike_on = init0(nrns_number, dtype=bool)  # spike flag for each neuron
 
 spikes = []
 GRAS_data = []
@@ -241,13 +243,14 @@ def get_neuron_data():
 
 def save_data(to_end=False):
 	inrn = save_neuron_id
+	MID = 2
+
 	if to_end:
 		# GRAS_data[-1] += [NODE_A[inrn, 0], NODE_B[inrn, 0], NODE_D[inrn, 0], NODE_RINV[inrn, 0], Vm[inrn, 0], NODE_RHS[inrn, 0],
 		#                   NODE_A[inrn, 1], NODE_B[inrn, 1], NODE_D[inrn, 1], NODE_RINV[inrn, 1], Vm[inrn, 1], NODE_RHS[inrn, 1],
 		#                   NODE_A[inrn, 2], NODE_B[inrn, 2], NODE_D[inrn, 2], NODE_RINV[inrn, 2], Vm[inrn, 2], NODE_RHS[inrn, 2]]
-		GRAS_data[-1] += [Vm[inrn, 1]]
+		GRAS_data[-1] += [Vm[inrn, MID]]
 	else:
-		MID = 1
 		# il, ina, ik, m, h, n, l, s, v
 		GRAS_data.append([I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], m[inrn, MID], h[inrn, MID], n[inrn, MID], l[inrn, MID], s[inrn, MID]])
 
@@ -480,20 +483,21 @@ def nrn_rhs(nrn):
 		if seg == segs[0] or seg == segs[-1]:
 			continue
 		V = Vm[nrn, seg]
+
 		# SYNAPTIC update
-		# static void nrn_cur
-		_g = syn_current(nrn, V + 0.001)
-		_rhs = syn_current(nrn, V)
-		_g = (_g - _rhs) / .001
-		_g *= 1.e2 / NODE_AREA[nrn, seg]
-		_rhs *= 1.e2 / NODE_AREA[nrn, seg]
-		NODE_RHS[nrn, seg] -= _rhs
-		# todo check info about _g updating (where is it stored?)
-		# static void nrn_jacob
-		NODE_D[nrn, seg] += _g
+		if seg == 2: #fixme only for muscles [0, 1, 2MID, 3, 4]
+			# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
+			_g = syn_current(nrn, V + 0.001)
+			_rhs = syn_current(nrn, V)
+			_g = (_g - _rhs) / .001
+			_g *= 1.e2 / NODE_AREA[nrn, seg]
+			_rhs *= 1.e2 / NODE_AREA[nrn, seg]
+			NODE_RHS[nrn, seg] -= _rhs
+			# static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
+			NODE_D[nrn, seg] += _g
 
 		# NEURON update
-		# static void nrn_cur
+		# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
 		if nrn_models[nrn] == 'inter':
 			# muscle and inter has the same fast_channel function
 			_g = nrn_muscle_current(nrn, seg, V + 0.001)
@@ -512,8 +516,7 @@ def nrn_rhs(nrn):
 			save_data()
 		_g = (_g - _rhs) / 0.001
 		NODE_RHS[nrn, seg] -= _rhs
-		# todo check info about _g updating (where is it stored?)
-		# static void nrn_jacob
+		# static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
 		NODE_D[nrn, seg] += _g
 	# end FOR segments
 
@@ -529,12 +532,11 @@ def nrn_rhs(nrn):
 	# todo always 0, because Vm0 = Vm1 = Vm2 at [CAP node CAP] model (1 section)
 	for nd in range(i2, i3):
 		pnd = nd - 1
-		# double dv = NODEV(pnd) - NODEV(nd);
 		dv = Vm[nrn, pnd] - Vm[nrn, nd]
 		# our connection coefficients are negative so
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
 		NODE_RHS[nrn, pnd] += NODE_A[nrn, nd] * dv
-	print("After LHS JACOB NODED", NODE_D[nrn, :])
+	print("After RHS JACOB NODED", NODE_D[nrn, :])
 
 def nrn_lhs(nrn):
 	"""
@@ -577,13 +579,11 @@ def bksub(nrn):
 		pnd = nd - 1
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * NODE_RHS[nrn, pnd]
 		NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
-	print(f"bksub nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 
 def triang(nrn):
 	"""
 	void triang(NrnThread* _nt)
 	"""
-	print(f"triang nrn before {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 	nd = i3 - 1
 	while nd >= i2:
 		pnd = nd - 1
@@ -591,8 +591,6 @@ def triang(nrn):
 		NODE_D[nrn, pnd] -= ppp * NODE_B[nrn, nd]
 		NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nrn, nd]
 		nd -= 1
-	print(f"triang nrn {nrn} NODE_D: {NODE_D[nrn, :]}")
-	print(f"triang nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 
 def nrn_solve(nrn):
 	"""
@@ -639,17 +637,19 @@ def deliver_net_events():
 	# reset spikes
 	has_spike[:] = False
 
-def nrn_deliver_events(nrn):
+def nrn_deliver_events(nrn, t):
 	"""
-
+	void nrn_deliver_events(NrnThread* nt)
 	"""
-	# if V_adj + 30 <= Vm[nrn, 1] < old_Vm[nrn]:
-	# 	has_spike[nrn] = True
-	pass
+	if spike_on[nrn] == 0 and Vm[nrn, 1] > V_th:
+		spike_on[nrn] = True
+		has_spike[nrn] = True
+	elif Vm[nrn, 1] < V_th:
+		spike_on[nrn] = False
 
-def nrn_fixed_step_lastpart(nrn):
+def nrn_fixed_step_lastpart(nrn, t):
 	"""
-
+	void *nrn_fixed_step_lastpart(NrnThread *nth)
 	"""
 	recalc_synaptic(nrn)
 	for seg in segs:
@@ -661,7 +661,7 @@ def nrn_fixed_step_lastpart(nrn):
 			recalc_muslce_channels(nrn, seg, Vm[nrn, seg])
 		else:
 			raise Exception("No model")
-	nrn_deliver_events(nrn)
+	nrn_deliver_events(nrn, t)
 
 def nrn_area_ri():
 	"""
@@ -743,33 +743,38 @@ def nrn_fixed_step_thread(t):
 	# update data for each neuron
 	deliver_net_events()
 	for nrn in nrns:
-		# if generator
 		if nrn_models[nrn] == 'generator':
-			if t in stimulus:
-				print("@@@@@", t)
-				has_spike[nrn] = True
-			continue
+			has_spike[nrn] = t in stimulus
 		else:
+			print(f"INIT before setup_tree_matrix nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 			setup_tree_matrix(nrn)
+			print(f"after setup_tree_matrix nrn {nrn} NODE_RHS: {NODE_RHS[nrn, :]}")
 			nrn_solve(nrn)
+			print(f"after nrn_solve nrn {nrn}")
+			print(f"NODE_RHS: {NODE_RHS[nrn, :]}")
+			print(f"NODE_D: {NODE_D[nrn, :]}")
 			update(nrn)
-			nrn_fixed_step_lastpart(nrn)
+			nrn_fixed_step_lastpart(nrn, t)
+		# save spikes
+		if has_spike[nrn]:
+			spikes.append(t)
 
 def simulation():
 	"""
-
+	Notes: NrnThread represent collection of cells or part of a cell computed by single thread within NEURON process
 	"""
 	# create_nrns()
 	finitialize()
 	# start simulation loop
 	for t in range(sim_time_steps):
+		print("=======", t * dt)
 		nrn_fixed_step_thread(t)
-		print("=======")
 
 def plot(gras_data, neuron_data):
 	"""
 
 	"""
+
 	# names = 'cai il ina ik ica Eca m h n p mc hc A0 B0 D0 RINV0 Vm0 RHS0 A1 B1 D1 RINV1 Vm1 RHS1 A2 B2 D2 RINV2 Vm2 RHS2'
 	names = 'il, ina, ik, m, h, n, l, s, v'
 	rows = 5
@@ -784,13 +789,12 @@ def plot(gras_data, neuron_data):
 		col = index % cols
 		if row >= rows:
 			break
-		print(gras_d)
-		print(neuron_d)
 		# if all(np.abs(neuron_d - gras_d) <= 1e-5):
 		# 	ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3, ls='--')
 		# else:
 		ax[row, col].plot(xticks, neuron_d, label='NEURON', lw=3)
 		ax[row, col].plot(xticks, gras_d, label='GRAS', lw=1, color='r')
+		ax[row, col].plot(np.array(spikes) * dt, [np.mean(neuron_d)] * len(spikes), '.', ms=10, color='orange')
 		# ax[row, col].plot(spikes, [np.mean(neuron_data)] * len(spikes), '.', color='r', ms=10)
 		# ax[row, col].plot(spikes, [np.mean(gras_data)] * len(spikes), '.', color='b', ms=5)
 		passed = np.abs(np.mean(neuron_d) / np.mean(gras_d)) * 100 - 100
