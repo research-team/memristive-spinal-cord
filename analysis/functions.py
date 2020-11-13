@@ -333,7 +333,7 @@ def calibrate_data(dataset, source):
 		elif source == "nest":
 			centered_data = data_per_test
 		elif source == "neuron":
-			centered_data = data_per_test + 0.57
+			centered_data = data_per_test #+ 0.57
 		elif source == "gras":
 			centered_data = data_per_test - data_per_test[0]
 		else:
