@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 log.basicConfig(level=log.INFO)
 
+EXTRACELLULAR = True
 dt = 0.025  # [ms] - sim step
 sim_time = 50
 sim_time_steps = int(sim_time / dt)
@@ -46,6 +47,11 @@ bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
 q10 = 1         # temperature scaling
 celsius = 36    # [degC]
 
+e_extracellular = 0
+xraxial = 1e9
+xg = 1e9
+xc = 0
+
 # fixme
 nodecount = 3   # segments
 _nt_ncell = 1   # neurons count
@@ -61,8 +67,8 @@ def init0(shape, dtype=np.float):
 	return np.zeros(shape, dtype=dtype)
 
 nrns_number = 0
-nrn_models = []
 # common properties
+nrn_models = init0(100, dtype=np.object) # model names
 Cm = init0(100)         # [uF / cm2] membrane capacity
 gnabar = init0(100)     # [S / cm2] todo
 gkbar = init0(100)      # [S / cm2]g_K todo
@@ -94,7 +100,7 @@ def create(number, model='inter'):
 	"""
 
 	"""
-	global nrns_number, nrn_models
+	global nrns_number
 	ids = list(range(nrns_number, nrns_number + number))
 	#
 	__Cm = None
@@ -189,16 +195,15 @@ def create(number, model='inter'):
 		E_inh[nrnid] = __e_inh
 		tau_syn_exc[nrnid] = __tau_syn_exc
 		tau_syn_inh[nrnid] = __tau_syn_inh
-
+	nrn_models[nrns_number:nrns_number + number] = model
 	nrns_number += number
-	nrn_models += [model] * number
 	return ids
 
-def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
+def connect(pre_nrns, post_nrns, delay, weight, conn_type='all-to-all'):
 	"""
 
 	"""
-	if typ == 'all-to-all':
+	if conn_type == 'all-to-all':
 		for pre in pre_nrns:
 			for post in post_nrns:
 				syn_pre_nrn.append(pre)
@@ -206,12 +211,14 @@ def connect(pre_nrns, post_nrns, delay, weight, typ='all-to-all'):
 				syn_weight.append(weight)
 				syn_delay.append(int(delay / dt))
 				syn_delay_timer.append(-1)
+	else:
+		raise NotImplemented
 
 gen = create(1, model='generator')
 # n1 = create(1, model='moto')
 m1 = create(1, model='muscle')
-connect(gen, m1, delay=1, weight=40.5, typ='all-to-all')
-# connect(n1, m1, delay=1, weight=40.5, typ='all-to-all')
+connect(gen, m1, delay=1, weight=40.5, conn_type='all-to-all')
+# connect(n1, m1, delay=1, weight=40.5, conn_type='all-to-all')
 
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
@@ -242,6 +249,13 @@ NODE_RINV = init0(nrn_shape)    # conductance uS from node to parent
 NODE_AREA = init0(nrn_shape)    # area of a node in um^2
 has_spike = init0(nrns_number, dtype=bool)  # spike flag for each neuron
 spike_on = init0(nrns_number, dtype=bool)   # special flag to prevent fake spike detecting
+
+nlayer = 2
+ext_shape = (nrns_number, _nt_end, nlayer)
+ext_rhs = init0(ext_shape)   #
+ext_v = init0(ext_shape)     #
+ext_a = init0(ext_shape)     #
+ext_b = init0(ext_shape)     #
 
 spikes = []
 GRAS_data = []
@@ -275,6 +289,9 @@ def get_neuron_data():
 	return neuron_data
 
 def save_data(to_end=False):
+	"""
+
+	"""
 	inrn = save_neuron_id
 	MID = 2
 
@@ -285,6 +302,7 @@ def save_data(to_end=False):
 		GRAS_data[-1] += [Vm[inrn, MID], NODE_A[inrn, MID], NODE_B[inrn, MID], NODE_D[inrn, MID],
 		                  NODE_RINV[inrn, MID], Vm[inrn, MID], NODE_RHS[inrn, MID]]
 	else:
+		# print("ext_v", ext_v[inrn, :, 0])
 		# il, ina, ik, m, h, n, l, s, v
 		GRAS_data.append([g_exc[inrn] * (Vm[inrn, MID] - E_ex[inrn]), I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], m[inrn, MID], h[inrn, MID],
 		                  n[inrn, MID], l[inrn, MID], s[inrn, MID]])
@@ -339,12 +357,14 @@ def recalc_synaptic(nrn):
 	"""
 
 	"""
+	# exc synaptic conductance
 	if g_exc[nrn] != 0:
-		g_exc[nrn] += (1 - np.exp(-dt * (1 / tau_syn_exc[nrn]))) * (0 / (1 / tau_syn_exc[nrn]) - g_exc[nrn])
+		g_exc[nrn] -= g_exc[nrn] * (1 - np.exp(-dt / tau_syn_exc[nrn]))
 		if g_exc[nrn] < 1e-10:
 			g_exc[nrn] = 0
+	# inh synaptic conductance
 	if g_inh[nrn] != 0:
-		g_inh[nrn] += (1 - np.exp(-dt * (1 / tau_syn_inh[nrn]))) * (0 / (1 / tau_syn_inh[nrn]) - g_inh[nrn])
+		g_inh[nrn] -= g_inh[nrn] * (1 - np.exp(-dt / tau_syn_inh[nrn]))
 		if g_inh[nrn] < 1e-10:
 			g_inh[nrn] = 0
 
@@ -500,6 +520,66 @@ def recalc_muslce_channels(nrn, seg, V):
 	assert 0 <= l[nrn, seg] <= 1
 	assert 0 <= s[nrn, seg] <= 1
 
+
+def nrn_rhs_ext(nrn):
+	"""
+	"""
+	# nd rhs contains -membrane current + stim current
+	# nde rhs contains stim current
+
+	if nrn == 0:
+		return
+
+	for nd in segs:
+		ext_rhs[nrn, nd, 0] -= NODE_RHS[nrn, nd]
+	#
+	for nd in range(1, _nt_end):
+		#pnd = nd - 1
+		# for j in range(nlayer):
+		# 	# dv = ext_v[nrn, pnd, j] - ext_v[nrn, nd, j]
+		# dv = 0
+		# 	# fixme
+		# 	ext_rhs[nrn, nd, j] -= ext_b[nrn, nd, j] * dv
+		# 	ext_rhs[nrn, pnd, j] += ext_a[nrn, nd, j] * dv
+		# 	# for the internal balance equation take care of vi = vm + vx
+		# 	# if j == 0:
+		# 	# 	NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * dv
+		# 	# 	NODE_RHS[nrn, pnd] += NODE_A[nrn, nd] * dv
+		# series resistance and battery to ground between nlayer-1 and ground
+		j = nlayer - 1
+		ext_rhs[nrn, nd, j] -= xg * (ext_v[nrn, nd, j] - e_extracellular)
+		# for (--j; j >= 0; --j) { // between j and j+1 layer
+		j = 0
+		x = xg * (ext_v[nrn, nd, j] - ext_v[nrn, nd, j+1])
+		ext_rhs[nrn, nd, j] -= x
+		ext_rhs[nrn, nd, j+1] += x
+
+		print(ext_v[nrn, nd, :])
+
+	# print(ext_rhs[nrn, :, 0])
+
+def nrn_setup_ext(nrn):
+	"""
+	void nrn_setup_ext(NrnThread* _nt)
+	"""
+	# d contains all the membrane conductances (and capacitance)
+	# i.e. (cm/dt + di/dvm - dis/dvi)*[dvi] and (dis/dvi)*[dvx]
+	return
+	# for seg in segs:
+	# 	d = NODE_D[nrn, seg]
+	# 	ext_rhs[nrn, seg, 0] -= NODE_RHS[nrn, seg]
+
+def nrn_update_2d(nrn):
+	"""
+	void nrn_update_2d(NrnThread* nt)
+
+	update has already been called so modify nd->v based on dvi we only need to
+	update extracellular nodes and base the corresponding nd->v on dvm (dvm = dvi - dvx)
+	"""
+	for nd in range(i1, _nt_end):
+		ext_v[nrn, nd, 0] += ext_rhs[nrn, nd, 0]
+		ext_v[nrn, nd, 1] += ext_rhs[nrn, nd, 1]
+
 def nrn_rhs(nrn):
 	"""
 	void nrn_rhs(NrnThread *_nt) combined with the first part of nrn_lhs
@@ -512,12 +592,15 @@ def nrn_rhs(nrn):
 	for nd in range(i1, i3):
 		NODE_RHS[nrn, nd] = 0
 		NODE_D[nrn, nd] = 0
+
+	#fixme
+	ext_rhs[nrn, :, :] = 0
+
 	# update MOD rhs, CAPS has no current [CAP MOD CAP]!
 	for seg in segs:
 		if seg == segs[0] or seg == segs[-1]:
 			continue
 		V = Vm[nrn, seg]
-
 		# SYNAPTIC update
 		if seg == 2: # fixme only for muscles [0, 1, 2MID, 3, 4]
 			# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
@@ -556,13 +639,14 @@ def nrn_rhs(nrn):
 	# end FOR segments
 
 	# activsynapse_rhs()
-	# NODE_rhs[nrn, seg] += 0
-	# if EXTRA: nrn_rhs_ext(_nt);
-	# NODE_rhs[nrn, seg] += 0
+	if EXTRACELLULAR:
+		# Cannot have any axial terms yet so that i(vm) can be calculated from
+		# i(vm)+is(vi) and is(vi) which are stored in rhs vector.
+		nrn_rhs_ext(nrn)
+		# nrn_rhs_ext has also computed the the internal axial current for those
+		# nodes containing the extracellular mechanism
 	# activstim_rhs()
-	# NODE_rhs[nrn, seg] += 0
 	# activclamp_rhs()
-	# NODE_rhs[nrn, seg] += 0
 
 	# todo always 0, because Vm0 = Vm1 = Vm2 at [CAP node CAP] model (1 section)
 	for nd in range(i2, i3):
@@ -587,11 +671,9 @@ def nrn_lhs(nrn):
 		NODE_D[nrn, nd] += cfac * Cm[nrn]
 
 	# activsynapse_lhs()
-	# NODE_D[nrn, seg] += 0
-	# nrn_setup_ext(_nt);
-	# NODE_D[nrn, seg] += 0
+	if EXTRACELLULAR:
+		nrn_setup_ext(nrn)
 	# activclamp_lhs();
-	# NODE_D[nrn, seg] += 0
 
 	# updating NODED
 	for nd in range(i2, i3):
@@ -642,6 +724,8 @@ def update(nrn):
 	"""
 	for nd in range(i1, _nt_end):
 		Vm[nrn, nd] += NODE_RHS[nrn, nd]
+
+	nrn_update_2d(nrn)
 
 	# save data like in NEURON (after .mod nrn_cur)
 	if nrn == save_neuron_id:
@@ -715,6 +799,57 @@ def nrn_area_ri():
 		NODE_AREA[:, nd] = 100
 		NODE_RINV[nrn, nd] = 1 / rright
 
+def ext_con_coef():
+	"""
+	void ext_con_coef(void)
+	setup a and b
+	"""
+	layer = 0
+	# todo: extracellular only for those neurons who need
+	for nrn in nrns:
+		# temporarily store half segment resistances in rhs
+		# todo xraxial is common
+		# todo sec->pnode needs +1 index
+		for nd in range(0 + 1, nnode - 1 + 1):
+			dx = length[nrn] / nodecount
+			ext_rhs[nrn, nd, layer] = 1e-4 * xraxial * dx / 2  # Megohms
+		# last segment has 0 length
+		ext_rhs[nrn, -1, layer] = 0
+		# NEURON RHS = [5e+07 5e+07 5e+07 0 ]
+
+		# node half resistances in general get added to the node and to the node's "child node in the same section".
+		# child nodes in different sections don't involve parent node's resistance
+		ext_b[nrn, 0+1, layer] = ext_rhs[nrn, 0+1, layer]
+		# todo sec->pnode needs +1 index
+		for nd in range(1 + 1, nnode + 1):
+			pnd = nd - 1
+			ext_b[nrn, nd, layer] = ext_rhs[nrn, nd, layer] + ext_rhs[nrn, pnd, layer]  # Megohms
+		# NEURON B = [5e+07 1e+08 1e+08 5e+07 ]
+
+		# first the effect of node on parent equation. Note That last nodes have area = 1.e2 in
+		# dimensionless units so that last nodes have units of microsiemens's
+		area = NODE_AREA[nrn, 0]    # parentnode index of sec is 0
+		rall_branch = 1  # sec->prop->dparam[4].val
+		ext_a[nrn, 0+1, layer] = -1.e2 * rall_branch / (ext_b[nrn, 0+1, layer] * area)
+		# todo sec->pnode needs +1 index
+		for nd in range(1 + 1, nnode + 1):
+			area = NODE_AREA[nrn, nd - 1]  # pnd = nd - 1
+			ext_a[nrn, nd, layer] = -1.e2 / (ext_b[nrn, nd, layer] * area)
+		# NEURON A = [-2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
+
+		# now the effect of parent on node equation
+		# todo sec->pnode needs +1 index
+		for nd in range(0 + 1, nnode + 1):
+			ext_b[nrn, nd, layer] = -1.e2 / (ext_b[nrn, nd, layer] * NODE_AREA[nrn, nd])
+		# NEURON B = [-1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
+
+		ext_a[nrn, :, 1] = ext_a[nrn, :, 0].copy()
+		ext_b[nrn, :, 1] = ext_b[nrn, :, 0].copy()
+		ext_rhs[nrn, :, 1] = ext_rhs[nrn, :, 0].copy()
+
+		# fixme RHS initially is zero!
+		ext_rhs[nrn, :, :] = 0
+
 def connection_coef():
 	"""
 	void connection_coef(void)  [854] treeset.c
@@ -738,6 +873,8 @@ def connection_coef():
 		# todo sec->pnode needs +1 index
 		for nd in range(0 + 1, nnode + 1):
 			NODE_B[nrn, nd] = -1.e2 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, nd]
+	# for Extracellular
+	ext_con_coef()
 
 def finitialize(v_init=-70):
 	"""
