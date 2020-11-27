@@ -7,6 +7,7 @@ DOI:10.1017/CBO9780511975899
 
 Based on the NEURON repository
 """
+import random
 import numpy as np
 import logging as log
 import matplotlib.pyplot as plt
@@ -14,11 +15,16 @@ import matplotlib.pyplot as plt
 log.basicConfig(level=log.INFO)
 
 EXTRACELLULAR = True
+DEBUG = False
 dt = 0.025  # [ms] - sim step
 sim_time = 50
 sim_time_steps = int(sim_time / dt)
 save_neuron_id = 1
-stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
+
+if DEBUG:
+	stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
+else:
+	stimulus = (np.arange(10, sim_time, 10) / dt).astype(int)
 
 """common const"""
 V_th = -40
@@ -69,7 +75,7 @@ def init0(shape, dtype=np.float):
 	return np.zeros(shape, dtype=dtype)
 
 nrns_number = 0
-tmp = 100
+tmp = 205
 # common properties
 models = init0(tmp, np.object) # model's names
 Cm = init0(tmp)         # [uF / cm2] membrane capacity
@@ -201,26 +207,59 @@ def create(number, model='inter'):
 	nrns_number += number
 	return ids
 
-def connect(pre_nrns, post_nrns, delay, weight, conn_type='all-to-all'):
+def conn_a2a(pre_nrns, post_nrns, delay, weight):
 	"""
 
 	"""
-	if conn_type == 'all-to-all':
-		for pre in pre_nrns:
-			for post in post_nrns:
-				syn_pre_nrn.append(pre)
-				syn_post_nrn.append(post)
-				syn_weight.append(weight)
-				syn_delay.append(int(delay / dt))
-				syn_delay_timer.append(-1)
-	else:
-		raise NotImplemented
+	for pre in pre_nrns:
+		for post in post_nrns:
+			syn_pre_nrn.append(pre)
+			syn_post_nrn.append(post)
+			syn_weight.append(weight)
+			syn_delay.append(int(delay / dt))
+			syn_delay_timer.append(-1)
 
-gen = create(1, model='generator')
-m1 = create(1, model='muscle')
-connect(gen, m1, delay=1, weight=40.5, conn_type='all-to-all')
-# m1 = create(1, model='moto')
-# connect(gen, m1, delay=1, weight=5.5, conn_type='all-to-all')
+
+def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, outdegree=50):
+	"""
+
+	"""
+	for post in post_nrns:
+		for j in range(outdegree):
+			pre = random.choice(pre_nrns)
+			weight = weight #random.gauss(weight, weight / 10)
+			delay = delay #random.gauss(delay, delay / 10)
+
+			syn_pre_nrn.append(pre)
+			syn_post_nrn.append(post)
+			syn_weight.append(weight)
+			syn_delay.append(int(delay / dt))
+			syn_delay_timer.append(-1)
+
+if DEBUG:
+	gen = create(1, model='generator')
+	m1 = create(1, model='muscle')
+	conn_a2a(gen, m1, delay=1, weight=40.5)
+	# m1 = create(1, model='moto')
+	# connect(gen, m1, delay=1, weight=5.5, conn_type='all-to-all')
+else:
+	gen = create(1, model='generator')
+	OM1 = create(50, model='inter')
+	OM2 = create(50, model='inter')
+	OM3 = create(50, model='inter')
+	moto = create(50, model='moto')
+	muscle = create(1, model='muscle')
+
+	conn_a2a(gen, OM1, delay=1, weight=1.5)
+
+	conn_fixed_outdegree(OM1, OM2, delay=2, weight=1.85)
+	conn_fixed_outdegree(OM2, OM1, delay=3, weight=1.85)
+	conn_fixed_outdegree(OM2, OM3, delay=3, weight=0.00055)
+	conn_fixed_outdegree(OM1, OM3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM3, OM2, delay=1, weight=2.5)
+	conn_fixed_outdegree(OM3, OM1, delay=1, weight=2.5)
+	conn_fixed_outdegree(OM2, moto, delay=2, weight=1.5)
+	conn_fixed_outdegree(moto, muscle, delay=2, weight=15.5)
 
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
@@ -265,7 +304,7 @@ GRAS_data1 = []
 GRAS_data2 = []
 
 def get_neuron_data():
-	with open("/home/alex/NRNTEST/muscle/kek") as file:
+	with open("/home/alex/NRNTEST/muscle/output") as file:
 		neuron_data = []
 		while 1:
 			line = file.readline()
@@ -558,8 +597,8 @@ def nrn_rhs_ext(nrn):
 		ext_rhs[nrn, nd, j] -= x
 		ext_rhs[nrn, nd, j+1] += x
 
-		print(f"==>V0 {ext_v[nrn, nd, 0]} V1 {ext_v[nrn, nd, 1]} RHS0 {ext_rhs[nrn, nd, 0]} RHS1 {ext_rhs[nrn, nd, 1]}")
-	print()
+		# print(f"==>V0 {ext_v[nrn, nd, 0]} V1 {ext_v[nrn, nd, 1]} RHS0 {ext_rhs[nrn, nd, 0]} RHS1 {ext_rhs[nrn, nd, 1]}")
+	# print()
 
 def nrn_setup_ext(nrn):
 	"""
@@ -761,15 +800,19 @@ def nrn_solve(nrn):
 	"""
 	void nrn_solve(NrnThread* _nt)
 	"""
+	# NODED [228.479 0.416927 0.326018 0.416927 228.479]
+	# spFactor
+	# print("NODED", NODE_D[1, :])
+	# print("ext_d", ext_d[1, :, 0])
+
+	# NODED [0.00437676 4.76737 3.06731 4.83803 0.00437676]
+
 	triang(nrn)
 	bksub(nrn)
+	# print("NODED", NODE_D[1, :])
+	# print("must  [0.004376 4.76737 3.06731 4.83803 0.004376]")
+	# exit()
 
-	# todo WTF check the code (made by emprirical method: comparing output of sparse13)
-	# for nd in range(1, _nt_end):
-	# 	pnd = nd - 1
-	# 	for j in range(nlayer):
-	# 		ext_rhs[nrn, nd, j] += ext_a[nrn, nd, j]
-	# 		ext_rhs[nrn, nd, j] -= ext_b[nrn, nd, j]
 
 def setup_tree_matrix(nrn):
 	"""
@@ -987,6 +1030,7 @@ def simulation():
 	finitialize()
 	# start simulation loop
 	for t in range(sim_time_steps):
+		print(t * dt)
 		nrn_fixed_step_thread(t)
 
 def plot(gras_data, neuron_data):
@@ -1024,8 +1068,11 @@ def plot(gras_data, neuron_data):
 if __name__ == "__main__":
 	simulation()
 	GRAS_data = np.array(list(sum(d, []) for d in zip(GRAS_data2, GRAS_data1)))
-	xlength = GRAS_data.shape[0]
-	NEURON_data = get_neuron_data()[:xlength, :]
-	log.info(f"GRAS shape {GRAS_data.shape}")
-	log.info(f"NEURON shape {NEURON_data.shape}")
-	plot(GRAS_data, NEURON_data)
+	if DEBUG:
+		xlength = GRAS_data.shape[0]
+		NEURON_data = get_neuron_data()[:xlength, :]
+		log.info(f"GRAS shape {GRAS_data.shape}")
+		log.info(f"NEURON shape {NEURON_data.shape}")
+		plot(GRAS_data, NEURON_data)
+	else:
+		pass
