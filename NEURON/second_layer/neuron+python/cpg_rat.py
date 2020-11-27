@@ -22,13 +22,13 @@ versions = 1
 step_number = 2 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
-nMN = 200
+nMN = 210
 nAff = 120
 nInt = 196
 N = 50
-k = 0.01
+k = 0.018
 
-one_step_time = 6 * speed + 175
+one_step_time = 6 * speed + 125
 time_sim = 25 + one_step_time * step_number
 
 exnclist = []
@@ -150,12 +150,12 @@ class CPG:
         for layer in range(layers+1):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 175), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
+                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 125), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
 
         for layer in range(layers, extra_layers):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + 175), random.gauss(cfr, cfr/10), speed / c_int))
+                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + 125), random.gauss(cfr, cfr/10), speed / c_int))
 
         self.C_1 = []
         self.C_0 = []
@@ -165,8 +165,8 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False))
-            self.V0v.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 175), 100, int(175/10), False))
+            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
+            self.V0v.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), 100, int(125/10), False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
@@ -204,7 +204,7 @@ class CPG:
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
         connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.OM1_0F, 3.5, 3)
+        connectcells(self.V0v, self.OM1_0F, 2.25, 3)
 
         '''between delays via excitatory pools'''
         '''extensor'''
@@ -251,7 +251,7 @@ class CPG:
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
             connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 3.15, 3)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 3.5, 3)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
             else:
@@ -304,7 +304,7 @@ class CPG:
         connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
 
         '''C=1 Extensor'''
-        # connectcells(self.IP_E, self.iIP_E, 0.08, 1)
+        connectcells(self.IP_E, self.iIP_E, 0.05, 1)
 
         for layer in range(layers+1):
             connectcells(self.dict_CV_1[layer], self.iIP_E, 0.8, 1)
@@ -321,7 +321,7 @@ class CPG:
         connectcells(self.iIP_E, self.mns_F, 0.4, 1, True)
 
         '''C=0 Flexor'''
-        # connectcells(self.IP_F, self.iIP_F, 0.05, 1)
+        connectcells(self.IP_F, self.iIP_F, 0.05, 1)
         connectcells(self.iIP_F, self.IP_E, 0.8, 1, True)
         connectcells(self.iIP_F, self.iIP_E, 0.5, 1, True)
         connectcells(self.iIP_F, self.Ia_aff_E, 0.5, 1, True)
@@ -347,8 +347,8 @@ class CPG:
         connectcells(self.R_F, self.R_E, 0.04, 1, True)
         connectcells(self.Ia_E, self.Ia_F, 0.08, 1, True)
         connectcells(self.Ia_F, self.Ia_E, 0.08, 1, True)
-        # connectcells(self.iIP_E, self.iIP_F, 0.04, 1, True)
-        # connectcells(self.iIP_F, self.iIP_E, 0.04, 1, True)
+        connectcells(self.iIP_E, self.iIP_F, 0.04, 1, True)
+        connectcells(self.iIP_F, self.iIP_E, 0.04, 1, True)
 
 
     def addpool(self, num, name="test", neurontype="int"):
@@ -644,7 +644,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/4p_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
                 sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
                 file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
@@ -693,9 +693,9 @@ if __name__ == '__main__':
         # affrecorders = []
         # for group in cpg_ex.affgroups:
         #   affrecorders.append(spike_record(group[k_nrns], i))
-        recorders = []
-        for group in cpg_ex.groups:
-          recorders.append(spike_record(group[k_nrns], i))
+        # recorders = []
+        # for group in cpg_ex.groups:
+        #   recorders.append(spike_record(group[k_nrns], i))
         logging.info("added recorders")
 
         print("- " * 10, "\nstart")
@@ -711,8 +711,8 @@ if __name__ == '__main__':
             spikeout(group[k_nrns], f'mem_{group[k_name]}', i, recorder)
         # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
         #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.groups, recorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.groups, recorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
         logging.info("recorded")
 
     finish()
