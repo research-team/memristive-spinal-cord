@@ -19,7 +19,7 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
+step_number = 5 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 210
@@ -140,8 +140,8 @@ class CPG:
         '''ees'''
         self.ees = self.addgener(0, ees_fr, 10000, False)
 
-        self.Iagener_E = self.addIagener(self.muscle_E)
-        self.Iagener_F = self.addIagener(self.muscle_F)
+        self.Iagener_E = self.addIagener(self.muscle_E, self.muscle_F, 10)
+        self.Iagener_F = self.addIagener(self.muscle_F, self.muscle_F, speed*6)
 
         '''skin inputs'''
         cfr = 200
@@ -440,7 +440,7 @@ class CPG:
         pc.cell(gid, ncstim)
         return gid
 
-    def addIagener(self, mn):
+    def addIagener(self, mn, mn2, start):
         '''
         Creates self.Ia generators and returns generator gids
         Parameters
@@ -455,10 +455,12 @@ class CPG:
             generators gids
         '''
         gid = 0
-        srcgid = random.randint(mn[0], mn[-1])
-        moto = pc.gid2cell(srcgid)
+        moto = pc.gid2cell(random.randint(mn[0], mn[-1]))
+        moto2 = pc.gid2cell(random.randint(mn2[0], mn2[-1]))
         stim = h.IaGenerator(0.5)
+        stim.start = start
         h.setpointer(moto.muscle_unit(0.5)._ref_F_fHill, 'fhill', stim)
+        h.setpointer(moto2.muscle_unit(0.5)._ref_F_fHill, 'fhill2', stim)
         self.stims.append(stim)
         while pc.gid_exists(gid) != 0:
             gid += 1
@@ -467,7 +469,6 @@ class CPG:
         pc.cell(gid, ncstim)
 
         return gid
-
 
 def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
     ''' Connects with excitatory synapses
