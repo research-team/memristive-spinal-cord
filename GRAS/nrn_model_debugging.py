@@ -14,12 +14,13 @@ import matplotlib.pyplot as plt
 
 log.basicConfig(level=log.INFO)
 
-EXTRACELLULAR = True
 DEBUG = False
-dt = 0.025  # [ms] - sim step
-sim_time = 50
-sim_time_steps = int(sim_time / dt)
 save_neuron_id = 1
+
+EXTRACELLULAR = False
+dt = 0.025      # [ms] - sim step
+sim_time = 50   # [ms] -
+sim_time_steps = int(sim_time / dt)
 
 if DEBUG:
 	stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
@@ -37,21 +38,21 @@ amC = 5     # const ??? todo
 bmA = 0.4   # const ??? todo
 bmB = 32    # const ??? todo
 bmC = 5     # const ??? todo
-R_const = 8.314472    # [k-mole] or [joule/degC] const
-F_const = 96485.34    # [faraday] or [kilocoulombs] const
+R_const = 8.314472  # [k-mole] or [joule/degC] const
+F_const = 96485.34  # [faraday] or [kilocoulombs] const
 """muscle const"""
-g_kno = 0.01    # [S/cm2] ?? todo
-g_kir = 0.03    # [S/cm2] ?? todo
+g_kno = 0.01        # [S/cm2] ?? todo
+g_kir = 0.03        # [S/cm2] ?? todo
 # Boltzman steady state curve
-vhalfl = -98.92 # [mV] fitted to patch data, Stegen et al. 2012
-kl = 10.89      # [mV] Stegen et al. 2012
+vhalfl = -98.92     # [mV] fitted to patch data, Stegen et al. 2012
+kl = 10.89          # [mV] Stegen et al. 2012
 # tau_infty
 vhalft = 67.0828    # [mV] fitted #100 uM sens curr 350a, Stegen et al. 2012
 at = 0.00610779     # [/ ms] Stegen et al. 2012
 bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
 # Temperature dependence
-q10 = 1         # temperature scaling
-celsius = 36    # [degC]
+q10 = 1             # temperature scaling
+celsius = 36        # [degC]
 
 # i_membrane [mA/cm2]
 e_extracellular = 0 # [mV]
@@ -59,17 +60,6 @@ xraxial = 1e9       # [MOhm/cm]
 # todo find the initialization
 xg = [0, 1e9, 1e9, 1e9, 0]  # [S/cm2]
 xc = [0, 0, 0, 0, 0]        # [uF/cm2]
-
-# fixme
-nodecount = 3   # segments
-_nt_ncell = 1   # neurons count
-# fixme ONLY FOR REALIZATION WITH ONE NEURON/ARRAY
-_nt_end = nodecount + 2  # 1 + position of last in v_node array)
-nnode = nodecount + 1    # number of nodes for ith section
-segs = list(range(_nt_end))
-i1 = 0
-i2 = i1 + _nt_ncell
-i3 = _nt_end
 
 def init0(shape, dtype=np.float):
 	return np.zeros(shape, dtype=dtype)
@@ -96,13 +86,17 @@ gcak = init0(tmp)       # [S / cm2] todo
 # synapses data
 E_ex = init0(tmp)       # [S / cm2] todo
 E_inh = init0(tmp)      # [S / cm2] todo
-syn_pre_nrn = []
-syn_post_nrn = []
-syn_weight = []
-syn_delay = []
-syn_delay_timer = []
-tau_syn_exc = init0(tmp)    # [S / cm2] todo
-tau_syn_inh = init0(tmp)    # [S / cm2] todo
+syn_pre_nrn = []        #
+syn_post_nrn = []       #
+syn_weight = []         #
+syn_delay = []          #
+syn_delay_timer = []    #
+tau_exc = init0(tmp)    # [S / cm2] todo
+tau_inh1 = init0(tmp)   # [S / cm2] todo
+tau_inh2 = init0(tmp)   # [S / cm2] todo
+factor = init0(tmp)     # [S / cm2] todo
+tau_A = init0(tmp)      # [S / cm2] todo
+tau_B = init0(tmp)      # [S / cm2] todo
 
 def create(number, model='inter'):
 	"""
@@ -127,25 +121,27 @@ def create(number, model='inter'):
 	__gcak = None
 	__e_ex = None
 	__e_inh = None
-	__tau_syn_exc = None
-	__tau_syn_inh = None
+	__tau_exc = None
+	__tau_inh1 = None
+	__tau_inh2 = None
 	# without random at first stage of debugging
 	for nrnid in ids:
 		if model == 'inter':
 			__Cm = 1
-			__gnabar = 120
-			__gkbar = 36
-			__gl = 0.3
+			__gnabar = 0.1
+			__gkbar = 0.08
+			__gl = 0.002
 			__Ra = 100
 			__ena = 50
 			__ek = -80
 			__el = -70
-			__diam = 6
-			__dx = 6
+			__diam = random.randint(5, 15)
+			__dx = __diam
 			__e_ex = 50
 			__e_inh = -80
-			__tau_syn_exc = 0.3
-			__tau_syn_inh = 2.0
+			__tau_exc = 0.35
+			__tau_inh1 = 0.5 # 0.5
+			__tau_inh2 = 3.5 # 3.5
 		elif model == 'moto':
 			__Cm = 2
 			__gnabar = 0.05
@@ -154,16 +150,23 @@ def create(number, model='inter'):
 			__ena = 50
 			__ek = -80
 			__el = -70
-			__diam = 50
-			__dx = 50
+			__diam = random.randint(45, 55)
+			__dx = __diam
 			__gkrect = 0.3
 			__gcaN = 0.05
 			__gcaL = 0.0001
 			__gcak = 0.3
 			__e_ex = 50
 			__e_inh = -80
-			__tau_syn_exc = 0.3
-			__tau_syn_inh = 2.0
+			__tau_exc = 0.3
+			__tau_inh1 = 1
+			__tau_inh2 = 1.5
+			if __diam > 50:
+				__gnabar = 0.1
+				__gcaL = 0.001
+				__gl = 0.003
+				__gkrect = 0.2
+				__gcak = 0.2
 		elif model == 'muscle':
 			__Cm = 3.6
 			__gnabar = 0.15
@@ -175,10 +178,11 @@ def create(number, model='inter'):
 			__el = -72
 			__diam = 40
 			__dx = 3000
-			__e_ex = 0  # todo check -- 9
+			__e_ex = 0
 			__e_inh = -80
-			__tau_syn_exc = 0.3
-			__tau_syn_inh = 0.1
+			__tau_exc = 0.3
+			__tau_inh1 = 1
+			__tau_inh2 = 10
 		elif model == 'generator':
 			pass
 		else:
@@ -201,8 +205,9 @@ def create(number, model='inter'):
 		gcak[nrnid] = __gcak
 		E_ex[nrnid] = __e_ex
 		E_inh[nrnid] = __e_inh
-		tau_syn_exc[nrnid] = __tau_syn_exc
-		tau_syn_inh[nrnid] = __tau_syn_inh
+		tau_exc[nrnid] = __tau_exc
+		tau_inh1[nrnid] = __tau_inh1
+		tau_inh2[nrnid] = __tau_inh2
 	models[nrns_number:nrns_number + number] = model
 	nrns_number += number
 	return ids
@@ -219,7 +224,6 @@ def conn_a2a(pre_nrns, post_nrns, delay, weight):
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
 
-
 def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, outdegree=50):
 	"""
 
@@ -229,12 +233,16 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, outdegree=50):
 			pre = random.choice(pre_nrns)
 			weight = weight #random.gauss(weight, weight / 10)
 			delay = delay #random.gauss(delay, delay / 10)
-
 			syn_pre_nrn.append(pre)
 			syn_post_nrn.append(post)
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
+
+spikes = []
+GRAS_data1 = []
+GRAS_data2 = []
+saved_voltage = {}
 
 if DEBUG:
 	gen = create(1, model='generator')
@@ -256,10 +264,23 @@ else:
 	conn_fixed_outdegree(OM2, OM1, delay=3, weight=1.85)
 	conn_fixed_outdegree(OM2, OM3, delay=3, weight=0.00055)
 	conn_fixed_outdegree(OM1, OM3, delay=3, weight=0.00005)
-	conn_fixed_outdegree(OM3, OM2, delay=1, weight=2.5)
-	conn_fixed_outdegree(OM3, OM1, delay=1, weight=2.5)
+	conn_fixed_outdegree(OM3, OM2, delay=1, weight=-2.5)
+	conn_fixed_outdegree(OM3, OM1, delay=1, weight=-2.5)
 	conn_fixed_outdegree(OM2, moto, delay=2, weight=1.5)
 	conn_fixed_outdegree(moto, muscle, delay=2, weight=15.5)
+
+	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
+		saved_voltage[key] = []
+
+# fixme
+nodecount = 1   # segments
+# fixme ONLY FOR REALIZATION WITH ONE NEURON/ARRAY
+_nt_end = nodecount + 2  # 1 + position of last in v_node array)
+nnode = nodecount + 1    # number of nodes for ith section
+segs = list(range(_nt_end))
+i1 = 0
+i2 = 1
+i3 = _nt_end
 
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, _nt_end)
@@ -281,7 +302,6 @@ I_Na = init0(nrn_shape)         # [nA] Na ionic currents
 I_Ca = init0(nrn_shape)         # [nA] Ca ionic currents
 E_Ca = init0(nrn_shape)         # [mV] Ca reversal potential
 g_exc = init0(nrns_number)      # [S] excitatory conductivity level
-g_inh = init0(nrns_number)      # [S] inhibitory conductivity level
 NODE_A = init0(nrn_shape)       # the effect of this node on the parent node's equation
 NODE_B = init0(nrn_shape)       # the effect of the parent node on this node's equation
 NODE_D = init0(nrn_shape)       # diagonal element in node equation
@@ -298,10 +318,6 @@ ext_v = init0(ext_shape)     # extracellular
 ext_a = init0(ext_shape)     # extracellular
 ext_b = init0(ext_shape)     # extracellular
 ext_d = init0(ext_shape)     # extracellular
-
-spikes = []
-GRAS_data1 = []
-GRAS_data2 = []
 
 def get_neuron_data():
 	with open("/home/alex/NRNTEST/muscle/output") as file:
@@ -339,6 +355,8 @@ def save_data(to_end=False):
 	"""
 
 	"""
+	if not DEBUG:
+		return
 	inrn = save_neuron_id
 	MID = 2
 	global GRAS_data
@@ -375,7 +393,7 @@ def syn_current(nrn, voltage):
 	"""
 
 	"""
-	return g_exc[nrn] * (voltage - E_ex[nrn]) + g_inh[nrn] * (voltage - E_inh[nrn])
+	return g_exc[nrn] * (voltage - E_ex[nrn]) + (tau_B[nrn] - tau_A[nrn]) * (voltage - E_inh[nrn])
 
 def nrn_moto_current(nrn, seg, voltage):
 	"""
@@ -410,14 +428,32 @@ def recalc_synaptic(nrn):
 	"""
 	# exc synaptic conductance
 	if g_exc[nrn] != 0:
-		g_exc[nrn] -= g_exc[nrn] * (1 - np.exp(-dt / tau_syn_exc[nrn]))
+		g_exc[nrn] -= g_exc[nrn] * (1 - np.exp(-dt / tau_exc[nrn]))
 		if g_exc[nrn] < 1e-10:
 			g_exc[nrn] = 0
 	# inh synaptic conductance
-	if g_inh[nrn] != 0:
-		g_inh[nrn] -= g_inh[nrn] * (1 - np.exp(-dt / tau_syn_inh[nrn]))
-		if g_inh[nrn] < 1e-10:
-			g_inh[nrn] = 0
+	if tau_A[nrn] != 0:
+		tau_A[nrn] += (1 - np.exp(-dt * (1 / tau_inh1[nrn]))) * (0 / (1 / tau_inh1[nrn]) - tau_A[nrn])
+		if tau_A[nrn] < 1e-10:
+			tau_A[nrn] = 0
+	# inh synaptic conductance
+	if tau_B[nrn] != 0:
+		tau_B[nrn] += (1 - np.exp(-dt * (1 / tau_inh2[nrn]))) * (0 / (1 / tau_inh2[nrn]) - tau_B[nrn])
+		if tau_B[nrn] < 1e-10:
+			tau_A[nrn] = 0
+
+def syn_initial(nrn):
+	"""
+
+	"""
+	if tau_inh1[nrn] / tau_inh2[nrn] > 0.9999:
+		tau_inh1[nrn] = 0.9999 * tau_inh2[nrn]
+	if tau_inh1[nrn] / tau_inh2[nrn] < 1e-9:
+		tau_inh1[nrn] = tau_inh2[nrn] * 1e-9
+
+	tp = (tau_inh1[nrn] * tau_inh2[nrn]) / (tau_inh2[nrn] - tau_inh1[nrn]) * np.log(tau_inh2[nrn] / tau_inh1[nrn])
+	factor[nrn] = -np.exp(-tp / tau_inh1[nrn]) + np.exp(-tp / tau_inh2[nrn])
+	factor[nrn] = 1 / factor[nrn]
 
 def nrn_inter_initial(nrn, seg, V):
 	"""
@@ -598,7 +634,6 @@ def nrn_rhs_ext(nrn):
 		ext_rhs[nrn, nd, j+1] += x
 
 		# print(f"==>V0 {ext_v[nrn, nd, 0]} V1 {ext_v[nrn, nd, 1]} RHS0 {ext_rhs[nrn, nd, 0]} RHS1 {ext_rhs[nrn, nd, 1]}")
-	# print()
 
 def nrn_setup_ext(nrn):
 	"""
@@ -765,14 +800,15 @@ def bksub(nrn):
 		NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
 
 	# extracellular
-	for nd in range(i1, i2):
-		for j in range(nlayer):
-			ext_rhs[nrn, nd, j] /= ext_d[nrn, nd, j]
-	for nd in range(i2, i3):
-		pnd = nd - 1
-		for j in range(nlayer):
-			ext_rhs[nrn, nd, j] -= ext_b[nrn, nd, j] * ext_rhs[nrn, pnd, j]
-			ext_rhs[nrn, nd, j] /= ext_d[nrn, nd, j]
+	if EXTRACELLULAR:
+		for nd in range(i1, i2):
+			for j in range(nlayer):
+				ext_rhs[nrn, nd, j] /= ext_d[nrn, nd, j]
+		for nd in range(i2, i3):
+			pnd = nd - 1
+			for j in range(nlayer):
+				ext_rhs[nrn, nd, j] -= ext_b[nrn, nd, j] * ext_rhs[nrn, pnd, j]
+				ext_rhs[nrn, nd, j] /= ext_d[nrn, nd, j]
 
 def triang(nrn):
 	"""
@@ -787,14 +823,15 @@ def triang(nrn):
 		NODE_RHS[nrn, pnd] -= ppp * NODE_RHS[nrn, nd]
 		nd -= 1
 	# extracellular
-	nd = i3 - 1
-	while nd >= i2:
-		pnd = nd - 1
-		for j in range(nlayer):
-			ppp = ext_a[nrn, nd, j] / ext_d[nrn, nd, j]
-			ext_d[nrn, pnd, j] -= ppp * ext_b[nrn, nd, j]
-			ext_rhs[nrn, pnd, j] -= ppp * ext_rhs[nrn, nd, j]
-		nd -= 1
+	if EXTRACELLULAR:
+		nd = i3 - 1
+		while nd >= i2:
+			pnd = nd - 1
+			for j in range(nlayer):
+				ppp = ext_a[nrn, nd, j] / ext_d[nrn, nd, j]
+				ext_d[nrn, pnd, j] -= ppp * ext_b[nrn, nd, j]
+				ext_rhs[nrn, pnd, j] -= ppp * ext_rhs[nrn, nd, j]
+			nd -= 1
 
 def nrn_solve(nrn):
 	"""
@@ -812,7 +849,6 @@ def nrn_solve(nrn):
 	# print("NODED", NODE_D[1, :])
 	# print("must  [0.004376 4.76737 3.06731 4.83803 0.004376]")
 	# exit()
-
 
 def setup_tree_matrix(nrn):
 	"""
@@ -846,7 +882,8 @@ def deliver_net_events():
 			if weight >= 0:
 				g_exc[post_id] += weight
 			else:
-				g_inh[post_id] += -weight
+				tau_A[post_id] += -weight * factor[post_id]
+				tau_B[post_id] += -weight * factor[post_id]
 			syn_delay_timer[index] = -1
 		if syn_delay_timer[index] > 0:
 			syn_delay_timer[index] -= 1
@@ -1000,9 +1037,13 @@ def finitialize(v_init=-70):
 				raise Exception("No nrn model found")
 		# init RHS/LHS
 		setup_tree_matrix(nrn)
+		# init tau synapses
+		syn_initial(nrn)
+
 	# initialization process should not be recorderd
 	GRAS_data1.clear()
 	GRAS_data2.clear()
+
 
 def nrn_fixed_step_thread(t):
 	"""
@@ -1032,6 +1073,12 @@ def simulation():
 	for t in range(sim_time_steps):
 		print(t * dt)
 		nrn_fixed_step_thread(t)
+
+		for key, ids in zip(['OM1', 'OM2', 'OM3', 'moto', 'muscle'], [OM1, OM2, OM3, moto, muscle]):
+			if len(ids) == 1:
+				saved_voltage[key].append(np.mean(Vm[ids, 2]))
+			else:
+				saved_voltage[key].append(np.mean(Vm[ids[0]:ids[-1], 2]))
 
 def plot(gras_data, neuron_data):
 	"""
@@ -1075,4 +1122,9 @@ if __name__ == "__main__":
 		log.info(f"NEURON shape {NEURON_data.shape}")
 		plot(GRAS_data, NEURON_data)
 	else:
-		pass
+		plt.close()
+		for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
+			d = saved_voltage[key]
+			plt.plot(np.arange(len(d)) * dt, d, label=key)
+		plt.legend()
+		plt.show()
