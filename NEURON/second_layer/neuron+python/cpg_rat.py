@@ -19,7 +19,7 @@ nhost = int(pc.nhost())
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 5 # number of steps
+step_number = 8 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 210
@@ -166,7 +166,7 @@ class CPG:
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
             self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
-            self.V0v.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), 100, int(125/10), False))
+            self.V0v.append(self.addgener(30 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
@@ -204,7 +204,7 @@ class CPG:
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
         connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.OM1_0F, 2.25, 3)
+        connectcells(self.V0v, self.OM1_0F, 2.5, 3)
 
         '''between delays via excitatory pools'''
         '''extensor'''
@@ -567,7 +567,7 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 2.5, 3)
     connectcells(OM1, OM2, 2.5, 3)
     connectcells(OM2, OM1, 1.95, 3)
-    connectcells(OM2, OM3, 0.0007, 3)
+    connectcells(OM2, OM3, 0.00055, 3)
     connectcells(OM1, OM3, 0.00005, 3)
     connectcells(OM3, OM2, 4.5, 3, True)
     connectcells(OM3, OM1, 4.5, 3, True)
@@ -660,6 +660,7 @@ def prun(speed, step_number):
     speed: int
       duration of each layer
     '''
+    pc.timeout(0)
     tstop = time_sim#25 + (6 * speed + 125) * step_number
     pc.set_maxstep(10)
     h.stdinit()
