@@ -61,50 +61,51 @@ xraxial = 1e9       # [MOhm/cm]
 xg = [0, 1e9, 1e9, 1e9, 0]  # [S/cm2]
 xc = [0, 0, 0, 0, 0]        # [uF/cm2]
 
-def init0(shape, dtype=np.float):
+def init0(shape, dtype=float):
 	return np.zeros(shape, dtype=dtype)
 
 nrns_number = 0
-tmp = 205
 # common properties
-models = init0(tmp, np.object) # model's names
-Cm = init0(tmp)         # [uF / cm2] membrane capacity
-gnabar = init0(tmp)     # [S / cm2] todo
-gkbar = init0(tmp)      # [S / cm2]g_K todo
-gl = init0(tmp)         # [S / cm2] todo
-Ra = init0(tmp)         # [Ohm cm] membrane resistance
-diam = init0(tmp)       # [um] diameter
-length = init0(tmp)     # [um] compartment length
-ena = init0(tmp)        # [mV] todo
-ek = init0(tmp)         # [mV] todo
-el = init0(tmp)         # [mV] todo
+models = []     # model's names
+Cm = []         # [uF / cm2] membrane capacity
+gnabar = []     # [S / cm2] todo
+gkbar = []      # [S / cm2]g_K todo
+gl = []         # [S / cm2] todo
+Ra = []         # [Ohm cm]
+diam = []       # [um] diameter
+length = []     # [um] compartment length
+ena = []        # [mV] todo
+ek = []         # [mV] todo
+el = []         # [mV] todo
 # moto properties
-gkrect = init0(tmp)     # [S / cm2] todo
-gcaN = init0(tmp)       # [S / cm2] todo
-gcaL = init0(tmp)       # [S / cm2] todo
-gcak = init0(tmp)       # [S / cm2] todo
+gkrect = []     # [S / cm2] todo
+gcaN = []       # [S / cm2] todo
+gcaL = []       # [S / cm2] todo
+gcak = []       # [S / cm2] todo
 # synapses data
-E_ex = init0(tmp)       # [S / cm2] todo
-E_inh = init0(tmp)      # [S / cm2] todo
+E_ex = []       # [S / cm2] todo
+E_inh = []      # [S / cm2] todo
+tau_exc = []    # [S / cm2] todo
+tau_inh1 = []   # [S / cm2] todo
+tau_inh2 = []   # [S / cm2] todo
+
 syn_pre_nrn = []        #
 syn_post_nrn = []       #
 syn_weight = []         #
 syn_delay = []          #
 syn_delay_timer = []    #
-tau_exc = init0(tmp)    # [S / cm2] todo
-tau_inh1 = init0(tmp)   # [S / cm2] todo
-tau_inh2 = init0(tmp)   # [S / cm2] todo
-factor = init0(tmp)     # [S / cm2] todo
-tau_A = init0(tmp)      # [S / cm2] todo
-tau_B = init0(tmp)      # [S / cm2] todo
 
-nrn_post_synapses = [[] for _ in range(tmp)]
+_G = []
+spikes = []
+GRAS_data1 = []
+GRAS_data2 = []
+saved_voltage = {}
 
 def create(number, model='inter'):
 	"""
 
 	"""
-	global nrns_number
+	global nrns_number, models
 	ids = list(range(nrns_number, nrns_number + number))
 	#
 	__Cm = None
@@ -127,7 +128,7 @@ def create(number, model='inter'):
 	__tau_inh1 = None
 	__tau_inh2 = None
 	# without random at first stage of debugging
-	for nrnid in ids:
+	for _ in ids:
 		if model == 'inter':
 			__Cm = random.gauss(1, 0.01)
 			__gnabar = 0.1
@@ -137,13 +138,13 @@ def create(number, model='inter'):
 			__ena = 50
 			__ek = -90
 			__el = -70
-			__diam = random.randint(5, 15)
+			__diam = 10 #random.randint(5, 15)
 			__dx = __diam
 			__e_ex = 50
 			__e_inh = -80
 			__tau_exc = 0.35
-			__tau_inh1 = 0.5 # 0.5
-			__tau_inh2 = 3.5 # 3.5
+			__tau_inh1 = 0.5
+			__tau_inh2 = 3.5
 		elif model == 'moto':
 			__Cm = 2
 			__gnabar = 0.05
@@ -191,37 +192,33 @@ def create(number, model='inter'):
 			raise Exception("Choose the model")
 
 		# common properties
-		Cm[nrnid] = __Cm
-		gnabar[nrnid] = __gnabar
-		gkbar[nrnid] = __gkbar
-		gl[nrnid] = __gl
-		el[nrnid] = __el
-		ena[nrnid] = __ena
-		ek[nrnid] = __ek
-		Ra[nrnid] = __Ra
-		diam[nrnid] = __diam
-		length[nrnid] = __dx
-		gkrect[nrnid] = __gkrect
-		gcaN[nrnid] = __gcaN
-		gcaL[nrnid] = __gcaL
-		gcak[nrnid] = __gcak
-		E_ex[nrnid] = __e_ex
-		E_inh[nrnid] = __e_inh
-		tau_exc[nrnid] = __tau_exc
-		tau_inh1[nrnid] = __tau_inh1
-		tau_inh2[nrnid] = __tau_inh2
-	models[nrns_number:nrns_number + number] = model
+		Cm.append(__Cm)
+		gnabar.append(__gnabar)
+		gkbar.append(__gkbar)
+		gl.append(__gl)
+		el.append(__el)
+		ena.append(__ena)
+		ek.append(__ek)
+		Ra.append(__Ra)
+		diam.append(__diam)
+		length.append(__dx)
+		gkrect.append(__gkrect)
+		gcaN.append(__gcaN)
+		gcaL.append(__gcaL)
+		gcak.append(__gcak)
+		E_ex.append(__e_ex)
+		E_inh.append(__e_inh)
+		tau_exc.append(__tau_exc)
+		tau_inh1.append(__tau_inh1)
+		tau_inh2.append(__tau_inh2)
+	models += [model] * number
 	nrns_number += number
 	return ids
-
-global_syn_id = 0
 
 def conn_a2a(pre_nrns, post_nrns, delay, weight):
 	"""
 
 	"""
-	global global_syn_id
-
 	for pre in pre_nrns:
 		for post in post_nrns:
 			syn_pre_nrn.append(pre)
@@ -229,18 +226,11 @@ def conn_a2a(pre_nrns, post_nrns, delay, weight):
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
-			nrn_post_synapses[post].append(global_syn_id)
-
-			global_syn_id += 1
-
-_G = []
 
 def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 	"""
 
 	"""
-	global global_syn_id
-
 	for post in post_nrns:
 		for j in range(indegree):
 			pre = random.choice(pre_nrns)
@@ -251,14 +241,6 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
-
-			nrn_post_synapses[post].append(global_syn_id)
-			global_syn_id += 1
-
-spikes = []
-GRAS_data1 = []
-GRAS_data2 = []
-saved_voltage = {}
 
 if DEBUG:
 	gen = create(1, model='generator')
@@ -280,18 +262,13 @@ else:
 	conn_fixed_outdegree(OM2, OM1, delay=3, weight=1.85)
 	conn_fixed_outdegree(OM2, OM3, delay=3, weight=0.00055)
 	conn_fixed_outdegree(OM1, OM3, delay=3, weight=0.00005)
-	conn_fixed_outdegree(OM3, OM2, delay=1, weight=-2.5)
-	conn_fixed_outdegree(OM3, OM1, delay=1, weight=-2.5)
+	conn_fixed_outdegree(OM3, OM2, delay=1, weight=-4.5)
+	conn_fixed_outdegree(OM3, OM1, delay=1, weight=-4.5)
 	conn_fixed_outdegree(OM2, moto, delay=2, weight=1.5)
 	conn_fixed_outdegree(moto, muscle, delay=2, weight=15.5)
 
 	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
 		saved_voltage[key] = []
-
-syn_gexc = [0] * global_syn_id    #
-syn_A = [0] * global_syn_id    #
-syn_B = [0] * global_syn_id    #
-
 
 # fixme
 nodecount = 1   # segments
@@ -317,12 +294,17 @@ p = init0(nrn_shape)            # [0..1] compartments channel
 hc = init0(nrn_shape)           # [0..1] compartments channel
 mc = init0(nrn_shape)           # [0..1] compartments channel
 cai = init0(nrn_shape)          # [0..1] compartments channel
-I_L = init0(nrn_shape)          # [nA] leak ionic currents
-I_K = init0(nrn_shape)          # [nA] K ionic currents
-I_Na = init0(nrn_shape)         # [nA] Na ionic currents
+# I_L = init0(nrn_shape)        # [nA] leak ionic currents
+# I_K = init0(nrn_shape)        # [nA] K ionic currents
+# I_Na = init0(nrn_shape)       # [nA] Na ionic currents
+# E_Ca = init0(nrn_shape)       # [mV] Ca reversal potential
 I_Ca = init0(nrn_shape)         # [nA] Ca ionic currents
-E_Ca = init0(nrn_shape)         # [mV] Ca reversal potential
+
 g_exc = init0(nrns_number)      # [S] excitatory conductivity level
+g_inh_A = init0(nrns_number)    # [S / cm2] todo
+g_inh_B = init0(nrns_number)    # [S / cm2] todo
+factor = init0(nrns_number)     # [S / cm2] todo
+
 NODE_A = init0(nrn_shape)       # the effect of this node on the parent node's equation
 NODE_B = init0(nrn_shape)       # the effect of the parent node on this node's equation
 NODE_D = init0(nrn_shape)       # diagonal element in node equation
@@ -414,61 +396,47 @@ def syn_current(nrn, voltage):
 	"""
 
 	"""
-	# просуммировать для каждого нейрона после итерации единожды
-	icurrent = 0
-	volt_diff = (voltage - E_ex[nrn])
-
-	for index in nrn_post_synapses[nrn]:
-		if syn_weight[index] > 0:
-			icurrent += syn_gexc[index] * volt_diff
-		else:
-			icurrent += (syn_B[index] - syn_A[index]) * volt_diff
-
-	# return g_exc[nrn] * (voltage - E_ex[nrn]) + (tau_B[nrn] - tau_A[nrn]) * (voltage - E_inh[nrn])
-	return icurrent
+	return g_exc[nrn] * (voltage - E_ex[nrn]) + (g_inh_B[nrn] - g_inh_A[nrn]) * (voltage - E_inh[nrn])
 
 def nrn_moto_current(nrn, seg, voltage):
 	"""
 
 	"""
-	I_Na[nrn, seg] = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
-	I_K[nrn, seg] = gkrect[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn]) + gcak[nrn] * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - ek[nrn])
-	I_L[nrn, seg] = gl[nrn] * (voltage - el[nrn])
-	E_Ca[nrn, seg] = (1000 * R_const * 309.15 / (2 * F_const)) * np.log(ca0 / cai[nrn, seg])
-	I_Ca[nrn, seg] = gcaN[nrn] * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - E_Ca[nrn, seg]) + gcaL[nrn] * p[nrn, seg] * (voltage - E_Ca[nrn, seg])
-	return I_Na[nrn, seg] + I_K[nrn, seg] + I_L[nrn, seg] + I_Ca[nrn, seg]
+	iNa = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	iK = gkrect[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn]) + gcak[nrn] * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - ek[nrn])
+	iL = gl[nrn] * (voltage - el[nrn])
+	eCa = (1000 * R_const * 309.15 / (2 * F_const)) * np.log(ca0 / cai[nrn, seg])
+	I_Ca[nrn, seg] = gcaN[nrn] * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - eCa) + gcaL[nrn] * p[nrn, seg] * (voltage - eCa)
+	return iNa + iK + iL + I_Ca[nrn, seg]
 
 def nrn_fastchannel_current(nrn, seg, voltage):
 	"""
 
 	"""
-	I_Na[nrn, seg] = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
-	I_K[nrn, seg] = gkbar[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn])
-	I_L[nrn, seg] = gl[nrn] * (voltage - el[nrn])
-	return I_Na[nrn, seg] + I_K[nrn, seg] + I_L[nrn, seg]
+	iNa = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	iK = gkbar[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn])
+	iL = gl[nrn] * (voltage - el[nrn])
+	return iNa + iK + iL
 
 def recalc_synaptic(nrn):
 	"""
 
 	"""
 	# exc synaptic conductance
-	'''
 	if g_exc[nrn] != 0:
-		g_exc[nrn] += (1 - np.exp(-dt / tau_exc[nrn])) * (0 / (1 / tau_exc[nrn]) - g_exc[nrn])
-		if g_exc[nrn] < 1e-10:
+		g_exc[nrn] -= (1 - np.exp(-dt / tau_exc[nrn])) * g_exc[nrn]
+		if g_exc[nrn] < 1e-5:
 			g_exc[nrn] = 0
-	# inh synaptic conductance
-	if tau_A[nrn] != 0:
-		tau_A[nrn] += (1 - np.exp(-dt / tau_inh1[nrn])) * (0 / (1 / tau_inh1[nrn]) - tau_A[nrn])
-		if tau_A[nrn] < 1e-10:
-			tau_A[nrn] = 0
-	# inh synaptic conductance
-	if tau_B[nrn] != 0:
-		tau_B[nrn] += (1 - np.exp(-dt * (1 / tau_inh2[nrn]))) * (0 / (1 / tau_inh2[nrn]) - tau_B[nrn])
-		if tau_B[nrn] < 1e-10:
-			tau_A[nrn] = 0
-	'''
-	pass
+	# inh1 synaptic conductance
+	if g_inh_A[nrn] != 0:
+		g_inh_A[nrn] -= (1 - np.exp(-dt / tau_inh1[nrn])) * g_inh_A[nrn]
+		if g_inh_A[nrn] < 1e-5:
+			g_inh_A[nrn] = 0
+	# inh2 synaptic conductance
+	if g_inh_B[nrn] != 0:
+		g_inh_B[nrn] -= (1 - np.exp(-dt / tau_inh2[nrn])) * g_inh_B[nrn]
+		if g_inh_B[nrn] < 1e-5:
+			g_inh_B[nrn] = 0
 
 def syn_initial(nrn):
 	"""
@@ -491,39 +459,27 @@ def nrn_inter_initial(nrn, seg, V):
 	#
 	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
 	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
-	m_inf = a / (a + b)
+	m[nrn, seg] = a / (a + b)   # m_inf
 	#
 	a = 0.128 * np.exp((17 - V_mem) / 18)
 	b = 4 / (1 + np.exp((40 - V_mem) / 5))
-	h_inf = a / (a + b)
+	h[nrn, seg] = a / (a + b)   # h_inf
 	#
 	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
 	b = 0.5 * np.exp((10 - V_mem) / 40)
-	n_inf = a / (a + b)
-	# initial
-	m[nrn, seg] = m_inf
-	h[nrn, seg] = h_inf
-	n[nrn, seg] = n_inf
+	n[nrn, seg] = a / (a + b)   # n_inf
 
 def nrn_moto_initial(nrn, seg, V):
 	"""
 	evaluate_fct cropped
 	"""
 	a = alpham(V)
-	b = betam(V)
-	m_inf = a / (a + b)
-	h_inf = 1 / (1 + Exp((V + 65) / 7))
-	n_inf = 1 / (1 + Exp(-(V + 38) / 15))
-	mc_inf = 1 / (1 + Exp(-(V + 32) / 5))
-	hc_inf = 1 / (1 + Exp((V + 50) / 5))
-	p_inf = 1 / (1 + Exp(-(V + 55.8) / 3.7))
-	# initial
-	m[nrn, seg] = m_inf
-	h[nrn, seg] = h_inf
-	p[nrn, seg] = p_inf
-	n[nrn, seg] = n_inf
-	mc[nrn, seg] = mc_inf
-	hc[nrn, seg] = hc_inf
+	m[nrn, seg] = a / (a + betam(V))                # m_inf
+	h[nrn, seg] = 1 / (1 + Exp((V + 65) / 7))       # h_inf
+	p[nrn, seg] = 1 / (1 + Exp(-(V + 55.8) / 3.7))  # p_inf
+	n[nrn, seg] = 1 / (1 + Exp(-(V + 38) / 15))     # n_inf
+	mc[nrn, seg] = 1 / (1 + Exp(-(V + 32) / 5))     # mc_inf
+	hc[nrn, seg] = 1 / (1 + Exp((V + 50) / 5))      # hc_inf
 	cai[nrn, seg] = 0.0001
 
 def nrn_muslce_initial(nrn, seg, V):
@@ -534,61 +490,15 @@ def nrn_muslce_initial(nrn, seg, V):
 	#
 	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
 	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
-	m_inf = a / (a + b)
+	m[nrn, seg] = a / (a + b)   # m_inf
 	#
 	a = 0.128 * np.exp((17 - V_mem) / 18)
 	b = 4 / (1 + np.exp((40 - V_mem) / 5))
-	h_inf = a / (a + b)
+	h[nrn, seg] = a / (a + b)   # h_inf
 	#
 	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
 	b = 0.5 * np.exp((10 - V_mem) / 40)
-	n_inf = a / (a + b)
-	# initial
-	m[nrn, seg] = m_inf
-	h[nrn, seg] = h_inf
-	n[nrn, seg] = n_inf
-
-def recalc_moto_channels(nrn, seg, V):
-	"""
-	evaluate_fct
-	"""
-	# BREAKPOINT -> states -> evaluate_fct
-	a = alpham(V)
-	b = betam(V)
-	# m
-	tau_m = 1 / (a + b)
-	m_inf = a / (a + b)
-	# h
-	tau_h = 30 / (Exp((V + 60) / 15) + Exp(-(V + 60) / 16))
-	h_inf = 1 / (1 + Exp((V + 65) / 7))
-	# DELAYED RECTIFIER POTASSIUM
-	tau_n = 5 / (Exp((V + 50) / 40) + Exp(-(V + 50) / 50))
-	n_inf = 1 / (1 + Exp(-(V + 38) / 15))
-	# CALCIUM DYNAMICS N-type
-	tau_mc = 15
-	mc_inf = 1 / (1 + Exp(-(V + 32) / 5))
-	tau_hc = 50
-	hc_inf = 1 / (1 + Exp((V + 50) / 5))
-	# CALCIUM DYNAMICS L-type
-	tau_p = 400
-	p_inf = 1 / (1 + Exp(-(V + 55.8) / 3.7))
-	# states
-	m[nrn, seg] += (1 - np.exp(-dt * (1 / tau_m))) * (m_inf / tau_m / (1 / tau_m) - m[nrn, seg])
-	h[nrn, seg] += (1 - np.exp(-dt * (1 / tau_h))) * (h_inf / tau_h / (1 / tau_h) - h[nrn, seg])
-	p[nrn, seg] += (1 - np.exp(-dt * (1 / tau_p))) * (p_inf / tau_p / (1 / tau_p) - p[nrn, seg])
-	n[nrn, seg] += (1 - np.exp(-dt * (1 / tau_n))) * (n_inf / tau_n / (1 / tau_n) - n[nrn, seg])
-	mc[nrn, seg] += (1 - np.exp(-dt * (1 / tau_mc))) * (mc_inf / tau_mc / (1 / tau_mc) - mc[nrn, seg])
-	hc[nrn, seg] += (1 - np.exp(-dt * (1 / tau_hc))) * (hc_inf / tau_hc / (1 / tau_hc) - hc[nrn, seg])
-	cai[nrn, seg] += (1 - np.exp(-dt * 0.04)) * (-0.01 * I_Ca[nrn, seg] / 0.04 - cai[nrn, seg])
-
-	assert 0 <= cai[nrn, seg] <= 0.1
-	assert -200 <= Vm[nrn, seg] <= 200
-	assert 0 <= m[nrn, seg] <= 1
-	assert 0 <= n[nrn, seg] <= 1
-	assert 0 <= h[nrn, seg] <= 1
-	assert 0 <= p[nrn, seg] <= 1
-	assert 0 <= mc[nrn, seg] <= 1
-	assert 0 <= hc[nrn, seg] <= 1
+	n[nrn, seg] = a / (a + b)   # n_inf
 
 def recalc_inter_channels(nrn, seg, V):
 	"""
@@ -612,14 +522,54 @@ def recalc_inter_channels(nrn, seg, V):
 	tau_n = 1 / (a + b)
 	n_inf = a / (a + b)
 	# states
-	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
-	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
-	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
+	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (m_inf - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (h_inf - h[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (n_inf - n[nrn, seg])
 	#
-	assert -200 <= Vm[nrn, seg] <= 200
-	assert 0 <= m[nrn, seg] <= 1
-	assert 0 <= n[nrn, seg] <= 1
-	assert 0 <= h[nrn, seg] <= 1
+	# assert -200 <= Vm[nrn, seg] <= 200
+	# assert 0 <= m[nrn, seg] <= 1
+	# assert 0 <= n[nrn, seg] <= 1
+	# assert 0 <= h[nrn, seg] <= 1
+
+def recalc_moto_channels(nrn, seg, V):
+	"""
+	evaluate_fct
+	"""
+	# BREAKPOINT -> states -> evaluate_fct
+	a = alpham(V)
+	b = betam(V)
+	# m
+	tau_m = 1 / (a + b)
+	m_inf = a / (a + b)
+	# h
+	tau_h = 30 / (Exp((V + 60) / 15) + Exp(-(V + 60) / 16))
+	h_inf = 1 / (1 + Exp((V + 65) / 7))
+	# DELAYED RECTIFIER POTASSIUM
+	tau_n = 5 / (Exp((V + 50) / 40) + Exp(-(V + 50) / 50))
+	n_inf = 1 / (1 + Exp(-(V + 38) / 15))
+	# CALCIUM DYNAMICS N-type
+	mc_inf = 1 / (1 + Exp(-(V + 32) / 5))
+	hc_inf = 1 / (1 + Exp((V + 50) / 5))
+	# CALCIUM DYNAMICS L-type
+	tau_p = 400
+	p_inf = 1 / (1 + Exp(-(V + 55.8) / 3.7))
+	# states
+	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (m_inf - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (h_inf - h[nrn, seg])
+	p[nrn, seg] += (1 - np.exp(-dt / tau_p)) * (p_inf - p[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (n_inf - n[nrn, seg])
+	mc[nrn, seg] += (1 - np.exp(-dt / 15)) * (mc_inf - mc[nrn, seg])    # tau_mc = 15
+	hc[nrn, seg] += (1 - np.exp(-dt / 50)) * (hc_inf - hc[nrn, seg])    # tau_hc = 50
+	cai[nrn, seg] += (1 - np.exp(-dt * 0.04)) * (-0.01 * I_Ca[nrn, seg] / 0.04 - cai[nrn, seg])
+
+	# assert 0 <= cai[nrn, seg] <= 0.1
+	# assert -200 <= Vm[nrn, seg] <= 200
+	# assert 0 <= m[nrn, seg] <= 1
+	# assert 0 <= n[nrn, seg] <= 1
+	# assert 0 <= h[nrn, seg] <= 1
+	# assert 0 <= p[nrn, seg] <= 1
+	# assert 0 <= mc[nrn, seg] <= 1
+	# assert 0 <= hc[nrn, seg] <= 1
 
 def recalc_muslce_channels(nrn, seg, V):
 	"""
@@ -652,18 +602,18 @@ def recalc_muslce_channels(nrn, seg, V):
 	stau = 1.0 / summ
 	sinf = alpha / summ
 	# states
-	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
-	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
-	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
-	l[nrn, seg] += (1 - np.exp(-dt / taul)) * (-(linf / taul) / (-1 / taul) - l[nrn, seg])
-	s[nrn, seg] += (1 - np.exp(-dt / stau)) * (-(sinf / stau) / (-1 / stau) - s[nrn, seg])
+	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (m_inf - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (h_inf - h[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (n_inf - n[nrn, seg])
+	l[nrn, seg] += (1 - np.exp(-dt / taul)) * (linf - l[nrn, seg])
+	s[nrn, seg] += (1 - np.exp(-dt / stau)) * (sinf - s[nrn, seg])
 	#
-	assert -200 <= Vm[nrn, seg] <= 200
-	assert 0 <= m[nrn, seg] <= 1
-	assert 0 <= n[nrn, seg] <= 1
-	assert 0 <= h[nrn, seg] <= 1
-	assert 0 <= l[nrn, seg] <= 1
-	assert 0 <= s[nrn, seg] <= 1
+	# assert -200 <= Vm[nrn, seg] <= 200
+	# assert 0 <= m[nrn, seg] <= 1
+	# assert 0 <= n[nrn, seg] <= 1
+	# assert 0 <= h[nrn, seg] <= 1
+	# assert 0 <= l[nrn, seg] <= 1
+	# assert 0 <= s[nrn, seg] <= 1
 
 def nrn_rhs_ext(nrn):
 	"""
@@ -942,13 +892,10 @@ def deliver_net_events():
 			post_id = syn_post_nrn[index]
 			weight = syn_weight[index]
 			if weight >= 0:
-				# g_exc[post_id] += weight
-				syn_gexc[index] += weight
+				g_exc[post_id] += weight
 			else:
-				syn_A[index] += weight * factor[post_id]
-				syn_B[index] += weight * factor[post_id]
-				# tau_A[post_id] += -weight * factor[post_id]
-				# tau_B[post_id] += -weight * factor[post_id]
+				g_inh_A[post_id] += -weight * factor[post_id]
+				g_inh_B[post_id] += -weight * factor[post_id]
 			syn_delay_timer[index] = -1
 		if syn_delay_timer[index] > 0:
 			syn_delay_timer[index] -= 1
@@ -987,6 +934,8 @@ def nrn_area_ri():
 	area for right circular cylinders. Ri as right half of parent + left half of this
 	"""
 	for nrn in nrns:
+		if models[nrn] == 'generator':
+			continue
 		# dx = section_length(sec) / ((double) (sec->nnode - 1));
 		dx = length[nrn] / nodecount # divide by the last index of node (or segments count)
 		rright = 0
@@ -1011,6 +960,8 @@ def ext_con_coef():
 	layer = 0
 	# todo: extracellular only for those neurons who need
 	for nrn in nrns:
+		if models[nrn] == 'generator':
+			continue
 		# temporarily store half segment resistances in rhs
 		# todo sec->pnode needs +1 index, also xraxial is common
 		for nd in range(0 + 1, nnode - 1 + 1):
@@ -1061,6 +1012,8 @@ def connection_coef():
 	# NODE_A is the effect of this node on the parent node's equation
 	# NODE_B is the effect of the parent node on this node's equation
 	for nrn in nrns:
+		if models[nrn] == 'generator':
+			continue
 		# first the effect of node on parent equation. Note that last nodes have area = 1.e2 in dimensionless
 		# units so that last nodes have units of microsiemens
 		#todo sec->pnode needs +1 index
@@ -1109,11 +1062,6 @@ def finitialize(v_init=-70):
 	GRAS_data1.clear()
 	GRAS_data2.clear()
 
-
-def test_recalc_syn():
-	pass
-
-
 def nrn_fixed_step_thread(t):
 	"""
 	void *nrn_fixed_step_thread(NrnThread *nth)
@@ -1132,23 +1080,7 @@ def nrn_fixed_step_thread(t):
 			nrn_fixed_step_lastpart(nrn)
 		# save spikes
 		if has_spike[nrn]:
-			spikes.append(t)
-
-	for index in range(len(syn_gexc)):
-		if syn_gexc[index] != 0:
-			syn_gexc[index] += (1 - np.exp(-dt / 0.35)) * (0 / (1 / 0.35) - syn_gexc[index])
-			if syn_gexc[index] < 1e-3:
-				syn_gexc[index] = 0
-		# inh synaptic conductance
-		if syn_A[index] != 0:
-			syn_A[index] += (1 - np.exp(-dt / 0.5)) * (0 / (1 / 0.5) - syn_A[index])
-			if syn_A[index] < 1e-10:
-				syn_A[index] = 0
-		# inh synaptic conductance
-		if syn_B[index] != 0:
-			syn_B[index] += (1 - np.exp(-dt / 3.5)) * (0 / (1 / 3.5) - syn_B[index])
-			if syn_B[index] < 1e-10:
-				syn_B[index] = 0
+			spikes.append(t * dt)
 
 def simulation():
 	"""
@@ -1159,15 +1091,18 @@ def simulation():
 	# start simulation loop
 	for t in range(sim_time_steps):
 		print(t * dt)
+		_G.append([Vm[OM1[0], 1], Vm[OM2[0], 1], Vm[OM3[0], 1]])
+
 		nrn_fixed_step_thread(t)
 
-		_G.append(np.sum(syn_gexc[:50]))
+		# _G.append([np.mean(I_L[OM1, 1]), np.mean(I_L[OM2, 1]), np.mean(I_L[OM3, 1])])
+		# _G.append([I_L[OM1[0], 1], I_L[OM2[0], 1], I_L[OM3[0], 1]])
 
-		for key, ids in zip(['OM1', 'OM2', 'OM3', 'moto', 'muscle'], [OM1, OM2, OM3, moto, muscle]):
-			if len(ids) == 1:
-				saved_voltage[key].append(np.mean(Vm[ids, 2]))
-			else:
-				saved_voltage[key].append(np.mean(Vm[ids[0]:ids[-1], 2]))
+		# for key, ids in zip(['OM1', 'OM2', 'OM3', 'moto', 'muscle'], [OM1, OM2, OM3, moto, muscle]):
+		# 	if len(ids) == 1:
+		# 		saved_voltage[key].append(np.mean(Vm[ids, 2]))
+		# 	else:
+		# 		saved_voltage[key].append(np.mean(Vm[ids[0]:ids[-1], 2]))
 
 def plot(gras_data, neuron_data):
 	"""
@@ -1202,7 +1137,11 @@ def plot(gras_data, neuron_data):
 	plt.show()
 
 if __name__ == "__main__":
+	from time import time as T
+	start = T()
 	simulation()
+	end = T()
+	print(end - start)
 	GRAS_data = np.array(list(sum(d, []) for d in zip(GRAS_data2, GRAS_data1)))
 	if DEBUG:
 		xlength = GRAS_data.shape[0]
@@ -1212,7 +1151,12 @@ if __name__ == "__main__":
 		plot(GRAS_data, NEURON_data)
 	else:
 		plt.close()
-		plt.plot(_G)
+		_G = np.array(_G)
+		xticks = np.arange(sim_time_steps) * dt
+		for om, label in zip(_G.T, ['OM1', 'OM2', 'OM3']):
+			plt.plot(xticks, om, label=label)
+		plt.plot(spikes, [0] * len(spikes), '.', color='r')
+		plt.legend()
 		plt.show()
 
 	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
