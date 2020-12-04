@@ -72,7 +72,7 @@ Cm = init0(tmp)         # [uF / cm2] membrane capacity
 gnabar = init0(tmp)     # [S / cm2] todo
 gkbar = init0(tmp)      # [S / cm2]g_K todo
 gl = init0(tmp)         # [S / cm2] todo
-Ra = init0(tmp)         # [Ohm cm]
+Ra = init0(tmp)         # [Ohm cm] membrane resistance
 diam = init0(tmp)       # [um] diameter
 length = init0(tmp)     # [um] compartment length
 ena = init0(tmp)        # [mV] todo
@@ -97,6 +97,8 @@ tau_inh2 = init0(tmp)   # [S / cm2] todo
 factor = init0(tmp)     # [S / cm2] todo
 tau_A = init0(tmp)      # [S / cm2] todo
 tau_B = init0(tmp)      # [S / cm2] todo
+
+nrn_post_synapses = [[] for _ in range(tmp)]
 
 def create(number, model='inter'):
 	"""
@@ -127,13 +129,13 @@ def create(number, model='inter'):
 	# without random at first stage of debugging
 	for nrnid in ids:
 		if model == 'inter':
-			__Cm = 1
+			__Cm = random.gauss(1, 0.01)
 			__gnabar = 0.1
 			__gkbar = 0.08
 			__gl = 0.002
 			__Ra = 100
 			__ena = 50
-			__ek = -80
+			__ek = -90
 			__el = -70
 			__diam = random.randint(5, 15)
 			__dx = __diam
@@ -212,10 +214,14 @@ def create(number, model='inter'):
 	nrns_number += number
 	return ids
 
+global_syn_id = 0
+
 def conn_a2a(pre_nrns, post_nrns, delay, weight):
 	"""
 
 	"""
+	global global_syn_id
+
 	for pre in pre_nrns:
 		for post in post_nrns:
 			syn_pre_nrn.append(pre)
@@ -223,13 +229,20 @@ def conn_a2a(pre_nrns, post_nrns, delay, weight):
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
+			nrn_post_synapses[post].append(global_syn_id)
 
-def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, outdegree=50):
+			global_syn_id += 1
+
+_G = []
+
+def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 	"""
 
 	"""
+	global global_syn_id
+
 	for post in post_nrns:
-		for j in range(outdegree):
+		for j in range(indegree):
 			pre = random.choice(pre_nrns)
 			weight = weight #random.gauss(weight, weight / 10)
 			delay = delay #random.gauss(delay, delay / 10)
@@ -238,6 +251,9 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, outdegree=50):
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
+
+			nrn_post_synapses[post].append(global_syn_id)
+			global_syn_id += 1
 
 spikes = []
 GRAS_data1 = []
@@ -271,6 +287,11 @@ else:
 
 	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
 		saved_voltage[key] = []
+
+syn_gexc = [0] * global_syn_id    #
+syn_A = [0] * global_syn_id    #
+syn_B = [0] * global_syn_id    #
+
 
 # fixme
 nodecount = 1   # segments
@@ -313,11 +334,11 @@ spike_on = init0(nrns_number, dtype=bool)   # special flag to prevent fake spike
 
 nlayer = 2
 ext_shape = (nrns_number, _nt_end, nlayer)
-ext_rhs = init0(ext_shape)   # extracellular
-ext_v = init0(ext_shape)     # extracellular
-ext_a = init0(ext_shape)     # extracellular
-ext_b = init0(ext_shape)     # extracellular
-ext_d = init0(ext_shape)     # extracellular
+ext_rhs = init0(ext_shape)   # extracellular right hand side in node equation
+ext_v = init0(ext_shape)     # extracellular membrane potential
+ext_a = init0(ext_shape)     # extracellular effect of node in parent equation
+ext_b = init0(ext_shape)     # extracellular effect of parent in node equation
+ext_d = init0(ext_shape)     # extracellular diagonal element in node equation
 
 def get_neuron_data():
 	with open("/home/alex/NRNTEST/muscle/output") as file:
@@ -393,27 +414,31 @@ def syn_current(nrn, voltage):
 	"""
 
 	"""
-	return g_exc[nrn] * (voltage - E_ex[nrn]) + (tau_B[nrn] - tau_A[nrn]) * (voltage - E_inh[nrn])
+	# просуммировать для каждого нейрона после итерации единожды
+	icurrent = 0
+	volt_diff = (voltage - E_ex[nrn])
+
+	for index in nrn_post_synapses[nrn]:
+		if syn_weight[index] > 0:
+			icurrent += syn_gexc[index] * volt_diff
+		else:
+			icurrent += (syn_B[index] - syn_A[index]) * volt_diff
+
+	# return g_exc[nrn] * (voltage - E_ex[nrn]) + (tau_B[nrn] - tau_A[nrn]) * (voltage - E_inh[nrn])
+	return icurrent
 
 def nrn_moto_current(nrn, seg, voltage):
 	"""
 
 	"""
-	ina = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
-	ik = gkrect[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn]) + gcak[nrn] * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - ek[nrn])
-	il = gl[nrn] * (voltage - el[nrn])
-	Eca = (1000 * R_const * 309.15 / (2 * F_const)) * np.log(ca0 / cai[nrn, seg])
-	ica = gcaN[nrn] * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - Eca) + gcaL[nrn] * p[nrn, seg] * (voltage - Eca)
-	# save
-	I_Na[nrn, seg] = ina
-	I_K[nrn, seg] = ik
-	I_L[nrn, seg] = il
-	E_Ca[nrn, seg] = Eca
-	I_Ca[nrn, seg] = ica
+	I_Na[nrn, seg] = gnabar[nrn] * m[nrn, seg] ** 3 * h[nrn, seg] * (voltage - ena[nrn])
+	I_K[nrn, seg] = gkrect[nrn] * n[nrn, seg] ** 4 * (voltage - ek[nrn]) + gcak[nrn] * cai[nrn, seg] ** 2 / (cai[nrn, seg] ** 2 + 0.014 ** 2) * (voltage - ek[nrn])
+	I_L[nrn, seg] = gl[nrn] * (voltage - el[nrn])
+	E_Ca[nrn, seg] = (1000 * R_const * 309.15 / (2 * F_const)) * np.log(ca0 / cai[nrn, seg])
+	I_Ca[nrn, seg] = gcaN[nrn] * mc[nrn, seg] ** 2 * hc[nrn, seg] * (voltage - E_Ca[nrn, seg]) + gcaL[nrn] * p[nrn, seg] * (voltage - E_Ca[nrn, seg])
+	return I_Na[nrn, seg] + I_K[nrn, seg] + I_L[nrn, seg] + I_Ca[nrn, seg]
 
-	return ina + ik + il + ica
-
-def nrn_muscle_current(nrn, seg, voltage):
+def nrn_fastchannel_current(nrn, seg, voltage):
 	"""
 
 	"""
@@ -427,13 +452,14 @@ def recalc_synaptic(nrn):
 
 	"""
 	# exc synaptic conductance
+	'''
 	if g_exc[nrn] != 0:
-		g_exc[nrn] -= g_exc[nrn] * (1 - np.exp(-dt / tau_exc[nrn]))
+		g_exc[nrn] += (1 - np.exp(-dt / tau_exc[nrn])) * (0 / (1 / tau_exc[nrn]) - g_exc[nrn])
 		if g_exc[nrn] < 1e-10:
 			g_exc[nrn] = 0
 	# inh synaptic conductance
 	if tau_A[nrn] != 0:
-		tau_A[nrn] += (1 - np.exp(-dt * (1 / tau_inh1[nrn]))) * (0 / (1 / tau_inh1[nrn]) - tau_A[nrn])
+		tau_A[nrn] += (1 - np.exp(-dt / tau_inh1[nrn])) * (0 / (1 / tau_inh1[nrn]) - tau_A[nrn])
 		if tau_A[nrn] < 1e-10:
 			tau_A[nrn] = 0
 	# inh synaptic conductance
@@ -441,6 +467,8 @@ def recalc_synaptic(nrn):
 		tau_B[nrn] += (1 - np.exp(-dt * (1 / tau_inh2[nrn]))) * (0 / (1 / tau_inh2[nrn]) - tau_B[nrn])
 		if tau_B[nrn] < 1e-10:
 			tau_A[nrn] = 0
+	'''
+	pass
 
 def syn_initial(nrn):
 	"""
@@ -450,7 +478,7 @@ def syn_initial(nrn):
 		tau_inh1[nrn] = 0.9999 * tau_inh2[nrn]
 	if tau_inh1[nrn] / tau_inh2[nrn] < 1e-9:
 		tau_inh1[nrn] = tau_inh2[nrn] * 1e-9
-
+	#
 	tp = (tau_inh1[nrn] * tau_inh2[nrn]) / (tau_inh2[nrn] - tau_inh1[nrn]) * np.log(tau_inh2[nrn] / tau_inh1[nrn])
 	factor[nrn] = -np.exp(-tp / tau_inh1[nrn]) + np.exp(-tp / tau_inh2[nrn])
 	factor[nrn] = 1 / factor[nrn]
@@ -460,14 +488,15 @@ def nrn_inter_initial(nrn, seg, V):
 	evaluate_fct cropped
 	"""
 	V_mem = V - V_adj
+	#
 	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
 	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
 	m_inf = a / (a + b)
-
+	#
 	a = 0.128 * np.exp((17 - V_mem) / 18)
 	b = 4 / (1 + np.exp((40 - V_mem) / 5))
 	h_inf = a / (a + b)
-
+	#
 	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
 	b = 0.5 * np.exp((10 - V_mem) / 40)
 	n_inf = a / (a + b)
@@ -502,14 +531,15 @@ def nrn_muslce_initial(nrn, seg, V):
 	evaluate_fct cropped
 	"""
 	V_mem = V - V_adj
+	#
 	a = 0.32 * (13 - V_mem) / (np.exp((13 - V_mem) / 4) - 1)
 	b = 0.28 * (V_mem - 40) / (np.exp((V_mem - 40) / 5) - 1)
 	m_inf = a / (a + b)
-
+	#
 	a = 0.128 * np.exp((17 - V_mem) / 18)
 	b = 4 / (1 + np.exp((40 - V_mem) / 5))
 	h_inf = a / (a + b)
-
+	#
 	a = 0.032 * (15 - V_mem) / (np.exp((15 - V_mem) / 5) - 1)
 	b = 0.5 * np.exp((10 - V_mem) / 40)
 	n_inf = a / (a + b)
@@ -560,6 +590,37 @@ def recalc_moto_channels(nrn, seg, V):
 	assert 0 <= mc[nrn, seg] <= 1
 	assert 0 <= hc[nrn, seg] <= 1
 
+def recalc_inter_channels(nrn, seg, V):
+	"""
+	evaluate_fct
+	"""
+	# BREAKPOINT -> states -> evaluate_fct
+	V_mem = V - V_adj
+	#
+	a = 0.32 * (13.0 - V_mem) / (np.exp((13.0 - V_mem) / 4.0) - 1.0)
+	b = 0.28 * (V_mem - 40.0) / (np.exp((V_mem - 40.0) / 5.0) - 1.0)
+	tau_m = 1.0 / (a + b)
+	m_inf = a / (a + b)
+	#
+	a = 0.128 * np.exp((17.0 - V_mem) / 18.0)
+	b = 4.0 / (1.0 + np.exp((40.0 - V_mem) / 5.0))
+	tau_h = 1.0 / (a + b)
+	h_inf = a / (a + b)
+	#
+	a = 0.032 * (15.0 - V_mem) / (np.exp((15.0 - V_mem) / 5.0) - 1.0)
+	b = 0.5 * np.exp((10.0 - V_mem) / 40.0)
+	tau_n = 1 / (a + b)
+	n_inf = a / (a + b)
+	# states
+	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
+	#
+	assert -200 <= Vm[nrn, seg] <= 200
+	assert 0 <= m[nrn, seg] <= 1
+	assert 0 <= n[nrn, seg] <= 1
+	assert 0 <= h[nrn, seg] <= 1
+
 def recalc_muslce_channels(nrn, seg, V):
 	"""
 	evaluate_fct
@@ -591,12 +652,12 @@ def recalc_muslce_channels(nrn, seg, V):
 	stau = 1.0 / summ
 	sinf = alpha / summ
 	# states
-	m[nrn, seg] += (1 - np.exp(dt * (-1 / tau_m))) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
-	h[nrn, seg] += (1 - np.exp(dt * (-1 / tau_h))) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
-	n[nrn, seg] += (1 - np.exp(dt * (-1 / tau_n))) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
-	l[nrn, seg] += (1 - np.exp(dt * (-1 / taul))) * (-(linf / taul) / (-1 / taul) - l[nrn, seg])
-	s[nrn, seg] += (1 - np.exp(dt * (-1 / stau))) * (-(sinf / stau) / (-1 / stau) - s[nrn, seg])
-
+	m[nrn, seg] += (1 - np.exp(-dt / tau_m)) * (-(m_inf / tau_m) / (-1 / tau_m) - m[nrn, seg])
+	h[nrn, seg] += (1 - np.exp(-dt / tau_h)) * (-(h_inf / tau_h) / (-1 / tau_h) - h[nrn, seg])
+	n[nrn, seg] += (1 - np.exp(-dt / tau_n)) * (-(n_inf / tau_n) / (-1 / tau_n) - n[nrn, seg])
+	l[nrn, seg] += (1 - np.exp(-dt / taul)) * (-(linf / taul) / (-1 / taul) - l[nrn, seg])
+	s[nrn, seg] += (1 - np.exp(-dt / stau)) * (-(sinf / stau) / (-1 / stau) - s[nrn, seg])
+	#
 	assert -200 <= Vm[nrn, seg] <= 200
 	assert 0 <= m[nrn, seg] <= 1
 	assert 0 <= n[nrn, seg] <= 1
@@ -707,6 +768,7 @@ def nrn_rhs(nrn):
 		seg_update = 2 if models[nrn] == 'muscle' else 1
 		if seg == seg_update:
 			# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
+			# calc current by gex =
 			_g = syn_current(nrn, V + 0.001)
 			_rhs = syn_current(nrn, V)
 			_g = (_g - _rhs) / .001
@@ -720,15 +782,15 @@ def nrn_rhs(nrn):
 		# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
 		if models[nrn] == 'inter':
 			# muscle and inter has the same fast_channel function
-			_g = nrn_muscle_current(nrn, seg, V + 0.001)
-			_rhs = nrn_muscle_current(nrn, seg, V)
+			_g = nrn_fastchannel_current(nrn, seg, V + 0.001)
+			_rhs = nrn_fastchannel_current(nrn, seg, V)
 		elif models[nrn] == 'moto':
 			_g = nrn_moto_current(nrn, seg, V + 0.001)
 			_rhs = nrn_moto_current(nrn, seg, V)
 		elif models[nrn] == 'muscle':
 			# muscle and inter has the same fast_channel function
-			_g = nrn_muscle_current(nrn, seg, V + 0.001)
-			_rhs = nrn_muscle_current(nrn, seg, V)
+			_g = nrn_fastchannel_current(nrn, seg, V + 0.001)
+			_rhs = nrn_fastchannel_current(nrn, seg, V)
 		else:
 			raise Exception('No nrn model found')
 		# save data like in NEURON (after .mod nrn_cur)
@@ -880,10 +942,13 @@ def deliver_net_events():
 			post_id = syn_post_nrn[index]
 			weight = syn_weight[index]
 			if weight >= 0:
-				g_exc[post_id] += weight
+				# g_exc[post_id] += weight
+				syn_gexc[index] += weight
 			else:
-				tau_A[post_id] += -weight * factor[post_id]
-				tau_B[post_id] += -weight * factor[post_id]
+				syn_A[index] += weight * factor[post_id]
+				syn_B[index] += weight * factor[post_id]
+				# tau_A[post_id] += -weight * factor[post_id]
+				# tau_B[post_id] += -weight * factor[post_id]
 			syn_delay_timer[index] = -1
 		if syn_delay_timer[index] > 0:
 			syn_delay_timer[index] -= 1
@@ -907,7 +972,7 @@ def nrn_fixed_step_lastpart(nrn):
 	recalc_synaptic(nrn)
 	for seg in segs:
 		if models[nrn] == 'inter':
-			recalc_muslce_channels(nrn, seg, Vm[nrn, seg])
+			recalc_inter_channels(nrn, seg, Vm[nrn, seg])
 		elif models[nrn] == 'moto':
 			recalc_moto_channels(nrn, seg, Vm[nrn, seg])
 		elif models[nrn] == 'muscle':
@@ -1045,12 +1110,18 @@ def finitialize(v_init=-70):
 	GRAS_data2.clear()
 
 
+def test_recalc_syn():
+	pass
+
+
 def nrn_fixed_step_thread(t):
 	"""
 	void *nrn_fixed_step_thread(NrnThread *nth)
 	"""
 	# update data for each neuron
 	deliver_net_events()
+	# recalc synaptic currents
+	# for each syn
 	for nrn in nrns:
 		if models[nrn] == 'generator':
 			has_spike[nrn] = t in stimulus
@@ -1063,6 +1134,22 @@ def nrn_fixed_step_thread(t):
 		if has_spike[nrn]:
 			spikes.append(t)
 
+	for index in range(len(syn_gexc)):
+		if syn_gexc[index] != 0:
+			syn_gexc[index] += (1 - np.exp(-dt / 0.35)) * (0 / (1 / 0.35) - syn_gexc[index])
+			if syn_gexc[index] < 1e-3:
+				syn_gexc[index] = 0
+		# inh synaptic conductance
+		if syn_A[index] != 0:
+			syn_A[index] += (1 - np.exp(-dt / 0.5)) * (0 / (1 / 0.5) - syn_A[index])
+			if syn_A[index] < 1e-10:
+				syn_A[index] = 0
+		# inh synaptic conductance
+		if syn_B[index] != 0:
+			syn_B[index] += (1 - np.exp(-dt / 3.5)) * (0 / (1 / 3.5) - syn_B[index])
+			if syn_B[index] < 1e-10:
+				syn_B[index] = 0
+
 def simulation():
 	"""
 	Notes: NrnThread represent collection of cells or part of a cell computed by single thread within NEURON process
@@ -1073,6 +1160,8 @@ def simulation():
 	for t in range(sim_time_steps):
 		print(t * dt)
 		nrn_fixed_step_thread(t)
+
+		_G.append(np.sum(syn_gexc[:50]))
 
 		for key, ids in zip(['OM1', 'OM2', 'OM3', 'moto', 'muscle'], [OM1, OM2, OM3, moto, muscle]):
 			if len(ids) == 1:
@@ -1123,8 +1212,11 @@ if __name__ == "__main__":
 		plot(GRAS_data, NEURON_data)
 	else:
 		plt.close()
-		for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
-			d = saved_voltage[key]
-			plt.plot(np.arange(len(d)) * dt, d, label=key)
-		plt.legend()
+		plt.plot(_G)
 		plt.show()
+
+	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
+		d = saved_voltage[key]
+		plt.plot(np.arange(len(d)) * dt, d, label=key)
+	plt.legend()
+	plt.show()
