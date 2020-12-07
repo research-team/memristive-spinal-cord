@@ -31,13 +31,13 @@ else:
 V_th = -40
 V_adj = -63         # [mV] adjust voltage for -55 threshold
 """moto const"""
-ca0 = 2     # const ??? todo
-amA = 0.4   # const ??? todo
-amB = 66    # const ??? todo
-amC = 5     # const ??? todo
-bmA = 0.4   # const ??? todo
-bmB = 32    # const ??? todo
-bmC = 5     # const ??? todo
+ca0 = 2             # const ??? todo
+amA = 0.4           # const ??? todo
+amB = 66            # const ??? todo
+amC = 5             # const ??? todo
+bmA = 0.4           # const ??? todo
+bmB = 32            # const ??? todo
+bmC = 5             # const ??? todo
 R_const = 8.314472  # [k-mole] or [joule/degC] const
 F_const = 96485.34  # [faraday] or [kilocoulombs] const
 """muscle const"""
@@ -101,11 +101,16 @@ GRAS_data1 = []
 GRAS_data2 = []
 saved_voltage = {}
 
-def create(number, model='inter'):
+i1 = 0
+i2 = 1
+i3 = []
+segments = []   # =nodecount
+
+def create(number, model='inter', segs=1):
 	"""
 
 	"""
-	global nrns_number, models
+	global nrns_number, models, i3, segments
 	ids = list(range(nrns_number, nrns_number + number))
 	#
 	__Cm = None
@@ -185,7 +190,7 @@ def create(number, model='inter'):
 			__e_inh = -80
 			__tau_exc = 0.3
 			__tau_inh1 = 1
-			__tau_inh2 = 10
+			__tau_inh2 = 1
 		elif model == 'generator':
 			pass
 		else:
@@ -211,8 +216,12 @@ def create(number, model='inter'):
 		tau_exc.append(__tau_exc)
 		tau_inh1.append(__tau_inh1)
 		tau_inh2.append(__tau_inh2)
+
 	models += [model] * number
 	nrns_number += number
+	i3 += [segs + 2] * number
+	segments += [segs] * number
+
 	return ids
 
 def conn_a2a(pre_nrns, post_nrns, delay, weight):
@@ -242,6 +251,7 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
 
+
 if DEBUG:
 	gen = create(1, model='generator')
 	m1 = create(1, model='muscle')
@@ -249,12 +259,12 @@ if DEBUG:
 	# m1 = create(1, model='moto')
 	# connect(gen, m1, delay=1, weight=5.5, conn_type='all-to-all')
 else:
-	gen = create(1, model='generator')
-	OM1 = create(50, model='inter')
-	OM2 = create(50, model='inter')
-	OM3 = create(50, model='inter')
-	moto = create(50, model='moto')
-	muscle = create(1, model='muscle')
+	gen = create(1, model='generator', segs=1)
+	OM1 = create(50, model='inter', segs=1)
+	OM2 = create(50, model='inter', segs=1)
+	OM3 = create(50, model='inter', segs=1)
+	moto = create(50, model='moto', segs=1)
+	muscle = create(1, model='muscle', segs=3)
 
 	conn_a2a(gen, OM1, delay=1, weight=1.5)
 
@@ -270,18 +280,9 @@ else:
 	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
 		saved_voltage[key] = []
 
-# fixme
-nodecount = 1   # segments
-# fixme ONLY FOR REALIZATION WITH ONE NEURON/ARRAY
-_nt_end = nodecount + 2  # 1 + position of last in v_node array)
-nnode = nodecount + 1    # number of nodes for ith section
-segs = list(range(_nt_end))
-i1 = 0
-i2 = 1
-i3 = _nt_end
 
 nrns = list(range(nrns_number))
-nrn_shape = (nrns_number, _nt_end)
+nrn_shape = (nrns_number, 5)
 
 # global variables
 Vm = init0(nrn_shape)           # [mV] array for three compartments volatge
@@ -315,7 +316,7 @@ has_spike = init0(nrns_number, dtype=bool)  # spike flag for each neuron
 spike_on = init0(nrns_number, dtype=bool)   # special flag to prevent fake spike detecting
 
 nlayer = 2
-ext_shape = (nrns_number, _nt_end, nlayer)
+ext_shape = (nrns_number, 5, nlayer)
 ext_rhs = init0(ext_shape)   # extracellular right hand side in node equation
 ext_v = init0(ext_shape)     # extracellular membrane potential
 ext_a = init0(ext_shape)     # extracellular effect of node in parent equation
@@ -622,10 +623,10 @@ def nrn_rhs_ext(nrn):
 	# nd rhs contains -membrane current + stim current
 	# nde rhs contains stim current
 	# todo passed
-	for nd in segs:
+	for nd in range(i3[nrn]):
 		ext_rhs[nrn, nd, 0] -= NODE_RHS[nrn, nd]
 	#
-	for nd in range(1, _nt_end):
+	for nd in range(1, i3[nrn]):
 		pnd = nd - 1
 		# for j in range(nlayer):
 		# 	# dv = 0
@@ -658,13 +659,13 @@ def nrn_setup_ext(nrn):
 
 	# d contains all the membrane conductances (and capacitance)
 	# i.e. (cm/dt + di/dvm - dis/dvi)*[dvi] and (dis/dvi)*[dvx]
-	for nd in segs:
+	for nd in range(i3[nrn]):
 		# nde->_d only has -ELECTRODE_CURRENT contribution
 		ext_d[nrn, nd, 0] += NODE_D[nrn, nd]
 	# D[0] = [0 0.1442 0.1442 0.1442 0 ]
 
 	# series resistance, capacitance, and axial terms
-	for nd in range(1, _nt_end):
+	for nd in range(1, i3[nrn]):
 		pnd = nd - 1
 		# series resistance and capacitance to ground
 		j = 0
@@ -689,7 +690,7 @@ def nrn_update_2d(nrn):
 	update has already been called so modify nd->v based on dvi we only need to
 	update extracellular nodes and base the corresponding nd->v on dvm (dvm = dvi - dvx)
 	"""
-	for nd in range(i1, _nt_end):
+	for nd in range(i1, i3[nrn]):
 		for j in range(nlayer):
 			ext_v[nrn, nd, j] += ext_rhs[nrn, nd, j]
 
@@ -702,23 +703,17 @@ def nrn_rhs(nrn):
 	This is a common operation for fixed step, cvode, and daspk methods
 	"""
 	# init _rhs and _lhs (NODE_D) as zero
-	for nd in range(i1, i3):
+	for nd in range(i1, i3[nrn]):
 		NODE_RHS[nrn, nd] = 0
 		NODE_D[nrn, nd] = 0
 	#fixme
 	ext_rhs[nrn, :, :] = 0
-
 	# update MOD rhs, CAPS has no current [CAP MOD CAP]!
-	for seg in segs:
-		if seg == segs[0] or seg == segs[-1]:
-			continue
+	for seg in range(1, i3[nrn] - 1):
 		V = Vm[nrn, seg]
 		# SYNAPTIC update
-		# todo 2nd seg only for muscles [0, 1, 2MID, 3, 4]
-		seg_update = 2 if models[nrn] == 'muscle' else 1
-		if seg == seg_update:
+		if seg == (2 if models[nrn] == 'muscle' else 1):
 			# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-			# calc current by gex =
 			_g = syn_current(nrn, V + 0.001)
 			_rhs = syn_current(nrn, V)
 			_g = (_g - _rhs) / .001
@@ -764,7 +759,7 @@ def nrn_rhs(nrn):
 	# activclamp_rhs()
 
 	# todo always 0, because Vm0 = Vm1 = Vm2 at [CAP node CAP] model (1 section)
-	for nd in range(i2, i3):
+	for nd in range(i2, i3[nrn]):
 		pnd = nd - 1
 		dv = Vm[nrn, pnd] - Vm[nrn, nd]
 		# our connection coefficients are negative so
@@ -782,7 +777,7 @@ def nrn_lhs(nrn):
 	cj = 1 / dt
 	cfac = 0.001 * cj
 	# fixme +1 for nodelist
-	for nd in range(0 + 1, nodecount + 1):
+	for nd in range(0 + 1, segments[nrn] + 1):
 		NODE_D[nrn, nd] += cfac * Cm[nrn]
 
 	# activsynapse_lhs()
@@ -791,7 +786,7 @@ def nrn_lhs(nrn):
 	# activclamp_lhs();
 
 	# updating NODED
-	for nd in range(i2, i3):
+	for nd in range(i2, i3[nrn]):
 		pnd = nd - 1
 		NODE_D[nrn, nd] -= NODE_B[nrn, nd]
 		NODE_D[nrn, pnd] -= NODE_A[nrn, nd]
@@ -806,7 +801,7 @@ def bksub(nrn):
 	# intracellular
 	for nd in range(i1, i2):
 		NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
-	for nd in range(i2, i3):
+	for nd in range(i2, i3[nrn]):
 		pnd = nd - 1
 		NODE_RHS[nrn, nd] -= NODE_B[nrn, nd] * NODE_RHS[nrn, pnd]
 		NODE_RHS[nrn, nd] /= NODE_D[nrn, nd]
@@ -816,7 +811,7 @@ def bksub(nrn):
 		for nd in range(i1, i2):
 			for j in range(nlayer):
 				ext_rhs[nrn, nd, j] /= ext_d[nrn, nd, j]
-		for nd in range(i2, i3):
+		for nd in range(i2, i3[nrn]):
 			pnd = nd - 1
 			for j in range(nlayer):
 				ext_rhs[nrn, nd, j] -= ext_b[nrn, nd, j] * ext_rhs[nrn, pnd, j]
@@ -827,7 +822,7 @@ def triang(nrn):
 	void triang(NrnThread* _nt)
 	"""
 	# intracellular
-	nd = i3 - 1
+	nd = i3[nrn] - 1
 	while nd >= i2:
 		pnd = nd - 1
 		ppp = NODE_A[nrn, nd] / NODE_D[nrn, nd]
@@ -836,7 +831,7 @@ def triang(nrn):
 		nd -= 1
 	# extracellular
 	if EXTRACELLULAR:
-		nd = i3 - 1
+		nd = i3[nrn] - 1
 		while nd >= i2:
 			pnd = nd - 1
 			for j in range(nlayer):
@@ -853,9 +848,7 @@ def nrn_solve(nrn):
 	# spFactor
 	# print("NODED", NODE_D[1, :])
 	# print("ext_d", ext_d[1, :, 0])
-
 	# NODED [0.00437676 4.76737 3.06731 4.83803 0.00437676]
-
 	triang(nrn)
 	bksub(nrn)
 	# print("NODED", NODE_D[1, :])
@@ -873,7 +866,7 @@ def update(nrn):
 	"""
 	void update(NrnThread* _nt)
 	"""
-	for nd in range(i1, _nt_end):
+	for nd in range(i1, i3[nrn]):
 		Vm[nrn, nd] += NODE_RHS[nrn, nd]
 
 	# save data like in NEURON (after .mod nrn_cur)
@@ -906,7 +899,8 @@ def nrn_deliver_events(nrn):
 	"""
 	void nrn_deliver_events(NrnThread* nt)
 	"""
-	if not spike_on[nrn] and Vm[nrn, 1] > V_th:
+	seg_update = 2 if models[nrn] == 'muscle' else 1
+	if not spike_on[nrn] and Vm[nrn, seg_update] > V_th:
 		spike_on[nrn] = True
 		has_spike[nrn] = True
 	elif Vm[nrn, 1] < V_th:
@@ -917,7 +911,7 @@ def nrn_fixed_step_lastpart(nrn):
 	void *nrn_fixed_step_lastpart(NrnThread *nth)
 	"""
 	recalc_synaptic(nrn)
-	for seg in segs:
+	for seg in range(i3[nrn]):
 		if models[nrn] == 'inter':
 			recalc_inter_channels(nrn, seg, Vm[nrn, seg])
 		elif models[nrn] == 'moto':
@@ -937,16 +931,16 @@ def nrn_area_ri():
 		if models[nrn] == 'generator':
 			continue
 		# dx = section_length(sec) / ((double) (sec->nnode - 1));
-		dx = length[nrn] / nodecount # divide by the last index of node (or segments count)
+		dx = length[nrn] / segments[nrn] # divide by the last index of node (or segments count)
 		rright = 0
 		# todo sec->pnode needs +1 index
-		for nd in range(0 + 1, nnode - 1 + 1):
+		for nd in range(0 + 1, segments[nrn] + 1):
 			# area for right circular cylinders. Ri as right half of parent + left half of this
 			NODE_AREA[nrn, nd] = np.pi * dx * diam[nrn]
 			rleft = 1e-2 * Ra[nrn] * (dx / 2) / (np.pi * diam[nrn] * diam[nrn] / 4) # left half segment Megohms
 			NODE_RINV[nrn, nd] = 1 / (rleft + rright) # uS
 			rright = rleft
-		nd = nnode - 1 + 1
+		nd = segments[nrn] + 1
 		# last segment has 0 length. area is 1e2 in dimensionless units
 		NODE_AREA[:, 0] = 100
 		NODE_AREA[:, nd] = 100
@@ -964,8 +958,8 @@ def ext_con_coef():
 			continue
 		# temporarily store half segment resistances in rhs
 		# todo sec->pnode needs +1 index, also xraxial is common
-		for nd in range(0 + 1, nnode - 1 + 1):
-			dx = length[nrn] / nodecount
+		for nd in range(0 + 1, segments[nrn] + 1):
+			dx = length[nrn] / segments[nrn]
 			ext_rhs[nrn, nd, layer] = 1e-4 * xraxial * dx / 2  # Megohms
 		# last segment has 0 length
 		ext_rhs[nrn, -1, layer] = 0
@@ -975,7 +969,7 @@ def ext_con_coef():
 		# child nodes in different sections don't involve parent node's resistance
 		ext_b[nrn, 0+1, layer] = ext_rhs[nrn, 0+1, layer]
 		# todo sec->pnode needs +1 index
-		for nd in range(1 + 1, nnode + 1):
+		for nd in range(1 + 1, segments[nrn] + 1 + 1):
 			pnd = nd - 1
 			ext_b[nrn, nd, layer] = ext_rhs[nrn, nd, layer] + ext_rhs[nrn, pnd, layer]  # Megohms
 		# NEURON B = [5e+07 1e+08 1e+08 5e+07 ]
@@ -986,14 +980,14 @@ def ext_con_coef():
 		rall_branch = 1  # sec->prop->dparam[4].val
 		ext_a[nrn, 0+1, layer] = -1.e2 * rall_branch / (ext_b[nrn, 0+1, layer] * area)
 		# todo sec->pnode needs +1 index
-		for nd in range(1 + 1, nnode + 1):
+		for nd in range(1 + 1, segments[nrn] + 1 + 1):
 			area = NODE_AREA[nrn, nd - 1]  # pnd = nd - 1
 			ext_a[nrn, nd, layer] = -1.e2 / (ext_b[nrn, nd, layer] * area)
 		# NEURON A = [-2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
 
 		# now the effect of parent on node equation
 		# todo sec->pnode needs +1 index
-		for nd in range(0 + 1, nnode + 1):
+		for nd in range(0 + 1, segments[nrn] + 1 + 1):
 			ext_b[nrn, nd, layer] = -1.e2 / (ext_b[nrn, nd, layer] * NODE_AREA[nrn, nd])
 		# NEURON B = [-1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
 
@@ -1021,12 +1015,12 @@ def connection_coef():
 		# sec->prop->dparam[4].val = 1, what is dparam[4].val
 		NODE_A[nrn, nd] = -1.e2 * 1 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, nd - 1]
 		# todo sec->pnode needs +1 index
-		for nd in range(1 + 1, nnode + 1):
+		for nd in range(1 + 1, segments[nrn] + 1 + 1):
 			pnd = nd - 1
 			NODE_A[nrn, nd] = -1.e2 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, pnd]
 		# now the effect of parent on node equation
 		# todo sec->pnode needs +1 index
-		for nd in range(0 + 1, nnode + 1):
+		for nd in range(0 + 1, segments[nrn] + 1 + 1):
 			NODE_B[nrn, nd] = -1.e2 * NODE_RINV[nrn, nd] / NODE_AREA[nrn, nd]
 	# for extracellular
 	ext_con_coef()
@@ -1043,7 +1037,7 @@ def finitialize(v_init=-70):
 		if models[nrn] == 'generator':
 			continue
 		# for each segment init the neuron model
-		for seg in segs:
+		for seg in range(i3[nrn]):
 			Vm[nrn, seg] = v_init
 			if models[nrn] == 'inter':
 				nrn_inter_initial(nrn, seg, v_init)
@@ -1091,9 +1085,12 @@ def simulation():
 	# start simulation loop
 	for t in range(sim_time_steps):
 		print(t * dt)
-		_G.append([Vm[OM1[0], 1], Vm[OM2[0], 1], Vm[OM3[0], 1]])
-
 		nrn_fixed_step_thread(t)
+		_G.append([np.mean(Vm[OM1, 1]),
+		           np.mean(Vm[OM2, 1]),
+		           np.mean(Vm[OM3, 1]),
+		           np.mean(Vm[moto, 1]),
+		           np.mean(Vm[muscle, 2])])
 
 		# _G.append([np.mean(I_L[OM1, 1]), np.mean(I_L[OM2, 1]), np.mean(I_L[OM3, 1])])
 		# _G.append([I_L[OM1[0], 1], I_L[OM2[0], 1], I_L[OM3[0], 1]])
@@ -1153,14 +1150,9 @@ if __name__ == "__main__":
 		plt.close()
 		_G = np.array(_G)
 		xticks = np.arange(sim_time_steps) * dt
-		for om, label in zip(_G.T, ['OM1', 'OM2', 'OM3']):
+		for om, label in zip(_G.T, ['OM1', 'OM2', 'OM3', 'moto', 'muscle']):
 			plt.plot(xticks, om, label=label)
 		plt.plot(spikes, [0] * len(spikes), '.', color='r')
 		plt.legend()
 		plt.show()
 
-	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
-		d = saved_voltage[key]
-		plt.plot(np.arange(len(d)) * dt, d, label=key)
-	plt.legend()
-	plt.show()
