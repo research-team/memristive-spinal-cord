@@ -15,20 +15,22 @@ import matplotlib.pyplot as plt
 log.basicConfig(level=log.INFO)
 
 DEBUG = False
-save_neuron_id = 1
-
 EXTRACELLULAR = False
-dt = 0.025      # [ms] - sim step
-sim_time = 50   # [ms] -
-sim_time_steps = int(sim_time / dt)
+GENERATOR = 'generator'
+INTER = 'interneuron'
+MOTO = 'motoneuron'
+MUSCLE = 'muscle'
+neurons_in_ip = 196
 
-if DEBUG:
-	stimulus = (np.arange(10, sim_time, 25) / dt).astype(int)
-else:
-	stimulus = (np.arange(10, sim_time, 10) / dt).astype(int)
+dt = 0.025      # [ms] - sim step
+sim_time = 50   # [ms] - simulation time
+sim_time_steps = int(sim_time / dt) # [steps] converted time into steps
+
+stim_period = 25 if DEBUG else 10   # [ms]
+stimulus = (np.arange(10, sim_time, stim_period) / dt).astype(int)
 
 """common const"""
-V_th = -40
+V_th = -40          # [mV] voltage threshold
 V_adj = -63         # [mV] adjust voltage for -55 threshold
 """moto const"""
 ca0 = 2             # const ??? todo
@@ -41,8 +43,8 @@ bmC = 5             # const ??? todo
 R_const = 8.314472  # [k-mole] or [joule/degC] const
 F_const = 96485.34  # [faraday] or [kilocoulombs] const
 """muscle const"""
-g_kno = 0.01        # [S/cm2] ?? todo
-g_kir = 0.03        # [S/cm2] ?? todo
+g_kno = 0.01        # [S/cm2] conductance of the todo
+g_kir = 0.03        # [S/cm2] conductance of the Inwardly Rectifying Potassium K+ (Kir) channel
 # Boltzman steady state curve
 vhalfl = -98.92     # [mV] fitted to patch data, Stegen et al. 2012
 kl = 10.89          # [mV] Stegen et al. 2012
@@ -52,7 +54,7 @@ at = 0.00610779     # [/ ms] Stegen et al. 2012
 bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
 # Temperature dependence
 q10 = 1             # temperature scaling
-celsius = 36        # [degC]
+celsius = 36        # [degC] temperature of the cell
 
 # i_membrane [mA/cm2]
 e_extracellular = 0 # [mV]
@@ -95,18 +97,17 @@ syn_weight = []         #
 syn_delay = []          #
 syn_delay_timer = []    #
 
-_G = []
 spikes = []
 GRAS_data1 = []
 GRAS_data2 = []
-saved_voltage = {}
+save_array = []
 
 i1 = 0
 i2 = 1
 i3 = []
-segments = []   # =nodecount
+segments = []   # or nodecount
 
-def create(number, model='inter', segs=1):
+def form_group(name, number=50, model=INTER, segs=1):
 	"""
 
 	"""
@@ -134,7 +135,7 @@ def create(number, model='inter', segs=1):
 	__tau_inh2 = None
 	# without random at first stage of debugging
 	for _ in ids:
-		if model == 'inter':
+		if model == INTER:
 			__Cm = random.gauss(1, 0.01)
 			__gnabar = 0.1
 			__gkbar = 0.08
@@ -150,7 +151,7 @@ def create(number, model='inter', segs=1):
 			__tau_exc = 0.35
 			__tau_inh1 = 0.5
 			__tau_inh2 = 3.5
-		elif model == 'moto':
+		elif model == MOTO:
 			__Cm = 2
 			__gnabar = 0.05
 			__gl = 0.002
@@ -175,7 +176,7 @@ def create(number, model='inter', segs=1):
 				__gl = 0.003
 				__gkrect = 0.2
 				__gcak = 0.2
-		elif model == 'muscle':
+		elif model == MUSCLE:
 			__Cm = 3.6
 			__gnabar = 0.15
 			__gkbar = 0.03
@@ -191,7 +192,7 @@ def create(number, model='inter', segs=1):
 			__tau_exc = 0.3
 			__tau_inh1 = 1
 			__tau_inh2 = 1
-		elif model == 'generator':
+		elif model == GENERATOR:
 			pass
 		else:
 			raise Exception("Choose the model")
@@ -251,14 +252,19 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
 
+def save(ids):
+	global save_neuron_id
+	save_neuron_id += ids
 
 if DEBUG:
-	gen = create(1, model='generator')
-	m1 = create(1, model='muscle')
+	gen = form_group(1, model=GENERATOR)
+	m1 = form_group(1, model=MUSCLE, segs=3)
 	conn_a2a(gen, m1, delay=1, weight=40.5)
+	save(m1)
 	# m1 = create(1, model='moto')
 	# connect(gen, m1, delay=1, weight=5.5, conn_type='all-to-all')
-else:
+
+	'''
 	gen = create(1, model='generator', segs=1)
 	OM1 = create(50, model='inter', segs=1)
 	OM2 = create(50, model='inter', segs=1)
@@ -276,11 +282,129 @@ else:
 	conn_fixed_outdegree(OM3, OM1, delay=1, weight=-4.5)
 	conn_fixed_outdegree(OM2, moto, delay=2, weight=1.5)
 	conn_fixed_outdegree(moto, muscle, delay=2, weight=15.5)
+	'''
+else:
+	EES = form_group("EES", 1, model=GENERATOR)
+	E1 = form_group("E1", 1, model=GENERATOR)
+	E2 = form_group("E2", 1, model=GENERATOR)
+	E3 = form_group("E3", 1, model=GENERATOR)
+	E4 = form_group("E4", 1, model=GENERATOR)
+	E5 = form_group("E5", 1, model=GENERATOR)
+	#
+	CV1 = form_group("CV1", 1, model=GENERATOR)
+	CV2 = form_group("CV2", 1, model=GENERATOR)
+	CV3 = form_group("CV3", 1, model=GENERATOR)
+	CV4 = form_group("CV4", 1, model=GENERATOR)
+	CV5 = form_group("CV5", 1, model=GENERATOR)
 
-	for key in ['OM1', 'OM2', 'OM3', 'moto', 'muscle']:
-		saved_voltage[key] = []
+	C_0 = form_group("C_0")
+	C_1 = form_group("C_1")
+	V0v = form_group("V0v")
+	OM1_0E = form_group("OM1_0E")
+	OM1_0F = form_group("OM1_0F")
+	#
+	OM1_0 = form_group("OM1_0")
+	OM1_1 = form_group("OM1_1")
+	OM1_2_E = form_group("OM1_2_E")
+	OM1_2_F = form_group("OM1_2_F")
+	OM1_3 = form_group("OM1_3")
+	'''
+	#
+	OM2_0 = form_group("OM2_0")
+	OM2_1 = form_group("OM2_1")
+	OM2_2_E = form_group("OM2_2_E")
+	OM2_2_F = form_group("OM2_2_F")
+	OM2_3 = form_group("OM2_3")
+	#
+	OM3_0 = form_group("OM3_0")
+	OM3_1 = form_group("OM3_1")
+	OM3_2_E = form_group("OM3_2_E")
+	OM3_2_F = form_group("OM3_2_F")
+	OM3_3 = form_group("OM3_3")
+	#
+	OM4_0 = form_group("OM4_0")
+	OM4_1 = form_group("OM4_1")
+	OM4_2_E = form_group("OM4_2_E")
+	OM4_2_F = form_group("OM4_2_F")
+	OM4_3 = form_group("OM4_3")
+	#
+	OM5_0 = form_group("OM5_0")
+	OM5_1 = form_group("OM5_1")
+	OM5_2_E = form_group("OM5_2_E")
+	OM5_2_F = form_group("OM5_2_F")
+	OM5_3 = form_group("OM5_3")
+	#
+	'''
+	'''
+	Ia_E = form_group("Ia_E", neurons_in_ip)
+	iIP_E = form_group("iIP_E", neurons_in_ip)
+	R_E = form_group("R_E")
 
+	Ia_F = form_group("Ia_F", neurons_in_ip)
+	iIP_F = form_group("iIP_F", neurons_in_ip)
+	R_F = form_group("R_F")
 
+	MN_E = form_group("MN_E", 210, model=MOTO)
+	MN_F = form_group("MN_F", 180, model=MOTO)
+	sens_aff = form_group("sens_aff", 120)
+	Ia_aff_E = form_group("Ia_aff_E", 120)
+	Ia_aff_F = form_group("Ia_aff_F", 120)
+	eIP_E_1 = form_group("eIP_E_1", 40)
+	eIP_E_2 = form_group("eIP_E_2", 40)
+	eIP_E_3 = form_group("eIP_E_3", 40)
+	eIP_E_4 = form_group("eIP_E_4", 40)
+	eIP_E_5 = form_group("eIP_E_5", 40)
+	eIP_F = form_group("eIP_F", neurons_in_ip)
+	# muscle_E = form_group("muscle_E", 150 * 210, model=MUSCLE)
+	# muscle_F = form_group("muscle_F", 100 * 180, model=MUSCLE)
+	'''
+	# OM1
+	conn_fixed_outdegree(OM1_0, OM1_1, delay=3, weight=2.95)
+	conn_fixed_outdegree(OM1_1, OM1_2_E, delay=3, weight=2.85)
+	conn_fixed_outdegree(OM1_2_E, OM1_1, delay=3, weight=1.95)
+	conn_fixed_outdegree(OM1_2_E, OM1_3, delay=3, weight=0.0007)
+	# conn_fixed_outdegree(OM1_2_F, OM2_2_F, delay=1.5, weight=2)
+	conn_fixed_outdegree(OM1_1, OM1_3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM1_3, OM1_2_E, delay=3, weight=-4.5)
+	conn_fixed_outdegree(OM1_3, OM1_1, delay=3, weight=-4.5)
+
+	'''
+	# OM2
+	conn_fixed_outdegree(OM2_0, OM2_1, delay=3, weight=2.95)
+	conn_fixed_outdegree(OM2_1, OM2_2_E, delay=3, weight=2.85)
+	conn_fixed_outdegree(OM2_2_E, OM2_1, delay=3, weight=1.95)
+	conn_fixed_outdegree(OM2_2_E, OM2_3, delay=3, weight=0.0007)
+	conn_fixed_outdegree(OM2_2_F, OM3_2_F, delay=1.5, weight=2)
+	conn_fixed_outdegree(OM2_1, OM2_3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM2_3, OM2_2_E, delay=3, weight=-4.5)
+	conn_fixed_outdegree(OM2_3, OM2_1, delay=3, weight=-4.5)
+	# OM3
+	conn_fixed_outdegree(OM3_0, OM3_1, delay=3, weight=2.95)
+	conn_fixed_outdegree(OM3_1, OM3_2_E, delay=3, weight=2.85)
+	conn_fixed_outdegree(OM3_2_E, OM3_1, delay=3, weight=1.95)
+	conn_fixed_outdegree(OM3_2_E, OM3_3, delay=3, weight=0.0007)
+	conn_fixed_outdegree(OM3_2_F, OM4_2_F, delay=1.5, weight=2)
+	conn_fixed_outdegree(OM3_1, OM3_3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM3_3, OM3_2_E, delay=3, weight=-4.5)
+	conn_fixed_outdegree(OM3_3, OM3_1, delay=3, weight=-4.5)
+	# OM4
+	conn_fixed_outdegree(OM4_0, OM4_1, delay=3, weight=2.95)
+	conn_fixed_outdegree(OM4_1, OM4_2_E, delay=3, weight=2.85)
+	conn_fixed_outdegree(OM4_2_E, OM4_1, delay=3, weight=1.95)
+	conn_fixed_outdegree(OM4_2_E, OM4_3, delay=3, weight=0.0007)
+	conn_fixed_outdegree(OM4_2_F, OM5_2_F, delay=1.5, weight=2)
+	conn_fixed_outdegree(OM4_1, OM4_3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM4_3, OM4_2_E, delay=3, weight=-4.5)
+	conn_fixed_outdegree(OM4_3, OM4_1, delay=3, weight=-4.5)
+	# OM5
+	conn_fixed_outdegree(OM5_0, OM5_1, delay=3, weight=2.95)
+	conn_fixed_outdegree(OM5_1, OM5_2_E, delay=3, weight=2.85)
+	conn_fixed_outdegree(OM5_2_E, OM5_1, delay=3, weight=1.95)
+	conn_fixed_outdegree(OM5_2_E, OM5_3, delay=3, weight=0.0007)
+	conn_fixed_outdegree(OM5_1, OM5_3, delay=3, weight=0.00005)
+	conn_fixed_outdegree(OM5_3, OM5_2_E, delay=3, weight=-4.5)
+	conn_fixed_outdegree(OM5_3, OM5_1, delay=3, weight=-4.5)
+	'''
 nrns = list(range(nrns_number))
 nrn_shape = (nrns_number, 5)
 
@@ -338,7 +462,7 @@ def get_neuron_data():
 				# il, ina, ik, m, h, n, v
 				file.readline()
 				line = file.readline()
-				line = line.replace('BREAKPOINT currents ', '').strip().split("\t")[:-1] # without Vm
+				line = line.replace('BREAKPOINT currents ', '').strip().split("\t")[3:-1] # without Vm
 				[file.readline() for _ in range(3)]
 				neuron_data[-1] += line
 			if 'A	B	D	INV	Vm	RHS' in line:
@@ -359,20 +483,17 @@ def save_data(to_end=False):
 	"""
 
 	"""
-	if not DEBUG:
-		return
-	inrn = save_neuron_id
-	MID = 2
-	global GRAS_data
+	for inrn in save_neuron_id:
+		MID = 2
+		global GRAS_data
 
-	if to_end:
-		GRAS_data1.append([NODE_A[inrn, MID], NODE_B[inrn, MID], NODE_D[inrn, MID],
-		                  NODE_RINV[inrn, MID], Vm[inrn, MID], NODE_RHS[inrn, MID], ext_v[inrn, MID, 0]])
-	else:
-		# syn il, ina, ik, m, h, n, l, s, v
-		isyn = g_exc[inrn] * (Vm[inrn, MID] - E_ex[inrn])
-		GRAS_data2.append([isyn, I_L[inrn, MID], I_Na[inrn, MID], I_K[inrn, MID], m[inrn, MID], h[inrn, MID],
-		                  n[inrn, MID], l[inrn, MID], s[inrn, MID]])
+		if to_end:
+			GRAS_data1.append([NODE_A[inrn, MID], NODE_B[inrn, MID], NODE_D[inrn, MID],
+			                  NODE_RINV[inrn, MID], Vm[inrn, MID], NODE_RHS[inrn, MID], ext_v[inrn, MID, 0]])
+		else:
+			# syn il, ina, ik, m, h, n, l, s, v
+			isyn = g_exc[inrn] * (Vm[inrn, MID] - E_ex[inrn])
+			GRAS_data2.append([isyn, m[inrn, MID], h[inrn, MID], n[inrn, MID], l[inrn, MID], s[inrn, MID]])
 
 def Exp(volt):
 	return 0 if volt < -100 else np.exp(volt)
@@ -712,7 +833,8 @@ def nrn_rhs(nrn):
 	for seg in range(1, i3[nrn] - 1):
 		V = Vm[nrn, seg]
 		# SYNAPTIC update
-		if seg == (2 if models[nrn] == 'muscle' else 1):
+		center_segment = (2 if models[nrn] == MUSCLE else 1)
+		if seg == center_segment:
 			# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
 			_g = syn_current(nrn, V + 0.001)
 			_rhs = syn_current(nrn, V)
@@ -725,21 +847,21 @@ def nrn_rhs(nrn):
 
 		# NEURON update
 		# static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-		if models[nrn] == 'inter':
+		if models[nrn] == INTER:
 			# muscle and inter has the same fast_channel function
 			_g = nrn_fastchannel_current(nrn, seg, V + 0.001)
 			_rhs = nrn_fastchannel_current(nrn, seg, V)
-		elif models[nrn] == 'moto':
+		elif models[nrn] == MOTO:
 			_g = nrn_moto_current(nrn, seg, V + 0.001)
 			_rhs = nrn_moto_current(nrn, seg, V)
-		elif models[nrn] == 'muscle':
+		elif models[nrn] == MUSCLE:
 			# muscle and inter has the same fast_channel function
 			_g = nrn_fastchannel_current(nrn, seg, V + 0.001)
 			_rhs = nrn_fastchannel_current(nrn, seg, V)
 		else:
 			raise Exception('No nrn model found')
 		# save data like in NEURON (after .mod nrn_cur)
-		if nrn == save_neuron_id and seg == 1:
+		if DEBUG and nrn in save_neuron_id and seg == center_segment:
 			save_data()
 		_g = (_g - _rhs) / 0.001
 
@@ -870,7 +992,7 @@ def update(nrn):
 		Vm[nrn, nd] += NODE_RHS[nrn, nd]
 
 	# save data like in NEURON (after .mod nrn_cur)
-	if nrn == save_neuron_id:
+	if DEBUG and nrn in save_neuron_id:
 		save_data(to_end=True)
 	nrn_update_2d(nrn)
 
@@ -899,7 +1021,7 @@ def nrn_deliver_events(nrn):
 	"""
 	void nrn_deliver_events(NrnThread* nt)
 	"""
-	seg_update = 2 if models[nrn] == 'muscle' else 1
+	seg_update = 2 if models[nrn] == MUSCLE else 1
 	if not spike_on[nrn] and Vm[nrn, seg_update] > V_th:
 		spike_on[nrn] = True
 		has_spike[nrn] = True
@@ -912,11 +1034,11 @@ def nrn_fixed_step_lastpart(nrn):
 	"""
 	recalc_synaptic(nrn)
 	for seg in range(i3[nrn]):
-		if models[nrn] == 'inter':
+		if models[nrn] == INTER:
 			recalc_inter_channels(nrn, seg, Vm[nrn, seg])
-		elif models[nrn] == 'moto':
+		elif models[nrn] == MOTO:
 			recalc_moto_channels(nrn, seg, Vm[nrn, seg])
-		elif models[nrn] == 'muscle':
+		elif models[nrn] == MUSCLE:
 			recalc_muslce_channels(nrn, seg, Vm[nrn, seg])
 		else:
 			raise Exception("No model")
@@ -928,7 +1050,7 @@ def nrn_area_ri():
 	area for right circular cylinders. Ri as right half of parent + left half of this
 	"""
 	for nrn in nrns:
-		if models[nrn] == 'generator':
+		if models[nrn] == GENERATOR:
 			continue
 		# dx = section_length(sec) / ((double) (sec->nnode - 1));
 		dx = length[nrn] / segments[nrn] # divide by the last index of node (or segments count)
@@ -954,7 +1076,7 @@ def ext_con_coef():
 	layer = 0
 	# todo: extracellular only for those neurons who need
 	for nrn in nrns:
-		if models[nrn] == 'generator':
+		if models[nrn] == GENERATOR:
 			continue
 		# temporarily store half segment resistances in rhs
 		# todo sec->pnode needs +1 index, also xraxial is common
@@ -1006,7 +1128,7 @@ def connection_coef():
 	# NODE_A is the effect of this node on the parent node's equation
 	# NODE_B is the effect of the parent node on this node's equation
 	for nrn in nrns:
-		if models[nrn] == 'generator':
+		if models[nrn] == GENERATOR:
 			continue
 		# first the effect of node on parent equation. Note that last nodes have area = 1.e2 in dimensionless
 		# units so that last nodes have units of microsiemens
@@ -1034,16 +1156,16 @@ def finitialize(v_init=-70):
 	# for different models -- different init function
 	for nrn in nrns:
 		# do not init neuron state for generator
-		if models[nrn] == 'generator':
+		if models[nrn] == GENERATOR:
 			continue
 		# for each segment init the neuron model
 		for seg in range(i3[nrn]):
 			Vm[nrn, seg] = v_init
-			if models[nrn] == 'inter':
+			if models[nrn] == INTER:
 				nrn_inter_initial(nrn, seg, v_init)
-			elif models[nrn] == 'moto':
+			elif models[nrn] == MOTO:
 				nrn_moto_initial(nrn, seg, v_init)
-			elif models[nrn] == 'muscle':
+			elif models[nrn] == MUSCLE:
 				nrn_muslce_initial(nrn, seg, v_init)
 			else:
 				raise Exception("No nrn model found")
@@ -1065,7 +1187,7 @@ def nrn_fixed_step_thread(t):
 	# recalc synaptic currents
 	# for each syn
 	for nrn in nrns:
-		if models[nrn] == 'generator':
+		if models[nrn] == GENERATOR:
 			has_spike[nrn] = t in stimulus
 		else:
 			setup_tree_matrix(nrn)
@@ -1086,20 +1208,8 @@ def simulation():
 	for t in range(sim_time_steps):
 		print(t * dt)
 		nrn_fixed_step_thread(t)
-		_G.append([np.mean(Vm[OM1, 1]),
-		           np.mean(Vm[OM2, 1]),
-		           np.mean(Vm[OM3, 1]),
-		           np.mean(Vm[moto, 1]),
-		           np.mean(Vm[muscle, 2])])
-
-		# _G.append([np.mean(I_L[OM1, 1]), np.mean(I_L[OM2, 1]), np.mean(I_L[OM3, 1])])
-		# _G.append([I_L[OM1[0], 1], I_L[OM2[0], 1], I_L[OM3[0], 1]])
-
-		# for key, ids in zip(['OM1', 'OM2', 'OM3', 'moto', 'muscle'], [OM1, OM2, OM3, moto, muscle]):
-		# 	if len(ids) == 1:
-		# 		saved_voltage[key].append(np.mean(Vm[ids, 2]))
-		# 	else:
-		# 		saved_voltage[key].append(np.mean(Vm[ids[0]:ids[-1], 2]))
+		if not DEBUG:
+			save_array.append(Vm[:, 1])
 
 def plot(gras_data, neuron_data):
 	"""
