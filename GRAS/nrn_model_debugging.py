@@ -101,6 +101,7 @@ spikes = []
 GRAS_data1 = []
 GRAS_data2 = []
 save_array = []
+save_neuron_ids = []
 
 i1 = 0
 i2 = 1
@@ -223,14 +224,17 @@ def form_group(name, number=50, model=INTER, segs=1):
 	i3 += [segs + 2] * number
 	segments += [segs] * number
 
-	return ids
+	return name, ids
 
 def conn_a2a(pre_nrns, post_nrns, delay, weight):
 	"""
 
 	"""
-	for pre in pre_nrns:
-		for post in post_nrns:
+	pre_nrns_ids = pre_nrns[1]
+	post_nrns_ids = post_nrns[1]
+
+	for pre in pre_nrns_ids:
+		for post in post_nrns_ids:
 			syn_pre_nrn.append(pre)
 			syn_post_nrn.append(post)
 			syn_weight.append(weight)
@@ -241,9 +245,11 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 	"""
 
 	"""
+	pre_nrns_ids = pre_nrns[1]
+
 	for post in post_nrns:
 		for j in range(indegree):
-			pre = random.choice(pre_nrns)
+			pre = random.choice(pre_nrns_ids)
 			weight = weight #random.gauss(weight, weight / 10)
 			delay = delay #random.gauss(delay, delay / 10)
 			syn_pre_nrn.append(pre)
@@ -252,15 +258,16 @@ def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
 
-def save(ids):
-	global save_neuron_id
-	save_neuron_id += ids
+def save(groups):
+	global save_neuron_ids
+	save_neuron_ids = sum([group[1] for group in groups], [])
 
 if DEBUG:
 	gen = form_group(1, model=GENERATOR)
 	m1 = form_group(1, model=MUSCLE, segs=3)
 	conn_a2a(gen, m1, delay=1, weight=40.5)
-	save(m1)
+	groups = [m1]
+	save(groups)
 	# m1 = create(1, model='moto')
 	# connect(gen, m1, delay=1, weight=5.5, conn_type='all-to-all')
 
@@ -368,6 +375,8 @@ else:
 	conn_fixed_outdegree(OM1_3, OM1_2_E, delay=3, weight=-4.5)
 	conn_fixed_outdegree(OM1_3, OM1_1, delay=3, weight=-4.5)
 
+	groups = [OM1_0, OM1_1, OM1_2_E, OM1_3]
+	save(groups)
 	'''
 	# OM2
 	conn_fixed_outdegree(OM2_0, OM2_1, delay=3, weight=2.95)
@@ -1209,7 +1218,7 @@ def simulation():
 		print(t * dt)
 		nrn_fixed_step_thread(t)
 		if not DEBUG:
-			save_array.append(Vm[:, 1])
+			save_array.append(Vm[save_neuron_ids, 1])
 
 def plot(gras_data, neuron_data):
 	"""
@@ -1258,11 +1267,14 @@ if __name__ == "__main__":
 		plot(GRAS_data, NEURON_data)
 	else:
 		plt.close()
-		_G = np.array(_G)
+		save_array = np.array(save_array)
 		xticks = np.arange(sim_time_steps) * dt
-		for om, label in zip(_G.T, ['OM1', 'OM2', 'OM3', 'moto', 'muscle']):
-			plt.plot(xticks, om, label=label)
-		plt.plot(spikes, [0] * len(spikes), '.', color='r')
+		index = 0
+		for group in groups:
+			size = len(group[1])
+			data = np.mean(save_array[:, index:index + size], axis=1)
+			plt.plot(xticks, data, label=group[0])
+			index += size
 		plt.legend()
 		plt.show()
 
