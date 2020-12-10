@@ -11,6 +11,7 @@ import random
 import numpy as np
 import logging as log
 import matplotlib.pyplot as plt
+from time import time
 
 log.basicConfig(level=log.INFO)
 
@@ -26,14 +27,26 @@ dt = 0.025      # [ms] - sim step
 sim_time = 50   # [ms] - simulation time
 sim_time_steps = int(sim_time / dt) # [steps] converted time into steps
 
-stim_period = 25 if DEBUG else 10   # [ms]
-stimulus = (np.arange(10, sim_time, stim_period) / dt).astype(int)
+skin_time = 25  # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+cv_fr = 200     # frequency of CV
+ees_fr = 40     # frequency of EES
 
-"""common const"""
+cv_int = 1000 / cv_fr
+ees_int = 1000 / ees_fr
+
+EES_stimulus = (np.arange(0, sim_time, ees_int) / dt).astype(int)
+CV1_stimulus = (np.arange(skin_time * 0, skin_time * 1, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV2_stimulus = (np.arange(skin_time * 1, skin_time * 2, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV3_stimulus = (np.arange(skin_time * 2, skin_time * 3, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV4_stimulus = (np.arange(skin_time * 3, skin_time * 5, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV5_stimulus = (np.arange(skin_time * 5, skin_time * 6, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+
+# common neuron constants
+k = 0.017           # synaptic coef
 V_th = -40          # [mV] voltage threshold
 V_adj = -63         # [mV] adjust voltage for -55 threshold
-"""moto const"""
-ca0 = 2             # const ??? todo
+# moto neuron constants
+ca0 = 2             # initial calcium concentration
 amA = 0.4           # const ??? todo
 amB = 66            # const ??? todo
 amC = 5             # const ??? todo
@@ -42,20 +55,19 @@ bmB = 32            # const ??? todo
 bmC = 5             # const ??? todo
 R_const = 8.314472  # [k-mole] or [joule/degC] const
 F_const = 96485.34  # [faraday] or [kilocoulombs] const
-"""muscle const"""
+# muscle fiber constants
 g_kno = 0.01        # [S/cm2] conductance of the todo
 g_kir = 0.03        # [S/cm2] conductance of the Inwardly Rectifying Potassium K+ (Kir) channel
 # Boltzman steady state curve
-vhalfl = -98.92     # [mV] fitted to patch data, Stegen et al. 2012
+vhalfl = -98.92     # [mV] inactivation half-potential
 kl = 10.89          # [mV] Stegen et al. 2012
 # tau_infty
 vhalft = 67.0828    # [mV] fitted #100 uM sens curr 350a, Stegen et al. 2012
 at = 0.00610779     # [/ ms] Stegen et al. 2012
 bt = 0.0817741      # [/ ms] Note: typo in Stegen et al. 2012
-# Temperature dependence
-q10 = 1             # temperature scaling
+# temperature dependence
+q10 = 1             # temperature scaling (sensitivity)
 celsius = 36        # [degC] temperature of the cell
-
 # i_membrane [mA/cm2]
 e_extracellular = 0 # [mV]
 xraxial = 1e9       # [MOhm/cm]
@@ -67,46 +79,49 @@ def init0(shape, dtype=float):
 	return np.zeros(shape, dtype=dtype)
 
 nrns_number = 0
-# common properties
-models = []     # model's names
-Cm = []         # [uF / cm2] membrane capacity
-gnabar = []     # [S / cm2] todo
-gkbar = []      # [S / cm2]g_K todo
-gl = []         # [S / cm2] todo
-Ra = []         # [Ohm cm]
-diam = []       # [um] diameter
-length = []     # [um] compartment length
-ena = []        # [mV] todo
-ek = []         # [mV] todo
-el = []         # [mV] todo
-# moto properties
-gkrect = []     # [S / cm2] todo
-gcaN = []       # [S / cm2] todo
-gcaL = []       # [S / cm2] todo
-gcak = []       # [S / cm2] todo
-# synapses data
-E_ex = []       # [S / cm2] todo
-E_inh = []      # [S / cm2] todo
-tau_exc = []    # [S / cm2] todo
-tau_inh1 = []   # [S / cm2] todo
-tau_inh2 = []   # [S / cm2] todo
+# common neuron's parameters
+# also from https://www.cell.com/neuron/pdfExtended/S0896-6273(16)00010-6
+models = []     # [str] model's names
+Cm = []         # [uF / cm2] membrane capacitance
+gnabar = []     # [S / cm2] the maximal fast Na+ conductance
+gkbar = []      # [S / cm2] the maximal slow K+ conductance
+gl = []         # [S / cm2] the maximal leak conductance
+Ra = []         # [Ohm cm] axoplasmic resistivity
+diam = []       # [um] soma compartment diameter
+length = []     # [um] soma compartment length
+ena = []        # [mV] Na+ reversal (equilibrium, Nernst) potential
+ek = []         # [mV] K+ reversal (equilibrium, Nernst) potential
+el = []         # [mV] Leakage reversal (equilibrium) potential
+# moto neuron's properties
+# https://senselab.med.yale.edu/modeldb/showModel.cshtml?model=189786
+# https://journals.physiology.org/doi/pdf/10.1152/jn.2002.88.4.1592
+gkrect = []     # [S / cm2] the maximal delayed rectifier K+ conductance
+gcaN = []       # [S / cm2] the maximal N-type Ca2+ conductance
+gcaL = []       # [S / cm2] the maximal L-type Ca2+ conductance
+gcak = []       # [S / cm2] the maximal Ca2+ activated K+ conductance
+# synapses' parameters
+E_ex = []       # [mV] excitatory reversal (equilibrium) potential
+E_inh = []      # [mV] inhibitory reversal (equilibrium) potential
+tau_exc = []    # [ms] rise time constant of excitatory synaptic conductance
+tau_inh1 = []   # [ms] rise time constant of inhibitory synaptic conductance
+tau_inh2 = []   # [ms] decay time constant of inhibitory synaptic conductance
+# metadata of synapses
+syn_pre_nrn = []        # [id] list of pre neurons ids
+syn_post_nrn = []       # [id] list of pre neurons ids
+syn_weight = []         # [S] list of synaptic weights
+syn_delay = []          # [ms * dt] list of synaptic delays in steps
+syn_delay_timer = []    # [ms * dt] list of synaptic timers, shows how much left to send signal
+# arrays for saving data
+spikes = []             # saved spikes
+GRAS_data1 = []         # saved gras data (DEBUGGING)
+GRAS_data2 = []         # saved gras data (DEBUGGING)
+saved_voltage = []      # saved voltage
+save_neuron_ids = []    # neurons id that need to save
 
-syn_pre_nrn = []        #
-syn_post_nrn = []       #
-syn_weight = []         #
-syn_delay = []          #
-syn_delay_timer = []    #
-
-spikes = []
-GRAS_data1 = []
-GRAS_data2 = []
-save_array = []
-save_neuron_ids = []
-
-i1 = 0
-i2 = 1
-i3 = []
-segments = []   # or nodecount
+i1 = 0                  # index of the first segment (CAP)
+i2 = 1                  # index of the second segment
+i3 = []                 # index of the last segment (CAP)
+segments = []           # number of segments wothout caps, or nodecount in NEURON
 
 def form_group(name, number=50, model=INTER, segs=1):
 	"""
@@ -145,7 +160,7 @@ def form_group(name, number=50, model=INTER, segs=1):
 			__ena = 50
 			__ek = -90
 			__el = -70
-			__diam = 10 #random.randint(5, 15)
+			__diam = random.randint(5, 15)
 			__dx = __diam
 			__e_ex = 50
 			__e_inh = -80
@@ -235,23 +250,28 @@ def conn_a2a(pre_nrns, post_nrns, delay, weight):
 
 	for pre in pre_nrns_ids:
 		for post in post_nrns_ids:
+			weight = random.gauss(weight, weight / 5)
+			delay = random.gauss(delay, delay / 5)
 			syn_pre_nrn.append(pre)
 			syn_post_nrn.append(post)
 			syn_weight.append(weight)
 			syn_delay.append(int(delay / dt))
 			syn_delay_timer.append(-1)
 
-def conn_fixed_outdegree(pre_nrns, post_nrns, delay, weight, indegree=50):
+def conn_fixed_outdegree(pre_group, post_group, delay, weight, indegree=50):
 	"""
 
 	"""
-	pre_nrns_ids = pre_nrns[1]
+	pre_nrns_ids = pre_group[1]
+	post_nrns_ids = post_group[1]
 
-	for post in post_nrns:
-		for j in range(indegree):
+	nsyn = random.randint(indegree - 15, indegree)
+
+	for post in post_nrns_ids:
+		for _ in range(nsyn):
 			pre = random.choice(pre_nrns_ids)
-			weight = weight #random.gauss(weight, weight / 10)
-			delay = delay #random.gauss(delay, delay / 10)
+			weight = random.gauss(weight, weight / 5)
+			delay = random.gauss(delay, delay / 5)
 			syn_pre_nrn.append(pre)
 			syn_post_nrn.append(post)
 			syn_weight.append(weight)
@@ -365,6 +385,11 @@ else:
 	# muscle_E = form_group("muscle_E", 150 * 210, model=MUSCLE)
 	# muscle_F = form_group("muscle_F", 100 * 180, model=MUSCLE)
 	'''
+	conn_fixed_outdegree(EES, CV1, delay=1, weight=15)
+	conn_fixed_outdegree(EES, OM1_0, delay=2, weight=0.00075 * k * skin_time)
+	conn_fixed_outdegree(CV1, OM1_0, delay=2, weight=0.00048)
+	# conn_fixed_outdegree(CV1, CV2, delay=1, weight=15)
+
 	# OM1
 	conn_fixed_outdegree(OM1_0, OM1_1, delay=3, weight=2.95)
 	conn_fixed_outdegree(OM1_1, OM1_2_E, delay=3, weight=2.85)
@@ -419,15 +444,15 @@ nrn_shape = (nrns_number, 5)
 
 # global variables
 Vm = init0(nrn_shape)           # [mV] array for three compartments volatge
-n = init0(nrn_shape)            # [0..1] compartments channel
-m = init0(nrn_shape)            # [0..1] compartments channel
-h = init0(nrn_shape)            # [0..1] compartments channel
+n = init0(nrn_shape)            # [0..1] compartments channel, providing the kinetic pattern of the L conductance
+m = init0(nrn_shape)            # [0..1] compartments channel, providing the kinetic pattern of the Na conductance
+h = init0(nrn_shape)            # [0..1] compartments channel, providing the kinetic pattern of the Na conductance
 l = init0(nrn_shape)            # [0..1] inward rectifier potassium (Kir) channel
 s = init0(nrn_shape)            # [0..1] nodal slow potassium channel
-p = init0(nrn_shape)            # [0..1] compartments channel
-hc = init0(nrn_shape)           # [0..1] compartments channel
-mc = init0(nrn_shape)           # [0..1] compartments channel
-cai = init0(nrn_shape)          # [0..1] compartments channel
+p = init0(nrn_shape)            # [0..1] compartments channel, providing the kinetic pattern of the ?? conductance
+hc = init0(nrn_shape)           # [0..1] compartments channel, providing the kinetic pattern of the ?? conductance
+mc = init0(nrn_shape)           # [0..1] compartments channel, providing the kinetic pattern of the ?? conductance
+cai = init0(nrn_shape)          #
 # I_L = init0(nrn_shape)        # [nA] leak ionic currents
 # I_K = init0(nrn_shape)        # [nA] K ionic currents
 # I_Na = init0(nrn_shape)       # [nA] Na ionic currents
@@ -435,9 +460,9 @@ cai = init0(nrn_shape)          # [0..1] compartments channel
 I_Ca = init0(nrn_shape)         # [nA] Ca ionic currents
 
 g_exc = init0(nrns_number)      # [S] excitatory conductivity level
-g_inh_A = init0(nrns_number)    # [S / cm2] todo
-g_inh_B = init0(nrns_number)    # [S / cm2] todo
-factor = init0(nrns_number)     # [S / cm2] todo
+g_inh_A = init0(nrns_number)    # [S] inhibitory conductivity level
+g_inh_B = init0(nrns_number)    # [S] inhibitory conductivity level
+factor = init0(nrns_number)     # [const] todo
 
 NODE_A = init0(nrn_shape)       # the effect of this node on the parent node's equation
 NODE_B = init0(nrn_shape)       # the effect of the parent node on this node's equation
@@ -1191,19 +1216,24 @@ def nrn_fixed_step_thread(t):
 	"""
 	void *nrn_fixed_step_thread(NrnThread *nth)
 	"""
-	# update data for each neuron
+	# update synapses
 	deliver_net_events()
-	# recalc synaptic currents
-	# for each syn
+
+	has_spike[EES[1]] = t in EES_stimulus
+	has_spike[CV1[1]] = t in CV1_stimulus
+	has_spike[CV2[1]] = t in CV2_stimulus
+	has_spike[CV3[1]] = t in CV3_stimulus
+	has_spike[CV4[1]] = t in CV4_stimulus
+	has_spike[CV5[1]] = t in CV5_stimulus
+
+	# update data for each neuron
+	for nrn in nrns[generators_id_end:]:
+		setup_tree_matrix(nrn)
+		nrn_solve(nrn)
+		update(nrn)
+		nrn_fixed_step_lastpart(nrn)
+
 	for nrn in nrns:
-		if models[nrn] == GENERATOR:
-			has_spike[nrn] = t in stimulus
-		else:
-			setup_tree_matrix(nrn)
-			nrn_solve(nrn)
-			update(nrn)
-			nrn_fixed_step_lastpart(nrn)
-		# save spikes
 		if has_spike[nrn]:
 			spikes.append(t * dt)
 
@@ -1215,10 +1245,11 @@ def simulation():
 	finitialize()
 	# start simulation loop
 	for t in range(sim_time_steps):
-		print(t * dt)
+		if t % 100 == 0:
+			print(t * dt)
 		nrn_fixed_step_thread(t)
 		if not DEBUG:
-			save_array.append(Vm[save_neuron_ids, 1])
+			saved_voltage.append(Vm[save_neuron_ids, 1])
 
 def plot(gras_data, neuron_data):
 	"""
@@ -1253,11 +1284,13 @@ def plot(gras_data, neuron_data):
 	plt.show()
 
 if __name__ == "__main__":
-	from time import time as T
-	start = T()
+	generators_id_end = models.count(GENERATOR)
+
+	start = time()
 	simulation()
-	end = T()
+	end = time()
 	print(end - start)
+
 	GRAS_data = np.array(list(sum(d, []) for d in zip(GRAS_data2, GRAS_data1)))
 	if DEBUG:
 		xlength = GRAS_data.shape[0]
@@ -1267,12 +1300,12 @@ if __name__ == "__main__":
 		plot(GRAS_data, NEURON_data)
 	else:
 		plt.close()
-		save_array = np.array(save_array)
+		saved_voltage = np.array(saved_voltage)
 		xticks = np.arange(sim_time_steps) * dt
 		index = 0
 		for group in groups:
 			size = len(group[1])
-			data = np.mean(save_array[:, index:index + size], axis=1)
+			data = np.mean(saved_voltage[:, index:index + size], axis=1)
 			plt.plot(xticks, data, label=group[0])
 			index += size
 		plt.legend()
