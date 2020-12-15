@@ -16,17 +16,17 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
+step_number = 5 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 210
 nAff = 120
 nInt = 196
 N = 50
-k = 0.017
+k = 0.01
 
 one_step_time = 6 * speed + 125
 time_sim = 25 + one_step_time * step_number
@@ -203,8 +203,8 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.OM1_0F, 2.75, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.00005, 3)
+        # connectcells(self.V0v, self.OM1_0F, 2.75, 3)
         # connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
@@ -231,11 +231,11 @@ class CPG:
         genconnect(self.ees, self.Ia_aff_E, 1.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 1.5, 1)
         genconnect(self.ees, self.dict_CV[0], 1.5, 2)
-        genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 15)
-        genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 15)
+        genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 5)
+        genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 5)
 
         connectcells(self.Ia_aff_E, self.mns_E, 1.55, 1.5)
-        connectcells(self.Ia_aff_F, self.mns_F, 0.5, 1.5)
+        connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1.5)
 
         connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
         connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
@@ -251,8 +251,8 @@ class CPG:
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.75, 3)
-            connectcells(self.dict_IP_E[layer], self.mns_E, 3.75, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.85, 3)
+            connectcells(self.dict_IP_E[layer], self.mns_E, 2.85, 3)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
             else:
@@ -260,7 +260,7 @@ class CPG:
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
             connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 2.85, 3)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 3.75, 2)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 2.75, 2)
             connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.75, 1, True)
 
         for layer in range(layers+1):
@@ -646,7 +646,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/new_AIR_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
                 sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
                 file.create_dataset(f'#0_step_{i}', data=np.array(result)[sl], compression="gzip")
@@ -696,9 +696,9 @@ if __name__ == '__main__':
         # affrecorders = []
         # for group in cpg_ex.affgroups:
         #   affrecorders.append(spike_record(group[k_nrns], i))
-        recorders = []
-        for group in cpg_ex.groups:
-          recorders.append(spike_record(group[k_nrns], i))
+        # recorders = []
+        # for group in cpg_ex.groups:
+        #   recorders.append(spike_record(group[k_nrns], i))
         logging.info("added recorders")
 
         print("- " * 10, "\nstart")
@@ -714,8 +714,8 @@ if __name__ == '__main__':
             spikeout(group[k_nrns], f'mem_{group[k_name]}', i, recorder)
         # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
         #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.groups, recorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.groups, recorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
         logging.info("recorded")
 
     finish()
