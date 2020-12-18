@@ -1,6 +1,16 @@
+/**
+Formulas and value units were taken from:
+
+Sterratt, D., Graham, B., Gillies, A., & Willshaw, D. (2011).
+Principles of Computational Modelling in Neuroscience. Cambridge: Cambridge University Press.
+DOI:10.1017/CBO9780511975899
+
+Based on the NEURON repository
+*/
+
 #include <map>
-#include <string>
 #include <vector>
+#include <string>
 #include <iostream>
 #include "test.h"
 #define CHECK( err ) ( HandleError( err, __FILE__, __LINE__ ) )
@@ -13,6 +23,51 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 }
 
 using namespace std;
+
+const float dt = 0.025;     // [ms] simulation step
+const int sim_time = 50;    // [ms] simulation time
+const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
+
+const bool DEBUG = false;
+const bool EXTRACELLULAR = false;
+const string GENERATOR = "generator";
+const string INTER = "interneuron";
+const string MOTO = "motoneuron";
+const string MUSCLE = "muscle";
+
+unsigned int global_id = 0;
+unsigned int nrns_number = 0;
+unsigned int nrns_and_segs = 0;
+unsigned int generators_id_end = 0;
+const int LEG_STEPS = 1;             // [step] number of full cycle steps
+
+const int neurons_in_group = 50;     // number of neurons in a group
+const int neurons_in_ip = 196;       // number of neurons in a group
+
+const int skin_time = 25;  // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+int cv_fr = 200;     // frequency of CV
+int ees_fr = 100;     // frequency of EES
+
+float cv_int = 1000 / cv_fr;
+float ees_int = 1000 / ees_fr;
+
+/*
+EES_stimulus = (np.arange(0, sim_time, ees_int) / dt).astype(int)
+CV1_stimulus = (np.arange(skin_time * 0, skin_time * 1, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV2_stimulus = (np.arange(skin_time * 1, skin_time * 2, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV3_stimulus = (np.arange(skin_time * 2, skin_time * 3, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV4_stimulus = (np.arange(skin_time * 3, skin_time * 5, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+CV5_stimulus = (np.arange(skin_time * 5, skin_time * 6, random.gauss(cv_int, cv_int / 10)) / dt).astype(int)
+*/
+
+/*
+# arrays for saving data
+spikes = []             # saved spikes
+GRAS_data = []          # saved gras data (DEBUGGING)
+save_groups = []        # neurons groups that need to save
+saved_voltage = []      # saved voltage
+save_neuron_ids = []    # neurons id that need to save
+ */
 
 // common neuron constants
 float k = 0.017;           // synaptic coef
@@ -45,21 +100,36 @@ float celsius = 36;        // [degC] temperature of the cell
 float e_extracellular = 0; // [mV]
 float xraxial = 1e9;       // [MOhm/cm]
 
-unsigned int nrns_number = 0;
-unsigned int nrns_and_segs = 0;
-unsigned int generators_id_end = 0;
-
-unsigned int global_id = 0;
-unsigned int SIM_TIME_IN_STEPS;
-const int LEG_STEPS = 1;             // [step] number of full cycle steps
-const double SIM_STEP = 0.025;        // [ms] simulation step
-const int neurons_in_group = 50;     // number of neurons in a group
-const int neurons_in_ip = 196;       // number of neurons in a group
+// Allocate and fill host data
+vector<short> vector_nrn_start_seg;
+vector<string> vector_models;
+vector<float> vector_Cm;
+vector<float> vector_gnabar;
+vector<float> vector_gkbar;
+vector<float> vector_gl;
+vector<float> vector_Ra;
+vector<float> vector_diam;
+vector<float> vector_length;
+vector<float> vector_ena;
+vector<float> vector_ek;
+vector<float> vector_el;
+vector<float> vector_gkrect;
+vector<float> vector_gcaN;
+vector<float> vector_gcaL;
+vector<float> vector_gcak;
+vector<float> vector_E_ex;
+vector<float> vector_E_inh;
+vector<float> vector_tau_exc;
+vector<float> vector_tau_inh1;
+vector<float> vector_tau_inh2;
 
 vector <GroupMetadata> all_groups;
 
 // form structs of neurons global ID and groups name
-Group form_group(const string &group_name, int nrns_in_group = neurons_in_group) {
+Group form_group(const string &group_name,
+				 int nrns_in_group = neurons_in_group,
+				 const string &model = INTER,
+				 const int segs = 1) {
 	Group group = Group();
 	group.group_name = group_name;     // name of a neurons group
 	group.id_start = global_id;        // first ID in the group
@@ -210,40 +280,86 @@ void some_kernel(States *S, Parameters *P, int neurons_number) {
 	}
 }
 
+void connect_fixed_outdegree(const Group &pre_neurons,
+                             const Group &post_neurons,
+                             float syn_delay,
+                             float syn_weight,
+                             int outdegree = 0,
+                             bool no_distr = false) {
+	// connect neurons with uniform distribution and normal distributon for syn delay and syn_weight
+//	random_device r;
+//	default_random_engine generator(r());
+//	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
+//	uniform_int_distribution<int> outdegree_num(30, 50);
+//	normal_distribution<float> delay_distr_gen(syn_delay, syn_delay / 3);
+//	normal_distribution<float> weight_distr_gen(syn_weight, syn_weight / 50);
+
+//	if (outdegree == 0)
+//		outdegree = outdegree_num(generator);
+
+	int rand_post_id;
+	float syn_delay_distr;
+	float syn_weight_distr;
+
+	for (unsigned int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
+		for (int i = 0; i < outdegree; i++) {
+//			rand_post_id = id_distr(generator);
+//			syn_delay_distr = delay_distr_gen(generator);
+
+			if (syn_delay_distr < 0.1) {
+				syn_delay_distr = 0.1;
+			}
+//			syn_weight_distr = weight_distr_gen(generator);
+
+//			if (no_distr) {
+//				all_synapses.emplace_back(pre_id, rand_post_id, syn_delay, syn_weight);
+//			} else {
+//				all_synapses.emplace_back(pre_id, rand_post_id, syn_delay_distr, syn_weight_distr);
+//			}
+		}
+	}
+
+//	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
+//	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
+//	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+}
+
+void init_network() {
+	Group gen = form_group("gen", 1, GENERATOR, 1);
+	Group OM1 = form_group("OM1", 50, INTER, 1);
+	Group OM2 = form_group("OM2", 50, INTER, 1);
+	Group OM3 = form_group("OM3", 50, INTER, 1);
+	Group moto = form_group("moto", 50, MOTO, 1);
+	Group muscle = form_group("muscle", 1, MUSCLE, 3);
+
+//	conn_a2a(gen, OM1, delay=1, weight=1.5)
+
+	connect_fixed_outdegree(OM1, OM2, 2, 1.85);
+	connect_fixed_outdegree(OM2, OM1, 3, 1.85);
+	connect_fixed_outdegree(OM2, OM3, 3, 0.00055);
+	connect_fixed_outdegree(OM1, OM3, 3, 0.00005);
+	connect_fixed_outdegree(OM3, OM2, 1, -4.5);
+	connect_fixed_outdegree(OM3, OM1, 1, -4.5);
+	connect_fixed_outdegree(OM2, moto, 2, 1.5);
+	connect_fixed_outdegree(moto, muscle, 2, 15.5);
+
+	vector<Group> groups = {OM1, OM2, OM3, moto, muscle};
+//	save(groups)
+//	P.nrn_start_seg.append(nrns_and_segs)
+}
+
 void simulate() {
 	/**
 	 *
 	 */
 	const int size = 10000;
-	SIM_TIME_IN_STEPS = 100;
 	// init structs
 	States *dev_S, *S = (States *)malloc(sizeof(States));
 	Parameters *dev_P, *P = (Parameters *)malloc(sizeof(Parameters));
 
-	/// finitialize()
-	// Allocate and fill host data
-	vector<short> vector_nrn_start_seg;
-	vector<char> vector_models;
-	vector<float> vector_Cm;
-	vector<float> vector_gnabar;
-	vector<float> vector_gkbar;
-	vector<float> vector_gl;
-	vector<float> vector_Ra;
-	vector<float> vector_diam;
-	vector<float> vector_length;
-	vector<float> vector_ena;
-	vector<float> vector_ek;
-	vector<float> vector_el;
-	vector<float> vector_gkrect;
-	vector<float> vector_gcaN;
-	vector<float> vector_gcaL;
-	vector<float> vector_gcak;
-	vector<float> vector_E_ex;
-	vector<float> vector_E_inh;
-	vector<float> vector_tau_exc;
-	vector<float> vector_tau_inh1;
-	vector<float> vector_tau_inh2;
+	init_network();
 
+	/// finitialize()
 	// init neurons
 	for (int i = 0; i < size; i++) {
 		vector_Cm.push_back(10);
@@ -280,7 +396,7 @@ void simulate() {
 	/// GPU
 	// init Parameters (malloc + memcpy) GPU arrays based on CPU vectors
 	short *gpu_nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
-	char *gpu_models = init_gpu_arr(vector_models);
+	string *gpu_models = init_gpu_arr(vector_models);
 	auto *gpu_Cm = init_gpu_arr(vector_Cm);
 	float *gpu_gnabar = init_gpu_arr(vector_gnabar);
 	float *gpu_gkbar = init_gpu_arr(vector_gkbar);
@@ -391,13 +507,12 @@ void simulate() {
 	CHECK(cudaDeviceSynchronize());
 
 	// Copy result to host:
-	cudaMemcpy(Vm, gpu_Vm, size * sizeof(*Vm), cudaMemcpyDeviceToHost);
+	CHECK(cudaMemcpy(Vm, gpu_Vm, size * sizeof(*Vm), cudaMemcpyDeviceToHost));
 
 	// Print some result
-	std::cout << Vm[size-10] << std::endl;
+	cout << Vm[size-10] << std::endl;
 
-//	CHECK(cudaFree(struct_Vm.gpu_array));
-//	CHECK(cudaFree(gpu_Vm));
+	CHECK(cudaFree(gpu_Vm));
 }
 
 int main(int argc, char **argv) {
