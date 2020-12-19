@@ -80,6 +80,10 @@ struct States {
 	float *NODE_RHS;        // right hand side in node equation
 	float *NODE_RINV;       // conductance uS from node to parent
 	float *NODE_AREA;       // area of a node in um^2
+	int size;
+};
+
+struct Neurons {
 	bool *has_spike;        // spike flag for each neuron
 	bool *spike_on;         // special flag to prevent fake spike detecting
 	float *g_exc;           // [S] excitatory conductivity level
@@ -95,4 +99,5 @@ struct Synapses {
 	float *syn_weight;      // [S] list of synaptic weights
 	int *syn_delay;         // [ms * dt] list of synaptic delays in steps
 	int *syn_delay_timer;   // [ms * dt] list of synaptic timers, shows how much left to send signal
+	int size;   //
 };
