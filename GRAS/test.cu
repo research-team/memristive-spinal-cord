@@ -1141,122 +1141,64 @@ void simulate(int test_index) {
 	auto *g_inh_B = new float[nrns_number]();
 	auto *factor = new float[nrns_number]();
 
-
 	/// GPU
-	// init Parameters (malloc + memcpy) GPU arrays based on CPU vectors
-	short *gpu_nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
-	char *gpu_models = init_gpu_arr(vector_models);
-	auto *gpu_Cm = init_gpu_arr(vector_Cm);
-	float *gpu_gnabar = init_gpu_arr(vector_gnabar);
-	float *gpu_gkbar = init_gpu_arr(vector_gkbar);
-	float *gpu_gl = init_gpu_arr(vector_gl);
-	float *gpu_Ra = init_gpu_arr(vector_Ra);
-	float *gpu_diam = init_gpu_arr(vector_diam);
-	float *gpu_length = init_gpu_arr(vector_length);
-	float *gpu_ena = init_gpu_arr(vector_ena);
-	float *gpu_ek = init_gpu_arr(vector_ek);
-	float *gpu_el = init_gpu_arr(vector_el);
-	float *gpu_gkrect = init_gpu_arr(vector_gkrect);
-	float *gpu_gcaN = init_gpu_arr(vector_gcaN);
-	float *gpu_gcaL = init_gpu_arr(vector_gcaL);
-	float *gpu_gcak = init_gpu_arr(vector_gcak);
-	float *gpu_E_ex = init_gpu_arr(vector_E_ex);
-	float *gpu_E_inh = init_gpu_arr(vector_E_inh);
-	float *gpu_tau_exc = init_gpu_arr(vector_tau_exc);
-	float *gpu_tau_inh1 = init_gpu_arr(vector_tau_inh1);
-	float *gpu_tau_inh2 = init_gpu_arr(vector_tau_inh2);
-	// init Synapses
-	int* gpu_syn_pre_nrn = init_gpu_arr(vector_syn_pre_nrn);
-	int* gpu_syn_post_nrn = init_gpu_arr(vector_syn_post_nrn);
-	float* gpu_syn_weight = init_gpu_arr(vector_syn_weight);
-	int* gpu_syn_delay = init_gpu_arr(vector_syn_delay);
-	int* gpu_syn_delay_timer = init_gpu_arr(vector_syn_delay_timer);
-
-	// init States GPU arrays based on CPU arrays
-	auto *gpu_Vm = init_gpu_arr(Vm, nrns_and_segs);
-	auto *gpu_n = init_gpu_arr(n, nrns_and_segs);
-	auto *gpu_m = init_gpu_arr(m, nrns_and_segs);
-	auto *gpu_h = init_gpu_arr(h, nrns_and_segs);
-	auto *gpu_l = init_gpu_arr(l, nrns_and_segs);
-	auto *gpu_s = init_gpu_arr(s, nrns_and_segs);
-	auto *gpu_p = init_gpu_arr(p, nrns_and_segs);
-	auto *gpu_hc = init_gpu_arr(hc, nrns_and_segs);
-	auto *gpu_mc = init_gpu_arr(mc, nrns_and_segs);
-	auto *gpu_cai = init_gpu_arr(cai, nrns_and_segs);
-	auto *gpu_I_Ca = init_gpu_arr(I_Ca, nrns_and_segs);
-	auto *gpu_NODE_A = init_gpu_arr(NODE_A, nrns_and_segs);
-	auto *gpu_NODE_B = init_gpu_arr(NODE_B, nrns_and_segs);
-	auto *gpu_NODE_D = init_gpu_arr(NODE_D, nrns_and_segs);
-	auto *gpu_const_NODE_D = init_gpu_arr(const_NODE_D, nrns_and_segs);
-	auto *gpu_NODE_RHS = init_gpu_arr(NODE_RHS, nrns_and_segs);
-	auto *gpu_NODE_RINV = init_gpu_arr(NODE_RINV, nrns_and_segs);
-	auto *gpu_NODE_AREA = init_gpu_arr(NODE_AREA, nrns_and_segs);
-	//
-	auto *gpu_has_spike = init_gpu_arr(has_spike, nrns_number);
-	auto *gpu_spike_on = init_gpu_arr(spike_on, nrns_number);
-	auto *gpu_g_exc = init_gpu_arr(g_exc, nrns_number);
-	auto *gpu_g_inh_A = init_gpu_arr(g_inh_A, nrns_number);
-	auto *gpu_g_inh_B = init_gpu_arr(g_inh_B, nrns_number);
-	auto *gpu_factor = init_gpu_arr(factor, nrns_number);
-
-	// Point to device pointer in host struct
 	// states
-	S->Vm = gpu_Vm;
-	S->n = gpu_n;
-	S->m = gpu_m;
-	S->h = gpu_h;
-	S->l = gpu_l;
-	S->s = gpu_s;
-	S->p = gpu_p;
-	S->hc = gpu_hc;
-	S->mc = gpu_mc;
-	S->cai = gpu_cai;
-	S->I_Ca = gpu_I_Ca;
-	S->NODE_A = gpu_NODE_A;
-	S->NODE_B = gpu_NODE_B;
-	S->NODE_D = gpu_NODE_D;
-	S->const_NODE_D = gpu_const_NODE_D;
-	S->NODE_RHS = gpu_NODE_RHS;
-	S->NODE_RINV = gpu_NODE_RINV;
-	S->NODE_AREA = gpu_NODE_AREA;
+	S->Vm = init_gpu_arr(Vm, nrns_and_segs);
+	S->n = init_gpu_arr(n, nrns_and_segs);
+	S->m = init_gpu_arr(m, nrns_and_segs);
+	S->h = init_gpu_arr(h, nrns_and_segs);
+	S->l = init_gpu_arr(l, nrns_and_segs);
+	S->s = init_gpu_arr(s, nrns_and_segs);
+	S->p = init_gpu_arr(p, nrns_and_segs);
+	S->hc = init_gpu_arr(hc, nrns_and_segs);
+	S->mc = init_gpu_arr(mc, nrns_and_segs);
+	S->cai = init_gpu_arr(cai, nrns_and_segs);
+	S->I_Ca = init_gpu_arr(I_Ca, nrns_and_segs);
+	S->NODE_A = init_gpu_arr(NODE_A, nrns_and_segs);
+	S->NODE_B = init_gpu_arr(NODE_B, nrns_and_segs);
+	S->NODE_D = init_gpu_arr(NODE_D, nrns_and_segs);
+	S->const_NODE_D = init_gpu_arr(const_NODE_D, nrns_and_segs);
+	S->NODE_RHS = init_gpu_arr(NODE_RHS, nrns_and_segs);
+	S->NODE_RINV = init_gpu_arr(NODE_RINV, nrns_and_segs);
+	S->NODE_AREA = init_gpu_arr(NODE_AREA, nrns_and_segs);
 	S->size = nrns_and_segs;
 	// parameters
-	P->nrn_start_seg = gpu_nrn_start_seg;
-	P->models = gpu_models;
-	P->Cm = gpu_Cm;
-	P->gnabar = gpu_gnabar;
-	P->gkbar = gpu_gkbar;
-	P->gl = gpu_gl;
-	P->Ra = gpu_Ra;
-	P->diam = gpu_diam;
-	P->length = gpu_length;
-	P->ena = gpu_ena;
-	P->ek = gpu_ek;
-	P->el = gpu_el;
-	P->gkrect = gpu_gkrect;
-	P->gcaN = gpu_gcaN;
-	P->gcaL = gpu_gcaL;
-	P->gcak = gpu_gcak;
-	P->E_ex = gpu_E_ex;
-	P->E_inh = gpu_E_inh;
-	P->tau_exc = gpu_tau_exc;
-	P->tau_inh1 = gpu_tau_inh1;
-	P->tau_inh2 = gpu_tau_inh2;
+	P->nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
+	P->models = init_gpu_arr(vector_models);
+	P->Cm = init_gpu_arr(vector_Cm);
+	P->gnabar = init_gpu_arr(vector_gnabar);
+	P->gkbar = init_gpu_arr(vector_gkbar);
+	P->gl = init_gpu_arr(vector_gl);
+	P->Ra = init_gpu_arr(vector_Ra);
+	P->diam = init_gpu_arr(vector_diam);
+	P->length = init_gpu_arr(vector_length);
+	P->ena = init_gpu_arr(vector_ena);
+	P->ek = init_gpu_arr(vector_ek);
+	P->el = init_gpu_arr(vector_el);
+	P->gkrect = init_gpu_arr(vector_gkrect);
+	P->gcaN = init_gpu_arr(vector_gcaN);
+	P->gcaL = init_gpu_arr(vector_gcaL);
+	P->gcak = init_gpu_arr(vector_gcak);
+	P->E_ex = init_gpu_arr(vector_E_ex);
+	P->E_inh = init_gpu_arr(vector_E_inh);
+	P->tau_exc = init_gpu_arr(vector_tau_exc);
+	P->tau_inh1 = init_gpu_arr(vector_tau_inh1);
+	P->tau_inh2 = init_gpu_arr(vector_tau_inh2);
 	P->size = nrns_number;
 	// Neurons
-	U->has_spike = gpu_has_spike;
-	U->spike_on = gpu_spike_on;
-	U->g_exc = gpu_g_exc;
-	U->g_inh_A = gpu_g_inh_A;
-	U->g_inh_B = gpu_g_inh_B;
-	U->factor = gpu_factor;
+	U->has_spike = init_gpu_arr(has_spike, nrns_number);
+	U->spike_on = init_gpu_arr(spike_on, nrns_number);
+	U->g_exc = init_gpu_arr(g_exc, nrns_number);
+	U->g_inh_A = init_gpu_arr(g_inh_A, nrns_number);
+	U->g_inh_B = init_gpu_arr(g_inh_B, nrns_number);
+	U->factor = init_gpu_arr(factor, nrns_number);
 	U->size = nrns_number;
 	// Synapses
-	synapses->syn_pre_nrn = gpu_syn_pre_nrn;
-	synapses->syn_post_nrn = gpu_syn_post_nrn;
-	synapses->syn_weight = gpu_syn_weight;
-	synapses->syn_delay = gpu_syn_delay;
-	synapses->syn_delay_timer = gpu_syn_delay_timer;
+	synapses->syn_pre_nrn = init_gpu_arr(vector_syn_pre_nrn);
+	synapses->syn_post_nrn = init_gpu_arr(vector_syn_post_nrn);
+	synapses->syn_weight = init_gpu_arr(vector_syn_weight);
+	synapses->syn_delay = init_gpu_arr(vector_syn_delay);
+	synapses->syn_delay_timer = init_gpu_arr(vector_syn_delay_timer);
 	synapses->size = vector_syn_delay.size();
 
 	// allocate structs to the device
@@ -1282,11 +1224,11 @@ void simulate(int test_index) {
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_U, sim_iter); // block size need to be a multiply of 256
 
 		// copy state data
-		HANDLE_ERROR(cudaMemcpy(Vm, gpu_Vm, nrns_and_segs * sizeof(*Vm), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_exc, gpu_g_exc, nrns_number * sizeof(*g_exc), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_inh_A, gpu_g_inh_A, nrns_number * sizeof(*g_inh_A), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_inh_B, gpu_g_inh_B, nrns_number * sizeof(*g_inh_B), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(has_spike, gpu_has_spike, nrns_number * sizeof(*has_spike), cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(Vm, S->Vm, nrns_and_segs * sizeof(*Vm), cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(g_exc, U->g_exc, nrns_number * sizeof(*g_exc), cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(g_inh_A, U->g_inh_A, nrns_number * sizeof(*g_inh_A), cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(g_inh_B, U->g_inh_B, nrns_number * sizeof(*g_inh_B), cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(has_spike, U->has_spike, nrns_number * sizeof(*has_spike), cudaMemcpyDeviceToHost));
 
 		// fill records arrays
 		for (GroupMetadata& metadata : saving_groups) {
@@ -1309,7 +1251,7 @@ void simulate(int test_index) {
 	Effective bandwidth = ( ( 2048 2 × 4 × 2 ) ÷ 10 9 ) ÷ time */
 	save_result(test_index);
 
-	HANDLE_ERROR(cudaFree(gpu_Vm));
+	HANDLE_ERROR(cudaFree(S->Vm));
 }
 
 int main(int argc, char **argv) {
