@@ -10,7 +10,6 @@ public:
 	unsigned int id_start{};
 	unsigned int id_end{};
 	unsigned int group_size{};
-	unsigned int time{};
 };
 
 // struct for human-readable initialization of connectomes
