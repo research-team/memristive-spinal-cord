@@ -21,11 +21,11 @@ struct GroupMetadata {
 	float *voltage_array;        // [mV] array of membrane potential
 	std::vector<float> spike_vector;  // [ms] spike times
 
-	explicit GroupMetadata(Group group) {
+	explicit GroupMetadata(Group group, int time) {
 		this->group = std::move(group);
-		voltage_array = new float[group.time];
-		g_exc = new float[group.time];
-		g_inh = new float[group.time];
+		voltage_array = new float[time];
+		g_exc = new float[time];
+		g_inh = new float[time];
 	}
 };
 

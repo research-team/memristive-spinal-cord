@@ -7,7 +7,10 @@ DOI:10.1017/CBO9780511975899
 
 Based on the NEURON repository
 */
-
+#include <algorithm>
+#include <utility>
+#include <ctime>
+#include <random>
 #include <map>
 #include <vector>
 #include <string>
@@ -15,6 +18,7 @@ Based on the NEURON repository
 #include "test.h"
 #include <stdexcept>
 #define CHECK( err ) ( HandleError( err, __FILE__, __LINE__ ) )
+#define PI 3.141592654f
 
 static void HandleError(cudaError_t err, const char *file, int line) {
 	if (err != cudaSuccess) {
@@ -25,8 +29,8 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 
 using namespace std;
 
-const float dt = 0.025;     // [ms] simulation step
-const int sim_time = 2;    // [ms] simulation time
+const float dt = 0.025;      // [ms] simulation step
+const int sim_time = 200;    // [ms] simulation time
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 const bool DEBUG = false;
@@ -122,8 +126,14 @@ vector<float> vector_E_inh;
 vector<float> vector_tau_exc;
 vector<float> vector_tau_inh1;
 vector<float> vector_tau_inh2;
-
-vector <GroupMetadata> all_groups;
+// synapses
+vector<int> vector_syn_pre_nrn;       // [id] list of pre neurons ids
+vector<int> vector_syn_post_nrn;      // [id] list of pre neurons ids
+vector<float> vector_syn_weight;      // [S] list of synaptic weights
+vector<int> vector_syn_delay;         // [ms * dt] list of synaptic delays in steps
+vector<int> vector_syn_delay_timer;   // [ms * dt] list of synaptic timers, shows how much left to send signal
+// results vector
+vector <GroupMetadata> saving_groups;    //
 
 // form structs of neurons global ID and groups name
 Group form_group(const string &group_name,
@@ -136,7 +146,6 @@ Group form_group(const string &group_name,
 	group.id_end = nrns_number + nrns_in_group - 1;  // the latest ID in the group
 	group.group_size = nrns_in_group;  // size of the neurons group
 	group.time = SIM_TIME_IN_STEPS;
-	all_groups.emplace_back(group);
 
 	float __Cm;
 	float __gnabar;
@@ -730,37 +739,170 @@ void nrn_deliver_events(States* S, Parameters* P, Neurons* U, int nrn) {
 }
 
 __device__
-void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* U, int tid) {
+void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* U, int nrn) {
 	/**
 	void *nrn_fixed_step_lastpart(NrnThread *nth)
 	*/
-//	i1 = P.nrn_start_seg[nrn]
-//	i3 = P.nrn_start_seg[nrn + 1]
-//  update synapses' state
-	recalc_synaptic(S, P, U, tid);
-//  update neurons' segment state
-//	if P.models[nrn] == INTER:
-//	for nrn_seg in range(i1, i3):
-//	recalc_inter_channels(nrn_seg, S.Vm[nrn_seg])
-//	elif P.models[nrn] == MOTO:
-//	for nrn_seg in range(i1, i3):
-//	recalc_moto_channels(nrn_seg, S.Vm[nrn_seg])
-//	elif P.models[nrn] == MUSCLE:
-//	for nrn_seg in range(i1, i3):
-//	recalc_muslce_channels(nrn_seg, S.Vm[nrn_seg])
-//	else:
-//	raise Exception("No model")
-//  spike detection for
+	int i1 = P->nrn_start_seg[nrn];
+	int i3 = P->nrn_start_seg[nrn + 1];
+	// update synapses state
+	recalc_synaptic(S, P, U, nrn);
+	//  update neurons' segment state
+	if (P->models[nrn] == INTER) {
+		for(int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			recalc_inter_channels(S, P, U, nrn_seg, S->Vm[nrn_seg]);
+		}
+	} else if (P->models[nrn] == INTER) {
+		for(int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			recalc_moto_channels(S, P, U, nrn_seg, S->Vm[nrn_seg]);
+		}
+	} else if (P->models[nrn] == MUSCLE) {
+		for(int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			recalc_muslce_channels(S, P, U, nrn_seg, S->Vm[nrn_seg]);
+		}
+	} else {
+
+	}
+	//  spike detection for
+	// nrn_deliver_events(nrn)
+}
+
+__device__
+void nrn_area_ri(States* S, Parameters* P, Neurons* U) {
+	/**
+	void nrn_area_ri(Section *sec) [790] treeset.c
+	area for right circular cylinders. Ri as right half of parent + left half of this
+	*/
+	for (int nrn = 0; nrn < U->size; ++nrn) {
+		if (P->models[nrn] == GENERATOR)
+			continue;
+		int i1 = P->nrn_start_seg[nrn];
+		int i3 = P->nrn_start_seg[nrn + 1];
+		int nrn_seg, segments = (i3 - i1 - 2);
+		// dx = section_length(sec) / ((double) (sec->nnode - 1));
+		float dx = P->length[nrn] / segments; // divide by the last index of node (or segments count)
+		float rright = 0, rleft;
+		// todo sec->pnode needs +1 index
+		for (nrn_seg = i1 + 1; nrn_seg < i1 + segments + 1; ++nrn_seg) {
+			// area for right circular cylinders. Ri as right half of parent + left half of this
+			S->NODE_AREA[nrn_seg] = PI * dx * P->diam[nrn];
+			rleft = 1e-2 * P->Ra[nrn] * (dx / 2) / (PI * pow(P->diam[nrn], 2) / 4.0);   // left half segment Megohms
+			S->NODE_RINV[nrn_seg] = 1.0 / (rleft + rright); // uS
+			rright = rleft;
+		}
+		//the first and last segments has zero length. Area is 1e2 in dimensionless units
+		S->NODE_AREA[i1] = 100.0;
+		nrn_seg = i1 + segments + 1; // the last segment
+		S->NODE_AREA[nrn_seg] = 100.0;
+		S->NODE_RINV[nrn_seg] = 1.0 / rright;
+	}
+}
+
+__device__
+void ext_con_coef(States* S, Parameters* P, Neurons* U) {
+
+}
+
+__device__
+void connection_coef(States* S, Parameters* P, Neurons* U) {
+	/** void connection_coef(void) treeset.c */
+	nrn_area_ri(S, P, U);
+	// NODE_A is the effect of this node on the parent node's equation
+	// NODE_B is the effect of the parent node on this node's equation
+	for (int nrn =0; nrn < U->size; ++nrn) {
+		if (P->models[nrn] == GENERATOR)
+			continue;
+		int i1 = P->nrn_start_seg[nrn];
+		int i3 = P->nrn_start_seg[nrn + 1];
+		int segments = (i3 - i1 - 2);
+		// first the effect of node on parent equation. Note that last nodes have area = 1.e2 in dimensionless
+		// units so that last nodes have units of microsiemens
+		// todo sec->pnode needs +1 index
+		int nrn_seg = i1 + 1;
+		// sec->prop->dparam[4].val = 1, what is dparam[4].val
+		S->NODE_A[nrn_seg] = -1.e2 * 1 * S->NODE_RINV[nrn_seg] / S->NODE_AREA[nrn_seg - 1];
+		// todo sec->pnode needs +1 index
+		for (nrn_seg = i1 + 1 + 1; nrn_seg < i1 + segments + 1 + 1; ++nrn_seg) {
+			S->NODE_A[nrn_seg] = -1.e2 * S->NODE_RINV[nrn_seg] / S->NODE_AREA[nrn_seg - 1];
+		}
+		// now the effect of parent on node equation
+		// todo sec->pnode needs +1 index
+		for (nrn_seg = i1 + 1; nrn_seg < i1 + segments + 1 + 1; ++nrn_seg) {
+			S->NODE_B[nrn_seg] = -1.e2 * S->NODE_RINV[nrn_seg] / S->NODE_AREA[nrn_seg];
+		}
+	}
+	// for extracellular
+	ext_con_coef(S, P, U);
+	/// note: from LHS, this functions just recalc each time the constant NODED (!)
+	/**
+	void nrn_lhs(NrnThread *_nt)
+	NODE_D[nrn, nd] updating is located at nrn_rhs, because _g is not the global variable
+	*/
+	// nt->cj = 2/dt if (secondorder) else 1/dt
+	// note, the first is CAP
+	// function nrn_cap_jacob(_nt, _nt->tml->ml);
+	float cj = 1 / dt;
+	float cfac = 0.001 * cj;
+	for (int nrn = 0; nrn < U->size; ++nrn) {
+		if (P->models[nrn] == GENERATOR)
+			continue;
+		int i1 = P->nrn_start_seg[nrn];
+		int i3 = P->nrn_start_seg[nrn + 1];
+		int segments = (i3 - i1 - 2);
+		for (int nrn_seg = i1 + 1; nrn_seg < i1 + segments + 1; ++nrn_seg) {  // added + 1 for nodelist
+			S->const_NODE_D[nrn_seg] += cfac * P->Cm[nrn];
+		}
+		// updating NODED
+		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+			S->const_NODE_D[nrn_seg] -= S->NODE_B[nrn_seg];
+			S->const_NODE_D[nrn_seg - 1] -= S->NODE_A[nrn_seg];
+		}
+	}
+	// extra
+	// _a_matelm += NODE_A[nrn, nd]
+	// _b_matelm += NODE_B[nrn, nd]
 }
 
 __global__
-void neuron_kernel(States *S, Parameters *P, Neurons *U, int nrns) {
+void initialize_kernel(States* S, Parameters* P, Neurons* U, float v_init) {
+	/** */
+	// todo do not invoke for generators
+	connection_coef(S, P, U);
+	// for different models -- different init function
+	for (int nrn =0; nrn < U->size; ++nrn) {
+		// do not init neuron state for generator
+		if (P->models[nrn] == GENERATOR)
+			continue;
+		int i1 = P->nrn_start_seg[nrn];
+		int i3 = P->nrn_start_seg[nrn + 1];
+		// for each segment init the neuron model
+		for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			S->Vm[nrn_seg] = v_init;
+			if (P->models[nrn] == INTER) {
+				nrn_inter_initial(S, P, U, nrn_seg, v_init);
+			} else if (P->models[nrn] == MOTO) {
+				nrn_moto_initial(S, P, U, nrn_seg, v_init);
+			} else if (P->models[nrn] == MUSCLE) {
+				nrn_muslce_initial(S, P, U, nrn_seg, v_init);
+			} else {
+
+			}
+		}
+		// init RHS/LHS
+		setup_tree_matrix(S, P, U, nrn);
+		// init tau synapses
+		syn_initial(S, P, U, nrn);
+	}
+}
+
+__global__
+void neuron_kernel(States *S, Parameters *P, Neurons *U, int t) {
 	/// STRIDE neuron update
-	for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nrns; tid += blockDim.x * gridDim.x) {
-		setup_tree_matrix(S, P, U, tid);
-		nrn_solve(S, P, U, tid);
-		update(S, P, U, tid);
-		nrn_fixed_step_lastpart(S, P, U, tid);
+	for (int nrn = blockIdx.x * blockDim.x + threadIdx.x; nrn < U->size; nrn += blockDim.x * gridDim.x) {
+		setup_tree_matrix(S, P, U, nrn);
+		nrn_solve(S, P, U, nrn);
+		update(S, P, U, nrn);
+		nrn_fixed_step_lastpart(S, P, U, nrn);
 	}
 }
 
@@ -771,8 +913,7 @@ void synapse_kernel(Neurons *U, Synapses* synapses) {
 	*/
 	int pre_nrn, post_id;
 	float weight;
-
-	for (int index = 0; index < synapses->size; ++index) {
+	for (int index = blockIdx.x * blockDim.x + threadIdx.x; index < synapses->size; index += blockDim.x * gridDim.x) {
 		pre_nrn = synapses->syn_pre_nrn[index];
 		if (U->has_spike[pre_nrn] && synapses->syn_delay_timer[index] == -1) {
 			synapses->syn_delay_timer[index] = synapses->syn_delay[index] + 1;
@@ -781,10 +922,10 @@ void synapse_kernel(Neurons *U, Synapses* synapses) {
 			post_id = synapses->syn_post_nrn[index];
 			weight = synapses->syn_weight[index];
 			if (weight >= 0) {
-				U->g_exc[post_id] += weight;
+				atomicAdd(&U->g_exc[post_id], weight);
 			} else {
-				U->g_inh_A[post_id] += -weight * U->factor[post_id];
-				U->g_inh_B[post_id] += -weight * U->factor[post_id];
+				atomicAdd(&U->g_inh_A[post_id], -weight * U->factor[post_id]);
+				atomicAdd(&U->g_inh_B[post_id], -weight * U->factor[post_id]);
 				synapses->syn_delay_timer[index] = -1;
 			}
 		}
@@ -792,54 +933,68 @@ void synapse_kernel(Neurons *U, Synapses* synapses) {
 			synapses->syn_delay_timer[index] -= 1;
 		}
 	}
+	__syncthreads();
 	// reset spikes
-	for (int i = 0; i < U->size; ++i) {
-		U->has_spike[i] = false;
+	for (int nrn = blockIdx.x * blockDim.x + threadIdx.x; nrn < U->size; nrn += blockDim.x * gridDim.x) {
+		U->has_spike[nrn] = false;
 	}
+}
+
+void conn_a2a(const Group &pre_neurons, const Group &post_neurons, float delay, float weight) {
+	/** */
+	for (int pre = pre_neurons.id_start; pre <= pre_neurons.id_end; ++pre) {
+		for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
+			// weight = random.gauss(weight, weight / 5)
+			// delay = random.gauss(delay, delay / 5)
+			vector_syn_pre_nrn.push_back(pre);
+			vector_syn_post_nrn.push_back(post);
+			vector_syn_weight.push_back(weight);
+			vector_syn_delay.push_back((int) (delay / dt));
+			vector_syn_delay_timer.push_back(-1);
+		}
+	}
+//	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
+//	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
+//	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
 }
 
 void connect_fixed_outdegree(const Group &pre_neurons,
                              const Group &post_neurons,
-                             float syn_delay,
-                             float syn_weight,
-                             int outdegree = 0,
-                             bool no_distr = false) {
-	// connect neurons with uniform distribution and normal distributon for syn delay and syn_weight
-//	random_device r;
-//	default_random_engine generator(r());
-//	uniform_int_distribution<int> id_distr(post_neurons.id_start, post_neurons.id_end);
-//	uniform_int_distribution<int> outdegree_num(30, 50);
-//	normal_distribution<float> delay_distr_gen(syn_delay, syn_delay / 3);
-//	normal_distribution<float> weight_distr_gen(syn_weight, syn_weight / 50);
+                             float delay,
+                             float weight,
+                             int indegree = 50) {
+	// pre_nrns_ids = pre_group[1]
+	// post_nrns_ids = post_group[1]
+	random_device r;
+	default_random_engine generator(r());
+	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
+	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
 
-//	if (outdegree == 0)
-//		outdegree = outdegree_num(generator);
-
-	int rand_post_id;
-	float syn_delay_distr;
-	float syn_weight_distr;
-
-	for (unsigned int pre_id = pre_neurons.id_start; pre_id <= pre_neurons.id_end; pre_id++) {
-		for (int i = 0; i < outdegree; i++) {
-//			rand_post_id = id_distr(generator);
-//			syn_delay_distr = delay_distr_gen(generator);
-
-			if (syn_delay_distr < 0.1) {
-				syn_delay_distr = 0.1;
-			}
-//			syn_weight_distr = weight_distr_gen(generator);
-
-//			if (no_distr) {
-//				all_synapses.emplace_back(pre_id, rand_post_id, syn_delay, syn_weight);
-//			} else {
-//				all_synapses.emplace_back(pre_id, rand_post_id, syn_delay_distr, syn_weight_distr);
-//			}
+	int pre, nsyn = nsyn_distr(generator);
+	// nsyn = random.randint(indegree - 15, indegree)
+	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
+		for (int _ = 0; _ < nsyn; ++_) {
+			pre = pre_nrns_ids(generator);
+			// weight = random.gauss(weight, weight / 5)
+			// delay = random.gauss(delay, delay / 5)
+			vector_syn_pre_nrn.push_back(pre);
+			vector_syn_post_nrn.push_back(post);
+			vector_syn_weight.push_back(weight);
+			vector_syn_delay.push_back((int)(delay / dt));
+			vector_syn_delay_timer.push_back(-1);
 		}
 	}
 
 //	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
 //	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
 //	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+}
+
+void save(vector<Group> groups) {
+	for (Group &group : groups) {
+		GroupMetadata new_meta(group, SIM_TIME_IN_STEPS);
+		saving_groups.emplace_back(new_meta);
+	}
 }
 
 void init_network() {
@@ -850,7 +1005,7 @@ void init_network() {
 	Group moto = form_group("moto", 50, MOTO, 1);
 	Group muscle = form_group("muscle", 1, MUSCLE, 3);
 
-//	conn_a2a(gen, OM1, delay=1, weight=1.5)
+	conn_a2a(gen, OM1, 1, 1.5);
 
 	connect_fixed_outdegree(OM1, OM2, 2, 1.85);
 	connect_fixed_outdegree(OM2, OM1, 3, 1.85);
@@ -862,7 +1017,7 @@ void init_network() {
 	connect_fixed_outdegree(moto, muscle, 2, 15.5);
 
 	vector<Group> groups = {OM1, OM2, OM3, moto, muscle};
-//	save(groups)
+	save(groups);
 	vector_nrn_start_seg.push_back(nrns_and_segs);
 }
 
@@ -871,9 +1026,10 @@ void simulate() {
 	 *
 	 */
 	// init structs
-	States *dev_S, *S = (States *)malloc(sizeof(States));
-	Parameters *dev_P, *P = (Parameters *)malloc(sizeof(Parameters));
-	Neurons *dev_U, *U = (Neurons *)malloc(sizeof(Neurons));
+	States *S = (States *)malloc(sizeof(States));
+	Parameters *P = (Parameters *)malloc(sizeof(Parameters));
+	Neurons *U = (Neurons *)malloc(sizeof(Neurons));
+	Synapses *synapses = (Synapses *)malloc(sizeof(Synapses));
 
 	init_network();
 
@@ -908,6 +1064,7 @@ void simulate() {
 	auto *g_inh_B = new float[size]();
 	auto *factor = new float[size]();
 
+
 	/// GPU
 	// init Parameters (malloc + memcpy) GPU arrays based on CPU vectors
 	short *gpu_nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
@@ -931,6 +1088,12 @@ void simulate() {
 	float *gpu_tau_exc = init_gpu_arr(vector_tau_exc);
 	float *gpu_tau_inh1 = init_gpu_arr(vector_tau_inh1);
 	float *gpu_tau_inh2 = init_gpu_arr(vector_tau_inh2);
+	// init Synapses
+	int* gpu_syn_pre_nrn = init_gpu_arr(vector_syn_pre_nrn);
+	int* gpu_syn_post_nrn = init_gpu_arr(vector_syn_post_nrn);
+	float* gpu_syn_weight = init_gpu_arr(vector_syn_weight);
+	int* gpu_syn_delay = init_gpu_arr(vector_syn_delay);
+	int* gpu_syn_delay_timer = init_gpu_arr(vector_syn_delay_timer);
 
 	// init States GPU arrays based on CPU arrays
 	auto *gpu_Vm = init_gpu_arr(Vm, size_with_segs);
@@ -979,6 +1142,7 @@ void simulate() {
 	S->NODE_RHS = gpu_NODE_RHS;
 	S->NODE_RINV = gpu_NODE_RINV;
 	S->NODE_AREA = gpu_NODE_AREA;
+	S->size = nrns_and_segs;
 	// parameters
 	P->nrn_start_seg = gpu_nrn_start_seg;
 	P->models = gpu_models;
@@ -1001,6 +1165,7 @@ void simulate() {
 	P->tau_exc = gpu_tau_exc;
 	P->tau_inh1 = gpu_tau_inh1;
 	P->tau_inh2 = gpu_tau_inh2;
+	P->size = nrns_number;
 	// Neurons
 	U->has_spike = gpu_has_spike;
 	U->spike_on = gpu_spike_on;
@@ -1008,25 +1173,63 @@ void simulate() {
 	U->g_inh_A = gpu_g_inh_A;
 	U->g_inh_B = gpu_g_inh_B;
 	U->factor = gpu_factor;
+	U->size = nrns_number;
+	// Synapses
+	synapses->syn_pre_nrn = gpu_syn_pre_nrn;
+	synapses->syn_post_nrn = gpu_syn_post_nrn;
+	synapses->syn_weight = gpu_syn_weight;
+	synapses->syn_delay = gpu_syn_delay;
+	synapses->syn_delay_timer = gpu_syn_delay_timer;
+	synapses->size = vector_syn_delay.size();
 
-	// allocate States struct to the device
-	cudaMalloc((States **) &dev_S, sizeof(States));
-	cudaMemcpy(dev_S, S, sizeof(States), cudaMemcpyHostToDevice);
-	// allocate Parameters struct to the device
-	cudaMalloc((Parameters **) &dev_P, sizeof(Parameters));
-	cudaMemcpy(dev_P, P, sizeof(Parameters), cudaMemcpyHostToDevice);
-	// allocate Neurons struct to the device
-	cudaMalloc((Neurons **) &dev_U, sizeof(Neurons));
-	cudaMemcpy(dev_U, U, sizeof(Neurons), cudaMemcpyHostToDevice);
+	// allocate structs to the device
+	auto *dev_S = init_gpu_arr(S, 1);
+	auto *dev_P = init_gpu_arr(P, 1);
+	auto *dev_U = init_gpu_arr(U, 1);
+	auto *dev_synapses = init_gpu_arr(synapses, 1);
 
-	// call kernel
+	// call initialisation kernel
+	initialize_kernel<<<1, 1>>>(dev_S, dev_P, dev_U, -70.0);
+
+	float time;
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
+
+	// the main simulation tool
 	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++) {
 		if (sim_iter % 10 == 0)
 			cout << sim_iter * dt << endl;
+
+		synapse_kernel<<<5, 256>>>(dev_U, dev_synapses);
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_U, nrns_number); // block size need to be a multiply of 256
+
+		// fill records arrays
+//		for (GroupMetadata &metadata : all_groups) {
+//			if (save_all == 0) {
+//				if (metadata.group.group_name == "MN_E")
+//					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+//				if (metadata.group.group_name == "MN_F")
+//					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+//
+//			} else {
+//				if (metadata.group.group_name == "MN_E")
+//					copy_data_to(metadata, nrn_v_m_mid, nrn_v_extra, nrn_v_extra, nrn_has_spike, sim_iter);
+//				else
+//					copy_data_to(metadata, nrn_v_m_mid, nrn_g_exc, nrn_g_inh, nrn_has_spike, sim_iter);
+//			}
+//		}
+
 	}
 
 	CHECK(cudaDeviceSynchronize());
+
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&time, start, stop);
+
+	printf("Elapsed GPU time: %d ms\n", (int) time);
 
 	// Copy result to host:
 	CHECK(cudaMemcpy(Vm, gpu_Vm, size * sizeof(*Vm), cudaMemcpyDeviceToHost));
