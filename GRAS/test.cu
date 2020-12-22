@@ -38,7 +38,6 @@ const float dt = 0.025;      // [ms] simulation step
 const int sim_time = 50;    // [ms] simulation time
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
-const bool DEBUG = false;
 const bool EXTRACELLULAR = false;
 const char GENERATOR = 'g';
 const char INTER = 'i';
@@ -58,7 +57,7 @@ default_random_engine generator(r());
 unsigned int nrns_number = 0;        // [id] global neuron id = number of neurons
 unsigned int nrns_and_segs = 0;      // [id] global neuron+segs id = number of neurons with segments
 unsigned int generators_id_end = 0;  // [id] id of the last generator (to avoid them for updating)
-const int LEG_STEPS = 1;             // [step] number of full cycle steps
+//const int LEG_STEPS = 1;             // [step] number of full cycle steps
 
 const int neurons_in_group = 50;     // number of neurons in a group
 const int neurons_in_ip = 196;       // number of neurons in a group
@@ -83,7 +82,7 @@ save_neuron_ids = []    # neurons id that need to save
  */
 
 // common neuron constants
-const float k = 0.017;           // synaptic coef
+//const float k = 0.017;           // synaptic coef
 const float V_th = -40;          // [mV] voltage threshold
 const float V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
@@ -97,8 +96,8 @@ const float bmC = 5;             // const ??? todo
 const float R_const = 8.314472;  // [k-mole] or [joule/degC] const
 const float F_const = 96485.34;  // [faraday] or [kilocoulombs] const
 // muscle fiber constants
-const float g_kno = 0.01;        // [S/cm2] conductance of the todo
-const float g_kir = 0.03;        // [S/cm2] conductance of the Inwardly Rectifying Potassium K+ (Kir) channel
+//const float g_kno = 0.01;        // [S/cm2] conductance of the todo
+//const float g_kir = 0.03;        // [S/cm2] conductance of the Inwardly Rectifying Potassium K+ (Kir) channel
 // Boltzman steady state curve
 const float vhalfl = -98.92;     // [mV] inactivation half-potential
 const float kl = 10.89;          // [mV] Stegen et al. 2012
@@ -110,10 +109,10 @@ const float bt = 0.0817741;      // [/ ms] Note: typo in Stegen et al. 2012
 const float q10 = 1;             // temperature scaling (sensitivity)
 const float celsius = 36;        // [degC] temperature of the cell
 // i_membrane [mA/cm2]
-const float e_extracellular = 0; // [mV]
-const float xraxial = 1e9;       // [MOhm/cm]
+//const float e_extracellular = 0; // [mV]
+//const float xraxial = 1e9;       // [MOhm/cm]
 
-// Allocate and fill host data
+// neuron parameters
 vector<short> vector_nrn_start_seg;
 vector<char> vector_models;
 vector<float> vector_Cm;
@@ -130,19 +129,20 @@ vector<float> vector_gkrect;
 vector<float> vector_gcaN;
 vector<float> vector_gcaL;
 vector<float> vector_gcak;
+// synaptic parameters
 vector<float> vector_E_ex;
 vector<float> vector_E_inh;
 vector<float> vector_tau_exc;
 vector<float> vector_tau_inh1;
 vector<float> vector_tau_inh2;
-// synapses
+// synapses varaibels
 vector<int> vector_syn_pre_nrn;       // [id] list of pre neurons ids
 vector<int> vector_syn_post_nrn;      // [id] list of pre neurons ids
 vector<float> vector_syn_weight;      // [S] list of synaptic weights
 vector<int> vector_syn_delay;         // [ms * dt] list of synaptic delays in steps
 vector<int> vector_syn_delay_timer;   // [ms * dt] list of synaptic timers, shows how much left to send signal
 // results vector
-vector <GroupMetadata> saving_groups;    //
+vector <GroupMetadata> saving_groups; //
 
 // form structs of neurons global ID and groups name
 Group form_group(const string &group_name,
@@ -372,8 +372,6 @@ void recalc_synaptic(States* S, Parameters* P, Neurons* U, int nrn) {
 	*/
 	// exc synaptic conductance
 	if (U->g_exc[nrn] != 0) {
-		if (nrn == 10)
-			printf("U->g_exc[nrn] = %f\n",  U->g_exc[nrn]);
 		U->g_exc[nrn] -= (1.0 - exp(-dt / P->tau_exc[nrn])) * U->g_exc[nrn];
 		if (U->g_exc[nrn] < 1e-5) {
 			U->g_exc[nrn] = 0.0;
@@ -621,14 +619,12 @@ void nrn_rhs(States* S, Parameters* P, Neurons* U, int nrn, int i1, int i3) {
 		} else {
 			// todo
 		}
-
 		// save data like in NEURON (after .mod nrn_cur)
 		_g = (_g - _rhs) / 0.001;
 		S->NODE_RHS[nrn_seg] -= _rhs;
 		// static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
 		S->NODE_D[nrn_seg] += _g;
-		// end FOR segments
-	}
+	} // end FOR segments
 	// activsynapse_rhs()
 	if (EXTRACELLULAR) {
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
@@ -656,7 +652,6 @@ void bksub(States* S, Parameters* P, Neurons* U, int nrn, int i1, int i3) {
 	void bksub(NrnThread* _nt)
 	*/
 	// intracellular
-	// note that loop from i1 to i1 + 1 is always SINGLE element
 	S->NODE_RHS[i1] /= S->NODE_D[i1];
 	//
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
@@ -665,12 +660,12 @@ void bksub(States* S, Parameters* P, Neurons* U, int nrn, int i1, int i3) {
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
-//		for j in range(nlayer):
-//	ext_rhs[i1, j] /= ext_d[i1, j]
-//	for nrn_seg in range(i1 + 1, i3):
-//	for j in range(nlayer):
-//	ext_rhs[nrn_seg, j] -= ext_b[nrn_seg, j] * ext_rhs[nrn_seg - 1, j]
-//	ext_rhs[nrn_seg, j] /= ext_d[nrn_seg, j]
+	//	for j in range(nlayer):
+	//	ext_rhs[i1, j] /= ext_d[i1, j]
+	//	for nrn_seg in range(i1 + 1, i3):
+	//	for j in range(nlayer):
+	//	ext_rhs[nrn_seg, j] -= ext_b[nrn_seg, j] * ext_rhs[nrn_seg - 1, j]
+	//	ext_rhs[nrn_seg, j] /= ext_d[nrn_seg, j]
 	}
 }
 
@@ -780,20 +775,23 @@ void nrn_area_ri(States* S, Parameters* P, Neurons* U) {
 	void nrn_area_ri(Section *sec) [790] treeset.c
 	area for right circular cylinders. Ri as right half of parent + left half of this
 	*/
+	printf("GPU: nrn_area_ri\n");
+	float dx, rleft, rright;
+	int i1, i3, nrn_seg, segments;
+	//
 	for (int nrn = 0; nrn < U->size; ++nrn) {
 		if (P->models[nrn] == GENERATOR)
 			continue;
-		int i1 = P->nrn_start_seg[nrn];
-		int i3 = P->nrn_start_seg[nrn + 1];
-		int nrn_seg, segments = (i3 - i1 - 2);
-		// dx = section_length(sec) / ((double) (sec->nnode - 1));
-		float dx = P->length[nrn] / segments; // divide by the last index of node (or segments count)
-		float rright = 0, rleft;
+		i1 = P->nrn_start_seg[nrn];
+		i3 = P->nrn_start_seg[nrn + 1];
+		segments = (i3 - i1 - 2);
+		dx = P->length[nrn] / segments; // divide by the last index of node (or segments count)
+		rright = 0;
 		// todo sec->pnode needs +1 index
 		for (nrn_seg = i1 + 1; nrn_seg < i1 + segments + 1; ++nrn_seg) {
 			// area for right circular cylinders. Ri as right half of parent + left half of this
 			S->NODE_AREA[nrn_seg] = PI * dx * P->diam[nrn];
-			rleft = 1e-2 * P->Ra[nrn] * (dx / 2.0) / (PI * pow(P->diam[nrn], 2) / 4.0);   // left half segment Megohms
+			rleft = 1.e-2 * P->Ra[nrn] * (dx / 2.0) / (PI * pow(P->diam[nrn], 2) / 4.0);   // left half segment Megohms
 			S->NODE_RINV[nrn_seg] = 1.0 / (rleft + rright); // uS
 			rright = rleft;
 		}
@@ -813,6 +811,7 @@ void ext_con_coef(States* S, Parameters* P, Neurons* U) {
 __device__
 void connection_coef(States* S, Parameters* P, Neurons* U) {
 	/** void connection_coef(void) treeset.c */
+	printf("GPU: connection_coef\n");
 	nrn_area_ri(S, P, U);
 	// NODE_A is the effect of this node on the parent node's equation
 	// NODE_B is the effect of the parent node on this node's equation
@@ -871,40 +870,45 @@ void connection_coef(States* S, Parameters* P, Neurons* U) {
 }
 
 __global__
-void initialize_kernel(States* S, Parameters* P, Neurons* U, float v_init) {
-	/** */
-	// todo do not invoke for generators
-	connection_coef(S, P, U);
-	// for different models -- different init function
-	for (int nrn = 0; nrn < U->size; ++nrn) {
-		// do not init neuron state for generator
-		if (P->models[nrn] == GENERATOR)
-			continue;
-		int i1 = P->nrn_start_seg[nrn];
-		int i3 = P->nrn_start_seg[nrn + 1];
-		// for each segment init the neuron model
-		for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
-			S->Vm[nrn_seg] = v_init;
-			if (P->models[nrn] == INTER) {
-				nrn_inter_initial(S, P, U, nrn_seg, v_init);
-			} else if (P->models[nrn] == MOTO) {
-				nrn_moto_initial(S, P, U, nrn_seg, v_init);
-			} else if (P->models[nrn] == MUSCLE) {
-				nrn_muslce_initial(S, P, U, nrn_seg, v_init);
-			} else {
+void initialization_kernel(States* S, Parameters* P, Neurons* U, float v_init) {
+	printf("GPU: initialization_kernel\n");
 
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid == 0) {
+		/** */
+		// todo do not invoke for generators
+		connection_coef(S, P, U);
+		// for different models -- different init function
+		for (int nrn = 0; nrn < U->size; ++nrn) {
+			// do not init neuron state for generator
+			if (P->models[nrn] == GENERATOR)
+				continue;
+			int i1 = P->nrn_start_seg[nrn];
+			int i3 = P->nrn_start_seg[nrn + 1];
+			// for each segment init the neuron model
+			for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+				S->Vm[nrn_seg] = v_init;
+				if (P->models[nrn] == INTER) {
+					nrn_inter_initial(S, P, U, nrn_seg, v_init);
+				} else if (P->models[nrn] == MOTO) {
+					nrn_moto_initial(S, P, U, nrn_seg, v_init);
+				} else if (P->models[nrn] == MUSCLE) {
+					nrn_muslce_initial(S, P, U, nrn_seg, v_init);
+				} else {
+
+				}
 			}
+			// init RHS/LHS
+			setup_tree_matrix(S, P, U, nrn, i1, i3);
+			// init tau synapses
+			syn_initial(S, P, U, nrn);
 		}
-		// init RHS/LHS
-		setup_tree_matrix(S, P, U, nrn, i1, i3);
-		// init tau synapses
-		syn_initial(S, P, U, nrn);
 	}
 }
 
 __global__
 void neuron_kernel(States *S, Parameters *P, Neurons *U, int t) {
-	/// STRIDE neuron update
+	//
 	for (int nrn = blockIdx.x * blockDim.x + threadIdx.x; nrn < U->size; nrn += blockDim.x * gridDim.x) {
 		//
 		U->has_spike[nrn] = false;
@@ -934,10 +938,11 @@ void synapse_kernel(Neurons *U, Synapses* synapses) {
 	float weight;
 	for (int index = blockIdx.x * blockDim.x + threadIdx.x; index < synapses->size; index += blockDim.x * gridDim.x) {
 		pre_nrn = synapses->syn_pre_nrn[index];
-		if (U->has_spike[pre_nrn] && synapses->syn_delay_timer[index] == -1) {
-			synapses->syn_delay_timer[index] = synapses->syn_delay[index];
-		}
-		if (synapses->syn_delay_timer[index] == 0) {
+		// synapse update
+		if (synapses->syn_delay_timer[index] > 0) {
+			synapses->syn_delay_timer[index]--;
+		// if timer is over -> synapse change the conductance of the post neuron
+		} else if (synapses->syn_delay_timer[index] == 0) {
 			post_id = synapses->syn_post_nrn[index];
 			weight = synapses->syn_weight[index];
 			if (weight >= 0) {
@@ -945,11 +950,11 @@ void synapse_kernel(Neurons *U, Synapses* synapses) {
 			} else {
 				atomicAdd(&U->g_inh_A[post_id], -weight * U->factor[post_id]);
 				atomicAdd(&U->g_inh_B[post_id], -weight * U->factor[post_id]);
-				synapses->syn_delay_timer[index] = -1;
 			}
-		}
-		if (synapses->syn_delay_timer[index] > 0) {
-			synapses->syn_delay_timer[index]--;
+			synapses->syn_delay_timer[index] = -1;
+		// if pre nrn has spike and synapse is ready to send siagnal
+		} else if (U->has_spike[pre_nrn] && synapses->syn_delay_timer[index] == -1) {
+			synapses->syn_delay_timer[index] = synapses->syn_delay[index];
 		}
 	}
 }
@@ -985,7 +990,7 @@ void connect_fixed_outdegree(const Group &pre_neurons,
 	int pre, nsyn = nsyn_distr(generator);
 	// nsyn = random.randint(indegree - 15, indegree)
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
-		for (int _ = 0; _ < nsyn; ++_) {
+		for (int i = 0; i < nsyn; ++i) {
 			pre = pre_nrns_ids(generator);
 			// weight = random.gauss(weight, weight / 5)
 			// delay = random.gauss(delay, delay / 5)
@@ -996,10 +1001,10 @@ void connect_fixed_outdegree(const Group &pre_neurons,
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
-
-//	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
-//	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
-//	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+	printf("Connect indegree %s [%d] to %s [%d] (%d:1). Total: %d D=%.1f, W=%.2f\n",
+	       pre_neurons.group_name.c_str(), pre_neurons.group_size,
+	       post_neurons.group_name.c_str(), post_neurons.group_size,
+	       indegree, post_neurons.group_size * indegree, delay, weight);
 }
 
 
@@ -1111,10 +1116,10 @@ void simulate(int test_index) {
 	Neurons *U = (Neurons *)malloc(sizeof(Neurons));
 	Synapses *synapses = (Synapses *)malloc(sizeof(Synapses));
 
+	// create neurons and their connectomes
 	init_network();
 
-	/// GPU
-	// init States CPU arrays
+	// dynamic states of neuron (CPU arrays)
 	auto *Vm = new float[nrns_and_segs]();
 	auto *n = new float[nrns_and_segs]();
 	auto *m = new float[nrns_and_segs]();
@@ -1133,7 +1138,7 @@ void simulate(int test_index) {
 	auto *NODE_RHS = new float[nrns_and_segs]();
 	auto *NODE_RINV = new float[nrns_and_segs]();
 	auto *NODE_AREA = new float[nrns_and_segs]();
-	//
+	// special neuron's state
 	auto *has_spike = new bool[nrns_number]();
 	auto *spike_on = new bool[nrns_number]();
 	auto *g_exc = new float[nrns_number]();
@@ -1142,7 +1147,7 @@ void simulate(int test_index) {
 	auto *factor = new float[nrns_number]();
 
 	/// GPU
-	// states
+	// dynamic states
 	S->Vm = init_gpu_arr(Vm, nrns_and_segs);
 	S->n = init_gpu_arr(n, nrns_and_segs);
 	S->m = init_gpu_arr(m, nrns_and_segs);
@@ -1162,7 +1167,7 @@ void simulate(int test_index) {
 	S->NODE_RINV = init_gpu_arr(NODE_RINV, nrns_and_segs);
 	S->NODE_AREA = init_gpu_arr(NODE_AREA, nrns_and_segs);
 	S->size = nrns_and_segs;
-	// parameters
+	// static parameters
 	P->nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
 	P->models = init_gpu_arr(vector_models);
 	P->Cm = init_gpu_arr(vector_Cm);
@@ -1185,7 +1190,7 @@ void simulate(int test_index) {
 	P->tau_inh1 = init_gpu_arr(vector_tau_inh1);
 	P->tau_inh2 = init_gpu_arr(vector_tau_inh2);
 	P->size = nrns_number;
-	// Neurons
+	// special neuron's state
 	U->has_spike = init_gpu_arr(has_spike, nrns_number);
 	U->spike_on = init_gpu_arr(spike_on, nrns_number);
 	U->g_exc = init_gpu_arr(g_exc, nrns_number);
@@ -1193,7 +1198,7 @@ void simulate(int test_index) {
 	U->g_inh_B = init_gpu_arr(g_inh_B, nrns_number);
 	U->factor = init_gpu_arr(factor, nrns_number);
 	U->size = nrns_number;
-	// Synapses
+	// synaptic parameters
 	synapses->syn_pre_nrn = init_gpu_arr(vector_syn_pre_nrn);
 	synapses->syn_post_nrn = init_gpu_arr(vector_syn_post_nrn);
 	synapses->syn_weight = init_gpu_arr(vector_syn_weight);
@@ -1207,6 +1212,8 @@ void simulate(int test_index) {
 	auto *dev_U = init_gpu_arr(U, 1);
 	auto *dev_synapses = init_gpu_arr(synapses, 1);
 
+	printf("Network: %d neurons (with segs: %d), %d synapses\n", nrns_number, nrns_and_segs, vector_syn_delay.size());
+
 	float time;
 	cudaEvent_t start, stop;
 	HANDLE_ERROR(cudaEventCreate(&start));
@@ -1214,15 +1221,14 @@ void simulate(int test_index) {
 	HANDLE_ERROR(cudaEventRecord(start, 0));
 
 	// call initialisation kernel
-	initialize_kernel<<<1, 1>>>(dev_S, dev_P, dev_U, -70.0);
+	initialization_kernel<<<1, 1>>>(dev_S, dev_P, dev_U, -70.0);
 
 	// the main simulation loop
 	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; ++sim_iter) {
 		// deliver_net_events, synapse updating and neuron conductance changing
 		synapse_kernel<<<5, 256>>>(dev_U, dev_synapses);
 		// another neuron's kernel functions
-		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_U, sim_iter); // block size need to be a multiply of 256
-
+		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_U, sim_iter);
 		// copy state data
 		HANDLE_ERROR(cudaMemcpy(Vm, S->Vm, nrns_and_segs * sizeof(*Vm), cudaMemcpyDeviceToHost));
 		HANDLE_ERROR(cudaMemcpy(g_exc, U->g_exc, nrns_number * sizeof(*g_exc), cudaMemcpyDeviceToHost));
