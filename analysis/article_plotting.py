@@ -9,7 +9,9 @@ import plotly.graph_objects as go
 import matplotlib.patches as mpatches
 from scipy import interpolate
 import math
-
+from rpy2.robjects.packages import importr
+from rpy2.robjects import FloatVector
+from rpy2.robjects import r
 from colour import Color
 from itertools import chain
 from shapely import affinity
@@ -305,6 +307,11 @@ class Analyzer:
 					dataXY = []
 					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
 						t = m.get_peak_times(rat=r, flat=True, muscle=muscletype) * m.dstep_to
+						# s = 'm'
+						# for i in t:
+						# 	s = s + str(i) + ','
+						#
+						# print(s)
 						a = m.get_peak_ampls(rat=r, flat=True, muscle=muscletype)
 						s = m.get_peak_slices(rat=r, flat=True, muscle=muscletype)
 						if border == 'poly_tail':
@@ -639,11 +646,11 @@ class Analyzer:
 			else:
 				# extract data of extensor
 				if muscle == "E":
-					begin = 0
+					begin = 0 * standard_slice_length_in_steps
 					end = begin + e_slices_number * standard_slice_length_in_steps
 				# extract data of flexor
 				else:
-					begin = standard_slice_length_in_steps * e_slices_number
+					begin = standard_slice_length_in_steps * (e_slices_number + 0)
 					end = begin + (7 if metadata['pedal'] == "4" else 5) * standard_slice_length_in_steps
 				# trim redundant simulation data
 				dataset = trim_data(dataset, begin, end)
@@ -714,7 +721,7 @@ class Analyzer:
 			if muscle == 'E':
 				latency_volume = self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
 			else:
-				latency_volume = self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
+				latency_volume = None#self.plot_density_3D(source=metadata, rats=rat_id, factor=15, only_volume=True)[0]
 
 			metadata['rats_data'][muscle][rat_id]['latency_volume'] = latency_volume
 
@@ -793,7 +800,7 @@ class Analyzer:
 		if type(rats) is int:
 			rats = [rats]
 
-		for muscle in ['E', 'F']:
+		for muscle in ['E']:#, 'F']:
 			print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
 			for rat_id in rats:
 				c = metadata.get_peak_counts(rat_id, border=[0, 25], muscle=muscle)
@@ -804,14 +811,21 @@ class Analyzer:
 
 				x = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * metadata.dstep_to
 				# x = metadata.get_peak_ampls(rat_id, muscle='F', flat=True) * 100
-				X = np.linspace(0, 25, 100)
-				dx = st.gaussian_kde(x)
-				dx.set_bandwidth(bw_method=0.175)
-				dx = dx(X)
+				# X = np.linspace(0, 25, 100)
+				# dx = st.gaussian_kde(x)
+				# dx.set_bandwidth(bw_method=0.175)
+				# dx = dx(X)
+				importr('ks')
+				data = FloatVector(x)
+				kde_data = r['kde'](data)
+				kde_data = dict(zip(kde_data.names, list(kde_data)))
+				ydata = kde_data["estimate"]
+				xdata = kde_data["eval.points"]
+				plt.plot(xdata, ydata, label=metadata.shortname)
 				# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
 				# distr = {1: 'uni', 2: 'bi'}
 				# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
-				plt.plot(np.arange(len(dx)) * 0.25, dx, label=metadata.shortname)
+				# plt.plot(np.arange(len(dx)) * 0.25, dx, label=metadata.shortname)
 			print("- " * 10)
 
 	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
@@ -835,8 +849,8 @@ class Analyzer:
 
 		# plot per each rat
 		for rat_id in rats:
-			rat_myograms = metadata.get_myograms(rat_id, muscle='F')
-			rat_peak_times = metadata.get_peak_times(rat_id, muscle='F')
+			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
 
 			total_rat_steps = rat_myograms.shape[0]
 			total_slices = rat_myograms.shape[1]
@@ -1391,6 +1405,11 @@ class Analyzer:
 				ax.plot(shared_x, ideal_data, color='k', linewidth=2, zorder=4)
 				yticks.append(ideal_data[0])
 
+				# plot.extensor_data[:, slice_index]
+
+				for exp_data in extensor_data:
+					ax.plot(shared_x, exp_data[slice_index] + slice_index, color='r', linewidth=1, zorder=4)
+
 			if flexor_flag:
 				flexor_data = metadata.get_myograms(rat_id, muscle='F')
 				f_slices_number = len(flexor_data[0])
@@ -1411,7 +1430,7 @@ class Analyzer:
 				x = metadata.get_peak_times(rat_id, muscle='E', flat=True) * dstep_to
 				y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 				borders = 0, slice_in_ms, -1, e_slices_number
-				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15)
+				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15, addtan=False)
 				if flexor_flag:
 					'''flexor'''
 					x = metadata.get_peak_times(rat_id, muscle='F', flat=True) * dstep_to
@@ -1742,7 +1761,7 @@ class Analyzer:
 		return np.asarray(r_pkg.KDE_test(rx1, ry1, rx2, ry2))
 
 	@staticmethod
-	def _contour_plot(x, y, color, ax, z_prev, borders, levels_num, addtan = True):
+	def _contour_plot(x, y, color, ax, z_prev, borders, levels_num, addtan = False):
 		"""
 
 		Args:
@@ -1797,7 +1816,7 @@ class Analyzer:
 			print(sorted_x)
 			print(sorted_y)
 
-			mask = ((sorted_x >= 8) & (sorted_x <= 20) & (sorted_y > 4))
+			mask = ((sorted_x >= 8) & (sorted_x <= 20) & (sorted_y > 1))
 			masked_x = sorted_x[mask]
 			masked_y = sorted_y[mask]
 			print(masked_x)
@@ -1813,7 +1832,7 @@ class Analyzer:
 			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[-1]
 			print(interpolate.sproot((fsec.t, fsec.c, k)))
 			spl = interpolate.splrep(sorted_x, sorted_y, k=1)
-			small_t = np.arange(pointcur - 1.2, pointcur + 0.7, 0.1)
+			small_t = np.arange(pointcur - 4, pointcur + 4, 0.5)
 			print(small_t)
 			# t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
 			fa = interpolate.splev(pointcur, spl, der=0)     # f(a)
