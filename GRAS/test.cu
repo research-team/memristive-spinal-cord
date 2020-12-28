@@ -1,11 +1,6 @@
 /**
-Formulas and value units were taken from:
-
-Sterratt, D., Graham, B., Gillies, A., & Willshaw, D. (2011).
-Principles of Computational Modelling in Neuroscience. Cambridge: Cambridge University Press.
-DOI:10.1017/CBO9780511975899
-
-Based on the NEURON repository
+See the topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+Based on the NEURON repository.
 */
 #include <algorithm>
 #include <utility>
@@ -44,19 +39,19 @@ const char INTER = 'i';
 const char MOTO = 'm';
 const char MUSCLE = 'u';
 
-const int skin_time = 25;  // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-int cv_fr = 200;     // frequency of CV
-int ees_fr = 100;     // frequency of EES
+const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int step_number = 2;  // number of steps
+const int cv_fr = 200;      // frequency of CV
+const int ees_fr = 40;      // frequency of EES
 
-double cv_int = 1000 / cv_fr;
-double ees_int = 1000 / ees_fr;
+unsigned int one_step_time = 6 * skin_time + 175;
+unsigned int time_sim = 25 + one_step_time * step_number;
 
 random_device r;
 default_random_engine generator(r());
 
 unsigned int nrns_number = 0;        // [id] global neuron id = number of neurons
 unsigned int nrns_and_segs = 0;      // [id] global neuron+segs id = number of neurons with segments
-unsigned int generators_id_end = 0;  // [id] id of the last generator (to avoid them for updating)
 //const int LEG_STEPS = 1;             // [step] number of full cycle steps
 
 const int neurons_in_group = 50;     // number of neurons in a group
@@ -82,7 +77,7 @@ save_neuron_ids = []    # neurons id that need to save
  */
 
 // common neuron constants
-//const double k = 0.017;           // synaptic coef
+const double k = 0.01;            // synaptic coef
 const double V_th = -40;          // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
@@ -113,7 +108,7 @@ const double celsius = 36;        // [degC] temperature of the cell
 //const double xraxial = 1e9;       // [MOhm/cm]
 
 // neuron parameters
-vector<short> vector_nrn_start_seg;
+vector<unsigned int> vector_nrn_start_seg;
 vector<char> vector_models;
 vector<double> vector_Cm;
 vector<double> vector_gnabar;
@@ -283,29 +278,29 @@ double step_to_ms(int step) { return step * dt; }
 
 // copy data from host to device
 template<typename type>
-void memcpyHtD(type *gpu, type *host, unsigned int size) {
-	cudaMemcpy(gpu, host, sizeof(type) * size, cudaMemcpyHostToDevice);
+void memcpyHtD(type *host, type *gpu, unsigned int size) {
+	HANDLE_ERROR(cudaMemcpy(gpu, host, sizeof(type) * size, cudaMemcpyHostToDevice));
 }
 
 // copy data from device to host
 template<typename type>
-void memcpyDtH(type *host, type *gpu, unsigned int size) {
-	cudaMemcpy(host, gpu, size * sizeof(type), cudaMemcpyDeviceToHost);
+void memcpyDtH(type *gpu, type *host, unsigned int size) {
+	HANDLE_ERROR(cudaMemcpy(host, gpu, size * sizeof(type), cudaMemcpyDeviceToHost));
 }
 
 template<typename type>
-type* init_gpu_arr(type *cpu_var, int size) {
+type* init_gpu_arr(type *cpu_var, unsigned int size = nrns_and_segs) {
 	type *gpu_var;
-	cudaMalloc(&gpu_var, size * sizeof(type));
-	memcpyHtD<type>(gpu_var, cpu_var, size);
+	HANDLE_ERROR(cudaMalloc(&gpu_var, size * sizeof(type)));
+	memcpyHtD<type>(cpu_var, gpu_var, size);
 	return gpu_var;
 }
 
 template<typename type>
 type *init_gpu_arr(vector<type> &vec) {
 	type *gpu_var;
-	cudaMalloc(&gpu_var, sizeof(type) * vec.size());
-	memcpyHtD<type>(gpu_var, vec.data(), vec.size());
+	HANDLE_ERROR(cudaMalloc(&gpu_var, sizeof(type) * vec.size()));
+	memcpyHtD<type>(vec.data(), gpu_var, vec.size());
 	return gpu_var;
 }
 
@@ -877,7 +872,7 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 	printf("GPU: initialization_kernel\n");
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int i1, i3, nrn_seg;
+	int i1, i3;
 
 	if (tid == 0) {
 		/** */
@@ -891,7 +886,7 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 			i1 = P->nrn_start_seg[nrn];
 			i3 = P->nrn_start_seg[nrn + 1];
 			// for each segment init the neuron model
-			for (nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 				S->Vm[nrn_seg] = v_init;
 				if (P->models[nrn] == INTER) {
 					nrn_inter_initial(S, P, N, nrn_seg, v_init);
@@ -914,26 +909,21 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 __global__
 void neuron_kernel(States *S, Parameters *P, Neurons *N, int t) {
 	//
+	int i1, i3;
 	for (int nrn = blockIdx.x * blockDim.x + threadIdx.x; nrn < N->size; nrn += blockDim.x * gridDim.x) {
 		//
 		N->has_spike[nrn] = false;
 		// generator
 		if (P->models[nrn] == GENERATOR) {
 			// EES
-			if (nrn == 0 && (t >= (10 / dt) && t % (int)(1000 / 100 / dt) == 0)) {
+			if (nrn == 0 && (t >= (10 / dt) && t % (int)(1000 / ees_fr / dt) == 0)) {
 				N->has_spike[nrn] = true;
 			}
 		} else {
-			int i1 = P->nrn_start_seg[nrn];
-			int i3 = P->nrn_start_seg[nrn + 1];
+			i1 = P->nrn_start_seg[nrn];
+			i3 = P->nrn_start_seg[nrn + 1];
 			setup_tree_matrix(S, P, N, nrn, i1, i3);
 			nrn_solve(S, P, N, nrn, i1, i3);
-//			if (nrn == 200) {
-//				int nrn_seg = P->nrn_start_seg[nrn] + 1;
-//				printf("[%d] %g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n",
-//				       t, S->NODE_A[nrn_seg], S->NODE_B[nrn_seg], S->NODE_D[nrn_seg], S->NODE_RINV[nrn_seg],
-//				       S->Vm[nrn_seg], S->NODE_RHS[nrn_seg], S->m[nrn_seg], S->h[nrn_seg], S->n[nrn_seg]);
-//			}
 			update(S, P, N, nrn, i1, i3);
 			nrn_fixed_step_lastpart(S, P, N, nrn, i1, i3);
 		}
@@ -984,9 +974,10 @@ void conn_a2a(const Group &pre_neurons, const Group &post_neurons, double delay,
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
-//	printf("Connect %s to %s [fixed_outdegree] (1:%d). Total: %d W=%.2f, D=%.1f\n",
-//	       pre_neurons.group_name.c_str(), post_neurons.group_name.c_str(),
-//	       outdegree, pre_neurons.group_size * outdegree, syn_weight, syn_delay);
+	printf("Connect all-to-all %s [%d] to %s [%d] (1:%d). Total: %d D=%.1f, W=%.2f\n",
+	       pre_neurons.group_name.c_str(), pre_neurons.group_size,
+	       post_neurons.group_name.c_str(), post_neurons.group_size,
+	       post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size, delay, weight);
 }
 
 void connect_fixed_outdegree(const Group &pre_neurons,
@@ -1093,28 +1084,149 @@ void save_result(int test_index) {
 	}
 }
 
+template<typename type>
+type* arr_segs() {
+	return new type[nrns_and_segs]();
+}
+
 void init_network() {
-	Group gen = form_group("gen", 1, GENERATOR, 1);
-	Group OM1 = form_group("OM1", 50, INTER, 1);
-	Group OM2 = form_group("OM2", 50, INTER, 1);
-	Group OM3 = form_group("OM3", 50, INTER, 1);
-	Group moto = form_group("moto", 50, MOTO, 1);
-	Group muscle = form_group("muscle", 1, MUSCLE, 3);
+	//
+	Group EES = form_group("EES", 1, GENERATOR);
+	Group E1 = form_group("E1", 1, GENERATOR);
+	Group E2 = form_group("E2", 1, GENERATOR);
+	Group E3 = form_group("E3", 1, GENERATOR);
+	Group E4 = form_group("E4", 1, GENERATOR);
+	Group E5 = form_group("E5", 1, GENERATOR);
+	//
+	Group CV1 = form_group("CV1", 1, GENERATOR);
+	Group CV2 = form_group("CV2", 1, GENERATOR);
+	Group CV3 = form_group("CV3", 1, GENERATOR);
+	Group CV4 = form_group("CV4", 1, GENERATOR);
+	Group CV5 = form_group("CV5", 1, GENERATOR);
+	//
+	Group C_0 = form_group("C_0");
+	Group C_1 = form_group("C_1");
+	Group V0v = form_group("V0v");
+	//
+	Group OM1_0E = form_group("OM1_0E");
+	Group OM1_0F = form_group("OM1_0F");
+	// OM1
+	Group OM1_0 = form_group("OM1_0");
+	Group OM1_1 = form_group("OM1_1");
+	Group OM1_2_E = form_group("OM1_2_E");
+	Group OM1_2_F = form_group("OM1_2_F");
+	Group OM1_3 = form_group("OM1_3");
+	// OM2
+	Group OM2_0 = form_group("OM2_0");
+	Group OM2_1 = form_group("OM2_1");
+	Group OM2_2_E = form_group("OM2_2_E");
+	Group OM2_2_F = form_group("OM2_2_F");
+	Group OM2_3 = form_group("OM2_3");
+	// OM3
+	Group OM3_0 = form_group("OM3_0");
+	Group OM3_1 = form_group("OM3_1");
+	Group OM3_2_E = form_group("OM3_2_E");
+	Group OM3_2_F = form_group("OM3_2_F");
+	Group OM3_3 = form_group("OM3_3");
+	// OM4
+	Group OM4_0 = form_group("OM4_0");
+	Group OM4_1 = form_group("OM4_1");
+	Group OM4_2_E = form_group("OM4_2_E");
+	Group OM4_2_F = form_group("OM4_2_F");
+	Group OM4_3 = form_group("OM4_3");
+	// OM5
+	Group OM5_0 = form_group("OM5_0");
+	Group OM5_1 = form_group("OM5_1");
+	Group OM5_2_E = form_group("OM5_2_E");
+	Group OM5_2_F = form_group("OM5_2_F");
+	Group OM5_3 = form_group("OM5_3");
+	// afferents
+	Group sens_aff = form_group("sens_aff", 120);
+	Group Ia_aff_E = form_group("Ia_aff_E", 120);
+	Group Ia_aff_F = form_group("Ia_aff_F", 120);
+	// motoneurons
+	Group MN_E = form_group("MN_E", 210, MOTO);
+	Group MN_F = form_group("MN_F", 180, MOTO);
+	// muscle fibers
+	Group muscle_E = form_group("muscle_E", 20, MUSCLE, 3); // 150 * 210
+	Group muscle_F = form_group("muscle_F", 20, MUSCLE, 3); // 100 * 180
+	// reflex arc E
+	Group Ia_E = form_group("Ia_E", neurons_in_ip);
+	Group iIP_E = form_group("iIP_E", neurons_in_ip);
+	Group R_E = form_group("R_E");
+	// reflex arc F
+	Group Ia_F = form_group("Ia_F", neurons_in_ip);
+	Group iIP_F = form_group("iIP_F", neurons_in_ip);
+	Group R_F = form_group("R_F");
+	// extensor IP
+	Group eIP_E_1 = form_group("eIP_E_1");
+	Group eIP_E_2 = form_group("eIP_E_2");
+	Group eIP_E_3 = form_group("eIP_E_3");
+	Group eIP_E_4 = form_group("eIP_E_4");
+	Group eIP_E_5 = form_group("eIP_E_5");
+	// flexor IP
+	Group eIP_F_1 = form_group("eIP_F_1");
+	Group eIP_F_2 = form_group("eIP_F_2");
+	Group eIP_F_3 = form_group("eIP_F_3");
+	Group eIP_F_4 = form_group("eIP_F_4");
+	Group eIP_F_5 = form_group("eIP_F_5");
 
-	conn_a2a(gen, OM1, 1, 1.5);
+	/// generators
+	// EES
+	// addgener(0, ees_fr, 10000, False)
+	// AFF
+	// self.Iagener_E = self.addIagener(self.muscle_E, self.muscle_F, 10)
+	// self.Iagener_F = self.addIagener(self.muscle_F, self.muscle_F, speed*6)
+	// CV
+	// self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 175), random.gauss(cfr, cfr/10), (speed / c_int + 1))
+	// C_0
+	// self.addgener(25 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
+	// V0v
+	// self.addgener(40 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
 
-	connect_fixed_outdegree(OM1, OM2, 2, 1.85);
-	connect_fixed_outdegree(OM2, OM1, 3, 1.85);
-	connect_fixed_outdegree(OM2, OM3, 3, 0.00055);
-	connect_fixed_outdegree(OM1, OM3, 3, 0.00005);
-	connect_fixed_outdegree(OM3, OM2, 1, -4.5);
-	connect_fixed_outdegree(OM3, OM1, 1, -4.5);
-	connect_fixed_outdegree(OM2, moto, 2, 1.5);
-	connect_fixed_outdegree(moto, muscle, 2, 15.5);
+	// gen connect
+	conn_a2a(EES, Ia_aff_E, 1, 1.5);
+	conn_a2a(EES, Ia_aff_E, 1, 1.5);
+	conn_a2a(EES, CV1, 2, 1.5);
+	// genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 5)
+	// genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 5)
 
-	vector<Group> groups = {OM1, OM2, OM3, moto, muscle};
+	connect_fixed_outdegree(Ia_aff_E, MN_E, 1.5, 1.55)
+	connect_fixed_outdegree(Ia_aff_F, MN_F, 1.5, 1.5)
+
+	connect_fixed_outdegree(MN_E, muscle_E, 2, 15.5, 45) // connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
+	connect_fixed_outdegree(MN_F, muscle_F, 2, 15.5, 45) // connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
+
+	/// IP
+	// for layer in range(1, 4):
+	//      connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.45*layer, 2)
+	//      connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.45*layer, 2)
+	// connectinsidenucleus
+	connect_fixed_outdegree(EES, OM1_0, 2, 0.00075 * k * skin_time);
+	conn_a2a(CV1, OM1_0, 2, 0.00048);
+	// connect_fixed_outdegree(CV1, CV2, 1, 15)
+
+	//	def connectinsidenucleus(nucleus):
+	//	connectcells(nucleus, nucleus, 0.25, 0.5)
+
+	// Layer 1
+	connect_fixed_outdegree(eIP_E_1, eIP_E_1, 0.5, 0.25);
+	connect_fixed_outdegree(OM1_2_E, OM1_2_E, 0.5, 0.25);
+	connect_fixed_outdegree(OM1_2_F, OM1_2_F, 0.5, 0.25);
+	connect_fixed_outdegree(OM1_2_E, eIP_E_1, 3, 2.85);
+	connect_fixed_outdegree(eIP_E_1, MN_E, 3, 2.85);
+	//
+	connect_fixed_outdegree(OM1_0, OM1_1, 3, 2.95);
+	connect_fixed_outdegree(OM1_1, OM1_2_E, 3, 2.85);
+	connect_fixed_outdegree(OM1_2_E, OM1_1, 3, 1.95);
+	connect_fixed_outdegree(OM1_2_E, OM1_3, 3, 0.0007);
+	// connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1.5, 2);
+	connect_fixed_outdegree(OM1_1, OM1_3, 3, 0.00005);
+	connect_fixed_outdegree(OM1_3, OM1_2_E, 3, -4.5);
+	connect_fixed_outdegree(OM1_3, OM1_1, 3, -4.5);
+
+	vector<Group> groups = {OM1_0, OM2_0, OM3_0};
 	save(groups);
-
 	vector_nrn_start_seg.push_back(nrns_and_segs);
 }
 
@@ -1131,54 +1243,6 @@ void simulate(int test_index) {
 	// create neurons and their connectomes
 	init_network();
 
-	// dynamic states of neuron (CPU arrays)
-	auto *Vm = new double[nrns_and_segs]();
-	auto *n = new double[nrns_and_segs]();
-	auto *m = new double[nrns_and_segs]();
-	auto *h = new double[nrns_and_segs]();
-	auto *l = new double[nrns_and_segs]();
-	auto *s = new double[nrns_and_segs]();
-	auto *p = new double[nrns_and_segs]();
-	auto *hc = new double[nrns_and_segs]();
-	auto *mc = new double[nrns_and_segs]();
-	auto *cai = new double[nrns_and_segs]();
-	auto *I_Ca = new double[nrns_and_segs]();
-	auto *NODE_A = new double[nrns_and_segs]();
-	auto *NODE_B = new double[nrns_and_segs]();
-	auto *NODE_D = new double[nrns_and_segs]();
-	auto *const_NODE_D = new double[nrns_and_segs]();
-	auto *NODE_RHS = new double[nrns_and_segs]();
-	auto *NODE_RINV = new double[nrns_and_segs]();
-	auto *NODE_AREA = new double[nrns_and_segs]();
-	// special neuron's state
-	auto *has_spike = new bool[nrns_number]();
-	auto *spike_on = new bool[nrns_number]();
-	auto *g_exc = new double[nrns_number]();
-	auto *g_inh_A = new double[nrns_number]();
-	auto *g_inh_B = new double[nrns_number]();
-	auto *factor = new double[nrns_number]();
-
-	/// GPU
-	// dynamic states
-	S->Vm = init_gpu_arr(Vm, nrns_and_segs);
-	S->n = init_gpu_arr(n, nrns_and_segs);
-	S->m = init_gpu_arr(m, nrns_and_segs);
-	S->h = init_gpu_arr(h, nrns_and_segs);
-	S->l = init_gpu_arr(l, nrns_and_segs);
-	S->s = init_gpu_arr(s, nrns_and_segs);
-	S->p = init_gpu_arr(p, nrns_and_segs);
-	S->hc = init_gpu_arr(hc, nrns_and_segs);
-	S->mc = init_gpu_arr(mc, nrns_and_segs);
-	S->cai = init_gpu_arr(cai, nrns_and_segs);
-	S->I_Ca = init_gpu_arr(I_Ca, nrns_and_segs);
-	S->NODE_A = init_gpu_arr(NODE_A, nrns_and_segs);
-	S->NODE_B = init_gpu_arr(NODE_B, nrns_and_segs);
-	S->NODE_D = init_gpu_arr(NODE_D, nrns_and_segs);
-	S->const_NODE_D = init_gpu_arr(const_NODE_D, nrns_and_segs);
-	S->NODE_RHS = init_gpu_arr(NODE_RHS, nrns_and_segs);
-	S->NODE_RINV = init_gpu_arr(NODE_RINV, nrns_and_segs);
-	S->NODE_AREA = init_gpu_arr(NODE_AREA, nrns_and_segs);
-	S->size = nrns_and_segs;
 	// static parameters
 	P->nrn_start_seg = init_gpu_arr(vector_nrn_start_seg);
 	P->models = init_gpu_arr(vector_models);
@@ -1202,14 +1266,37 @@ void simulate(int test_index) {
 	P->tau_inh1 = init_gpu_arr(vector_tau_inh1);
 	P->tau_inh2 = init_gpu_arr(vector_tau_inh2);
 	P->size = nrns_number;
+
+	// dynamic states of neuron (CPU arrays)
+	auto *Vm = arr_segs<double>(); S->Vm = init_gpu_arr(Vm);
+	auto *n = arr_segs<double>(); S->n = init_gpu_arr(n);
+	auto *m = arr_segs<double>(); S->m = init_gpu_arr(m);
+	auto *h = arr_segs<double>(); S->h = init_gpu_arr(h);
+	auto *l = arr_segs<double>(); S->l = init_gpu_arr(l);
+	auto *s = arr_segs<double>(); S->s = init_gpu_arr(s);
+	auto *p = arr_segs<double>(); S->p = init_gpu_arr(p);
+	auto *hc = arr_segs<double>(); S->hc = init_gpu_arr(hc);
+	auto *mc = arr_segs<double>(); S->mc = init_gpu_arr(mc);
+	auto *cai = arr_segs<double>(); S->cai = init_gpu_arr(cai);
+	auto *I_Ca = arr_segs<double>(); S->I_Ca = init_gpu_arr(I_Ca);
+	auto *NODE_A = arr_segs<double>(); S->NODE_A = init_gpu_arr(NODE_A);
+	auto *NODE_B = arr_segs<double>(); S->NODE_B = init_gpu_arr(NODE_B);
+	auto *NODE_D = arr_segs<double>(); S->NODE_D = init_gpu_arr(NODE_D);
+	auto *const_NODE_D = arr_segs<double>(); S->const_NODE_D = init_gpu_arr(const_NODE_D);
+	auto *NODE_RHS = arr_segs<double>(); S->NODE_RHS = init_gpu_arr(NODE_RHS);
+	auto *NODE_RINV = arr_segs<double>(); S->NODE_RINV = init_gpu_arr(NODE_RINV);
+	auto *NODE_AREA = arr_segs<double>(); S->NODE_AREA = init_gpu_arr(NODE_AREA);
+	S->size = nrns_and_segs;
+
 	// special neuron's state
-	N->has_spike = init_gpu_arr(has_spike, nrns_number);
-	N->spike_on = init_gpu_arr(spike_on, nrns_number);
-	N->g_exc = init_gpu_arr(g_exc, nrns_number);
-	N->g_inh_A = init_gpu_arr(g_inh_A, nrns_number);
-	N->g_inh_B = init_gpu_arr(g_inh_B, nrns_number);
-	N->factor = init_gpu_arr(factor, nrns_number);
+	auto *has_spike = arr_segs<bool>(); N->has_spike = init_gpu_arr(has_spike);
+	auto *spike_on = arr_segs<bool>(); N->spike_on = init_gpu_arr(spike_on);
+	auto *g_exc = arr_segs<double>(); N->g_exc = init_gpu_arr(g_exc);
+	auto *g_inh_A = arr_segs<double>(); N->g_inh_A = init_gpu_arr(g_inh_A);
+	auto *g_inh_B = arr_segs<double>(); N->g_inh_B = init_gpu_arr(g_inh_B);
+	auto *factor = arr_segs<double>(); N->factor = init_gpu_arr(factor);
 	N->size = nrns_number;
+
 	// synaptic parameters
 	synapses->syn_pre_nrn = init_gpu_arr(vector_syn_pre_nrn);
 	synapses->syn_post_nrn = init_gpu_arr(vector_syn_post_nrn);
@@ -1242,11 +1329,11 @@ void simulate(int test_index) {
 		// another neuron's kernel functions
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_N, sim_iter);
 		// copy state data
-		HANDLE_ERROR(cudaMemcpy(Vm, S->Vm, nrns_and_segs * sizeof(*Vm), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_exc, N->g_exc, nrns_number * sizeof(*g_exc), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_inh_A, N->g_inh_A, nrns_number * sizeof(*g_inh_A), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(g_inh_B, N->g_inh_B, nrns_number * sizeof(*g_inh_B), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(has_spike, N->has_spike, nrns_number * sizeof(*has_spike), cudaMemcpyDeviceToHost));
+		memcpyDtH(S->Vm, Vm, nrns_and_segs);
+		memcpyDtH(N->g_exc, g_exc, nrns_number);
+		memcpyDtH(N->g_inh_A, g_inh_A, nrns_number);
+		memcpyDtH(N->g_inh_B, g_inh_B, nrns_number);
+		memcpyDtH(N->has_spike, has_spike, nrns_number);
 
 		// fill records arrays
 		for (GroupMetadata& metadata : saving_groups) {
