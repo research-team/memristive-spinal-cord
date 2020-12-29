@@ -38,6 +38,7 @@ const char GENERATOR = 'g';
 const char INTER = 'i';
 const char MOTO = 'm';
 const char MUSCLE = 'u';
+const char AFFERENT = 'a';
 
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 const int step_number = 2;  // number of steps
@@ -980,7 +981,7 @@ void conn_a2a(const Group &pre_neurons, const Group &post_neurons, double delay,
 	       post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size, delay, weight);
 }
 
-void connect_fixed_outdegree(const Group &pre_neurons,
+void connect_fixed_indegree(const Group &pre_neurons,
                              const Group &post_neurons,
                              double delay,
                              double weight,
@@ -1089,20 +1090,51 @@ type* arr_segs() {
 	return new type[nrns_and_segs]();
 }
 
+void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
+	/** Connects motif module
+     see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+	*/
+	connect_fixed_indegree(OM0, OM1, 3, 2.85);
+	connect_fixed_indegree(OM1, OM2, 3, 2.85);
+	connect_fixed_indegree(OM2, OM1, 3, 1.95);
+	connect_fixed_indegree(OM2, OM3, 3, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
+	connect_fixed_indegree(OM3, OM2, 3, -4.5);
+	connect_fixed_indegree(OM3, OM1, 3, -4.5);
+}
+
 void init_network() {
 	//
 	Group EES = form_group("EES", 1, GENERATOR);
-	Group E1 = form_group("E1", 1, GENERATOR);
-	Group E2 = form_group("E2", 1, GENERATOR);
-	Group E3 = form_group("E3", 1, GENERATOR);
-	Group E4 = form_group("E4", 1, GENERATOR);
-	Group E5 = form_group("E5", 1, GENERATOR);
 	//
-	Group CV1 = form_group("CV1", 1, GENERATOR);
-	Group CV2 = form_group("CV2", 1, GENERATOR);
-	Group CV3 = form_group("CV3", 1, GENERATOR);
-	Group CV4 = form_group("CV4", 1, GENERATOR);
-	Group CV5 = form_group("CV5", 1, GENERATOR);
+	vector<Group> gen_C = {form_group("C1", 1, GENERATOR),
+	                       form_group("C2", 1, GENERATOR),
+	                       form_group("C3", 1, GENERATOR),
+	                       form_group("C4", 1, GENERATOR),
+	                       form_group("C5", 1, GENERATOR)};
+
+	vector<Group> CV, CV_1, L_0, L_1, L_2E, L_2F, L_3, IP_E, IP_F;
+	// extensor IP
+
+	// Motifs
+	for(int layer = 0; layer < 5; ++layer) {
+		L_0.push_back(form_group("OM" + to_string(layer) + "_0"));
+		L_1.push_back(form_group("OM" + to_string(layer) + "_1"));
+		L_2E.push_back(form_group("OM" + to_string(layer) + "_2E"));
+		L_2F.push_back(form_group("OM" + to_string(layer) + "_2F"));
+		L_3.push_back(form_group("OM" + to_string(layer) + "_3"));
+	}
+	//
+	for(int layer = 0; layer < 5 + 1; ++layer) {
+		// E-шки
+		CV.push_back(form_group("CV" + to_string(layer + 1), AFFERENT));
+		// true CV
+		CV_1.push_back(form_group("CV" + to_string(layer + 1) + "_1", AFFERENT));
+		// interneuronal pool
+		IP_E.push_back(form_group("IP" + to_string(layer + 1) + "_E"));
+		IP_F.push_back(form_group("IP" + to_string(layer + 1) + "_F"));
+	}
+
 	//
 	Group C_0 = form_group("C_0");
 	Group C_1 = form_group("C_1");
@@ -1110,36 +1142,7 @@ void init_network() {
 	//
 	Group OM1_0E = form_group("OM1_0E");
 	Group OM1_0F = form_group("OM1_0F");
-	// OM1
-	Group OM1_0 = form_group("OM1_0");
-	Group OM1_1 = form_group("OM1_1");
-	Group OM1_2_E = form_group("OM1_2_E");
-	Group OM1_2_F = form_group("OM1_2_F");
-	Group OM1_3 = form_group("OM1_3");
-	// OM2
-	Group OM2_0 = form_group("OM2_0");
-	Group OM2_1 = form_group("OM2_1");
-	Group OM2_2_E = form_group("OM2_2_E");
-	Group OM2_2_F = form_group("OM2_2_F");
-	Group OM2_3 = form_group("OM2_3");
-	// OM3
-	Group OM3_0 = form_group("OM3_0");
-	Group OM3_1 = form_group("OM3_1");
-	Group OM3_2_E = form_group("OM3_2_E");
-	Group OM3_2_F = form_group("OM3_2_F");
-	Group OM3_3 = form_group("OM3_3");
-	// OM4
-	Group OM4_0 = form_group("OM4_0");
-	Group OM4_1 = form_group("OM4_1");
-	Group OM4_2_E = form_group("OM4_2_E");
-	Group OM4_2_F = form_group("OM4_2_F");
-	Group OM4_3 = form_group("OM4_3");
-	// OM5
-	Group OM5_0 = form_group("OM5_0");
-	Group OM5_1 = form_group("OM5_1");
-	Group OM5_2_E = form_group("OM5_2_E");
-	Group OM5_2_F = form_group("OM5_2_F");
-	Group OM5_3 = form_group("OM5_3");
+	// OM groups by layer
 	// afferents
 	Group sens_aff = form_group("sens_aff", 120);
 	Group Ia_aff_E = form_group("Ia_aff_E", 120);
@@ -1158,20 +1161,28 @@ void init_network() {
 	Group Ia_F = form_group("Ia_F", neurons_in_ip);
 	Group iIP_F = form_group("iIP_F", neurons_in_ip);
 	Group R_F = form_group("R_F");
-	// extensor IP
-	Group eIP_E_1 = form_group("eIP_E_1");
-	Group eIP_E_2 = form_group("eIP_E_2");
-	Group eIP_E_3 = form_group("eIP_E_3");
-	Group eIP_E_4 = form_group("eIP_E_4");
-	Group eIP_E_5 = form_group("eIP_E_5");
-	// flexor IP
-	Group eIP_F_1 = form_group("eIP_F_1");
-	Group eIP_F_2 = form_group("eIP_F_2");
-	Group eIP_F_3 = form_group("eIP_F_3");
-	Group eIP_F_4 = form_group("eIP_F_4");
-	Group eIP_F_5 = form_group("eIP_F_5");
+
+	vector_nrn_start_seg.push_back(nrns_and_segs);
 
 	/// generators
+	// extensor
+	createmotif(OM1_0E, L_1[0], L_2E[0], L_3[0]);
+	for(int layer = 1; layer < L_0.size(); ++layer)
+		createmotif(L_0[layer], L_1[layer], L_2E[layer], L_3[layer]);
+	// extra flexor connections
+	createmotif(OM1_0F, L_1[0], L_2E[0], L_3[0]);
+	for(int layer = 1; layer < L_0.size(); ++layer)
+		createmotif(L_0[layer], L_1[layer], L_2F[layer], L_3[layer]);
+
+	for(int layer = 1; layer < L_0.size(); ++layer)
+		connect_fixed_indegree(L_2F[layer - 1], L_2F[layer], 2, 1.5);
+
+	connect_fixed_indegree(CV[0], OM1_0F, 3, 0.0015);
+	connect_fixed_indegree(V0v, OM1_0F, 3, 3.25);
+	// between delays via excitatory pools
+	// extensor
+	for(int layer = 1; layer < L_0.size(); ++layer)
+		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 0.75);
 	// EES
 	// addgener(0, ees_fr, 10000, False)
 	// AFF
@@ -1187,47 +1198,46 @@ void init_network() {
 	// gen connect
 	conn_a2a(EES, Ia_aff_E, 1, 1.5);
 	conn_a2a(EES, Ia_aff_E, 1, 1.5);
-	conn_a2a(EES, CV1, 2, 1.5);
+	conn_a2a(EES, CV[0], 2, 1.5);
 	// genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 5)
 	// genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 5)
 
-	connect_fixed_outdegree(Ia_aff_E, MN_E, 1.5, 1.55)
-	connect_fixed_outdegree(Ia_aff_F, MN_F, 1.5, 1.5)
+	connect_fixed_indegree(Ia_aff_E, MN_E, 1.5, 1.55);
+	connect_fixed_indegree(Ia_aff_F, MN_F, 1.5, 1.5);
 
-	connect_fixed_outdegree(MN_E, muscle_E, 2, 15.5, 45) // connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
-	connect_fixed_outdegree(MN_F, muscle_F, 2, 15.5, 45) // connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
+	connect_fixed_indegree(MN_E, muscle_E, 2, 15.5, 45); // connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
+	connect_fixed_indegree(MN_F, muscle_F, 2, 15.5, 45); // connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
 
 	/// IP
 	// for layer in range(1, 4):
 	//      connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.45*layer, 2)
 	//      connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.45*layer, 2)
 	// connectinsidenucleus
-	connect_fixed_outdegree(EES, OM1_0, 2, 0.00075 * k * skin_time);
-	conn_a2a(CV1, OM1_0, 2, 0.00048);
-	// connect_fixed_outdegree(CV1, CV2, 1, 15)
-
-	//	def connectinsidenucleus(nucleus):
-	//	connectcells(nucleus, nucleus, 0.25, 0.5)
-
-	// Layer 1
-	connect_fixed_outdegree(eIP_E_1, eIP_E_1, 0.5, 0.25);
-	connect_fixed_outdegree(OM1_2_E, OM1_2_E, 0.5, 0.25);
-	connect_fixed_outdegree(OM1_2_F, OM1_2_F, 0.5, 0.25);
-	connect_fixed_outdegree(OM1_2_E, eIP_E_1, 3, 2.85);
-	connect_fixed_outdegree(eIP_E_1, MN_E, 3, 2.85);
-	//
-	connect_fixed_outdegree(OM1_0, OM1_1, 3, 2.95);
-	connect_fixed_outdegree(OM1_1, OM1_2_E, 3, 2.85);
-	connect_fixed_outdegree(OM1_2_E, OM1_1, 3, 1.95);
-	connect_fixed_outdegree(OM1_2_E, OM1_3, 3, 0.0007);
-	// connect_fixed_outdegree(OM1_2_F, OM2_2_F, 1.5, 2);
-	connect_fixed_outdegree(OM1_1, OM1_3, 3, 0.00005);
-	connect_fixed_outdegree(OM1_3, OM1_2_E, 3, -4.5);
-	connect_fixed_outdegree(OM1_3, OM1_1, 3, -4.5);
-
-	vector<Group> groups = {OM1_0, OM2_0, OM3_0};
-	save(groups);
-	vector_nrn_start_seg.push_back(nrns_and_segs);
+//	connect_fixed_indegree(EES, OM1_0, 2, 0.00075 * k * skin_time);
+//	conn_a2a(CV1, OM1_0, 2, 0.00048);
+//	// connect_fixed_indegree(CV1, CV2, 1, 15)
+//
+//	//	def connectinsidenucleus(nucleus):
+//	//	connectcells(nucleus, nucleus, 0.25, 0.5)
+//
+//	// Layer 1
+//	connect_fixed_indegree(eIP_E_1, eIP_E_1, 0.5, 0.25);
+//	connect_fixed_indegree(OM1_2_E, OM1_2_E, 0.5, 0.25);
+//	connect_fixed_indegree(OM1_2_F, OM1_2_F, 0.5, 0.25);
+//	connect_fixed_indegree(OM1_2_E, eIP_E_1, 3, 2.85);
+//	connect_fixed_indegree(eIP_E_1, MN_E, 3, 2.85);
+//	//
+//	connect_fixed_indegree(OM1_0, OM1_1, 3, 2.95);
+//	connect_fixed_indegree(OM1_1, OM1_2_E, 3, 2.85);
+//	connect_fixed_indegree(OM1_2_E, OM1_1, 3, 1.95);
+//	connect_fixed_indegree(OM1_2_E, OM1_3, 3, 0.0007);
+//	// connect_fixed_indegree(OM1_2_F, OM2_2_F, 1.5, 2);
+//	connect_fixed_indegree(OM1_1, OM1_3, 3, 0.00005);
+//	connect_fixed_indegree(OM1_3, OM1_2_E, 3, -4.5);
+//	connect_fixed_indegree(OM1_3, OM1_1, 3, -4.5);
+//
+//	vector<Group> groups = {OM1_0, OM2_0, OM3_0};
+//	save(groups);
 }
 
 void simulate(int test_index) {
