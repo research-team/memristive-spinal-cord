@@ -8,7 +8,7 @@ import matplotlib.transforms as transforms
 from scipy.stats import kstwobign
 from sklearn.decomposition import PCA
 from matplotlib.patches import Ellipse
-
+from scipy.ndimage.filters import gaussian_filter
 
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger()
@@ -90,7 +90,7 @@ def read_hdf5(filepath, rat):
 	with hdf5.File(filepath, 'r') as file:
 		for test_name, test_values in file.items():
 			#todo fix me
-			if ("#1" in test_name or "#3" in test_name) and 'bio_' in filepath and "PLT_13.5cms_40Hz_2pedal" in filepath:
+			if ("#1" in test_name in test_name) and 'bio_' in filepath and "PLT_13.5cms_40Hz_2pedal" in filepath:
 				continue
 			if "#1" in test_name and 'bio_' in filepath and "PLT_6cms_40Hz_2pedal" in filepath:
 				continue
@@ -314,6 +314,29 @@ def get_boxplots(sliced_datasets):
 
 	return splitted_boxplots
 
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
+
+from scipy.signal import butter, lfilter
+
+fs = 5000.0
+lowcut = 100.0
+highcut = 500.0
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
+
 
 def calibrate_data(dataset, source):
 	"""
@@ -337,9 +360,13 @@ def calibrate_data(dataset, source):
 		elif source == "gras":
 			centered_data = data_per_test - data_per_test[0]
 		else:
-			raise Exception(f"Cannot recognize '{source}' source")
+			# centered_data = butter_bandpass_filter(data_per_test, lowcut, highcut, fs)#raise Exception(f"Cannot recognize '{source}' source")
+			# centered_data = gaussian_filter(centered_data, sigma=2.15)#raise Exception(f"Cannot recognize '{source}' source")
+			centered_data = data_per_test
 		normalized_data = normalization(centered_data, save_centering=True)
 		prepared_data.append(normalized_data.tolist())
+		# print(len(prepared_data))
+
 
 	return prepared_data
 
@@ -356,8 +383,8 @@ def parse_filename(filename):
 	"""
 	meta = filename.split("_")
 	source = meta[0]
-	if source not in ['bio', 'neuron', 'gras', 'nest']:
-		raise Exception("Cannot recognize source")
+	# if source not in ['bio', 'neuron', 'gras', 'nest']:
+	# 	raise Exception("Cannot recognize source")
 
 	muscle = meta[1]
 	if muscle not in ['E', 'F']:

@@ -702,14 +702,20 @@ if __name__ == '__main__':
     logging.info(f'len cpgs {len(cpgs)}')
 
 
-    connectcells(cpg_ankle_L.iIP_F, cpg_ankle_R.IP_F, 0.95, 2, True)
-    connectcells(cpg_ankle_R.iIP_F, cpg_ankle_L.IP_F, 0.95, 2, True)
-    connectcells(cpg_ankle_L.iIP_E, cpg_ankle_R.IP_E, 0.95, 2, True)
-    connectcells(cpg_ankle_R.iIP_E, cpg_ankle_L.IP_E, 0.95, 2, True)
+    connectcells(cpg_ankle_L.iIP_F, cpg_ankle_R.IP_F, 0.15, 1, True)
+    connectcells(cpg_ankle_R.iIP_F, cpg_ankle_L.IP_F, 0.15, 1, True)
+    connectcells(cpg_ankle_L.iIP_E, cpg_ankle_R.IP_E, 0.15, 1, True)
+    connectcells(cpg_ankle_R.iIP_E, cpg_ankle_L.IP_E, 0.15, 1, True)
+    connectcells(cpg_knee_L.iIP_F, cpg_knee_R.IP_F, 0.15, 1, True)
+    connectcells(cpg_knee_R.iIP_F, cpg_knee_L.IP_F, 0.15, 1, True)
+    connectcells(cpg_knee_L.iIP_E, cpg_knee_R.IP_E, 0.15, 1, True)
+    connectcells(cpg_knee_R.iIP_E, cpg_knee_L.IP_E, 0.15, 1, True)
     connectcells(cpg_ankle_L.IP_E, cpg_ankle_R.OM1_0F, 2.25, 2)
     connectcells(cpg_ankle_R.IP_E, cpg_ankle_L.OM1_0F, 2.25, 2)
     connectcells(cpg_ankle_L.Ia_F, cpg_ankle_L.IP_F, 0.25, 2, True)
     connectcells(cpg_ankle_R.Ia_F, cpg_ankle_R.IP_F, 0.25, 2, True)
+    connectcells(cpg_knee_L.IP_E, cpg_knee_R.OM1_0F, 2.25, 2)
+    connectcells(cpg_knee_R.IP_E, cpg_knee_L.OM1_0F, 2.25, 2)
 
     logging.info("created")
     motorecorders = []

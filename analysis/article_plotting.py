@@ -226,8 +226,9 @@ class Analyzer:
 		axis_names = ('time', 'ampl', 'slice')  # do not change an order!
 		axis_borders = ([8, 28] if border == 'poly_tail' else border,
 		                (0, 1.5),
-		                (-1, max(metadata1.slice_count, metadata2.slice_count) + 1))
+		                (-1, min(metadata1.slice_count, metadata2.slice_count) + 1))
 		#
+		slice_border = min(metadata1.slice_count, metadata2.slice_count)
 		ax1_index = axis_names.index(axis[0])
 		ax2_index = axis_names.index(axis[1])
 
@@ -320,7 +321,12 @@ class Analyzer:
 						else:
 							mask = (border[0] <= t) & (t <= border[1])
 						# pick the data which corresponds to the axis name
-						d = (t[mask], a[mask], s[mask])
+						t = t[mask]
+						a = a[mask]
+						s = s[mask]
+						# d = (t[mask], a[mask], s[mask])
+						mask2 = (0 <= s) & (s <= slice_border)
+						d = (t[mask2], a[mask2], s[mask2])
 						X, Y = d[ax1_index], d[ax2_index]
 						dataXY.append((X, Y))
 					# plt.close()
@@ -822,6 +828,8 @@ class Analyzer:
 				ydata = kde_data["estimate"]
 				xdata = kde_data["eval.points"]
 				plt.plot(xdata, ydata, label=metadata.shortname)
+				plt.xlim(right=25)  # adjust the right leaving left unchanged
+				plt.xlim(left=0)  # adjust the right leaving left unchanged
 				# modes = np.array(self._find_extrema(dx, np.greater)[0]) * 25 / 100
 				# distr = {1: 'uni', 2: 'bi'}
 				# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
@@ -885,7 +893,7 @@ class Analyzer:
 				# find peaks and plot them
 				for myogram_fMEP, time_per_step in zip(rat_myograms, rat_peak_times):
 					for slice_index, (slice_data, peak_time_per_slice) in enumerate(zip(myogram_fMEP, time_per_step)):
-						# raw data before filtering
+				# 		# raw data before filtering
 						peaks_time = np.array(peak_time_per_slice) * dstep_to
 						peaks_value = np.array(slice_data)[peak_time_per_slice] + slice_index
 						# get peaks only inside the borders
@@ -893,7 +901,7 @@ class Analyzer:
 						# filter data
 						peaks_time = peaks_time[filter_mask]
 						peaks_value = peaks_value[filter_mask]
-						# plot peaks if not void
+				# 		# plot peaks if not void
 						if len(peaks_time):
 							passed += 1
 							sliced_x[slice_index] += list(peaks_time)
@@ -912,12 +920,148 @@ class Analyzer:
 			plt.grid(which='both', axis='x')
 			self.axis_article_style(ax, axis='x')
 			plt.yticks(range(0, total_slices), self._form_ticklabels(total_slices), fontsize=30)
-			plt.xlim(0, slice_in_ms)
+			plt.xlim(0, 25)
 			plt.tight_layout()
 			plt.savefig(f"{self.plots_folder}/{save_filename}.pdf", format="pdf")
 			if show:
 				plt.show()
 			plt.close()
+
+	def plot_amp_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		speed = metadata.speed
+		dstep_to = metadata.dstep_to
+		shortname = metadata.shortname
+		if slice_ms is None:
+			slice_in_ms = metadata.slice_in_ms
+		else:
+			slice_in_ms = slice_ms
+
+		allr = [[] for _ in range(6)]
+		# plot per each rat
+		for rat_id in rats:
+			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
+			rat_peak_ampls = metadata.get_peak_ampls(rat_id, muscle='E')
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
+
+			total_rat_steps = rat_myograms.shape[0]
+			total_slices = rat_myograms.shape[1]
+			total_datasteps = rat_myograms.shape[2]
+
+		#
+			plt.close()
+			if speed == "6":
+				fig, ax = plt.subplots(figsize=(20, 20))
+			elif speed == "13.5":
+				fig, ax = plt.subplots(figsize=(16, 12))
+			else:
+				fig, ax = plt.subplots(figsize=(16, 8))
+
+			colors = iter(["#275b78", "#f2aa2e", "#a6261d", "#472650"] * total_rat_steps)
+
+			xticks = np.arange(total_datasteps) * dstep_to
+			# plot sliced myogram data
+			# for myogram_fMEP in rat_myograms:
+			# 	color = next(colors)
+			# 	for slice_index, slice_data in enumerate(myogram_fMEP):
+			# 		plt.plot(xticks, np.array(slice_data) + slice_index, alpha=0.5, color=color, zorder=1)
+
+			# for each border (if it is a list of lists) find peaks inside and form boxplots
+			if type(borders[0]) is not list:
+				borders = [borders]
+			for border in borders:
+				# meta info about percent of existing at least on peak in the border
+				passed = 0
+				alles = total_rat_steps * total_slices
+				# prepare lists for boxplots forming
+				sliced_x = [[] for _ in range(total_slices)]
+				# find peaks and plot them
+				for myogram_fMEP, time_per_step, amp_per_step in zip(rat_myograms, rat_peak_times, rat_peak_ampls):
+					for slice_index, (slice_data, peak_time_per_slice, peak_amp_per_step) in enumerate(zip(myogram_fMEP, time_per_step, amp_per_step)):
+				# 		# raw data before filtering
+						peaks_time = np.array(peak_time_per_slice) * dstep_to
+						peaks_amp = np.array(peak_amp_per_step) #* dstep_to
+						# peaks_value = np.array(slice_data)[peak_time_per_slice] + slice_index
+				# 		# get peaks only inside the borders
+						filter_mask = (border[0] <= peaks_time) & (peaks_time <= border[1])
+						# filter data
+						peaks_time = peaks_time[filter_mask]
+						peaks_amp = peaks_amp[filter_mask]
+						# peaks_value = peaks_value[filter_mask]
+				# 		# plot peaks if not void
+						if len(peaks_time):
+							passed += 1
+							sliced_x[slice_index] += list(peaks_amp)
+							allr[slice_index] += list(peaks_amp)
+				# 			plt.plot(peaks_time, peaks_value, '.', c='k', zorder=3, ms=4)
+				# plot boxplots
+				# np.append(allr, sliced_x, axis=1)
+				for i, x in enumerate(sliced_x):
+					if len(x):
+						bx = plt.boxplot(x, positions=[i], widths=0.8, whis=[10, 90],
+						                 showfliers=False, patch_artist=True, vert=False, zorder=5)
+						starts = bx['whiskers'][0].get_xdata()[1]
+						# plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
+						self._recolor(bx, color="#124460", fill_color="#124460", fill_alpha=0.2)
+			# logging.info(f"{shortname}, rat, {passed / alles * 100:.1f}% of peaks prob. at {border}ms")
+			save_filename = f"{shortname}_{rat_id}_amp_boxplot"
+			# plt.grid(which='both', axis='x')
+			self.axis_article_style(ax, axis='x')
+			# print(medianx)
+			# plt.yticks(range(0, total_slices), self._form_ticklabels(total_slices), fontsize=30)
+			# plt.xlim(0, 1)
+			plt.tight_layout()
+			plt.savefig(f"{self.plots_folder}/{save_filename}.pdf", format="pdf")
+
+		lefty = []
+		leftx = []
+		righty = []
+		rightx = []
+		medianx = []
+		mediany = []
+		print(len(allr))
+		plt.close()
+		for i, x in enumerate(allr):
+			if len(x):
+				bx = plt.boxplot(x, positions=[i], widths=0.2, whis=[10, 90],
+								 showfliers=False, patch_artist=True, vert=False, zorder=5)
+				starts = bx['whiskers'][0].get_xdata()[1]
+				medianx.append(bx['medians'][0].get_xdata()[0])
+				mediany.append(bx['medians'][0].get_ydata()[0])
+				leftx.append(bx['whiskers'][0].get_xdata()[1])
+				lefty.append(bx['whiskers'][0].get_ydata()[1])
+				rightx.append(bx['whiskers'][1].get_xdata()[1])
+				righty.append(bx['whiskers'][1].get_ydata()[1])
+				# plt.text(x=starts - 1.5, y=i + 0.2, s=f"{starts:.1f}", fontsize=25)
+				self._recolor(bx, color="#a6251d", fill_color="#a6251d", fill_alpha=0.2)
+		# logging.info(f"{shortname}, rat, {passed / alles * 100:.1f}% of peaks prob. at {border}ms")
+		save_filename = f"{shortname}_amp_boxplot"
+		# plt.grid(which='both', axis='x')
+		self.axis_article_style(ax, axis='x')
+		# print(medianx)
+		plt.plot(medianx,mediany)
+		plt.plot(leftx,lefty)
+		plt.plot(rightx,righty)
+
+		# plt.yticks(range(0, total_slices), self._form_ticklabels(total_slices), fontsize=30)
+		# plt.xlim(0, 1)
+		plt.tight_layout()
+		plt.savefig(f"{self.plots_folder}/{save_filename}.pdf", format="pdf")
+		if show:
+			plt.show()
+		plt.close()
+			# ar1 = np.array([allr[0]])
+		# ratsall = np.hstack(([allr[0]], [allr[2]],[allr[2]]))
+		print(allr)
 
 	@staticmethod
 	def joint_plot(X, Y, ax, gs, borders, **kwargs):
@@ -1217,6 +1361,14 @@ class Analyzer:
 			X = X[mask]
 			Y = Y[mask]
 
+			print(X)
+			print(Y)
+
+			zip_iterator = zip(Y, X)
+
+			a_dictionary = dict(zip_iterator)
+			print(a_dictionary)
+
 			save_filename = f"{shortname}_3D_rat={rat_id}"
 			# form a mesh grid
 			xmax, ymax = 1, max(Y)
@@ -1372,7 +1524,7 @@ class Analyzer:
 		if speed == "6":
 			figsize = (20, 20)
 		elif speed == "13.5":
-			figsize = (16, 12)
+			figsize = (16, 8)
 		else:
 			figsize = (16, 8)
 		#
@@ -1407,8 +1559,8 @@ class Analyzer:
 
 				# plot.extensor_data[:, slice_index]
 
-				for exp_data in extensor_data:
-					ax.plot(shared_x, exp_data[slice_index] + slice_index, color='r', linewidth=1, zorder=4)
+				# for exp_data in extensor_data:
+				# 	ax.plot(shared_x, exp_data[slice_index] + slice_index, color='r', linewidth=1, zorder=4)
 
 			if flexor_flag:
 				flexor_data = metadata.get_myograms(rat_id, muscle='F')
@@ -1431,6 +1583,8 @@ class Analyzer:
 				y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 				borders = 0, slice_in_ms, -1, e_slices_number
 				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15, addtan=False)
+				ax.plot(x, y, '.', c='k', zorder=3, ms=4)
+
 				if flexor_flag:
 					'''flexor'''
 					x = metadata.get_peak_times(rat_id, muscle='F', flat=True) * dstep_to

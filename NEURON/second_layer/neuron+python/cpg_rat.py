@@ -26,9 +26,9 @@ nMN = 210
 nAff = 120
 nInt = 196
 N = 50
-k = 0.01
+k = 0.018
 
-one_step_time = 6 * speed + 175
+one_step_time = 6 * speed + 125
 time_sim = 25 + one_step_time * step_number
 
 exnclist = []
@@ -150,12 +150,12 @@ class CPG:
         for layer in range(layers+1):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 175), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
+                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 125), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
 
         for layer in range(layers, extra_layers):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + 175), random.gauss(cfr, cfr/10), speed / c_int))
+                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + 125), random.gauss(cfr, cfr/10), speed / c_int))
 
         self.C_1 = []
         self.C_0 = []
@@ -165,8 +165,8 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False))
-            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False))
+            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
+            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
@@ -195,7 +195,7 @@ class CPG:
             createmotif(self.dict_0[layer], self.dict_1[layer], self.dict_2F[layer], self.dict_3[layer])
 
         for layer in range(1, layers):
-            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 1.5, 2)
+            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 1.75, 2)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.45, 2)
@@ -203,8 +203,8 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0015, 3)
-        connectcells(self.V0v, self.OM1_0F, 3.25, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.005, 3)
+        connectcells(self.V0v, self.OM1_0F, 3.75, 3)
         # connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
@@ -235,7 +235,7 @@ class CPG:
         genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 5)
 
         connectcells(self.Ia_aff_E, self.mns_E, 1.55, 1.5)
-        connectcells(self.Ia_aff_F, self.mns_F, 1.5, 1.5)
+        connectcells(self.Ia_aff_F, self.mns_F, 1.15, 1.5)
 
         connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
         connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
@@ -259,8 +259,8 @@ class CPG:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 3.5, 3)
-            connectcells(self.dict_IP_F[layer], self.mns_F, 3.5, 2)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 3.85, 3)
+            connectcells(self.dict_IP_F[layer], self.mns_F, 3.85, 3)
             connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.85, 1, True)
 
         for layer in range(layers+1):
@@ -404,7 +404,7 @@ class CPG:
             self.affgroups.append((gids, name))
         else:
             self.groups.append((gids, name))
-
+            
         return gids
 
     def addgener(self, start, freq, nums, r=True):
