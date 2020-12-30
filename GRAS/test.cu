@@ -40,6 +40,7 @@ const char MOTO = 'm';
 const char MUSCLE = 'u';
 const char AFFERENT = 'a';
 
+const char layers = 5;
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 const int step_number = 2;  // number of steps
 const int cv_fr = 200;      // frequency of CV
@@ -49,7 +50,7 @@ unsigned int one_step_time = 6 * skin_time + 175;
 unsigned int time_sim = 25 + one_step_time * step_number;
 
 random_device r;
-default_random_engine generator(r());
+default_random_engine rand_gen(r());
 
 unsigned int nrns_number = 0;        // [id] global neuron id = number of neurons
 unsigned int nrns_and_segs = 0;      // [id] global neuron+segs id = number of neurons with segments
@@ -111,26 +112,10 @@ const double celsius = 36;        // [degC] temperature of the cell
 // neuron parameters
 vector<unsigned int> vector_nrn_start_seg;
 vector<char> vector_models;
-vector<double> vector_Cm;
-vector<double> vector_gnabar;
-vector<double> vector_gkbar;
-vector<double> vector_gl;
-vector<double> vector_Ra;
-vector<double> vector_diam;
-vector<double> vector_length;
-vector<double> vector_ena;
-vector<double> vector_ek;
-vector<double> vector_el;
-vector<double> vector_gkrect;
-vector<double> vector_gcaN;
-vector<double> vector_gcaL;
-vector<double> vector_gcak;
+vector<double> vector_Cm, vector_gnabar, vector_gkbar, vector_gl, vector_Ra, vector_diam, vector_length, vector_ena,
+               vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;
 // synaptic parameters
-vector<double> vector_E_ex;
-vector<double> vector_E_inh;
-vector<double> vector_tau_exc;
-vector<double> vector_tau_inh1;
-vector<double> vector_tau_inh2;
+vector<double> vector_E_ex, vector_E_inh, vector_tau_exc, vector_tau_inh1, vector_tau_inh2;
 // synapses varaibels
 vector<int> vector_syn_pre_nrn;       // [id] list of pre neurons ids
 vector<int> vector_syn_post_nrn;      // [id] list of pre neurons ids
@@ -151,32 +136,15 @@ Group form_group(const string &group_name,
 	group.id_end = nrns_number + nrns_in_group - 1;  // the latest ID in the group
 	group.group_size = nrns_in_group;  // size of the neurons group
 
-	double __Cm;
-	double __gnabar;
-	double __gkbar;
-	double __gl;
-	double __Ra;
-	double __ena;
-	double __ek;
-	double __el;
-	double __diam;
-	double __dx;
-	double __gkrect;
-	double __gcaN;
-	double __gcaL;
-	double __gcak;
-	double __e_ex;
-	double __e_inh;
-	double __tau_exc;
-	double __tau_inh1;
-	double __tau_inh2;
+	double __Cm, __gnabar, __gkbar, __gl, __Ra, __ena, __ek, __el, __diam, __dx, __gkrect, __gcaN,
+	       __gcaL, __gcak, __e_ex, __e_inh, __tau_exc, __tau_inh1, __tau_inh2;
 	normal_distribution<double> Cm_distr(1, 0.01);
 //	uniform_real_distribution<double> moto_diam_distr(45, 55);
 	uniform_int_distribution<int> moto_diam_distr(45, 55);
 
 	for (int nrn = 0; nrn < nrns_in_group; nrn++) {
 		if (model == INTER) {
-			__Cm = Cm_distr(generator);
+			__Cm = Cm_distr(rand_gen);
 			__gnabar = 0.1;
 			__gkbar = 0.08;
 			__gl = 0.002;
@@ -199,7 +167,7 @@ Group form_group(const string &group_name,
 			__ena = 50.0;
 			__ek = -80.0;
 			__el = -70.0;
-			__diam = moto_diam_distr(generator); //random.randint(45, 55);
+			__diam = moto_diam_distr(rand_gen); //random.randint(45, 55);
 			__dx = __diam;
 			__gkrect = 0.3;
 			__gcaN = 0.05;
@@ -929,7 +897,6 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, int t) {
 			nrn_fixed_step_lastpart(S, P, N, nrn, i1, i3);
 		}
 	}
-
 }
 
 __global__
@@ -962,46 +929,50 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 	}
 }
 
-void conn_a2a(const Group &pre_neurons, const Group &post_neurons, double delay, double weight) {
-	/** */
-	for (int pre = pre_neurons.id_start; pre <= pre_neurons.id_end; ++pre) {
-		for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
-			// weight = random.gauss(weight, weight / 5)
-			// delay = random.gauss(delay, delay / 5)
-			vector_syn_pre_nrn.push_back(pre);
+
+
+void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
+	/**
+	 *
+	 */
+	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
+	normal_distribution<double> delay_distr(delay, delay / 5);
+	normal_distribution<double> weight_distr(weight, weight / 6);
+
+	int nsyn = nsyn_distr(rand_gen);
+	//
+	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
+		for (int i = 0; i < nsyn; ++i) {
+			vector_syn_pre_nrn.push_back(generator.id_start);
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight);
-			vector_syn_delay.push_back((int) (delay / dt));
+			vector_syn_weight.push_back(weight_distr(rand_gen));
+			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
-	printf("Connect all-to-all %s [%d] to %s [%d] (1:%d). Total: %d D=%.1f, W=%.2f\n",
-	       pre_neurons.group_name.c_str(), pre_neurons.group_size,
+	printf("Connect generator %s [%d] to %s [%d] (1:%d). Total: %d D=%.1f, W=%.2f\n",
+	       generator.group_name.c_str(), generator.group_size,
 	       post_neurons.group_name.c_str(), post_neurons.group_size,
-	       post_neurons.group_size, pre_neurons.group_size * post_neurons.group_size, delay, weight);
+	       post_neurons.group_size, generator.group_size * post_neurons.group_size, delay, weight);
 }
 
-void connect_fixed_indegree(const Group &pre_neurons,
-                             const Group &post_neurons,
-                             double delay,
-                             double weight,
-                             int indegree = 50) {
-	// pre_nrns_ids = pre_group[1]
-	// post_nrns_ids = post_group[1]
+void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree=50) {
+	/**
+	 *
+	 */
 	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
+	normal_distribution<double> delay_distr(delay, delay / 5);
+	normal_distribution<double> weight_distr(weight, weight / 6);
 
-	int pre, nsyn = nsyn_distr(generator);
-	// nsyn = random.randint(indegree - 15, indegree)
+	auto nsyn = nsyn_distr(rand_gen);
+	//
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
-			pre = pre_nrns_ids(generator);
-			// weight = random.gauss(weight, weight / 5)
-			// delay = random.gauss(delay, delay / 5)
-			vector_syn_pre_nrn.push_back(pre);
+			vector_syn_pre_nrn.push_back(pre_nrns_ids(rand_gen));
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight);
-			vector_syn_delay.push_back((int)(delay / dt));
+			vector_syn_weight.push_back(weight_distr(rand_gen));
+			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1011,6 +982,9 @@ void connect_fixed_indegree(const Group &pre_neurons,
 	       indegree, post_neurons.group_size * indegree, delay, weight);
 }
 
+void connectinsidenucleus(Group &nucleus) {
+	connect_fixed_indegree(nucleus, nucleus, 0.5, 0.25);
+}
 
 void file_writing(int test_index, GroupMetadata &metadata, const string &folder) {
 	ofstream file;
@@ -1091,8 +1065,9 @@ type* arr_segs() {
 }
 
 void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
-	/** Connects motif module
-     see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
+	/**
+	 * Connects motif module
+	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	*/
 	connect_fixed_indegree(OM0, OM1, 3, 2.85);
 	connect_fixed_indegree(OM1, OM2, 3, 2.85);
@@ -1104,140 +1079,209 @@ void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
 }
 
 void init_network() {
-	//
-	Group EES = form_group("EES", 1, GENERATOR);
-	//
-	vector<Group> gen_C = {form_group("C1", 1, GENERATOR),
-	                       form_group("C2", 1, GENERATOR),
-	                       form_group("C3", 1, GENERATOR),
-	                       form_group("C4", 1, GENERATOR),
-	                       form_group("C5", 1, GENERATOR)};
+	/**
+	 * todo
+	 */
+	string name;
 
-	vector<Group> CV, CV_1, L_0, L_1, L_2E, L_2F, L_3, IP_E, IP_F;
-	// extensor IP
-
-	// Motifs
-	for(int layer = 0; layer < 5; ++layer) {
-		L_0.push_back(form_group("OM" + to_string(layer) + "_0"));
-		L_1.push_back(form_group("OM" + to_string(layer) + "_1"));
-		L_2E.push_back(form_group("OM" + to_string(layer) + "_2E"));
-		L_2F.push_back(form_group("OM" + to_string(layer) + "_2F"));
-		L_3.push_back(form_group("OM" + to_string(layer) + "_3"));
+	vector<Group> CV, CV_1, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C;
+	// generators
+	auto ees = form_group("EES", 1, GENERATOR); // self.addgener(0, ees_fr, 10000, False)
+	// self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 175), random.gauss(cfr, cfr/10), (speed / c_int + 1))
+	for(int layer = 0; layer < layers + 1; ++layer) {
+		name = to_string(layer);
+		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
 	}
+	auto C_0 = form_group("C_0", 1, GENERATOR); // self.addgener(25 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
+	auto V0v = form_group("V0v", 1, GENERATOR); // self.addgener(40 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
 	//
-	for(int layer = 0; layer < 5 + 1; ++layer) {
-		// E-шки
-		CV.push_back(form_group("CV" + to_string(layer + 1), AFFERENT));
-		// true CV
-		CV_1.push_back(form_group("CV" + to_string(layer + 1) + "_1", AFFERENT));
-		// interneuronal pool
-		IP_E.push_back(form_group("IP" + to_string(layer + 1) + "_E"));
-		IP_F.push_back(form_group("IP" + to_string(layer + 1) + "_F"));
-	}
-
-	//
-	Group C_0 = form_group("C_0");
-	Group C_1 = form_group("C_1");
-	Group V0v = form_group("V0v");
-	//
-	Group OM1_0E = form_group("OM1_0E");
-	Group OM1_0F = form_group("OM1_0F");
+	auto OM1_0E = form_group("OM1_0E");
+	auto OM1_0F = form_group("OM1_0F");
 	// OM groups by layer
-	// afferents
-	Group sens_aff = form_group("sens_aff", 120);
-	Group Ia_aff_E = form_group("Ia_aff_E", 120);
-	Group Ia_aff_F = form_group("Ia_aff_F", 120);
-	// motoneurons
-	Group MN_E = form_group("MN_E", 210, MOTO);
-	Group MN_F = form_group("MN_F", 180, MOTO);
-	// muscle fibers
-	Group muscle_E = form_group("muscle_E", 20, MUSCLE, 3); // 150 * 210
-	Group muscle_F = form_group("muscle_F", 20, MUSCLE, 3); // 100 * 180
-	// reflex arc E
-	Group Ia_E = form_group("Ia_E", neurons_in_ip);
-	Group iIP_E = form_group("iIP_E", neurons_in_ip);
-	Group R_E = form_group("R_E");
-	// reflex arc F
-	Group Ia_F = form_group("Ia_F", neurons_in_ip);
-	Group iIP_F = form_group("iIP_F", neurons_in_ip);
-	Group R_F = form_group("R_F");
+	for(int layer = 0; layer < layers; ++layer) {
+		name = to_string(layer);
+		L0.push_back(form_group("OM" + name + "_0"));
+		L1.push_back(form_group("OM" + name + "_1"));
+		L2E.push_back(form_group("OM" + name + "_2E"));
+		L2F.push_back(form_group("OM" + name + "_2F"));
+		L3.push_back(form_group("OM" + name + "_3"));
+	}
+	//
+	for(int layer = 0; layer < layers + 1; ++layer) {
+		name = to_string(layer);
+		CV.push_back(form_group("CV" + name, AFFERENT));        // E-шки
+		CV_1.push_back(form_group("CV_1_" + name, AFFERENT));   // true CV
+		// interneuronal pool
+		IP_E.push_back(form_group("IP_E_" + name));
+		IP_F.push_back(form_group("IP_F_" + name));
+	}
 
+	// afferents
+	auto sens_aff = form_group("sens_aff", 120);
+	auto Ia_aff_E = form_group("Ia_aff_E", 120);
+	auto Ia_aff_F = form_group("Ia_aff_F", 120);
+	// motoneurons
+	auto mns_E = form_group("mns_E", 210, MOTO);
+	auto mns_F = form_group("mns_F", 180, MOTO);
+	// muscle fibers
+	auto muscle_E = form_group("muscle_E", 20, MUSCLE, 3); // 150 * 210
+	auto muscle_F = form_group("muscle_F", 20, MUSCLE, 3); // 100 * 180
+	// reflex arc E
+	auto Ia_E = form_group("Ia_E", neurons_in_ip);
+	auto iIP_E = form_group("iIP_E", neurons_in_ip);
+	auto R_E = form_group("R_E");
+	// reflex arc F
+	auto Ia_F = form_group("Ia_F", neurons_in_ip);
+	auto iIP_F = form_group("iIP_F", neurons_in_ip);
+	auto R_F = form_group("R_F");
+	// note: must be at the end of a group forming
 	vector_nrn_start_seg.push_back(nrns_and_segs);
 
-	/// generators
 	// extensor
-	createmotif(OM1_0E, L_1[0], L_2E[0], L_3[0]);
-	for(int layer = 1; layer < L_0.size(); ++layer)
-		createmotif(L_0[layer], L_1[layer], L_2E[layer], L_3[layer]);
+	createmotif(OM1_0E, L1[0], L2E[0], L3[0]);
+	for(int layer = 1; layer < layers; ++layer)
+		createmotif(L0[layer], L1[layer], L2E[layer], L3[layer]);
 	// extra flexor connections
-	createmotif(OM1_0F, L_1[0], L_2E[0], L_3[0]);
-	for(int layer = 1; layer < L_0.size(); ++layer)
-		createmotif(L_0[layer], L_1[layer], L_2F[layer], L_3[layer]);
+	createmotif(OM1_0F, L1[0], L2E[0], L3[0]);
+	for(int layer = 1; layer < layers; ++layer)
+		createmotif(L0[layer], L1[layer], L2F[layer], L3[layer]);
 
-	for(int layer = 1; layer < L_0.size(); ++layer)
-		connect_fixed_indegree(L_2F[layer - 1], L_2F[layer], 2, 1.5);
-
+	for(int layer = 1; layer < layers; ++layer)
+		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 1.5);
+	//
 	connect_fixed_indegree(CV[0], OM1_0F, 3, 0.0015);
 	connect_fixed_indegree(V0v, OM1_0F, 3, 3.25);
 	// between delays via excitatory pools
 	// extensor
-	for(int layer = 1; layer < L_0.size(); ++layer)
+	for(int layer = 1; layer < L0.size(); ++layer)
 		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 0.75);
-	// EES
-	// addgener(0, ees_fr, 10000, False)
-	// AFF
-	// self.Iagener_E = self.addIagener(self.muscle_E, self.muscle_F, 10)
-	// self.Iagener_F = self.addIagener(self.muscle_F, self.muscle_F, speed*6)
-	// CV
-	// self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 175), random.gauss(cfr, cfr/10), (speed / c_int + 1))
-	// C_0
-	// self.addgener(25 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
-	// V0v
-	// self.addgener(40 + speed * 6 + i * (speed * 6 + 175), cfr, 175/c_int, False)
+	//
+	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00045);
+	for(int layer = 1; layer < L0.size(); ++layer)
+		connect_fixed_indegree(CV[layer], L0[layer], 2, 0.00045);
 
-	// gen connect
-	conn_a2a(EES, Ia_aff_E, 1, 1.5);
-	conn_a2a(EES, Ia_aff_E, 1, 1.5);
-	conn_a2a(EES, CV[0], 2, 1.5);
-	// genconnect(self.Iagener_E, self.Ia_aff_E, 0.0001, 1, False, 5)
-	// genconnect(self.Iagener_F, self.Ia_aff_F, 0.0001, 1, False, 5)
+	// inhibitory projections
+	// extensor
+	for (int layer = 2; layer < layers + 1; ++layer) {
+		if (layer > 3) {
+			for (int i = 0; i < layers - 2; ++i) {
+				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
+			}
+		} else {
+			for (int i = 0; i < layers - 1; ++i) {
+				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
+			}
+		}
+	}
 
-	connect_fixed_indegree(Ia_aff_E, MN_E, 1.5, 1.55);
-	connect_fixed_indegree(Ia_aff_F, MN_F, 1.5, 1.5);
+	conn_generator(ees, Ia_aff_E, 1, 1.5);
+	conn_generator(ees, Ia_aff_F, 1, 1.5);
+	conn_generator(ees, CV[0], 2, 1.5);
+//	conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
+//	conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(MN_E, muscle_E, 2, 15.5, 45); // connectcells(self.mns_E, self.muscle_E, 15.5, 2, False, 45)
-	connect_fixed_indegree(MN_F, muscle_F, 2, 15.5, 45); // connectcells(self.mns_F, self.muscle_F, 15.5, 2, False, 45)
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 1.55);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 1.5);
 
-	/// IP
-	// for layer in range(1, 4):
-	//      connectcells(self.dict_IP_E[layer-1], self.dict_IP_E[layer+1], 0.45*layer, 2)
-	//      connectcells(self.dict_IP_F[layer-1], self.dict_IP_F[layer+1], 0.45*layer, 2)
-	// connectinsidenucleus
-//	connect_fixed_indegree(EES, OM1_0, 2, 0.00075 * k * skin_time);
-//	conn_a2a(CV1, OM1_0, 2, 0.00048);
-//	// connect_fixed_indegree(CV1, CV2, 1, 15)
-//
-//	//	def connectinsidenucleus(nucleus):
-//	//	connectcells(nucleus, nucleus, 0.25, 0.5)
-//
-//	// Layer 1
-//	connect_fixed_indegree(eIP_E_1, eIP_E_1, 0.5, 0.25);
-//	connect_fixed_indegree(OM1_2_E, OM1_2_E, 0.5, 0.25);
-//	connect_fixed_indegree(OM1_2_F, OM1_2_F, 0.5, 0.25);
-//	connect_fixed_indegree(OM1_2_E, eIP_E_1, 3, 2.85);
-//	connect_fixed_indegree(eIP_E_1, MN_E, 3, 2.85);
-//	//
-//	connect_fixed_indegree(OM1_0, OM1_1, 3, 2.95);
-//	connect_fixed_indegree(OM1_1, OM1_2_E, 3, 2.85);
-//	connect_fixed_indegree(OM1_2_E, OM1_1, 3, 1.95);
-//	connect_fixed_indegree(OM1_2_E, OM1_3, 3, 0.0007);
-//	// connect_fixed_indegree(OM1_2_F, OM2_2_F, 1.5, 2);
-//	connect_fixed_indegree(OM1_1, OM1_3, 3, 0.00005);
-//	connect_fixed_indegree(OM1_3, OM1_2_E, 3, -4.5);
-//	connect_fixed_indegree(OM1_3, OM1_1, 3, -4.5);
-//
-//	vector<Group> groups = {OM1_0, OM2_0, OM3_0};
-//	save(groups);
+	connect_fixed_indegree(mns_E, muscle_E, 2, 15.5, 45);
+	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
+	// IP
+	for (int layer = 0; layer < layers; ++layer) {
+		// Extensor
+		connectinsidenucleus(IP_F[layer]);
+		connectinsidenucleus(L2E[layer]);
+		connectinsidenucleus(L2F[layer]);
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 2.85);
+		connect_fixed_indegree(IP_E[layer], mns_E, 3, 2.85);
+		if (layer > 3)
+			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
+		else
+			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
+		// Flexor
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 3, 3.5);
+		connect_fixed_indegree(IP_F[layer], mns_F, 2, 3.5);
+		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.85);
+	}
+	// skin inputs
+	for (int layer = 0; layer < layers + 1; ++layer)
+		connect_fixed_indegree(gen_C[layer], CV_1[layer], 2, 0.15 * k * skin_time);
+
+	// C
+	// C1
+	connect_fixed_indegree(CV_1[0], OM1_0E, 2, 0.00075 * k * skin_time);
+	connect_fixed_indegree(CV_1[0], L0[1], 3, 0.00001 * k * skin_time);
+	connect_fixed_indegree(CV_1[0], L0[2], 3, 0.00001 * k * skin_time);
+    // C2
+	connect_fixed_indegree(CV_1[1], OM1_0E, 2, 0.0005 * k * skin_time);
+	connect_fixed_indegree(CV_1[1], L0[1], 3, 0.00045 * k * skin_time);
+	connect_fixed_indegree(CV_1[1], L0[2], 3, 0.00025 * k * skin_time);
+	connect_fixed_indegree(CV_1[1], L0[3], 3, 0.00005 * k * skin_time);
+    // C3
+	connect_fixed_indegree(CV_1[2], L0[1], 2, 0.0004 * k * skin_time);
+	connect_fixed_indegree(CV_1[2], L0[2], 3, 0.00035 * k * skin_time);
+	connect_fixed_indegree(CV_1[2], L0[3], 3, 0.0002 * k * skin_time);
+	connect_fixed_indegree(CV_1[2], L0[4], 3, 0.0001 * k * skin_time);
+    // C4
+	connect_fixed_indegree(CV_1[3], L0[2], 3, 0.00035 * k * skin_time);
+	connect_fixed_indegree(CV_1[3], L0[3], 3, 0.00035 * k * skin_time);
+	connect_fixed_indegree(CV_1[4], L0[2], 3, 0.00035 * k * skin_time);
+	connect_fixed_indegree(CV_1[4], L0[3], 3, 0.00035 * k * skin_time);
+	connect_fixed_indegree(CV_1[3], L0[4], 3, 0.0001 * k * skin_time);
+	connect_fixed_indegree(CV_1[4], L0[4], 3, 0.0001 * k * skin_time);
+	// C5
+	connect_fixed_indegree(CV_1[5], L0[4], 3, 0.00025 * k * skin_time);
+	connect_fixed_indegree(CV_1[5], L0[3], 3, 0.0001 * k * skin_time);
+	// C=1 Extensor
+	for (int layer = 0; layer < layers; ++layer)
+		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.001);
+	//
+	for (int layer = 0; layer < layers + 1; ++layer) {
+		connect_fixed_indegree(CV_1[layer], iIP_E, 1, 1.8);
+		connect_fixed_indegree(gen_C[layer], iIP_E, 1, 1.8);
+	}
+	connect_fixed_indegree(iIP_E, OM1_0F, 1, -1.9);
+
+	for (int layer = 0; layer < layers; ++layer) {
+		connect_fixed_indegree(iIP_E, L2F[layer], 2, -1.8);
+		connect_fixed_indegree(iIP_F, L2E[layer], 2, -0.5);
+	}
+	//
+	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
+	connect_fixed_indegree(iIP_E, mns_F, 1, -0.8);
+	for (int layer = 0; layer < layers; ++layer) {
+		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.5);
+		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
+		connect_fixed_indegree(iIP_F, IP_E[layer], 1, -0.8);
+	}
+	// C=0 Flexor
+	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.5);
+	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -0.5);
+	connect_fixed_indegree(iIP_F, mns_E, 1, -0.4);
+	connect_fixed_indegree(C_0, iIP_F, 1, 0.8);
+	// reflex arc
+	connect_fixed_indegree(iIP_E, Ia_E, 1, 0.001);
+	connect_fixed_indegree(Ia_aff_E, Ia_E, 1, 0.008);
+	connect_fixed_indegree(mns_E, R_E, 1, 0.00015);
+	connect_fixed_indegree(Ia_E, mns_F, 1, -0.08);
+	connect_fixed_indegree(R_E, mns_E, 1, -0.00015);
+	connect_fixed_indegree(R_E, Ia_E, 1, -0.001);
+	//
+	connect_fixed_indegree(iIP_F, Ia_F, 1, 0.001);
+	connect_fixed_indegree(Ia_aff_F, Ia_F, 1, 0.008);
+	connect_fixed_indegree(mns_F, R_F, 1, 0.00015);
+	connect_fixed_indegree(Ia_F, mns_E, 1, -0.08);
+	connect_fixed_indegree(R_F, mns_F, 1, -0.00015);
+	connect_fixed_indegree(R_F, Ia_F, 1, -0.001);
+	//
+	connect_fixed_indegree(R_E, R_F, 1, -0.04);
+	connect_fixed_indegree(R_F, R_E, 1, -0.04);
+	connect_fixed_indegree(Ia_E, Ia_F, 1, -0.08);
+	connect_fixed_indegree(Ia_F, Ia_E, 1, -0.08);
+	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
+	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
+	//
+	vector<Group> groups = {L0[0], L1[0], L3[0]};
+	save(groups);
 }
 
 void simulate(int test_index) {
