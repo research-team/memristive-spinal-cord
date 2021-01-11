@@ -22,7 +22,7 @@ Based on the NEURON repository.
 
 static void HandleError(cudaError_t err, const char *file, int line) {
 	if (err != cudaSuccess) {
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), file, line);
+		printf("!!! %s in %s at line %d\n", cudaGetErrorString(err), file, line);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -39,7 +39,7 @@ const char MUSCLE = 'u';
 
 const char layers = 5;
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 2;  // number of steps
+const int step_number = 1;  // number of steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 
@@ -112,7 +112,7 @@ vector<double> vector_syn_weight;
 // results vector
 vector <GroupMetadata> saving_groups;  //
 // generators
-vector<unsigned int> vec_time_start, vec_time_end, vec_nrn_id, vec_freq_in_steps, vec_spike_each_step;
+vector<unsigned int> vec_time_end, vec_nrn_id, vec_freq_in_steps, vec_spike_each_step;
 
 // form structs of neurons global ID and groups name
 Group form_group(const string &group_name,
@@ -265,7 +265,7 @@ type *init_gpu_arr(vector<type> &vec) {
 
 void add_generator(Group &group, double start, double end, double freq) {
 	vec_nrn_id.push_back(group.id_start);
-	vec_time_start.push_back(ms_to_step(end));
+	vec_time_end.push_back(ms_to_step(end));
 	vec_freq_in_steps.push_back(ms_to_step(1000 / freq));
 	vec_spike_each_step.push_back(ms_to_step(start));
 }
@@ -398,7 +398,7 @@ void nrn_moto_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, d
 	 * initialize channels, based on cropped evaluate_fct function
 	 */
 	double a = alpham(V);
-	S->m[nrn_seg_index] = a / (a + betam(V));                    // m_inf
+	S->m[nrn_seg_index] = a / (a + betam(V));                         // m_inf
 	S->h[nrn_seg_index] = 1.0 / (1.0 + Exp((V + 65.0) / 7.0));   // h_inf
 	S->p[nrn_seg_index] = 1.0 / (1.0 + Exp(-(V + 55.8) / 3.7));  // p_inf
 	S->n[nrn_seg_index] = 1.0 / (1.0 + Exp(-(V + 38.0) / 15.0)); // n_inf
@@ -897,14 +897,14 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 	 */
 	int i1, i3;
 	// master thread generator updates
-//	if (blockIdx.x * blockDim.x + threadIdx.x == 0) {
-//		for (int generator = 0; generator < G->size; ++generator) {
-//			if (t == G->spike_each_step[generator] && t < G->time_end[generator]) {
-//				G->spike_each_step[generator] += G->freq_in_steps[generator];
-//				N->has_spike[G->nrn_id[generator]] = true;
-//			}
-//		}
-//	}
+	if (blockIdx.x * blockDim.x + threadIdx.x == 0) {
+		for (int generator = 0; generator < G->size; ++generator) {
+			if (t == G->spike_each_step[generator] && t < G->time_end[generator]) {
+				G->spike_each_step[generator] += G->freq_in_steps[generator];
+				N->has_spike[G->nrn_id[generator]] = true;
+			}
+		}
+	}
 
 	for (int nrn = blockIdx.x * blockDim.x + threadIdx.x; nrn < N->size; nrn += blockDim.x * gridDim.x) {
 		if (P->models[nrn] != GENERATOR) {
