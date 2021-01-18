@@ -35,6 +35,7 @@ const char GENERATOR = 'g';
 const char INTER = 'i';
 const char MOTO = 'm';
 const char MUSCLE = 'u';
+const char AFFERENTS = 'a';
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
@@ -118,6 +119,7 @@ Group form_group(const string &group_name,
 	normal_distribution<double> Cm_distr(1, 0.01);
 	uniform_int_distribution<int> moto_diam_distr(45, 55);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
+	uniform_real_distribution<double> afferent_diam_distr(15, 35);
 
 	for (int nrn = 0; nrn < nrns_in_group; nrn++) {
 		if (model == INTER) {
@@ -130,6 +132,22 @@ Group form_group(const string &group_name,
 			ek = -90.0;
 			el = -70.0;
 			diam = inter_diam_distr(rand_gen); // 10
+			dx = diam;
+			e_ex = 50;
+			e_inh = -80;
+			tau_exc = 0.35;
+			tau_inh1 = 0.5;
+			tau_inh2 = 3.5;
+		} else if (model == AFFERENTS) {
+			Cm = 2;
+			gnabar = 0.5;
+			gkbar = 0.04;
+			gl = 0.002;
+			Ra = 200.0;
+			ena = 50.0;
+			ek = -90.0;
+			el = -70.0;
+			diam = afferent_diam_distr(rand_gen); // 10
 			dx = diam;
 			e_ex = 50;
 			e_inh = -80;
@@ -570,7 +588,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		}
 		// NEURON update
 		// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-		if (P->models[nrn] == INTER) {
+		if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
 			// muscle and inter has the same fast_channel function
 			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
 			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
@@ -721,7 +739,7 @@ void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* N, int nrn, int 
 	// update neurons' synapses state
 	recalc_synaptic(S, P, N, nrn);
 	//  update neurons' segments state
-	if (P->models[nrn] == INTER) {
+	if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
 		for(int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 			recalc_inter_channels(S, P, N, nrn_seg, S->Vm[nrn_seg]);
 		}
@@ -865,7 +883,7 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 			// for each segment init the neuron model
 			for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 				S->Vm[nrn_seg] = v_init;
-				if (P->models[nrn] == INTER) {
+				if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
 					nrn_inter_initial(S, P, N, nrn_seg, v_init);
 				} else if (P->models[nrn] == MOTO) {
 					nrn_moto_initial(S, P, N, nrn_seg, v_init);
@@ -981,7 +999,7 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	 */
 	if (vector_models[post_neurons.id_start] == INTER) {
 		printf("POST INTER ");
-		weight /= 2;
+		weight /= 10;
 	}
 
 	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
@@ -1137,16 +1155,15 @@ void init_network() {
 	//
 	for(int layer = 0; layer < layers + 1; ++layer) {
 		name = to_string(layer + 1);
-		CV.push_back(form_group("CV" + name));        // E-шки
-		CV_1.push_back(form_group("CV_1_" + name));   // true CV
+		CV.push_back(form_group("CV" + name, 50, AFFERENTS));        // E-шки
+		CV_1.push_back(form_group("CV_1_" + name, 50, AFFERENTS));   // true CV
 		// interneuronal pool
 		IP_E.push_back(form_group("IP_E_" + name));
 		IP_F.push_back(form_group("IP_F_" + name));
 	}
 	// afferents
-	auto sens_aff = form_group("sens_aff", 120);
-	auto Ia_aff_E = form_group("Ia_aff_E", 120);
-	auto Ia_aff_F = form_group("Ia_aff_F", 120);
+	auto Ia_aff_E = form_group("Ia_aff_E", 120, AFFERENTS);
+	auto Ia_aff_F = form_group("Ia_aff_F", 120, AFFERENTS);
 	// motoneurons
 	auto mns_E = form_group("mns_E", 210, MOTO);
 	auto mns_F = form_group("mns_F", 180, MOTO);
@@ -1205,27 +1222,27 @@ void init_network() {
 	// between delays via excitatory pools
 	// extensor
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 0.75);
-	//
-	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00047);
+		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 2);
+	// connect E (from EES)
+	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00027); // 0.00047
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(CV[layer], L0[layer], 2, 0.00048);
-	// inhibitory projections
-	// extensor
-	for (int layer = 2; layer < layers + 1; ++layer) {
-		if (layer > 3) {
-			for (int i = 0; i < layers - 2; ++i) {
-				printf("C index %d, OM%d_3 (layer > 3)\n", layer, i);
-				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
+		connect_fixed_indegree(CV[layer], L0[layer], 2, 0.00028); // 0.00048
+
+	// CV inhibitory projections (via 3rd core)
+	for (int layer = 0; layer < layers - 1; ++layer) {
+		if (layer >= 3) {
+			for (int i = layer + 3; i < layers + 1; ++i) {
+				printf("C index %d, OM%d_3 (layer > 3)\n", i, layer);
+				connect_fixed_indegree(gen_C[i], L3[layer], 1, 1.95);
 			}
 		} else {
-			for (int i = 0; i < layers - 1; ++i) {
-				printf("C index %d, OM%d_3 (else)\n", layer, i);
-				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
+			for (int i = layer + 2; i < layers + 1; ++i) {
+				printf("C index %d, OM%d_3 (else)\n", i, layer);
+				connect_fixed_indegree(gen_C[i], L3[layer], 1, 1.95);
 			}
 		}
 	}
-	exit(1);
+
 	conn_generator(ees, Ia_aff_E, 1, 1.5);
 	conn_generator(ees, Ia_aff_F, 1, 1.5);
 	conn_generator(ees, CV[0], 2, 1.5);
