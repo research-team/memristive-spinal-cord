@@ -16,17 +16,17 @@ rank = int(pc.id())
 nhost = int(pc.nhost())
 
 #param
-speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
+step_number = 5 # number of steps
 layers = 5  # default
 extra_layers = 0 + layers
 nMN = 210
 nAff = 120
 nInt = 196
 N = 50
-k = 0.017
+k = 0.007
 
 one_step_time = 6 * speed + 125
 time_sim = 25 + one_step_time * step_number
@@ -203,8 +203,8 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.OM1_0F, 2.75, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.00025, 3)
+        # connectcells(self.V0v, self.OM1_0F, 2.75, 3)
         # connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
@@ -305,7 +305,7 @@ class CPG:
         connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
 
         '''C=1 Extensor'''
-        connectcells(self.IP_E, self.iIP_E, 0.001, 1)
+        connectcells(self.IP_E, self.iIP_E, 0.5, 1)
 
         for layer in range(layers+1):
             connectcells(self.dict_CV_1[layer], self.iIP_E, 1.8, 1)
@@ -314,11 +314,11 @@ class CPG:
         connectcells(self.iIP_E, self.OM1_0F, 1.9, 1, True)
 
         for layer in range(layers):
-            connectcells(self.iIP_E, self.dict_2F[layer], 1.8, 2, True)
+            connectcells(self.iIP_E, self.dict_2F[layer], 0.5, 2, True)
             connectcells(self.iIP_F, self.dict_2E[layer], 0.5, 2, True)
 
         connectcells(self.iIP_E, self.IP_F, 0.5, 1, True)
-        connectcells(self.iIP_E, self.Ia_aff_F, 1.2, 1, True)
+        connectcells(self.iIP_E, self.Ia_aff_F, 2.2, 1, True)
         connectcells(self.iIP_E, self.mns_F, 0.8, 1, True)
 
         '''C=0 Flexor'''
@@ -341,7 +341,7 @@ class CPG:
         connectcells(self.Ia_aff_F, self.Ia_F, 0.008, 1)
         connectcells(self.mns_F, self.R_F, 0.00015, 1)
         connectcells(self.Ia_F, self.mns_E, 0.08, 1, True)
-        connectcells(self.R_F, self.mns_F, 0.00015, 1, True)
+        connectcells(self.R_F, self.mns_F, 0.0015, 1, True)
         connectcells(self.R_F, self.Ia_F, 0.001, 1, True)
 
         connectcells(self.R_E, self.R_F, 0.04, 1, True)
@@ -646,7 +646,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/AIR_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
                 sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
                 file.create_dataset('#0_step_{}'.format(i), data=np.array(result)[sl], compression="gzip")
@@ -696,9 +696,9 @@ if __name__ == '__main__':
         # affrecorders = []
         # for group in cpg_ex.affgroups:
         #   affrecorders.append(spike_record(group[k_nrns], i))
-        recorders = []
-        for group in cpg_ex.groups:
-          recorders.append(spike_record(group[k_nrns], i))
+        # recorders = []
+        # for group in cpg_ex.groups:
+        #   recorders.append(spike_record(group[k_nrns], i))
         logging.info("added recorders")
 
         print("- " * 10, "\nstart")
@@ -714,8 +714,8 @@ if __name__ == '__main__':
             spikeout(group[k_nrns], 'mem_{}'.format(group[k_name]), i, recorder)
         # for group, recorder in zip(cpg_ex.affgroups, affrecorders):
         #   spikeout(group[k_nrns], group[k_name], i, recorder)
-        for group, recorder in zip(cpg_ex.groups, recorders):
-          spikeout(group[k_nrns], group[k_name], i, recorder)
+        # for group, recorder in zip(cpg_ex.groups, recorders):
+        #   spikeout(group[k_nrns], group[k_name], i, recorder)
         logging.info("recorded")
 
     finish()
