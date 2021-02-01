@@ -45,7 +45,7 @@ const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 25 + one_step_time * step_number;
+const unsigned int sim_time = 300; //25 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
@@ -54,8 +54,8 @@ const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
-const double k = 0.01;            // synaptic coef
-const double V_th = -40;          // [mV] voltage threshold
+const double k = 0.018;            // synaptic coef
+const double V_th = 0;  // -40         // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
 const double ca0 = 2;             // initial calcium concentration
@@ -123,7 +123,7 @@ Group form_group(const string &group_name,
 
 	for (int nrn = 0; nrn < nrns_in_group; nrn++) {
 		if (model == INTER) {
-			Cm = Cm_distr(rand_gen);
+			Cm = 1; //Cm_distr(rand_gen);
 			gnabar = 0.1;
 			gkbar = 0.08;
 			gl = 0.002;
@@ -131,7 +131,7 @@ Group form_group(const string &group_name,
 			ena = 50.0;
 			ek = -90.0;
 			el = -70.0;
-			diam = inter_diam_distr(rand_gen); // 10
+			diam = 10; //inter_diam_distr(rand_gen); // 10
 			dx = diam;
 			e_ex = 50;
 			e_inh = -80;
@@ -225,6 +225,8 @@ Group form_group(const string &group_name,
 		vector_nrn_start_seg.push_back(nrns_and_segs);
 		nrns_and_segs += (segs + 2);
 		vector_models.push_back(model);
+		// void (*foo)(int);
+		// foo = &my_int_func;
 	}
 
 	nrns_number += nrns_in_group;
@@ -562,9 +564,10 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	 * This is a common operation for fixed step, cvode, and daspk methods
 	 */
 	// init _rhs and _lhs (NODE_D) as zero
-	for (int i = i1; i < i3; ++i) {
-		S->NODE_RHS[i] = 0.0;
-		S->NODE_D[i] = 0.0;
+	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+		S->NODE_RHS[nrn_seg] = 0.0;
+		// replace the process: init by 0, add Cm*frac, add A and B
+		S->NODE_D[nrn_seg] = S->const_NODE_D[nrn_seg];
 //		ext_rhs[i1:i3, :] = 0
 	}
 
@@ -576,6 +579,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		V = S->Vm[nrn_seg];
 		// SYNAPTIC update
 		if (nrn_seg == center_segment) {
+			// note that CAP has no jacob
 			// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
 			_g = syn_current(N, P, nrn, V + 0.001);
 			_rhs = syn_current(N, P, nrn, V);
@@ -585,30 +589,34 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 			S->NODE_RHS[nrn_seg] -= _rhs;
 			// static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
 			S->NODE_D[nrn_seg] += _g;
+			// void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml) {
+
+			// NEURON update
+			// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
+			if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
+				// muscle and inter has the same fast_channel function
+				_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
+				_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
+			} else if (P->models[nrn] == MOTO) {
+				_g = nrn_moto_current(S, P, N, nrn, nrn_seg, V + 0.001);
+				_rhs = nrn_moto_current(S, P, N, nrn, nrn_seg, V);
+			} else if (P->models[nrn] == MUSCLE) {
+				// muscle and inter has the same fast_channel function
+				_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
+				_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
+			} else {
+				printf("\nERROR\n");
+			}
+			// save data like in NEURON (after .mod nrn_cur)
+			_g = (_g - _rhs) / 0.001;
+			S->NODE_RHS[nrn_seg] -= _rhs;
 		}
-		// NEURON update
-		// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-		if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
-			// muscle and inter has the same fast_channel function
-			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
-			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
-		} else if (P->models[nrn] == MOTO) {
-			_g = nrn_moto_current(S, P, N, nrn, nrn_seg, V + 0.001);
-			_rhs = nrn_moto_current(S, P, N, nrn, nrn_seg, V);
-		} else if (P->models[nrn] == MUSCLE) {
-			// muscle and inter has the same fast_channel function
-			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
-			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
-		} else {
-			// todo
-		}
-		// save data like in NEURON (after .mod nrn_cur)
-		_g = (_g - _rhs) / 0.001;
-		S->NODE_RHS[nrn_seg] -= _rhs;
-		// static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
-		S->NODE_D[nrn_seg] += _g;
 	} // end FOR segments
 	// activsynapse_rhs()
+
+	// at this point d contains all the membrane conductances
+	// now add the axial currents
+
 	if (EXTRACELLULAR) {
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
 		// i(vm)+is(vi) and is(vi) which are stored in rhs vector.
@@ -659,12 +667,10 @@ void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	 */
 	// intracellular
 	double ppp;
-	int nrn_seg = i3 - 1;
-	while (nrn_seg >= i1 + 1) {
+	for (int nrn_seg = i3 - 1; nrn_seg >= i1 + 1; --nrn_seg) {
 		ppp = S->NODE_A[nrn_seg] / S->NODE_D[nrn_seg];
 		S->NODE_D[nrn_seg - 1] -= ppp * S->NODE_B[nrn_seg];
 		S->NODE_RHS[nrn_seg - 1] -= ppp * S->NODE_RHS[nrn_seg];
-		nrn_seg--;
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
@@ -694,9 +700,8 @@ void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, in
 	 */
 	nrn_rhs(S, P, N, nrn, i1, i3);
 	// simplified nrn_lhs(nrn)
-	for (int i = i1; i < i3; ++i) {
-		S->NODE_D[i] += S->const_NODE_D[i];
-	}
+	// nrn_jacob
+
 }
 
 __device__
@@ -849,7 +854,8 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 		i1 = P->nrn_start_seg[nrn];
 		i3 = P->nrn_start_seg[nrn + 1];
 		segments = (i3 - i1 - 2);
-		for (nrn_seg = i1 + 1; nrn_seg < i1 + segments + 1; ++nrn_seg) {  // added + 1 for nodelist
+		// nrn_cap_jacob
+		for (nrn_seg = i1 + 1; nrn_seg < i3 + 1; ++nrn_seg) {  // added + 1 for nodelist
 			S->const_NODE_D[nrn_seg] += cfac * P->Cm[nrn];
 		}
 		// updating NODED
@@ -972,18 +978,21 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 	/**
 	 *
 	 */
-	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
-	normal_distribution<double> delay_distr(delay, delay / 5);
-	normal_distribution<double> weight_distr(weight, weight / 6);
+//	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
+//	normal_distribution<double> delay_distr(delay, delay / 12);
+//	normal_distribution<double> weight_distr(weight, weight / 12);
 
-	int nsyn = nsyn_distr(rand_gen);
+//	int nsyn = nsyn_distr(rand_gen);
 	//
-	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
-		for (int i = 0; i < nsyn; ++i) {
-			vector_syn_pre_nrn.push_back(generator.id_start);
+	for (int pre = generator.id_start; pre <= generator.id_end; ++pre) {
+		for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
+//		for (int i = 0; i < nsyn; ++i) {
+			vector_syn_pre_nrn.push_back(pre);
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+//			vector_syn_weight.push_back(weight_distr(rand_gen));
+//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			vector_syn_weight.push_back(weight);
+			vector_syn_delay.push_back(ms_to_step(delay));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -997,23 +1006,30 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	/**
 	 *
 	 */
-	if (vector_models[post_neurons.id_start] == INTER) {
-		printf("POST INTER ");
-		weight /= 10;
-	}
+//	if (vector_models[post_neurons.id_start] == INTER) {
+//		printf("POST INTER ");
+//		weight /= 11;
+//	}
 
-	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
+//	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
-	normal_distribution<double> delay_distr(delay, delay / 5);
-	normal_distribution<double> weight_distr(weight, weight / 6);
-	auto nsyn = nsyn_distr(rand_gen);
+//	normal_distribution<double> delay_distr(delay, delay / 12);
+//	normal_distribution<double> weight_distr(weight, weight / 12);
+	auto nsyn = 50; //nsyn_distr(rand_gen);
 	//
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
 			vector_syn_pre_nrn.push_back(pre_nrns_ids(rand_gen));
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			vector_syn_weight.push_back(weight);
+			vector_syn_delay.push_back(ms_to_step(delay));
+//			if (vector_models[post_neurons.id_start] == AFFERENTS) {
+//				vector_syn_weight.push_back(weight);
+//				vector_syn_delay.push_back(ms_to_step(delay));
+//			} else {
+//				vector_syn_weight.push_back(weight_distr(rand_gen));
+//				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+//			}
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1078,7 +1094,7 @@ void copy_data_to(GroupMetadata& metadata,
 	double nrn_mean_g_inh = 0;
 
 	int center;
-	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
+	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_start;++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
 		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
 		nrn_mean_volt += Vm[center];
 		nrn_mean_g_exc += g_exc[nrn];
@@ -1087,9 +1103,9 @@ void copy_data_to(GroupMetadata& metadata,
 			metadata.spike_vector.push_back(step_to_ms(sim_iter));
 		}
 	}
-	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
-	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
-	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
+	metadata.voltage_array[sim_iter] = nrn_mean_volt; // / metadata.group.group_size;
+	metadata.g_exc[sim_iter] = nrn_mean_g_exc; // / metadata.group.group_size;
+	metadata.g_inh[sim_iter] = nrn_mean_g_inh; // / metadata.group.group_size;
 }
 
 
@@ -1127,6 +1143,51 @@ void init_network() {
 	/**
 	 * todo
 	 */
+	auto ees = form_group("EES", 1, GENERATOR);
+	auto stim = form_group("stim", 1, GENERATOR);
+
+	auto OM0 = form_group("OM0", 2);
+	auto OM1 = form_group("OM1", 2);
+	auto OM2 = form_group("OM2", 2);
+	auto OM3 = form_group("OM3", 2);
+
+	auto CV = form_group("CV", 2);
+	auto E = form_group("E", 2);
+
+	add_generator(ees, 10, 100000, 40);
+	add_generator(stim, 10, 60, 200);
+
+	conn_generator(ees, E, 1.1, 0.25);
+	conn_generator(stim, CV, 1.1, 1.7);
+
+	// testing topology coef (WITHOUT)
+	connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
+	connect_fixed_indegree(OM1, OM2, 2.2, 2.85 / 8);
+	connect_fixed_indegree(OM2, OM1, 3.2, 1.95 / 8);
+	connect_fixed_indegree(OM2, OM3, 3.2, 0.0015 / 8);
+	connect_fixed_indegree(OM1, OM3, 3.2, 0.00005 / 8);
+	connect_fixed_indegree(OM3, OM2, 2.2, -4.5 / 8);
+	connect_fixed_indegree(OM3, OM1, 3.2, -4.5 / 8);
+	connect_fixed_indegree(CV, OM0, 3.1, 0.00035 / 8);
+	connect_fixed_indegree(E, OM0, 3.1, 0.00045 / 4);
+
+	// testing topology coef (WITH)
+	/*
+	connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
+	connect_fixed_indegree(OM1, OM2, 2.2, 2.85 / 8);
+	connect_fixed_indegree(OM2, OM1, 3.2, 1.95 / 8);
+	connect_fixed_indegree(OM2, OM3, 3.2, 0.0015 / 8);
+	connect_fixed_indegree(OM1, OM3, 3.2, 0.00005 / 8);
+	connect_fixed_indegree(OM3, OM2, 2.2, -4.5 / 8);
+	connect_fixed_indegree(OM3, OM1, 3.2, -4.5 / 8);
+	connect_fixed_indegree(CV, OM0, 3.1, 0.00035 / 8);
+	connect_fixed_indegree(E, OM0, 3.1, 0.00045 / 4);
+	*/
+	vector<Group> groups = {OM0, OM1, OM2, OM3};
+	save(groups);
+
+	return;
+	/*
 	string name;
 	vector<Group> CV, CV_1, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
@@ -1222,11 +1283,11 @@ void init_network() {
 	// between delays via excitatory pools
 	// extensor
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 2);
+		connect_fixed_indegree(CV[layer - 1], CV[layer], 3, 0.75);
 	// connect E (from EES)
-	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00027); // 0.00047
+	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00047);
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(CV[layer], L0[layer], 2, 0.00028); // 0.00048
+		connect_fixed_indegree(CV[layer], L0[layer], 2, 0.00048);
 
 	// CV inhibitory projections (via 3rd core)
 	for (int layer = 0; layer < layers - 1; ++layer) {
@@ -1354,6 +1415,7 @@ void init_network() {
 //	vector<Group> groups = {L0[0], L1[0], L3[0], Ia_aff_E, gen_C[0], ees, CV[0], OM1_0E};
 //	save(groups);
 	save(all_groups);
+	 */
 }
 
 void simulate(int test_index) {
