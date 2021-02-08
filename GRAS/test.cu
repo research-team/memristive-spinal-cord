@@ -54,8 +54,8 @@ const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
-const double k = 0.018;            // synaptic coef
-const double V_th = 0;  // -40         // [mV] voltage threshold
+const double k = 0.018;           // synaptic coef
+const double V_th = 0;            // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
 const double ca0 = 2;             // initial calcium concentration
@@ -129,7 +129,7 @@ Group form_group(const string &group_name,
 			gl = 0.002;
 			Ra = 100.0;
 			ena = 50.0;
-			ek = -90.0;
+			ek = -77.0; // -90
 			el = -70.0;
 			diam = 10; //inter_diam_distr(rand_gen); // 10
 			dx = diam;
@@ -567,7 +567,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		S->NODE_RHS[nrn_seg] = 0.0;
 		// replace the process: init by 0, add Cm*frac, add A and B
-		S->NODE_D[nrn_seg] = S->const_NODE_D[nrn_seg];
+		S->NODE_D[nrn_seg] = 0; // S->const_NODE_D[nrn_seg];
 //		ext_rhs[i1:i3, :] = 0
 	}
 
@@ -578,44 +578,43 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	for (int nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
 		V = S->Vm[nrn_seg];
 		// SYNAPTIC update
-		if (nrn_seg == center_segment) {
-			// note that CAP has no jacob
-			// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-			_g = syn_current(N, P, nrn, V + 0.001);
-			_rhs = syn_current(N, P, nrn, V);
-			_g = (_g - _rhs) / 0.001;
-			_g *= 1.e2 / S->NODE_AREA[nrn_seg];
-			_rhs *= 1.e2 / S->NODE_AREA[nrn_seg];
-			S->NODE_RHS[nrn_seg] -= _rhs;
-			// static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
-			S->NODE_D[nrn_seg] += _g;
-			// void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml) {
+		// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
+		_g = syn_current(N, P, nrn, V + 0.001);
+		_rhs = syn_current(N, P, nrn, V);
+		_g = (_g - _rhs) / 0.001;
+		_g *= 1.e2 / S->NODE_AREA[nrn_seg];
+		_rhs *= 1.e2 / S->NODE_AREA[nrn_seg];
+		S->NODE_RHS[nrn_seg] -= _rhs;
+		// static void nrn_jacob(_NrnThread* _nt, _Memb_list* _ml, int _type)
+		S->NODE_D[nrn_seg] += _g;
 
-			// NEURON update
-			// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
-			if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
-				// muscle and inter has the same fast_channel function
-				_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
-				_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
-			} else if (P->models[nrn] == MOTO) {
-				_g = nrn_moto_current(S, P, N, nrn, nrn_seg, V + 0.001);
-				_rhs = nrn_moto_current(S, P, N, nrn, nrn_seg, V);
-			} else if (P->models[nrn] == MUSCLE) {
-				// muscle and inter has the same fast_channel function
-				_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
-				_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
-			} else {
-				printf("\nERROR\n");
-			}
-			// save data like in NEURON (after .mod nrn_cur)
-			_g = (_g - _rhs) / 0.001;
-			S->NODE_RHS[nrn_seg] -= _rhs;
+		// void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml) {
+		S->NODE_D[nrn_seg] += S->const_NODE_D[nrn_seg];
+		// activsynapse_lhs()
+		// activclamp_lhs()
+
+		// NEURON update
+		// static void nrn_cur(_NrnThread* _nt, _Memb_list* _ml, int _type)
+		if (P->models[nrn] == INTER || P->models[nrn] == AFFERENTS) {
+			// muscle and inter has the same fast_channel function
+			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
+			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
+		} else if (P->models[nrn] == MOTO) {
+			_g = nrn_moto_current(S, P, N, nrn, nrn_seg, V + 0.001);
+			_rhs = nrn_moto_current(S, P, N, nrn, nrn_seg, V);
+		} else if (P->models[nrn] == MUSCLE) {
+			// muscle and inter has the same fast_channel function
+			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
+			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
+		} else {
+			printf("\nERROR\n");
 		}
+		// save data like in NEURON (after .mod nrn_cur)
+		_g = (_g - _rhs) / 0.001;
+		S->NODE_RHS[nrn_seg] -= _rhs;
+		// note that CAP has no jacob
+		S->NODE_D[nrn_seg] += _g;
 	} // end FOR segments
-	// activsynapse_rhs()
-
-	// at this point d contains all the membrane conductances
-	// now add the axial currents
 
 	if (EXTRACELLULAR) {
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
@@ -627,13 +626,18 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	// activstim_rhs()
 	// activclamp_rhs()
 
-	// todo: always 0, because Vm0 = Vm1 = Vm2 at [CAP node CAP] model (1 section)
 	double dv;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
 		dv = S->Vm[nrn_seg - 1] - S->Vm[nrn_seg];
 		// our connection coefficients are negative so
 		S->NODE_RHS[nrn_seg] -= S->NODE_B[nrn_seg] * dv;
 		S->NODE_RHS[nrn_seg - 1] += S->NODE_A[nrn_seg] * dv;
+	}
+	// at this point d contains all the membrane conductances
+	// now add the axial currents
+	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+		S->NODE_D[nrn_seg] -= S->NODE_B[nrn_seg];
+		S->NODE_D[nrn_seg - 1] -= S->NODE_A[nrn_seg];
 	}
 }
 
@@ -699,9 +703,7 @@ void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, in
 	 * void setup_tree_matrix(NrnThread* _nt)
 	 */
 	nrn_rhs(S, P, N, nrn, i1, i3);
-	// simplified nrn_lhs(nrn)
-	// nrn_jacob
-
+//	if (nrn == 2) for (int ii = i1; ii < i3; ++ii) printf("ii%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n", ii, S->Vm[ii], S->NODE_RHS[ii], S->NODE_RINV[ii], S->NODE_A[ii], S->NODE_B[ii], S->NODE_D[ii], S->NODE_AREA[ii]);
 }
 
 __device__
@@ -713,9 +715,6 @@ void update(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		S->Vm[nrn_seg] += S->NODE_RHS[nrn_seg];
 	}
-	// save data like in NEURON (after .mod nrn_cur)
-//	if DEBUG and nrn in save_neuron_ids:
-//	save_data()
 	// extracellular
 	nrn_update_2d(nrn);
 }
@@ -809,8 +808,6 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 	 */
 	printf("GPU: connection_coef\n");
 	nrn_area_ri(S, P, N);
-	// NODE_A is the effect of this node on the parent node's equation
-	// NODE_B is the effect of the parent node on this node's equation
 	int i1, i3, nrn_seg, segments;
 	//
 	for (int nrn = 0; nrn < N->size; ++nrn) {
@@ -853,15 +850,9 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 			continue;
 		i1 = P->nrn_start_seg[nrn];
 		i3 = P->nrn_start_seg[nrn + 1];
-		segments = (i3 - i1 - 2);
 		// nrn_cap_jacob
-		for (nrn_seg = i1 + 1; nrn_seg < i3 + 1; ++nrn_seg) {  // added + 1 for nodelist
+		for (nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
 			S->const_NODE_D[nrn_seg] += cfac * P->Cm[nrn];
-		}
-		// updating NODED
-		for (nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
-			S->const_NODE_D[nrn_seg] -= S->NODE_B[nrn_seg];
-			S->const_NODE_D[nrn_seg - 1] -= S->NODE_A[nrn_seg];
 		}
 	}
 	// extra
@@ -914,7 +905,7 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 	 */
 	int i1, i3;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
+	//
 	for (int nrn = tid; nrn < N->size; nrn += blockDim.x * gridDim.x) {
 		// reset the spike state
 		N->has_spike[nrn] = false;
@@ -974,7 +965,7 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 	}
 }
 
-void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
+void conn_generator(Group &generator, Group &post_neurons, double delay, double weight) {
 	/**
 	 *
 	 */
@@ -983,7 +974,12 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 //	normal_distribution<double> weight_distr(weight, weight / 12);
 
 //	int nsyn = nsyn_distr(rand_gen);
+	printf("Connect generator %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	       generator.group_name.c_str(), generator.id_start, generator.id_end,
+	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
+	       post_neurons.group_size, generator.group_size * post_neurons.group_size, delay, weight);
 	//
+	int synapse_index = 0;
 	for (int pre = generator.id_start; pre <= generator.id_end; ++pre) {
 		for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 //		for (int i = 0; i < nsyn; ++i) {
@@ -994,12 +990,9 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 			vector_syn_weight.push_back(weight);
 			vector_syn_delay.push_back(ms_to_step(delay));
 			vector_syn_delay_timer.push_back(-1);
+			printf("\tsyn №%d, pre [id %d] -> post [id %d], w = %g, d = %g ms (%d steps)\n", synapse_index++, pre, post, weight, delay, ms_to_step(delay));
 		}
 	}
-	printf("Connect generator %s [%d] to %s [%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
-	       generator.group_name.c_str(), generator.group_size,
-	       post_neurons.group_name.c_str(), post_neurons.group_size,
-	       post_neurons.group_size, generator.group_size * post_neurons.group_size, delay, weight);
 }
 
 void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree=50) {
@@ -1010,16 +1003,24 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 //		printf("POST INTER ");
 //		weight /= 11;
 //	}
+	weight /= 11.0;
 
 //	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
 //	normal_distribution<double> delay_distr(delay, delay / 12);
 //	normal_distribution<double> weight_distr(weight, weight / 12);
 	auto nsyn = 50; //nsyn_distr(rand_gen);
+	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	       pre_neurons.group_name.c_str(), pre_neurons.id_start, pre_neurons.id_end,
+	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
+	       indegree, post_neurons.group_size * indegree, delay, weight);
 	//
+	int prerand = 0;
+	int synapse_index = 0;
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
-			vector_syn_pre_nrn.push_back(pre_nrns_ids(rand_gen));
+			prerand = pre_nrns_ids(rand_gen);
+			vector_syn_pre_nrn.push_back(prerand);
 			vector_syn_post_nrn.push_back(post);
 			vector_syn_weight.push_back(weight);
 			vector_syn_delay.push_back(ms_to_step(delay));
@@ -1031,12 +1032,9 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 //				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
 //			}
 			vector_syn_delay_timer.push_back(-1);
+			printf("\tsyn №%d, pre [id %d] -> post [id %d], w = %g, d = %g ms (%d steps)\n", synapse_index++, prerand, post, weight, delay, ms_to_step(delay));
 		}
 	}
-	printf("Connect indegree %s [%d] to %s [%d] (%d:1). Synapses %d, D=%.1f, W=%.6f\n",
-	       pre_neurons.group_name.c_str(), pre_neurons.group_size,
-	       post_neurons.group_name.c_str(), post_neurons.group_size,
-	       indegree, post_neurons.group_size * indegree, delay, weight);
 }
 
 void connectinsidenucleus(Group &nucleus) {
@@ -1157,19 +1155,19 @@ void init_network() {
 	add_generator(ees, 10, 100000, 40);
 	add_generator(stim, 10, 60, 200);
 
-	conn_generator(ees, E, 1.1, 0.25);
-	conn_generator(stim, CV, 1.1, 1.7);
+	conn_generator(ees, E, 1, 0.25);
+	conn_generator(stim, CV, 1, 1.7);
 
 	// testing topology coef (WITHOUT)
-	connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
-	connect_fixed_indegree(OM1, OM2, 2.2, 2.85 / 8);
-	connect_fixed_indegree(OM2, OM1, 3.2, 1.95 / 8);
-	connect_fixed_indegree(OM2, OM3, 3.2, 0.0015 / 8);
-	connect_fixed_indegree(OM1, OM3, 3.2, 0.00005 / 8);
-	connect_fixed_indegree(OM3, OM2, 2.2, -4.5 / 8);
-	connect_fixed_indegree(OM3, OM1, 3.2, -4.5 / 8);
-	connect_fixed_indegree(CV, OM0, 3.1, 0.00035 / 8);
-	connect_fixed_indegree(E, OM0, 3.1, 0.00045 / 4);
+	connect_fixed_indegree(OM0, OM1, 2.1, 2.85);
+	connect_fixed_indegree(OM1, OM2, 2.2, 2.85);
+	connect_fixed_indegree(OM2, OM1, 3.2, 1.95);
+	connect_fixed_indegree(OM2, OM3, 3.2, 0.0015);
+	connect_fixed_indegree(OM1, OM3, 3.2, 0.00005);
+	connect_fixed_indegree(OM3, OM2, 2.2, -4.5);
+	connect_fixed_indegree(OM3, OM1, 3.2, -4.5);
+	connect_fixed_indegree(CV, OM0, 3, 0.00035);
+	connect_fixed_indegree(E, OM0, 3, 0.00045);
 
 	// testing topology coef (WITH)
 	/*
@@ -1241,7 +1239,6 @@ void init_network() {
 	auto R_F = form_group("R_F");
 
 	// note: must be at the end of a group forming
-	vector_nrn_start_seg.push_back(nrns_and_segs);
 
 	// create generators
 	add_generator(ees, 0, sim_time, ees_fr);
@@ -1428,6 +1425,8 @@ void simulate(int test_index) {
 	Neurons *N = (Neurons *)malloc(sizeof(Neurons));
 	Synapses *synapses = (Synapses *)malloc(sizeof(Synapses));
 	Generators *G = (Generators *)malloc(sizeof(Generators));
+	// noe: important
+	vector_nrn_start_seg.push_back(nrns_and_segs);
 
 	// create neurons and their connectomes
 	init_network();
