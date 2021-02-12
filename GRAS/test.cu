@@ -2,6 +2,7 @@
 See the topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 Based on the NEURON repository.
 */
+//#define DEBUG
 #include <random>
 #include <vector>
 #include <string>
@@ -45,7 +46,7 @@ const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 300; //25 + one_step_time * step_number;
+const unsigned int sim_time = 25 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
@@ -123,15 +124,15 @@ Group form_group(const string &group_name,
 
 	for (int nrn = 0; nrn < nrns_in_group; nrn++) {
 		if (model == INTER) {
-			Cm = 1; //Cm_distr(rand_gen);
+			Cm = Cm_distr(rand_gen);
 			gnabar = 0.1;
 			gkbar = 0.08;
 			gl = 0.002;
 			Ra = 100.0;
 			ena = 50.0;
-			ek = -77.0; // -90
+			ek = -90.0; // -90
 			el = -70.0;
-			diam = 10; //inter_diam_distr(rand_gen); // 10
+			diam = inter_diam_distr(rand_gen); // 10
 			dx = diam;
 			e_ex = 50;
 			e_inh = -80;
@@ -145,7 +146,7 @@ Group form_group(const string &group_name,
 			gl = 0.002;
 			Ra = 200.0;
 			ena = 50.0;
-			ek = -90.0;
+			ek = -90.0;  //-90
 			el = -70.0;
 			diam = afferent_diam_distr(rand_gen); // 10
 			dx = diam;
@@ -380,7 +381,7 @@ void syn_initial(States* S, Parameters* P, Neurons* N, int nrn) {
 		P->tau_inh1[nrn] = P->tau_inh2[nrn] * 1e-9;
 	//
 	double tp = (P->tau_inh1[nrn] * P->tau_inh2[nrn]) / (P->tau_inh2[nrn] - P->tau_inh1[nrn]) *
-	           log(P->tau_inh2[nrn] / P->tau_inh1[nrn]);
+	             log(P->tau_inh2[nrn] / P->tau_inh1[nrn]);
 	N->factor[nrn] = -exp(-tp / P->tau_inh1[nrn]) + exp(-tp / P->tau_inh2[nrn]);
 	N->factor[nrn] = 1.0 / N->factor[nrn];
 }
@@ -655,12 +656,12 @@ void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
-	//	for j in range(nlayer):
-	//	ext_rhs[i1, j] /= ext_d[i1, j]
-	//	for nrn_seg in range(i1 + 1, i3):
-	//	for j in range(nlayer):
-	//	ext_rhs[nrn_seg, j] -= ext_b[nrn_seg, j] * ext_rhs[nrn_seg - 1, j]
-	//	ext_rhs[nrn_seg, j] /= ext_d[nrn_seg, j]
+//		for j in range(nlayer):
+//			ext_rhs[i1, j] /= ext_d[i1, j]
+//		for nrn_seg in range(i1 + 1, i3):
+//		for j in range(nlayer):
+//		ext_rhs[nrn_seg, j] -= ext_b[nrn_seg, j] * ext_rhs[nrn_seg - 1, j]
+//		ext_rhs[nrn_seg, j] /= ext_d[nrn_seg, j]
 	}
 }
 
@@ -832,8 +833,10 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 			S->NODE_B[nrn_seg] = -1.e2 * S->NODE_RINV[nrn_seg] / S->NODE_AREA[nrn_seg];
 		}
 	}
-	// for extracellular
-	ext_con_coef(S, P, N);
+	if (EXTRACELLULAR) {
+		// for extracellular
+		ext_con_coef(S, P, N);
+	}
 
 	/**
 	 * note: from LHS, this functions just recalc each time the constant NODED (!)
@@ -965,32 +968,48 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 	}
 }
 
-void conn_generator(Group &generator, Group &post_neurons, double delay, double weight) {
+void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
 	/**
 	 *
 	 */
-//	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
-//	normal_distribution<double> delay_distr(delay, delay / 12);
-//	normal_distribution<double> weight_distr(weight, weight / 12);
+	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
+	normal_distribution<double> delay_distr(delay, delay / 5);
+	int gen_id = generator.id_start;
 
-//	int nsyn = nsyn_distr(rand_gen);
-	printf("Connect generator %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	if (vector_models[gen_id] == AFFERENTS) {
+		delay += 2;
+		normal_distribution<double> delay_distr(delay, delay / 5);
+	}
+	normal_distribution<double> weight_distr(weight, weight / 6);
+
+	int nsyn = nsyn_distr(rand_gen);
+	printf("Connect generator %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D= %g, W= %g\n",
 	       generator.group_name.c_str(), generator.id_start, generator.id_end,
 	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
 	       post_neurons.group_size, generator.group_size * post_neurons.group_size, delay, weight);
 	//
 	int synapse_index = 0;
-	for (int pre = generator.id_start; pre <= generator.id_end; ++pre) {
-		for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
-//		for (int i = 0; i < nsyn; ++i) {
-			vector_syn_pre_nrn.push_back(pre);
+	if (generator.group_size > 1) {
+		printf("Generator cannot include more than 1 neuron!\n");
+		exit(0);
+	}
+	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
+		for (int i = 0; i < nsyn; ++i) {
+			vector_syn_pre_nrn.push_back(gen_id);
 			vector_syn_post_nrn.push_back(post);
-//			vector_syn_weight.push_back(weight_distr(rand_gen));
-//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			#ifdef DEBUG
 			vector_syn_weight.push_back(weight);
 			vector_syn_delay.push_back(ms_to_step(delay));
+			printf("\tsyn №%d, pre [id %d] -> post [id %d], W = %g, D = %g ms (%d steps)\n", synapse_index++, pre, post, weight, delay, ms_to_step(delay));
+			#else
+			if (vector_models[post] == AFFERENTS) {
+				vector_syn_weight.push_back(weight);
+			} else {
+				vector_syn_weight.push_back(weight_distr(rand_gen));
+			}
+			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			#endif
 			vector_syn_delay_timer.push_back(-1);
-			printf("\tsyn №%d, pre [id %d] -> post [id %d], w = %g, d = %g ms (%d steps)\n", synapse_index++, pre, post, weight, delay, ms_to_step(delay));
 		}
 	}
 }
@@ -999,21 +1018,21 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	/**
 	 *
 	 */
-//	if (vector_models[post_neurons.id_start] == INTER) {
-//		printf("POST INTER ");
-//		weight /= 11;
-//	}
-	weight /= 11.0;
-
-//	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
+	// for dendrites
+	if (vector_models[post_neurons.id_start] == INTER) {
+		printf("POST INTER ");
+		weight /= 6;
+	}
+	normal_distribution<double> delay_distr(delay, delay / 5);
+	normal_distribution<double> weight_distr(weight, weight / 5);
+	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
-//	normal_distribution<double> delay_distr(delay, delay / 12);
-//	normal_distribution<double> weight_distr(weight, weight / 12);
-	auto nsyn = 50; //nsyn_distr(rand_gen);
-	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	auto nsyn = nsyn_distr(rand_gen);
+
+	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D= %g, W= %g\n",
 	       pre_neurons.group_name.c_str(), pre_neurons.id_start, pre_neurons.id_end,
 	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
-	       indegree, post_neurons.group_size * indegree, delay, weight);
+	       nsyn, post_neurons.group_size * nsyn, delay, weight);
 	//
 	int prerand = 0;
 	int synapse_index = 0;
@@ -1022,17 +1041,21 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 			prerand = pre_nrns_ids(rand_gen);
 			vector_syn_pre_nrn.push_back(prerand);
 			vector_syn_post_nrn.push_back(post);
+
+			#ifdef DEBUG
 			vector_syn_weight.push_back(weight);
 			vector_syn_delay.push_back(ms_to_step(delay));
-//			if (vector_models[post_neurons.id_start] == AFFERENTS) {
-//				vector_syn_weight.push_back(weight);
-//				vector_syn_delay.push_back(ms_to_step(delay));
-//			} else {
-//				vector_syn_weight.push_back(weight_distr(rand_gen));
-//				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
-//			}
-			vector_syn_delay_timer.push_back(-1);
 			printf("\tsyn №%d, pre [id %d] -> post [id %d], w = %g, d = %g ms (%d steps)\n", synapse_index++, prerand, post, weight, delay, ms_to_step(delay));
+			#else
+			if (vector_models[post_neurons.id_start] == AFFERENTS) {
+				vector_syn_weight.push_back(weight);
+				vector_syn_delay.push_back(ms_to_step(delay));
+			} else {
+				vector_syn_weight.push_back(weight_distr(rand_gen));
+				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			}
+			#endif
+			vector_syn_delay_timer.push_back(-1);
 		}
 	}
 }
@@ -1092,7 +1115,7 @@ void copy_data_to(GroupMetadata& metadata,
 	double nrn_mean_g_inh = 0;
 
 	int center;
-	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_start;++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
+	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end;++nrn) {
 		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
 		nrn_mean_volt += Vm[center];
 		nrn_mean_g_exc += g_exc[nrn];
@@ -1101,9 +1124,9 @@ void copy_data_to(GroupMetadata& metadata,
 			metadata.spike_vector.push_back(step_to_ms(sim_iter));
 		}
 	}
-	metadata.voltage_array[sim_iter] = nrn_mean_volt; // / metadata.group.group_size;
-	metadata.g_exc[sim_iter] = nrn_mean_g_exc; // / metadata.group.group_size;
-	metadata.g_inh[sim_iter] = nrn_mean_g_inh; // / metadata.group.group_size;
+	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
+	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
+	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
 }
 
 
@@ -1133,7 +1156,7 @@ void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
 	connect_fixed_indegree(OM2, OM1, 3, 1.95);
 	connect_fixed_indegree(OM2, OM3, 3, 0.0005);
 	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
-	connect_fixed_indegree(OM3, OM2, 3, -4.5);
+	connect_fixed_indegree(OM3, OM2, 2, -4.5);
 	connect_fixed_indegree(OM3, OM1, 3, -4.5);
 }
 
@@ -1141,24 +1164,41 @@ void init_network() {
 	/**
 	 * todo
 	 */
+	/* // testing TOPOLOGY
+	auto stim = form_group("stim", 1, GENERATOR);
+	auto OM1 = form_group("OM1", 50);
+	auto OM2 = form_group("OM2", 50);
+	auto OM3 = form_group("OM3", 50);
+	auto motos = form_group("motos", 50, MOTO);
+	auto muscles = form_group("muscles", 1, MUSCLE, 3);
+
+	add_generator(stim, 10, 100, 100);
+
+	conn_generator(stim, OM1, 1, 1.5);
+
+	connect_fixed_indegree(OM1, OM2, 2, 1.85);
+	connect_fixed_indegree(OM2, OM1, 3, 1.85);
+	connect_fixed_indegree(OM2, OM3, 3, 0.00055);
+	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
+	connect_fixed_indegree(OM3, OM2, 1, -2.5);
+	connect_fixed_indegree(OM3, OM1, 1, -2.5);
+	connect_fixed_indegree(OM2, motos, 2, 1.5);
+	connect_fixed_indegree(motos, muscles, 2, 15.5);
+	*/
+	/*
+	// testing topology coef (WITHOUT)
 	auto ees = form_group("EES", 1, GENERATOR);
 	auto stim = form_group("stim", 1, GENERATOR);
-
 	auto OM0 = form_group("OM0", 2);
 	auto OM1 = form_group("OM1", 2);
 	auto OM2 = form_group("OM2", 2);
 	auto OM3 = form_group("OM3", 2);
-
 	auto CV = form_group("CV", 2);
 	auto E = form_group("E", 2);
-
 	add_generator(ees, 10, 100000, 40);
 	add_generator(stim, 10, 60, 200);
-
 	conn_generator(ees, E, 1, 0.25);
 	conn_generator(stim, CV, 1, 1.7);
-
-	// testing topology coef (WITHOUT)
 	connect_fixed_indegree(OM0, OM1, 2.1, 2.85);
 	connect_fixed_indegree(OM1, OM2, 2.2, 2.85);
 	connect_fixed_indegree(OM2, OM1, 3.2, 1.95);
@@ -1168,24 +1208,8 @@ void init_network() {
 	connect_fixed_indegree(OM3, OM1, 3.2, -4.5);
 	connect_fixed_indegree(CV, OM0, 3, 0.00035);
 	connect_fixed_indegree(E, OM0, 3, 0.00045);
-
-	// testing topology coef (WITH)
-	/*
-	connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
-	connect_fixed_indegree(OM1, OM2, 2.2, 2.85 / 8);
-	connect_fixed_indegree(OM2, OM1, 3.2, 1.95 / 8);
-	connect_fixed_indegree(OM2, OM3, 3.2, 0.0015 / 8);
-	connect_fixed_indegree(OM1, OM3, 3.2, 0.00005 / 8);
-	connect_fixed_indegree(OM3, OM2, 2.2, -4.5 / 8);
-	connect_fixed_indegree(OM3, OM1, 3.2, -4.5 / 8);
-	connect_fixed_indegree(CV, OM0, 3.1, 0.00035 / 8);
-	connect_fixed_indegree(E, OM0, 3.1, 0.00045 / 4);
 	*/
-	vector<Group> groups = {OM0, OM1, OM2, OM3};
-	save(groups);
 
-	return;
-	/*
 	string name;
 	vector<Group> CV, CV_1, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
@@ -1273,7 +1297,7 @@ void init_network() {
 	for(int layer = 1; layer < layers; ++layer)
 		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 1.5);
 	//
-	connect_fixed_indegree(CV[0], OM1_0F, 3, 0.0005);
+	connect_fixed_indegree(CV[0], OM1_0F, 3, 0.00025);
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(V0v[step], OM1_0F, 3, 2.75);
 	}
@@ -1308,7 +1332,7 @@ void init_network() {
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
 	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 1.55);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 1.5);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.5);
 
 	connect_fixed_indegree(mns_E, muscle_E, 2, 15.5, 45);
 	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
@@ -1318,16 +1342,16 @@ void init_network() {
 		connectinsidenucleus(IP_F[layer]);
 		connectinsidenucleus(L2E[layer]);
 		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 2.85);
-		connect_fixed_indegree(IP_E[layer], mns_E, 3, 2.85);
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 1.75);
+		connect_fixed_indegree(IP_E[layer], mns_E, 3, 2.75);
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
 		// Flexor
-		connect_fixed_indegree(L2F[layer], IP_F[layer], 3, 3.5);
-		connect_fixed_indegree(IP_F[layer], mns_F, 2, 3.5);
-		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.85);
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 3, 2.85);
+		connect_fixed_indegree(IP_F[layer], mns_F, 2, 3.75);
+		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.75);
 	}
 	// skin inputs
 	for (int layer = 0; layer < layers + 1; ++layer)
@@ -1360,7 +1384,7 @@ void init_network() {
 	connect_fixed_indegree(CV_1[5], L0[3], 3, 0.0001 * k * skin_time);
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
-		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.001);
+		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.5);
 	//
 	for (int layer = 0; layer < layers + 1; ++layer) {
 		connect_fixed_indegree(CV_1[layer], iIP_E, 1, 1.8);
@@ -1369,7 +1393,7 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, OM1_0F, 1, -1.9);
 
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, L2F[layer], 2, -1.8);
+		connect_fixed_indegree(iIP_E, L2F[layer], 2, -0.5);
 		connect_fixed_indegree(iIP_F, L2E[layer], 2, -0.5);
 	}
 	//
@@ -1382,8 +1406,8 @@ void init_network() {
 	}
 	// C=0 Flexor
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.5);
-	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -0.5);
-	connect_fixed_indegree(iIP_F, mns_E, 1, -0.4);
+	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -2.2);
+	connect_fixed_indegree(iIP_F, mns_E, 1, -0.8);
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(C_0[step], iIP_F, 1, 0.8);
 	}
@@ -1401,6 +1425,8 @@ void init_network() {
 	connect_fixed_indegree(Ia_F, mns_E, 1, -0.08);
 	connect_fixed_indegree(R_F, mns_F, 1, -0.00015);
 	connect_fixed_indegree(R_F, Ia_F, 1, -0.001);
+	// todo C_0
+
 	//
 	connect_fixed_indegree(R_E, R_F, 1, -0.04);
 	connect_fixed_indegree(R_F, R_E, 1, -0.04);
@@ -1412,7 +1438,6 @@ void init_network() {
 //	vector<Group> groups = {L0[0], L1[0], L3[0], Ia_aff_E, gen_C[0], ees, CV[0], OM1_0E};
 //	save(groups);
 	save(all_groups);
-	 */
 }
 
 void simulate(int test_index) {
