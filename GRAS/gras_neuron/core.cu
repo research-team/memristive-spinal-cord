@@ -541,13 +541,64 @@ void recalc_muslce_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_in
 }
 
 __device__
-void nrn_rhs_ext(int nrn) {
-
+void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+	/**
+	 * void nrn_rhs_ext(NrnThread* _nt)
+	 */
+	// init _rhs and _lhs (NODE_D) as zero
+	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+		S->EXT_RHS[nrn_seg][0] -= S->NODE_RHS[nrn_seg];
+	}
+	int nlayer = 2;
+	int j;
+	float e_extracellular;
+	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+		j = nlayer - 1;
+		S->EXT_RHS[nrn_seg][j] -= xg[nrn_seg - i1] * (S->EXT_RHS[nrn_seg][j] - e_extracellular);
+		j = 0;
+		x = xg[nrn_seg - i1] * (ext_v[nrn_seg][j] - ext_v[nrn_seg][j + 1]);
+		S->EXT_RHS[nrn_seg][j] -= x;
+		S->EXT_RHS[nrn_seg][j + 1] += x;
+	}
 }
 
 __device__
-void nrn_setup_ext(int nrn) {
-
+void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+	double cj = 1 / dt;
+	double cfac = 0.001 * cj;
+	int nlayer = 2;
+	// todo find the place where it is zeroed
+	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg)
+		for (int j = 0; j < nlayer; ++j)
+			S->EXT_D[nrn_seg][j] = 0;
+	// d contains all the membrane conductances (and capacitance)
+	// i.e. (cm/dt + di/dvm - dis/dvi)*[dvi] and (dis/dvi)*[dvx]
+	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+		// nde->_d only has -ELECTRODE_CURRENT contribution
+		S->EXT_D[nrn_seg][0] += S->NODE_D[nrn_seg];
+		// D[0] = [0 0.1442 0.1442 0.1442 0 ]
+	}
+	// series resistance, capacitance, and axial terms
+	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+		// series resistance and capacitance to ground
+		int j = 0;
+		int nd = nrn_seg - i1;   // start indexing from 0
+		while (true) {
+			double mfac = xg[nd] + xc[nd] * cfac;
+			S->EXT_D[nrn_seg][j] += mfac;
+			j += 1;
+			if (j == nlayer)
+				break;
+			S->EXT_D[nrn_seg][j] += mfac;
+		}
+		// axial connections
+		for (j = 0; j < nlayer; ++j) {
+			S->EXT_D[nrn_seg][j] -= S->EXT_B[nrn_seg][j];
+			S->EXT_D[nrn_seg - 1][j] -= S->EXT_A[nrn_seg][j];
+		}
+	}
+	// D[0] = [2e-08 1e+09 1e+09 1e+09 2e-08 ]
+	// D[1] = [2e-08 2e+09 2e+09 2e+09 2e-08 ]
 }
 
 __device__
