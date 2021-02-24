@@ -36,6 +36,8 @@ const char INTER = 'i';
 const char MOTO = 'm';
 const char MUSCLE = 'u';
 const char AFFERENTS = 'a';
+const int nlayer = 2;
+const double e_extracellular = 0;
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
@@ -88,7 +90,7 @@ const double celsius = 36;        // [degC] temperature of the cell
 vector<unsigned int> vector_nrn_start_seg;
 vector<char> vector_models;
 vector<double> vector_Cm, vector_gnabar, vector_gkbar, vector_gl, vector_Ra, vector_diam, vector_length, vector_ena,
-		vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;
+               vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;
 // synaptic parameters
 vector<double> vector_E_ex, vector_E_inh, vector_tau_exc, vector_tau_inh1, vector_tau_inh2;
 // synapses varaibels
@@ -235,6 +237,7 @@ Group form_group(const string &group_name,
 	       group_name.c_str(), nrns_number - nrns_in_group, nrns_number - 1, nrns_in_group);
 
 	// for debugging
+//	if (model != GENERATOR)
 	all_groups.push_back(group);
 
 	return group;
@@ -541,60 +544,65 @@ void recalc_muslce_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_in
 }
 
 __device__
-void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	/**
 	 * void nrn_rhs_ext(NrnThread* _nt)
 	 */
+	int size = S->ext_size;
+	const double xg[5] = {0, 1e9, 1e9, 1e9, 0};
 	// init _rhs and _lhs (NODE_D) as zero
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
-		S->EXT_RHS[nrn_seg][0] -= S->NODE_RHS[nrn_seg];
+		S->EXT_RHS[nrn_seg + 0 * size] -= S->NODE_RHS[nrn_seg];
 	}
-	int nlayer = 2;
-	int j;
-	float e_extracellular;
-	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
-		j = nlayer - 1;
-		S->EXT_RHS[nrn_seg][j] -= xg[nrn_seg - i1] * (S->EXT_RHS[nrn_seg][j] - e_extracellular);
-		j = 0;
-		x = xg[nrn_seg - i1] * (ext_v[nrn_seg][j] - ext_v[nrn_seg][j + 1]);
-		S->EXT_RHS[nrn_seg][j] -= x;
-		S->EXT_RHS[nrn_seg][j + 1] += x;
+
+	if (EXTRACELLULAR) {
+		int j;
+		float x;
+		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+			j = nlayer - 1;
+			S->EXT_RHS[nrn_seg + j * size] -= xg[nrn_seg - i1] * (S->EXT_RHS[nrn_seg + j * size] - e_extracellular);
+			j = 0;
+			x = xg[nrn_seg - i1] * (S->EXT_V[nrn_seg + j * size] - S->EXT_V[nrn_seg + (j + 1) * size]);
+			S->EXT_RHS[nrn_seg + j * size] -= x;
+			S->EXT_RHS[nrn_seg + (j + 1) * size] += x;
+		}
 	}
 }
 
 __device__
-void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	double cj = 1 / dt;
 	double cfac = 0.001 * cj;
-	int nlayer = 2;
+	int size = S->ext_size;
+	const double xg[5] = {0, 1e9, 1e9, 1e9, 0};
+	const double xc[5] = {0, 0, 0, 0, 0};
 	// todo find the place where it is zeroed
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg)
 		for (int j = 0; j < nlayer; ++j)
-			S->EXT_D[nrn_seg][j] = 0;
+			S->EXT_D[nrn_seg + j * size] = 0;
 	// d contains all the membrane conductances (and capacitance)
 	// i.e. (cm/dt + di/dvm - dis/dvi)*[dvi] and (dis/dvi)*[dvx]
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		// nde->_d only has -ELECTRODE_CURRENT contribution
-		S->EXT_D[nrn_seg][0] += S->NODE_D[nrn_seg];
+		S->EXT_D[nrn_seg + 0 * size] += S->NODE_D[nrn_seg];
 		// D[0] = [0 0.1442 0.1442 0.1442 0 ]
 	}
 	// series resistance, capacitance, and axial terms
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
 		// series resistance and capacitance to ground
 		int j = 0;
-		int nd = nrn_seg - i1;   // start indexing from 0
 		while (true) {
-			double mfac = xg[nd] + xc[nd] * cfac;
-			S->EXT_D[nrn_seg][j] += mfac;
+			double mfac = xg[nrn_seg - i1] + xc[nrn_seg - i1] * cfac;
+			S->EXT_D[nrn_seg + j * size] += mfac;
 			j += 1;
 			if (j == nlayer)
 				break;
-			S->EXT_D[nrn_seg][j] += mfac;
+			S->EXT_D[nrn_seg + j * S->ext_size] += mfac;
 		}
 		// axial connections
 		for (j = 0; j < nlayer; ++j) {
-			S->EXT_D[nrn_seg][j] -= S->EXT_B[nrn_seg][j];
-			S->EXT_D[nrn_seg - 1][j] -= S->EXT_A[nrn_seg][j];
+			S->EXT_D[nrn_seg + j * size] -= S->EXT_B[nrn_seg + j * size];
+			S->EXT_D[nrn_seg - 1 + j * size] -= S->EXT_A[nrn_seg + j * size];
 		}
 	}
 	// D[0] = [2e-08 1e+09 1e+09 1e+09 2e-08 ]
@@ -602,8 +610,16 @@ void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3
 }
 
 __device__
-void nrn_update_2d(int nrn) {
-
+void nrn_update_2d(States* S, Parameters* P, Neurons* N, int i1, int i3) {
+	/**
+	 * void nrn_update_2d(NrnThread* nt)
+	 * update has already been called so modify nd->v based on dvi we only need to
+	 * update extracellular nodes and base the corresponding nd->v on dvm (dvm = dvi - dvx)
+	 */
+	// final voltage updating
+	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg)
+		for (int j = 0; j < nlayer; ++j)
+			S->EXT_V[nrn_seg + j * S->ext_size] += S->EXT_RHS[nrn_seg + j * S->ext_size];
 }
 
 __device__
@@ -671,7 +687,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	if (EXTRACELLULAR) {
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
 		// i(vm)+is(vi) and is(vi) which are stored in rhs vector.
-		nrn_rhs_ext(nrn);
+		nrn_rhs_ext(S, P, N, i1, i3);
 		// nrn_rhs_ext has also computed the the internal axial current for those
 		// nodes containing the extracellular mechanism
 	}
@@ -707,12 +723,15 @@ void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
-		//	for j in range(nlayer):
-		//	ext_rhs[i1, j] /= ext_d[i1, j]
-		//	for nrn_seg in range(i1 + 1, i3):
-		//	for j in range(nlayer):
-		//	ext_rhs[nrn_seg, j] -= ext_b[nrn_seg, j] * ext_rhs[nrn_seg - 1, j]
-		//	ext_rhs[nrn_seg, j] /= ext_d[nrn_seg, j]
+		for (int j = 0; j < nlayer; ++j) {
+			S->EXT_RHS[i1 + j * size] /= S->EXT_D[i1 + j * size];
+		}
+		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+			for (int j = 0; j < nlayer; ++j) {
+				S->EXT_RHS[nrn_seg + j * size] -= S->EXT_B[nrn_seg + j * size] * S->EXT_RHS[nrn_seg - 1 + j * size];
+				S->EXT_RHS[nrn_seg + j * size] /= S->EXT_D[nrn_seg + j * size];
+			}
+		}
 	}
 }
 
@@ -730,13 +749,15 @@ void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
-//		nrn_seg = i3 - 1
-//		while nrn_seg >= i1 + 1:
-//			for j in range(nlayer):
-//				ppp = ext_a[nrn_seg, j] / ext_d[nrn_seg, j]
-//				ext_d[nrn_seg - 1, j] -= ppp * ext_b[nrn_seg, j]
-//				ext_rhs[nrn_seg - 1, j] -= ppp * ext_rhs[nrn_seg, j]
-//			nrn_seg--
+		int nrn_seg = i3 - 1;
+		while (nrn_seg >= i1 + 1) {
+			for (int j = 0; j < nlayer; ++j) {
+				ppp = S->EXT_A[nrn_seg + j * size] / S->EXT_D[nrn_seg + j * size];
+				S->EXT_D[nrn_seg - 1 + j * size] -= ppp * S->EXT_B[nrn_seg + j * size];
+				S->EXT_RHS[nrn_seg - 1 + j * size] -= ppp * S->EXT_RHS[nrn_seg + j * size];
+				nrn_seg--;
+			}
+		}
 	}
 }
 
@@ -756,6 +777,9 @@ void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, in
 	 */
 	nrn_rhs(S, P, N, nrn, i1, i3);
 //	if (nrn == 2) for (int ii = i1; ii < i3; ++ii) printf("ii%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n", ii, S->Vm[ii], S->NODE_RHS[ii], S->NODE_RINV[ii], S->NODE_A[ii], S->NODE_B[ii], S->NODE_D[ii], S->NODE_AREA[ii]);
+	if (EXTRACELLULAR) {
+		nrn_setup_ext(S, P, N, i1, i3);
+	}
 }
 
 __device__
@@ -768,7 +792,8 @@ void update(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->Vm[nrn_seg] += S->NODE_RHS[nrn_seg];
 	}
 	// extracellular
-	nrn_update_2d(nrn);
+	if (EXTRACELLULAR)
+		nrn_update_2d(S, P, N, i1, i3);
 }
 
 __device__
