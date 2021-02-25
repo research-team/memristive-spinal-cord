@@ -5,6 +5,17 @@ void init_network() {
 	/**
 	 * todo
 	 */
+//	auto ees = form_group("EES", 1, GENERATOR);
+	auto e1 = form_group("e1", 1, GENERATOR);
+//	auto e2 = form_group("e2", 1, GENERATOR);
+
+	auto muscle = form_group("muscle", 1, MUSCLE, 3);
+
+//	add_generator(ees, 10, 100000, 40);
+	add_generator(e1, 10, 100000, 40);
+//	conn_generator(ees, muscle, 1, 40.5);
+	conn_generator(e1, muscle, 1, 40.5);
+	save(all_groups);
 	/*
 	auto ees = form_group("EES", 1, GENERATOR);
 	auto stim = form_group("stim", 1, GENERATOR);
@@ -48,7 +59,7 @@ void init_network() {
 	*/
 //	vector<Group> groups = {OM0, OM1, OM2, OM3, stim, ees};
 //	save(groups);
-
+/*
 	string name;
 	vector<Group> E, CV, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
@@ -278,7 +289,9 @@ void init_network() {
 //	vector<Group> groups = {L0[0], L1[0], L3[0], Ia_aff_E, gen_C[0], ees, E[0], OM1_0E};
 //	save(groups);
 	save(all_groups);
+ */
 }
+
 
 void simulate(int test_index) {
 	/**
@@ -290,11 +303,11 @@ void simulate(int test_index) {
 	Neurons *N = (Neurons *)malloc(sizeof(Neurons));
 	Synapses *synapses = (Synapses *)malloc(sizeof(Synapses));
 	Generators *G = (Generators *)malloc(sizeof(Generators));
-	// note: important
-	vector_nrn_start_seg.push_back(nrns_and_segs);
 
 	// create neurons and their connectomes
 	init_network();
+	// note: important
+	vector_nrn_start_seg.push_back(nrns_and_segs);
 
 	// allocate generators into the GPU
 	unsigned int gens_number = vec_spike_each_step.size();
@@ -347,7 +360,16 @@ void simulate(int test_index) {
 	auto *NODE_RHS = arr_segs<double>(); S->NODE_RHS = init_gpu_arr(NODE_RHS);
 	auto *NODE_RINV = arr_segs<double>(); S->NODE_RINV = init_gpu_arr(NODE_RINV);
 	auto *NODE_AREA = arr_segs<double>(); S->NODE_AREA = init_gpu_arr(NODE_AREA);
+
+	int ext_size = nrns_and_segs * 2;
+	auto *EXT_A = arr_segs<double>(ext_size); S->EXT_A = init_gpu_arr(EXT_A, ext_size);
+	auto *EXT_B = arr_segs<double>(ext_size); S->EXT_B = init_gpu_arr(EXT_B, ext_size);
+	auto *EXT_D = arr_segs<double>(ext_size); S->EXT_D = init_gpu_arr(EXT_D, ext_size);
+	auto *EXT_V = arr_segs<double>(ext_size); S->EXT_V = init_gpu_arr(EXT_V, ext_size);
+	auto *EXT_RHS = arr_segs<double>(ext_size); S->EXT_RHS = init_gpu_arr(EXT_RHS, ext_size);
+
 	S->size = nrns_and_segs;
+	S->ext_size = ext_size;
 
 	// special neuron's state (CPU) and allocate them into the GPU
 	auto *has_spike = arr_segs<bool>(); N->has_spike = init_gpu_arr(has_spike);
@@ -394,14 +416,14 @@ void simulate(int test_index) {
 		// updating neurons kernel
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_N, dev_G, sim_iter);
 		/// SAVE DATA ZONE
-		memcpyDtH(S->Vm, Vm, nrns_and_segs);
+		memcpyDtH(S->EXT_V, EXT_V, nrns_and_segs);
 		memcpyDtH(N->g_exc, g_exc, nrns_number);
 		memcpyDtH(N->g_inh_A, g_inh_A, nrns_number);
 		memcpyDtH(N->g_inh_B, g_inh_B, nrns_number);
 		memcpyDtH(N->has_spike, has_spike, nrns_number);
 		// fill records arrays
 		for (GroupMetadata& metadata : saving_groups) {
-			copy_data_to(metadata, Vm, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);
+			copy_data_to(metadata, EXT_V, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);
 		}
 	}
 	// properly ending work with GPU

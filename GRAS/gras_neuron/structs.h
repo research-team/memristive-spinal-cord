@@ -5,6 +5,13 @@
 #include <vector>
 #include <iostream>
 
+// global name of the models
+const char GENERATOR = 'g';
+const char INTER = 'i';
+const char MOTO = 'm';
+const char MUSCLE = 'u';
+const char AFFERENTS = 'a';
+
 class Group {
 public:
 	Group() = default;
@@ -86,17 +93,17 @@ struct States {
 	double *NODE_A;         // the effect of this node on the parent node's equation
 	double *NODE_B;         // the effect of the parent node on this node's equation
 	double *NODE_D;         // diagonal element in node equation
-	double *EXT_RHS;       // right hand side in node equation
 	double *const_NODE_D;   // const diagonal element in node equation (performance)
 	double *NODE_RHS;       // right hand side in node equation
 	double *NODE_RINV;      // conductance uS from node to parent
 	double *NODE_AREA;      // area of a node in um^2
-	double *EXT_V;             // [mV] array for three compartments volatge
-	double *EXT_A;         // the effect of this node on the parent node's equation
-	double *EXT_B;         // the effect of the parent node on this node's equation
-	double *EXT_D;         // diagonal element in node equation
-//	double *_g;      // area of a node in um^2
+	double *EXT_V;          // [mV] array for three compartments volatge
+	double *EXT_A;          // the effect of this node on the parent node's equation
+	double *EXT_B;          // the effect of the parent node on this node's equation
+	double *EXT_D;          // diagonal element in node equation
+	double *EXT_RHS;        // right hand side in node equation
 	unsigned int size;      // array size
+	unsigned int ext_size;  // array size for ext
 };
 
 struct Neurons {

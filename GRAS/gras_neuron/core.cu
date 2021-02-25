@@ -28,16 +28,7 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 }
 
 const double dt = 0.025;      // [ms] simulation step
-const bool EXTRACELLULAR = false;
-
-// global name of the models
-const char GENERATOR = 'g';
-const char INTER = 'i';
-const char MOTO = 'm';
-const char MUSCLE = 'u';
-const char AFFERENTS = 'a';
-const int nlayer = 2;
-const double e_extracellular = 0;
+const bool EXTRACELLULAR = true;
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
@@ -47,7 +38,7 @@ const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 300; //25 + one_step_time * step_number;
+const unsigned int sim_time = 50; //25 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
@@ -83,8 +74,10 @@ const double bt = 0.0817741;      // [/ ms] Note: typo in Stegen et al. 2012
 const double q10 = 1;             // temperature scaling (sensitivity)
 const double celsius = 36;        // [degC] temperature of the cell
 // i_membrane [mA/cm2]
-//const double e_extracellular = 0; // [mV]
-//const double xraxial = 1e9;       // [MOhm/cm]
+
+const int nlayer = 2;
+const double e_extracellular = 0; // [mV]
+const double xraxial = 1e9;       // [MOhm/cm]
 
 // neuron parameters
 vector<unsigned int> vector_nrn_start_seg;
@@ -236,8 +229,6 @@ Group form_group(const string &group_name,
 	printf("Formed %s IDs [%d ... %d] = %d\n",
 	       group_name.c_str(), nrns_number - nrns_in_group, nrns_number - 1, nrns_in_group);
 
-	// for debugging
-//	if (model != GENERATOR)
 	all_groups.push_back(group);
 
 	return group;
@@ -552,20 +543,23 @@ void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	const double xg[5] = {0, 1e9, 1e9, 1e9, 0};
 	// init _rhs and _lhs (NODE_D) as zero
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
-		S->EXT_RHS[nrn_seg + 0 * size] -= S->NODE_RHS[nrn_seg];
-	}
-
-	if (EXTRACELLULAR) {
-		int j;
-		float x;
-		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
-			j = nlayer - 1;
-			S->EXT_RHS[nrn_seg + j * size] -= xg[nrn_seg - i1] * (S->EXT_RHS[nrn_seg + j * size] - e_extracellular);
-			j = 0;
-			x = xg[nrn_seg - i1] * (S->EXT_V[nrn_seg + j * size] - S->EXT_V[nrn_seg + (j + 1) * size]);
-			S->EXT_RHS[nrn_seg + j * size] -= x;
-			S->EXT_RHS[nrn_seg + (j + 1) * size] += x;
+		for (int layer = 0; layer < nlayer; ++layer) {
+			// in NEURON zeroed inside nrn_rhs, moved to here
+			S->EXT_RHS[nrn_seg + layer * size] = 0;
+			S->EXT_RHS[nrn_seg + layer * size] -= S->NODE_RHS[nrn_seg];
 		}
+	}
+	printf("nrn_rhs_ext::EXT RHS: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
+
+	int j;
+	float x;
+	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+		j = nlayer - 1;
+		S->EXT_RHS[nrn_seg + j * size] -= xg[nrn_seg - i1] * (S->EXT_RHS[nrn_seg + j * size] - e_extracellular);
+		j = 0;
+		x = xg[nrn_seg - i1] * (S->EXT_V[nrn_seg + j * size] - S->EXT_V[nrn_seg + (j + 1) * size]);
+		S->EXT_RHS[nrn_seg + j * size] -= x;
+		S->EXT_RHS[nrn_seg + (j + 1) * size] += x;
 	}
 }
 
@@ -607,6 +601,7 @@ void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	}
 	// D[0] = [2e-08 1e+09 1e+09 1e+09 2e-08 ]
 	// D[1] = [2e-08 2e+09 2e+09 2e+09 2e-08 ]
+
 }
 
 __device__
@@ -723,6 +718,7 @@ void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	}
 	// extracellular
 	if (EXTRACELLULAR) {
+		int size = S->ext_size;
 		for (int j = 0; j < nlayer; ++j) {
 			S->EXT_RHS[i1 + j * size] /= S->EXT_D[i1 + j * size];
 		}
@@ -750,6 +746,7 @@ void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	// extracellular
 	if (EXTRACELLULAR) {
 		int nrn_seg = i3 - 1;
+		int size = S->ext_size;
 		while (nrn_seg >= i1 + 1) {
 			for (int j = 0; j < nlayer; ++j) {
 				ppp = S->EXT_A[nrn_seg + j * size] / S->EXT_D[nrn_seg + j * size];
@@ -875,7 +872,74 @@ void nrn_area_ri(States* S, Parameters* P, Neurons* N) {
 
 __device__
 void ext_con_coef(States* S, Parameters* P, Neurons* N) {
+	/**
+	 * void ext_con_coef(void)
+	 * setup a and b
+	 */
+	int layer, i1, i3, segments;
+	double dx, xraxial = 1.e9;
+	int size = S->ext_size;
+	// todo: extracellular only for those neurons who need
+	for (int nrn = 0; nrn < N->size; ++nrn) {
+		if (P->models[nrn] == GENERATOR)
+			continue;
+		layer = 0;
+		i1 = P->nrn_start_seg[nrn];
+		i3 = P->nrn_start_seg[nrn + 1];
+		segments = (i3 - i1 - 2);
+		// temporarily store half segment resistances in rhs
+		for (int nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
+			dx = P->length[nrn] / segments;
+			S->EXT_RHS[nrn_seg + layer * size] = 1e-4 * xraxial * dx / 2;  // Megohms
+		}
+		// last segment has 0 length
+		S->EXT_RHS[i3 - 1 + layer * size] = 0; // todo i3 -1 or just i3
+		// NEURON RHS = [5e+07 5e+07 5e+07 0 ]
+		// GRAS RHS = [0 5e+07 5e+07 5e+07 0 ]
+		printf("EXT RHS: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
 
+		// node half resistances in general get added to the node and to the node's "child node in the same section".
+		// child nodes in different sections don't involve parent node's resistance
+		S->EXT_B[i1 + 1 + layer * size] = S->EXT_RHS[i1 + 1 + layer * size];
+		for (int nrn_seg = i1 + 1 + 1; nrn_seg < i3; ++nrn_seg) {
+			S->EXT_B[nrn_seg + layer * size] = S->EXT_RHS[nrn_seg + layer * size] + S->EXT_RHS[nrn_seg - 1 + layer * size]; // Megohms
+		}
+		// NEURON B = [5e+07 1e+08 1e+08 5e+07 ]
+		// GRAS B = [0 5e+07 1e+08 1e+08 5e+07 ]
+		printf("EXT B: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+
+		// first the effect of node on parent equation. Note That last nodes have area = 1.e2 in
+		// dimensionless units so that last nodes have units of microsiemens's
+		double area = S->NODE_AREA[i1]; // parentnode index of sec is 0
+		double rall_branch = 1.0;  // sec->prop->dparam[4].val
+		S->EXT_A[i1 + 1 + layer * size] = -1.e2 * rall_branch / (S->EXT_B[i1 + 1 + layer * size] * area);
+		for (int nrn_seg = i1 + 1 + 1; nrn_seg < i3; ++nrn_seg) {
+			area = S->NODE_AREA[nrn_seg - 1];
+			S->EXT_A[nrn_seg + layer * size] = -1.e2 / (S->EXT_B[nrn_seg + layer * size] * area);
+		}
+		// NEURON A = [-2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
+		// GRAS A = [0 -2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
+
+		printf("EXT A: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_A[ii]); printf("\n");
+		// now the effect of parent on node equation
+		// todo sec->pnode needs +1 index
+		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+			S->EXT_B[nrn_seg + layer * size] = -1.e2 / (S->EXT_B[nrn_seg + layer * size] * S->NODE_AREA[nrn_seg]);
+		}
+		// NEURON B = [-1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
+		// GRAS B = [0 -1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
+		printf("EXT B END: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+
+		// the same for other layers
+		for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
+			S->EXT_A[nrn_seg + 1 * size] = S->EXT_A[nrn_seg + 0 * size];
+			S->EXT_B[nrn_seg + 1 * size] = S->EXT_B[nrn_seg + 0 * size];
+			S->EXT_RHS[nrn_seg + 1 * size] = S->EXT_RHS[nrn_seg + 0 * size];
+		}
+	}
+
+	printf("ext_con_coef::START RHS: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->NODE_RHS[ii]); printf("\n");
+	printf("ext_con_coef::EXT RHS: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
 }
 
 __device__
@@ -910,16 +974,16 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 		}
 	}
 	// for extracellular
-	ext_con_coef(S, P, N);
+	if (EXTRACELLULAR) {
+		ext_con_coef(S, P, N);
+	}
 
 	/**
+	 * void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml)
 	 * note: from LHS, this functions just recalc each time the constant NODED (!)
 	 * void nrn_lhs(NrnThread *_nt)
 	 * NODE_D[nrn, nd] updating is located at nrn_rhs, because _g is not the global variable
 	 */
-	// nt->cj = 2/dt if (secondorder) else 1/dt
-	// note, the first is CAP
-	// function nrn_cap_jacob(_nt, _nt->tml->ml);
 	double cj = 1.0 / dt;
 	double cfac = 0.001 * cj;
 	for (int nrn = 0; nrn < N->size; ++nrn) {
@@ -927,14 +991,10 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 			continue;
 		i1 = P->nrn_start_seg[nrn];
 		i3 = P->nrn_start_seg[nrn + 1];
-		// nrn_cap_jacob
 		for (nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
 			S->const_NODE_D[nrn_seg] += cfac * P->Cm[nrn];
 		}
 	}
-	// extra
-	// _a_matelm += NODE_A[nrn, nd]
-	// _b_matelm += NODE_B[nrn, nd]
 }
 
 __global__
@@ -1042,14 +1102,97 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 	}
 }
 
+
+void file_writing(int test_index, GroupMetadata &metadata, const string &folder) {
+	/**
+	 *
+	 */
+	ofstream file;
+	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
+
+	file.open(folder + file_name);
+	// save voltage
+	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
+		file << metadata.voltage_array[sim_iter] << " ";
+	file << endl;
+
+	// save g_exc
+	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
+		file << metadata.g_exc[sim_iter] << " ";
+	file << endl;
+
+	// save g_inh
+	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
+		file << metadata.g_inh[sim_iter] << " ";
+	file << endl;
+
+	// save spikes
+	for (double const &value: metadata.spike_vector) {
+		file << value << " ";
+	}
+	file.close();
+
+	cout << "Saved to: " << folder + file_name << endl;
+}
+
+void save(vector<Group> groups) {
+	for (Group &group : groups) {
+		GroupMetadata new_meta(group, SIM_TIME_IN_STEPS);
+		saving_groups.emplace_back(new_meta);
+	}
+}
+
+void copy_data_to(GroupMetadata& metadata,
+                  const double* Vm,
+                  const double* g_exc,
+                  const double* g_inh_A,
+                  const double* g_inh_B,
+                  const bool* has_spike,
+                  const unsigned int sim_iter) {
+	double nrn_mean_volt = 0;
+	double nrn_mean_g_exc = 0;
+	double nrn_mean_g_inh = 0;
+
+	int center;
+	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
+		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
+		if (vector_models[nrn] == GENERATOR) {
+			nrn_mean_volt = 0;
+			nrn_mean_g_exc = 0;
+			nrn_mean_g_inh = 0;
+		} else {
+			nrn_mean_volt += Vm[center];
+			nrn_mean_g_exc += g_exc[nrn];
+			nrn_mean_g_inh += (g_inh_B[nrn] - g_inh_A[nrn]);
+		}
+		if (has_spike[nrn]) {
+			metadata.spike_vector.push_back(step_to_ms(sim_iter));
+		}
+	}
+	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
+	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
+	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
+}
+
+
+void save_result(int test_index) {
+	string current_path = getcwd(nullptr, 0);
+
+	printf("[Test #%d] Save results to: %s \n", test_index, current_path.c_str());
+
+	for (GroupMetadata &metadata : saving_groups) {
+		file_writing(test_index, metadata, current_path);
+	}
+}
+
 void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
 	/**
 	 *
 	 */
-	if (weight > 0.01)
-		weight = 0.01;
-	if (weight < -0.1)
-		weight = -0.1;
+//	if (weight > 0.1)
+//		weight = 0.1;
+//	if (weight < -0.1)
+//		weight = -0.1;
 
 	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
 	normal_distribution<double> delay_distr(delay, delay / 5);
@@ -1141,86 +1284,10 @@ void connectinsidenucleus(Group &nucleus) {
 	connect_fixed_indegree(nucleus, nucleus, 0.5, 0.25);
 }
 
-void file_writing(int test_index, GroupMetadata &metadata, const string &folder) {
-	/**
-	 *
-	 */
-	ofstream file;
-	string file_name = "/dat/" + to_string(test_index) + "_" + metadata.group.group_name + ".dat";
-
-	file.open(folder + file_name);
-	// save voltage
-	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
-		file << metadata.voltage_array[sim_iter] << " ";
-	file << endl;
-
-	// save g_exc
-	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
-		file << metadata.g_exc[sim_iter] << " ";
-	file << endl;
-
-	// save g_inh
-	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; sim_iter++)
-		file << metadata.g_inh[sim_iter] << " ";
-	file << endl;
-
-	// save spikes
-	for (double const &value: metadata.spike_vector) {
-		file << value << " ";
-	}
-	file.close();
-
-	cout << "Saved to: " << folder + file_name << endl;
-}
-
-void save(vector<Group> groups) {
-	for (Group &group : groups) {
-		GroupMetadata new_meta(group, SIM_TIME_IN_STEPS);
-		saving_groups.emplace_back(new_meta);
-	}
-}
-
-void copy_data_to(GroupMetadata& metadata,
-                  const double* Vm,
-                  const double* g_exc,
-                  const double* g_inh_A,
-                  const double* g_inh_B,
-                  const bool* has_spike,
-                  const unsigned int sim_iter) {
-	double nrn_mean_volt = 0;
-	double nrn_mean_g_exc = 0;
-	double nrn_mean_g_inh = 0;
-
-	int center;
-	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
-		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
-		nrn_mean_volt += Vm[center];
-		nrn_mean_g_exc += g_exc[nrn];
-		nrn_mean_g_inh += (g_inh_B[nrn] - g_inh_A[nrn]);
-		if (has_spike[nrn]) {
-			metadata.spike_vector.push_back(step_to_ms(sim_iter));
-		}
-	}
-	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
-	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
-	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
-}
-
-
-void save_result(int test_index) {
-	string current_path = getcwd(nullptr, 0);
-
-	printf("[Test #%d] Save results to: %s \n", test_index, current_path.c_str());
-
-	for (GroupMetadata &metadata : saving_groups) {
-		file_writing(test_index, metadata, current_path);
-	}
-}
-
 template<typename type>
-type* arr_segs() {
+type* arr_segs(int size = nrns_and_segs) {
 	// important: nrns_and_segs initialized at network building
-	return new type[nrns_and_segs]();
+	return new type[size]();
 }
 
 void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
@@ -1250,3 +1317,4 @@ void createmotif_flex(Group OM0, Group OM1, Group OM2, Group OM3) {
 	connect_fixed_indegree(OM3, OM2, 2, -4.5);
 	connect_fixed_indegree(OM3, OM1, 3, -4.5);
 }
+
