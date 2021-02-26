@@ -44,7 +44,8 @@ void init_network() {
 	connect_fixed_indegree(OM3, OM1, 3.2, -0.1);
 	connect_fixed_indegree(CV, OM0, 3, 0.00035 * 1.5);
 	connect_fixed_indegree(E, OM0, 3, 0.00045 * 1.5);
-	*/
+	save(all_groups);
+	 */
 	// testing topology coef (WITH)
 	/*
 	connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
@@ -411,12 +412,15 @@ void simulate(int test_index) {
 	// the main simulation loop
 	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; ++sim_iter) {
 		/// KERNEL ZONE
+		printf("============= %g ============\n", sim_iter * 0.025);
+
 		// deliver_net_events, synapse updating and neuron conductance changing kernel
 		synapse_kernel<<<5, 256>>>(dev_N, dev_synapses);
 		// updating neurons kernel
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_N, dev_G, sim_iter);
 		/// SAVE DATA ZONE
-		memcpyDtH(S->EXT_V, EXT_V, nrns_and_segs);
+		memcpyDtH(S->EXT_V, EXT_V, ext_size);
+		memcpyDtH(S->Vm, Vm, nrns_and_segs);
 		memcpyDtH(N->g_exc, g_exc, nrns_number);
 		memcpyDtH(N->g_inh_A, g_inh_A, nrns_number);
 		memcpyDtH(N->g_inh_B, g_inh_B, nrns_number);
