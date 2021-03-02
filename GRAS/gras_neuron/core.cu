@@ -2,6 +2,7 @@
 See the topology https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 Based on the NEURON repository.
 */
+//#define LOG
 #include <random>
 #include <vector>
 #include <string>
@@ -28,17 +29,17 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 }
 
 const double dt = 0.025;      // [ms] simulation step
-const bool EXTRACELLULAR = true;
+const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 const int step_number = 1;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 50; //25 + one_step_time * step_number;
+const unsigned int sim_time = 25 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
@@ -541,22 +542,22 @@ void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	 */
 	int size = S->ext_size;
 	const double xg[5] = {0, 1e9, 1e9, 1e9, 0};
-	// init _rhs and _lhs (NODE_D) as zero
+	//
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
-		// find where is zeroed
-		for (int layer = 0; layer < nlayer; ++layer) {
+		for (int layer = 0; layer < nlayer; ++layer) {  // zeroed at nrn_rhs before nrn_rhs_ext
 			S->EXT_RHS[nrn_seg + layer * size] = 0;
 		}
 		S->EXT_RHS[nrn_seg + 0 * size] -= S->NODE_RHS[nrn_seg];
 	}
-
+	#ifdef LOG
 	printf("nrn_rhs_ext::EXT RHS 0 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
 	printf("nrn_rhs_ext::EXT RHS 1 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii + size]); printf("\n");
-
+	#endif
 	double x, dv;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+#ifdef LOG
 		printf("V: %g, %g\n", S->EXT_V[nrn_seg], S->EXT_V[nrn_seg + size]);
-
+#endif
 		for (int layer = 0; layer < nlayer; ++layer) {
 			dv = S->EXT_V[nrn_seg - 1 + layer * size] - S->EXT_V[nrn_seg + layer * size];
 			S->EXT_RHS[nrn_seg + layer * size] -= S->EXT_B[nrn_seg + layer * size] * dv;
@@ -570,9 +571,10 @@ void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 			S->EXT_RHS[nrn_seg + (layer + 1) * size] += x;
 		}
 	}
+#ifdef LOG
 	printf("nrn_rhs_ext::EXT RHS END 0 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
 	printf("nrn_rhs_ext::EXT RHS END 1 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii + size]); printf("\n");
-
+#endif
 }
 
 __device__
@@ -587,43 +589,36 @@ void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 	const double xc[5] = {0, 0, 0, 0, 0};
 	// todo find the place where it is zeroed
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg)
-		for (int j = 0; j < nlayer; ++j)
-			S->EXT_D[nrn_seg + j * size] = 0;
+		for (int layer = 0; layer < nlayer; ++layer)
+			S->EXT_D[nrn_seg + layer * size] = 0;
 	// d contains all the membrane conductances (and capacitance)
 	// i.e. (cm/dt + di/dvm - dis/dvi)*[dvi] and (dis/dvi)*[dvx]
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		// nde->_d only has -ELECTRODE_CURRENT contribution
 		S->EXT_D[nrn_seg + 0 * size] += S->NODE_D[nrn_seg];
-		printf("wtf %g\n", S->NODE_D[nrn_seg]);
-		// NEURON D 0 = [0 0.1442 0.1442 0.1442 0 ] GRAS [0 0.1442 0.1442 0.1442 0 ]
-		// NEURON D 1 = [0 0 0 0 0] GRAS [0 0 0 0 0]
 	}
-
-	printf("nrn_setup_ext::NODED IN 0 : "); for (int i=i1; i < i3; ++i) { printf("%g\t", S->EXT_D[i]); } printf("\n");
-	printf("nrn_setup_ext::NODED IN 1 : "); for (int i=i1; i < i3; ++i) { printf("%g\t", S->EXT_D[i + size]); } printf("\n");
-
+	// NEURON D 0 = [0 0.1442 0.1442 0.1442 0 ] [0 0 0 0 0]
+	// GRAS [0 0.1442 0.1442 0.1442 0 ] [0 0 0 0 0]
 	// series resistance, capacitance, and axial terms
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
 		// series resistance and capacitance to ground
-		int j = 0;
-		while (true) {
+		int layer = 0;
+		while (1) {
 			double mfac = xg[nrn_seg - i1] + xc[nrn_seg - i1] * cfac;
-			S->EXT_D[nrn_seg + j * size] += mfac;
-			j += 1;
-			if (j == nlayer)
+			S->EXT_D[nrn_seg + layer * size] += mfac;
+			layer += 1;
+			if (layer == nlayer)
 				break;
-			S->EXT_D[nrn_seg + j * S->ext_size] += mfac;
+			S->EXT_D[nrn_seg + layer * size] += mfac;
 		}
 		// axial connections
-		for (j = 0; j < nlayer; ++j) {
-			S->EXT_D[nrn_seg + j * size] -= S->EXT_B[nrn_seg + j * size];
-			S->EXT_D[nrn_seg - 1 + j * size] -= S->EXT_A[nrn_seg + j * size];
+		for (layer = 0; layer < nlayer; ++layer) {
+			S->EXT_D[nrn_seg + layer * size] -= S->EXT_B[nrn_seg + layer * size];
+			S->EXT_D[nrn_seg - 1 + layer * size] -= S->EXT_A[nrn_seg + layer * size];
 		}
 	}
 	// NEURON D[0] = [2e-08 1e+09 1e+09 1e+09 2e-08 ] GRAS [2e-08 1e+09 1e+09 1e+09 2e-08]
 	// NEURON D[1] = [2e-08 2e+09 2e+09 2e+09 2e-08 ] GRAS [2e-08 2e+09 2e+09 2e+09 2e-08]
-	printf("nrn_setup_ext::NODED EnD 0 : "); for (int i=i1; i < i3; ++i) { printf("%g\t", S->EXT_D[i]); } printf("\n");
-	printf("nrn_setup_ext::NODED EnD 1 : "); for (int i=i1; i < i3; ++i) { printf("%g\t", S->EXT_D[i + size]); } printf("\n");
 }
 
 __device__
@@ -651,7 +646,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	 */
 	// init _rhs and _lhs (NODE_D) as zero
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
-		S->NODE_RHS[nrn_seg] = 0.0;
+		S->NODE_RHS[nrn_seg] = 0;
 		// replace the process: init by 0, add Cm*frac, add A and B
 	}
 
@@ -684,7 +679,6 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_RHS[nrn_seg] -= _rhs;
 		// note that CAP has no jacob
 	} // end FOR segments
-	printf("RHS before EXRTA: "); for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) printf("%g\t", S->NODE_RHS[nrn_seg]); printf("\n");
 	if (EXTRACELLULAR) {
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
 		// i(vm)+is(vi) and is(vi) which are stored in rhs vector.
@@ -700,11 +694,19 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_RHS[nrn_seg] -= S->NODE_B[nrn_seg] * dv;
 		S->NODE_RHS[nrn_seg - 1] += S->NODE_A[nrn_seg] * dv;
 	}
+#ifdef  LOG
+	printf("RHS EXRTA 0 : "); for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) printf("%g\t", S->EXT_RHS[nrn_seg]); printf("\n");
+	printf("RHS EXRTA 1 : "); for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) printf("%g\t", S->EXT_RHS[nrn_seg + S->ext_size]); printf("\n");
+#endif
 }
 
 __device__
 void nrn_lhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
-
+	/** calculate left hand side of
+	 * cm*dvm/dt = -i(vm) + is(vi) + ai_j*(vi_j - vi)
+	 * cx*dvx/dt - cm*dvm/dt = -gx*(vx - ex) + i(vm) + ax_j*(vx_j - vx)
+	 * with a matrix so that the solution is of the form [dvm+dvx,dvx] on the right hand side after solving.
+	 */
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		S->NODE_D[nrn_seg] = 0;
 	}
@@ -763,6 +765,9 @@ void nrn_lhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_D[nrn_seg] -= S->NODE_B[nrn_seg];
 		S->NODE_D[nrn_seg - 1] -= S->NODE_A[nrn_seg];
 	}
+#ifdef LOG
+	printf("NODED axial:\t"); for (int i = i1; i < i3; ++i) printf("%g\t", S->NODE_D[i]); printf("\n");
+#endif
 }
 
 __device__
@@ -778,18 +783,18 @@ void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_RHS[nrn_seg] /= S->NODE_D[nrn_seg];
 	}
 	// extracellular
-	if (EXTRACELLULAR) {
-		int size = S->ext_size;
-		for (int j = 0; j < nlayer; ++j) {
-			S->EXT_RHS[i1 + j * size] /= S->EXT_D[i1 + j * size];
-		}
-		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
-			for (int j = 0; j < nlayer; ++j) {
-				S->EXT_RHS[nrn_seg + j * size] -= S->EXT_B[nrn_seg + j * size] * S->EXT_RHS[nrn_seg - 1 + j * size];
-				S->EXT_RHS[nrn_seg + j * size] /= S->EXT_D[nrn_seg + j * size];
-			}
-		}
-	}
+//	if (EXTRACELLULAR) {
+//		int size = S->ext_size;
+//		for (int layer = 0; layer < nlayer; ++layer) {
+//			S->EXT_RHS[i1 + layer * size] /= S->EXT_D[i1 + layer * size];
+//		}
+//		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
+//			for (int layer = 0; layer < nlayer; ++layer) {
+//				S->EXT_RHS[nrn_seg + layer * size] -= S->EXT_B[nrn_seg + layer * size] * S->EXT_RHS[nrn_seg - 1 + layer * size];
+//				S->EXT_RHS[nrn_seg + layer * size] /= S->EXT_D[nrn_seg + layer * size];
+//			}
+//		}
+//	}
 }
 
 __device__
@@ -805,18 +810,17 @@ void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_RHS[nrn_seg - 1] -= ppp * S->NODE_RHS[nrn_seg];
 	}
 	// extracellular
-	if (EXTRACELLULAR) {
-		int nrn_seg = i3 - 1;
-		int size = S->ext_size;
-		while (nrn_seg >= i1 + 1) {
-			for (int j = 0; j < nlayer; ++j) {
-				ppp = S->EXT_A[nrn_seg + j * size] / S->EXT_D[nrn_seg + j * size];
-				S->EXT_D[nrn_seg - 1 + j * size] -= ppp * S->EXT_B[nrn_seg + j * size];
-				S->EXT_RHS[nrn_seg - 1 + j * size] -= ppp * S->EXT_RHS[nrn_seg + j * size];
-				nrn_seg--;
-			}
-		}
-	}
+//	if (EXTRACELLULAR) {
+//		int size = S->ext_size;
+//		for (int nrn_seg = i3 - 1; nrn_seg >= i1 + 1; --nrn_seg) {
+//			for (int layer = 0; layer < nlayer; ++layer) {
+//				ppp = S->EXT_A[nrn_seg + layer * size] / S->EXT_D[nrn_seg + layer * size];
+//				S->EXT_D[nrn_seg - 1 + layer * size] -= ppp * S->EXT_B[nrn_seg + layer * size];
+//				S->EXT_RHS[nrn_seg - 1 + layer * size] -= ppp * S->EXT_RHS[nrn_seg + layer * size];
+//				nrn_seg--;
+//			}
+//		}
+//	}
 }
 
 __device__
@@ -824,6 +828,13 @@ void nrn_solve(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void nrn_solve(NrnThread* _nt)
 	 */
+#ifdef LOG
+	printf("SOLVE EXT begin NODED 0 "); for (int i=i1; i < i3; ++i) printf("%g\t", S->EXT_D[i]); printf("\n");
+	printf("SOLVE EXT begin NODED 0 "); for (int i=i1; i < i3; ++i) printf("%g\t", S->EXT_D[i + S->ext_size]); printf("\n");
+#endif
+	// TODO PROOVED
+	// nrn_solve EXT D 0 5e+07	2e-09	2e-09	1e-09	5e+07
+	// nrn_solve EXT D 1 5e+07	5e-10	5e-10	1e-09	5e+07
 	triang(S, P, N, nrn, i1, i3);
 	bksub(S, P, N, nrn, i1, i3);
 }
@@ -835,7 +846,6 @@ void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, in
 	 */
 	nrn_rhs(S, P, N, nrn, i1, i3);
 	nrn_lhs(S, P, N, nrn, i1, i3);
-//	if (nrn == 2) for (int ii = i1; ii < i3; ++ii) printf("ii%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n", ii, S->Vm[ii], S->NODE_RHS[ii], S->NODE_RINV[ii], S->NODE_A[ii], S->NODE_B[ii], S->NODE_D[ii], S->NODE_AREA[ii]);
 }
 
 __device__
@@ -843,7 +853,11 @@ void update(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void update(NrnThread* _nt)
 	 */
+#ifdef LOG
+	printf("UPDATE EXT begin NODED 0 "); for (int i=i1; i < i3; ++i) printf("%g\t", S->EXT_D[i]); printf("\n");
+	printf("UPDATE EXT begin NODED 1 "); for (int i=i1; i < i3; ++i) printf("%g\t", S->EXT_D[i + S->ext_size]); printf("\n");
 	// final voltage updating
+#endif
 	for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 		S->Vm[nrn_seg] += S->NODE_RHS[nrn_seg];
 	}
@@ -955,8 +969,9 @@ void ext_con_coef(States* S, Parameters* P, Neurons* N) {
 		S->EXT_RHS[i3 - 1 + layer * size] = 0; // todo i3 -1 or just i3
 		// NEURON RHS = [5e+07 5e+07 5e+07 0 ]
 		// GRAS RHS = [0 5e+07 5e+07 5e+07 0 ]
+#ifdef LOG
 		printf("EXT RHS: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
-
+#endif
 		// node half resistances in general get added to the node and to the node's "child node in the same section".
 		// child nodes in different sections don't involve parent node's resistance
 		S->EXT_B[i1 + 1 + layer * size] = S->EXT_RHS[i1 + 1 + layer * size];
@@ -965,8 +980,10 @@ void ext_con_coef(States* S, Parameters* P, Neurons* N) {
 		}
 		// NEURON B = [5e+07 1e+08 1e+08 5e+07 ]
 		// GRAS B = [0 5e+07 1e+08 1e+08 5e+07 ]
-		printf("EXT B: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+#ifdef LOG
 
+		printf("EXT B: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+#endif
 		// first the effect of node on parent equation. Note That last nodes have area = 1.e2 in
 		// dimensionless units so that last nodes have units of microsiemens's
 		double area = S->NODE_AREA[i1]; // parentnode index of sec is 0
@@ -978,8 +995,10 @@ void ext_con_coef(States* S, Parameters* P, Neurons* N) {
 		}
 		// NEURON A = [-2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
 		// GRAS A = [0 -2e-08 -7.95775e-12 -7.95775e-12 -1.59155e-11 ]
+#ifdef LOG
 
 		printf("EXT A: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_A[ii]); printf("\n");
+#endif
 		// now the effect of parent on node equation
 		// todo sec->pnode needs +1 index
 		for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
@@ -987,8 +1006,10 @@ void ext_con_coef(States* S, Parameters* P, Neurons* N) {
 		}
 		// NEURON B = [-1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
 		// GRAS B = [0 -1.59155e-11 -7.95775e-12 -7.95775e-12 -2e-08 ]
-		printf("EXT B END: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+#ifdef LOG
 
+		printf("EXT B END: "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_B[ii]); printf("\n");
+#endif
 		// the same for other layers
 		for (int nrn_seg = i1; nrn_seg < i3; ++nrn_seg) {
 			S->EXT_A[nrn_seg + 1 * size] = S->EXT_A[nrn_seg + 0 * size];
@@ -1119,6 +1140,7 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 			// recalc conductance, update channels and deliver network events
 			nrn_fixed_step_lastpart(S, P, N, nrn, i1, i3);
 		}
+
 	}
 	// update generators
 	if (tid == 0) {
@@ -1127,6 +1149,17 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 				G->spike_each_step[generator] += G->freq_in_steps[generator];
 				N->has_spike[G->nrn_id[generator]] = true;
 			}
+		}
+		// afferent
+		float part;
+		if ( ((25 / dt <= t) && (t < 50 / dt)) || ((150 / dt <= t) && (t < 175 / dt)) ) {
+			part = (2678 - 2559) * 0.4;
+			for (int n = 2559; n <= 2678 - part; n += 2)
+				N->has_spike[n] = false;
+		} else if ( ((50 / dt <= t) && (t < 75 / dt)) || ((125 / dt <= t) && (t < 150 / dt)) ) {
+			part = (2678 - 2559) * 0.6;
+			for (int n = 2559; n <= 2678 - part; n += 3)
+				N->has_spike[n] = false;
 		}
 	}
 }
@@ -1205,8 +1238,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	if (vector_models[pre_neurons.id_start] == AFFERENTS && vector_models[post_neurons.id_start] == MOTO) {
 		if (weight > 0.1)
 			weight = 0.1;
-		if (weight < -1)
-			weight = -1;
+		if (weight < -0.1)
+			weight = -0.1;
 	} else {
 		if (vector_models[post_neurons.id_start] == MOTO) {
 			if (weight > 0.05)
@@ -1216,8 +1249,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 		} else {
 			if (weight > 0.01)
 				weight = 0.01;
-			if (weight < -0.1)
-				weight = -0.1;
+			if (weight < -0.085) // -0.07
+				weight = -0.085;
 		}
 	}
 
