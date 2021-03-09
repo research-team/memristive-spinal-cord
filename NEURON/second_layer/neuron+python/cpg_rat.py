@@ -15,20 +15,38 @@ pc = h.ParallelContext()
 rank = int(pc.id())
 nhost = int(pc.nhost())
 
+modes = ['PLT', 'STR', 'AIR', 'TOE', 'QPZ', 'QUAD']
+mode = 'PLT'
+logging.info(mode)
+
 #param
-speed = 25 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 5 # number of steps
-layers = 5  # default
+step_number = 2 # number of steps
+layers = 4  # 5 is default
+
+CV_number = 6
 extra_layers = 0 + layers
 nMN = 210
 nAff = 120
 nInt = 196
 N = 50
-k = 0.007
+k = 0.017
+CV_0_len = 125
 
-one_step_time = 6 * speed + 125
+if mode == 'AIR':
+    k = 0.001
+    speed = 25
+
+if mode == 'TOE':
+    k = 0.01
+
+if mode == 'QUAD':
+    CV_0_len = 175
+    k = 0.003
+
+one_step_time = 6 * speed + CV_0_len
 time_sim = 25 + one_step_time * step_number
 
 exnclist = []
@@ -71,7 +89,7 @@ class CPG:
             self.dict_3 = {layer: 'OM{}_3'.format(layer + 1)}
             self.dict_C = {layer: 'C{}'.format(layer + 1)}
 
-        for layer in range(layers + 1):
+        for layer in range(CV_number):
             self.dict_CV = {layer: 'CV{}'.format(layer + 1)}
             self.dict_CV_1 = {layer: 'CV{}_1'.format(layer + 1)}
             self.dict_IP_E = {layer: 'IP{}_E'.format(layer + 1)}
@@ -85,18 +103,25 @@ class CPG:
             self.dict_3 = {layer: 'OM{}_3'.format(layer + 1)}
             self.dict_C = {layer: 'C{l}'.format(layer + 1)}
 
-        self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
-        self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
+        if mode == 'QPZ':
+            self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "delay")
+            self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "delay")
+        else:
+            self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "int")
+            self.OM1_0F = self.addpool(self.ncell, "OM1_0F", "int")
 
         '''addpool'''
         for layer in range(layers):
-            self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
+            if mode == 'QPZ':
+                self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "delay")
+            else:
+                self.dict_0[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_0", "int")
             self.dict_1[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_1", "int")
             self.dict_2E[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2E", "int")
             self.dict_2F[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_2F", "int")
             self.dict_3[layer] = self.addpool(self.ncell, "OM" + str(layer + 1) + "_3", "int")
 
-        for layer in range(layers + 1):
+        for layer in range(CV_number):
             self.dict_CV[layer] = self.addpool(self.ncell, "CV" + str(layer + 1), "aff")
             self.dict_CV_1[layer] = self.addpool(self.ncell, "CV" + str(layer + 1) + "_1", "aff")
 
@@ -147,15 +172,15 @@ class CPG:
         cfr = 200
         c_int = 1000 / cfr
 
-        for layer in range(layers+1):
+        for layer in range(CV_number):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + 125), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
+                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + CV_0_len), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
 
         for layer in range(layers, extra_layers):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + 125), random.gauss(cfr, cfr/10), speed / c_int))
+                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + CV_0_len), random.gauss(cfr, cfr/10), speed / c_int))
 
         self.C_1 = []
         self.C_0 = []
@@ -165,13 +190,13 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + 125), cfr, 125/c_int, False))
-            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + 125), cfr, 75/c_int, False))
+            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, CV_0_len/c_int, False))
+            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, 100/c_int, False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
 
-        for layer in range(layers+1):
+        for layer in range(CV_number):
             self.C_1.append(self.dict_CV_1[layer])
         self.C_1 = sum(self.C_1, [])
 
@@ -203,8 +228,8 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.00025, 3)
-        # connectcells(self.V0v, self.OM1_0F, 2.75, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
+        connectcells(self.V0v, self.OM1_0F, 2.75, 3)
         # connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
@@ -222,11 +247,11 @@ class CPG:
             if layer > 3:
                 for i in range(0, (layer - 2)):
                     connectcells(self.dict_C[layer], self.dict_3[i], 1.95, 1)
-                    # connectcells(self.dict_C[layer], self.dict_2E[i], 0.75, 1, True)
+                    # connectcells(self.dict_C[layer], self.dict_2E[i], 1.75, 1, True)
             else:
                 for i in range(0, (layer - 1)):
                     connectcells(self.dict_C[layer], self.dict_3[i], 1.95, 1)
-                    # connectcells(self.dict_C[layer], self.dict_2E[i], 0.75, 1, True)
+                    # connectcells(self.dict_C[layer], self.dict_2E[i], 1.75, 1, True)
 
         genconnect(self.ees, self.Ia_aff_E, 1.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 1.5, 1)
@@ -251,7 +276,7 @@ class CPG:
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 1.75, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
             connectcells(self.dict_IP_E[layer], self.mns_E, 2.75, 3)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
@@ -259,11 +284,11 @@ class CPG:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, 0.0001, 1, True)
             '''Flexor'''
             # connectcells(self.dict_1[layer], self.dict_IP_F[layer], 0.75, 2)
-            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 2.85, 3)
+            connectcells(self.dict_2F[layer], self.dict_IP_F[layer], 2.85, 2)
             connectcells(self.dict_IP_F[layer], self.mns_F, 3.75, 2)
-            connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.75, 1, True)
+            connectcells(self.dict_IP_F[layer], self.Ia_aff_F, 0.95, 1, True)
 
-        for layer in range(layers+1):
+        for layer in range(CV_number):
             '''skin inputs'''
             connectcells(self.dict_C[layer], self.dict_CV_1[layer], 0.15*k*speed, 2)
 
@@ -271,41 +296,39 @@ class CPG:
         # connectcells(self.IP_E, self.Ia_aff_E, 0.0015, 2, True)
 
         '''C'''
-
-        '''C1'''
-        connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00075*k*speed, 2)
-        connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 3)
-        connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 3)
-        # connectcells(self.dict_CV_1[0], self.dict_0[3], 0.00001*k*speed, 2)
-        #
-        '''C2'''
-        connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0005*k*speed, 2)
-        connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00045*k*speed, 3)
-        connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00025*k*speed, 3)
-        connectcells(self.dict_CV_1[1], self.dict_0[3], 0.00005*k*speed, 3)
-        # connectcells(self.dict_CV_1[1], self.dict_0[4], 0.00001*k*speed, 2)
-        #
-        '''C3'''
-        # connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00005*k*speed, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0004*k*speed, 2)
-        connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002*k*speed, 3)
-        connectcells(self.dict_CV_1[2], self.dict_0[4], 0.0001*k*speed, 3)
-        #
-        '''C4'''
-        connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00035*k*speed, 3)
-        connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001*k*speed, 3)
-        connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001*k*speed, 3)
-
-        '''C5'''
-        connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025*k*speed, 3)
-        connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
+        if layers > 0:
+            '''C1'''
+            connectcells(self.dict_CV_1[0], self.OM1_0E, 0.00075*k*speed, 2)
+        if layers > 1:
+            connectcells(self.dict_CV_1[0], self.dict_0[1], 0.00001*k*speed, 3)
+            '''C2'''
+            connectcells(self.dict_CV_1[1], self.OM1_0E, 0.0005*k*speed, 2)
+            connectcells(self.dict_CV_1[1], self.dict_0[1], 0.00045*k*speed, 3)
+        if layers > 2:
+            connectcells(self.dict_CV_1[0], self.dict_0[2], 0.00001*k*speed, 3)
+            '''C2'''
+            connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00025*k*speed, 3)
+            '''C3'''
+            connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00001*k*speed, 2)
+            connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0004*k*speed, 2)
+            connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00035*k*speed, 3)
+        if layers > 3:
+            connectcells(self.dict_CV_1[2], self.dict_0[3], 0.0002*k*speed, 3)
+            '''C4'''
+            connectcells(self.dict_CV_1[3], self.dict_0[2], 0.00035*k*speed, 3)
+            connectcells(self.dict_CV_1[3], self.dict_0[3], 0.00035*k*speed, 3)
+            connectcells(self.dict_CV_1[4], self.dict_0[2], 0.00035*k*speed, 3)
+            connectcells(self.dict_CV_1[4], self.dict_0[3], 0.00035*k*speed, 3)
+        if layers > 4:
+            connectcells(self.dict_CV_1[3], self.dict_0[4], 0.0001*k*speed, 3)
+            connectcells(self.dict_CV_1[4], self.dict_0[4], 0.0001*k*speed, 3)
+            #
+            '''C5'''
+            connectcells(self.dict_CV_1[5], self.dict_0[4], 0.00025*k*speed, 3)
+            connectcells(self.dict_CV_1[5], self.dict_0[3], 0.0001*k*speed, 3)
 
         '''C=1 Extensor'''
-        connectcells(self.IP_E, self.iIP_E, 0.5, 1)
+        connectcells(self.IP_E, self.iIP_E, 0.001, 1)
 
         for layer in range(layers+1):
             connectcells(self.dict_CV_1[layer], self.iIP_E, 1.8, 1)
@@ -314,11 +337,11 @@ class CPG:
         connectcells(self.iIP_E, self.OM1_0F, 1.9, 1, True)
 
         for layer in range(layers):
-            connectcells(self.iIP_E, self.dict_2F[layer], 0.5, 2, True)
+            connectcells(self.iIP_E, self.dict_2F[layer], 1.8, 2, True)
             connectcells(self.iIP_F, self.dict_2E[layer], 0.5, 2, True)
 
         connectcells(self.iIP_E, self.IP_F, 0.5, 1, True)
-        connectcells(self.iIP_E, self.Ia_aff_F, 2.2, 1, True)
+        connectcells(self.iIP_E, self.Ia_aff_F, 1.2, 1, True)
         connectcells(self.iIP_E, self.mns_F, 0.8, 1, True)
 
         '''C=0 Flexor'''
@@ -341,7 +364,7 @@ class CPG:
         connectcells(self.Ia_aff_F, self.Ia_F, 0.008, 1)
         connectcells(self.mns_F, self.R_F, 0.00015, 1)
         connectcells(self.Ia_F, self.mns_E, 0.08, 1, True)
-        connectcells(self.R_F, self.mns_F, 0.0015, 1, True)
+        connectcells(self.R_F, self.mns_F, 0.00015, 1, True)
         connectcells(self.R_F, self.Ia_F, 0.001, 1, True)
 
         connectcells(self.R_E, self.R_F, 0.04, 1, True)
@@ -500,14 +523,17 @@ def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
                     syn = target.synlistinh[j]
                     nc = pc.gid_connect(srcgid, syn)
                     inhnclist.append(nc)
-                    # nc.weight[0] = 0 # str
                 else:
                     syn = target.synlistex[j]
                     nc = pc.gid_connect(srcgid, syn)
                     exnclist.append(nc)
                     # nc.weight[0] = random.gauss(weight, weight / 6) # str
-                nc.weight[0] = random.gauss(weight, weight / 5)
+                if mode == 'STR':
+                    nc.weight[0] = 0 # str
+                else:
+                    nc.weight[0] = random.gauss(weight, weight / 5)
                 nc.delay = random.gauss(delay, delay / 5)
+
 
 
 def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False, N = 50):
@@ -570,8 +596,8 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM2, OM1, 1.95, 3)
     connectcells(OM2, OM3, 0.0005, 3)
     connectcells(OM1, OM3, 0.00005, 3)
-    connectcells(OM3, OM2, 4.5, 2, True)
-    connectcells(OM3, OM1, 4.5, 3, True)
+    connectcells(OM3, OM2, 4.5, 1, True)
+    connectcells(OM3, OM1, 4.5, 1, True)
 
 def connectinsidenucleus(nucleus):
     connectcells(nucleus, nucleus, 0.25, 0.5)
@@ -646,7 +672,7 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/AIR_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
                 sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
                 file.create_dataset('#0_step_{}'.format(i), data=np.array(result)[sl], compression="gzip")
