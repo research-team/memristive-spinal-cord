@@ -24,7 +24,7 @@ speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
 step_number = 2 # number of steps
-layers = 4  # 5 is default
+layers = 3  # 5 is default
 
 CV_number = 6
 extra_layers = 0 + layers
@@ -46,7 +46,7 @@ if mode == 'QUAD':
     CV_0_len = 175
     k = 0.003
 
-one_step_time = 6 * speed + CV_0_len
+one_step_time = CV_number * speed + CV_0_len
 time_sim = 25 + one_step_time * step_number
 
 exnclist = []
@@ -175,12 +175,12 @@ class CPG:
         for layer in range(CV_number):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * (layers + 1) + CV_0_len), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
+                self.dict_C[layer].append(self.addgener(25 + speed * layer + i * (speed * CV_number + CV_0_len), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
 
         for layer in range(layers, extra_layers):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 5) + int(speed * 0.3) + i * (speed * 6 + CV_0_len), random.gauss(cfr, cfr/10), speed / c_int))
+                self.dict_C[layer].append(self.addgener(25 + speed * (extra_layers - layers) + int(speed * 0.3) + i * (speed * CV_number + CV_0_len), random.gauss(cfr, cfr/10), speed / c_int))
 
         self.C_1 = []
         self.C_0 = []
@@ -190,8 +190,8 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, CV_0_len/c_int, False))
-            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, 100/c_int, False))
+            self.C_0.append(self.addgener(25 + speed * CV_number + i * (speed * CV_number + CV_0_len), cfr, CV_0_len/c_int, False))
+            self.V0v.append(self.addgener(40 + speed * CV_number + i * (speed * CV_number + CV_0_len), cfr, 100/c_int, False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
@@ -309,7 +309,7 @@ class CPG:
             '''C2'''
             connectcells(self.dict_CV_1[1], self.dict_0[2], 0.00025*k*speed, 3)
             '''C3'''
-            connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00001*k*speed, 2)
+            # connectcells(self.dict_CV_1[2], self.OM1_0E, 0.00001*k*speed, 2)
             connectcells(self.dict_CV_1[2], self.dict_0[1], 0.0004*k*speed, 2)
             connectcells(self.dict_CV_1[2], self.dict_0[2], 0.00035*k*speed, 3)
         if layers > 3:
