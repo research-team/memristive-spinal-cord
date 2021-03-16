@@ -2,7 +2,7 @@ import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 
-with open("../../../../Users/exc24/PycharmProjects/test/Dima.csv", encoding='utf-8') as file:
+with open("C:/Users/exc24/PycharmProjects/test/Dima.csv", encoding='utf-8') as file:
 	file.readline()
 	muscles = set()
 	dict_data = dict()
@@ -28,8 +28,9 @@ with open("../../../../Users/exc24/PycharmProjects/test/Dima.csv", encoding='utf
 		dict_data[name][muscle][side][time_index][k_decr].append(float(decr))
 		dict_data[name][muscle][side][time_index][k_relax].append(float(relax))
 		dict_data[name][muscle][side][time_index][k_creep].append(float(creep))
-
+print(dict_data)
 fr_mean = []
+
 for i in range(7):
 	fr = dict_data['Dima']['Achilles t']['Left'][i]['freq']
 	fr_mean.append(fr)
