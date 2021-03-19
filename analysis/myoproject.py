@@ -18,7 +18,6 @@ bar_indicies = times_range
 
 dict_data = dict()
 
-
 def merge(list_of_list):
 	return sum(list_of_list, [])
 
@@ -38,6 +37,7 @@ def read_data(datapath):
 				# читает строку, раскидывает по переменным
 				line = line.strip().replace(",", ".").split(";")
 				name, time, pattern, muscle, side, *values = line  # *values = freq, stiff, decr, relax, creep
+
 				# парсит время в 2ух форматах
 				try:
 					time = datetime.strptime(time, "%d.%m.%Y %H:%M:%S")
@@ -70,11 +70,15 @@ def read_data(datapath):
 				prev_time = time
 
 
-def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None):
+def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
 	color = color_l if side == "Left" else color_r
 	plt.figure(figsize=(4, 3))
 	plt.bar(bar_indicies, mean, yerr=err, error_kw={'ecolor': '0.1', 'capsize': 6}, color=color)
 	plt.xticks(bar_indicies, bar_names)
+
+	if pval_dict:
+		pass
+
 	plt.savefig(f'{save_to}/{muscle}_{param}_{side}.png', format='png')
 	plt.tight_layout()
 	if show:
@@ -97,30 +101,66 @@ def plot_combo(mean_l, err_l, mean_r, err_r, param=None, muscle=None, show=False
 	plt.close()
 
 
+def check_norm_dist(list_for_check):
+	stat, p = stats.shapiro(list_for_check)
+	if p < 0.05:
+		return False
+	else:
+		return True
+
+
 def plotting(savepath):
 	# заполнение списков значениями показателей, взятыми у каждого человека за определенный период времени
 	for muscle in muscles:
 		for param in params:
-			all_left = []
-			all_right = []
-			for time in times_range:
-				all_left.append([v[muscle]["Left"][time][param] for v in dict_data.values()])
-				all_right.append([v[muscle]['Right'][time][param] for v in dict_data.values()])
-			############ WARNING ############
-			array_times = [merge(all_left[t]) for t in times_range]
-			print(*zip(bar_names, array_times), sep='\n')
-			exit()
-			############
-			mean_left = [np.mean(merge(all_left[t])) for t in times_range]
-			se_left = [stats.sem(merge(all_left[t])) for t in times_range]
-			#
-			mean_right = [np.mean(merge(all_right[t])) for t in times_range]
-			se_right = [stats.sem(merge(all_right[t])) for t in times_range]
-			#
-			plot(mean_left, se_left, side="Left", param=param, muscle=muscle, save_to=savepath)
-			plot(mean_right, se_right, side="Right", param=param, muscle=muscle, save_to=savepath)
-			plot_combo(mean_left, se_left, mean_right, se_right, param=param, muscle=muscle, save_to=savepath)
+			mean_left, se_left, mean_right, se_right = [None] * 4
 
+			for side in "Left", "Right":
+				all_data = []
+				stat_dict = {}
+				for time in times_range:
+					all_data.append([v[muscle][side][time][param] for v in dict_data.values()])
+
+				array_times = [merge(all_data[t]) for t in times_range]
+				mean = [np.mean(array_times[t]) for t in times_range]
+				if side == "Left":
+					mean_left = mean
+				else:
+					mean_right = mean
+
+				se = [stats.sem(array_times[t]) for t in times_range]
+				if side == "Left":
+					se_left = se
+				else:
+					se_right = se
+
+				for index, t in enumerate(times_range[:-1]):
+					if t == 0:
+						if check_norm_dist(array_times[t]):  # если распределение первой выборки нормальное
+							for next_t in times_range[index + 1:]:
+								if check_norm_dist(array_times[next_t]):  # если распределение второй выборки нормальное
+									_, p = stats.ttest_rel(array_times[t], array_times[next_t])
+								else:
+									_, p = stats.wilcoxon(array_times[t], array_times[next_t])
+									stat_key = (t, next_t)
+									stat_dict[stat_key] = p
+						else:  # если распределение первой выборки НЕнормальное
+							for next_t in times_range[index + 1:]:
+								_, p = stats.wilcoxon(array_times[t], array_times[next_t])
+								stat_key = (t, next_t)
+								stat_dict[stat_key] = p
+					else:
+						for next_t in times_range[index + 1:]:
+							if check_norm_dist(array_times[next_t]):  # если распределение второй выборки нормальное
+								_, p = stats.ttest_ind(array_times[t], array_times[next_t])
+							else:
+								_, p = stats.mannwhitneyu(array_times[t], array_times[next_t])
+							stat_key = (t, next_t)
+							stat_dict[stat_key] = p
+
+				plot(mean, se, side=side, param=param, muscle=muscle, save_to=savepath, pval_dict=stat_dict)
+
+			plot_combo(mean_left, se_left, mean_right, se_right, param=param, muscle=muscle, save_to=savepath)
 			log.info(f"Отрисован {param}_{muscle}")
 
 
@@ -132,78 +172,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
-"""
-# заполнение списков значениями показателей, взятыми у каждого человека за определенный период времени
-for muscle in muscles:
-	for side in sides:
-		for time in times_range:
-			all_left = []
-			all_right = []
-			for param in params:
-				tmp = []
-				for v in dict_data.values():
-					tmp.append(v[muscle][side][time][param])
-				if side == sides[0]:
-					if param == params[0]:
-						all_freq_left.append(tmp)
-					if param == params[1]:
-						all_stif_left.append(tmp)
-					if param == params[2]:
-						all_decr_left.append(tmp)
-					if param == params[3]:
-						all_relax_left.append(tmp)
-					if param == params[4]:
-						all_creep_left.append(tmp)
-				else:
-					if param == params[0]:
-						all_freq_right.append(tmp)
-					if param == params[1]:
-						all_stif_right.append(tmp)
-					if param == params[2]:
-						all_decr_right.append(tmp)
-					if param == params[3]:
-						all_relax_right.append(tmp)
-					if param == params[4]:
-						all_creep_right.append(tmp)
-#
-# for i in range(all_list):
-# 	for m, er in zip(all_mean_list, all_se_list):
-# 		m = [np.mean(merge(i[time])) for time in times_range]
-# 		er = [stats.sem(merge(i[time])) for time in times_range]
-# freq_mean_right = [np.mean(merge(all_freq_right[time])) for time in times_range]
-# freq_se_right = [stats.sem(merge(all_freq_right[time])) for time in times_range]
-#
-# stif_mean_left = [np.mean(merge(all_stif_left[time])) for time in times_range]
-# stif_se_left = [stats.sem(merge(all_stif_left[time])) for time in times_range]
-# stif_mean_right = [np.mean(merge(all_stif_right[time])) for time in times_range]
-# stif_se_right = [stats.sem(merge(all_stif_right[time])) for time in times_range]
-#
-# decr_mean_left = [np.mean(merge(all_param[time])) for time in times_range]
-# decr_se_left = [stats.sem(merge(all_param[time])) for time in times_range]
-# decr_mean_right = [np.mean(merge(all_param[time])) for time in times_range]
-# decr_se_right = [stats.sem(merge(all_param[time])) for time in times_range]
-
-# freq_mean_right = [np.mean(merge(all_freq_right[time])) for time in times_range]
-# freq_se_right = [stats.sem(merge(all_freq_right[time])) for time in times_range]
-
-	# # графики
-	#
-	# # left
-	# plt.figure(figsize=(4, 3))
-	# plt.bar(bar_indicies, freq_mean_left, yerr=freq_se_left, error_kw={'ecolor': '0.1', 'capsize': 6}, color=color_l)
-	# plt.xticks(bar_indicies, bar_names)
-	# plt.savefig(f'{path}/{muscle}_{params[0]}_left.png', format='png')
-	# plt.tight_layout()
-	# # plt.show()
-	# plt.close()
-	#
-	# # right
-	# plt.figure(figsize=(4, 3))
-	# plt.bar(bar_indicies, freq_mean_right, yerr=freq_se_right, error_kw={'ecolor': '0.1', 'capsize': 6}, color=color_r)
-	# plt.xticks(bar_indicies, bar_names)
-	# plt.tight_layout()
-	# plt.savefig(f'{path}/{muscle}_{params[0]}_right.png', format='png')
-	# # plt.show()
-	# plt.close()
-"""
