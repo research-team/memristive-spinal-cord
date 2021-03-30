@@ -120,12 +120,13 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 		for param in params:
 			mean_left, se_left, mean_right, se_right = [None] * 4
 
+			# хранит: k - индексы сравниваемых пар, v - p value
+			stat_dict = {'Left': None,
+			             'Right': None}
+
 			for side in "Left", "Right":
 
 				all_data = []
-
-				# хранит: k - индексы сравниваемых пар, v - p value
-				stat_dict = {}
 
 				for time in times_range:
 					# добавляет
@@ -172,16 +173,28 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 							if check_norm_dist(array_times[next_t]):  # если распределение второй выборки нормальное
 								_, p = stats.ttest_rel(array_times[t], array_times[next_t])
 								stat_key = (t, next_t)
-								stat_dict[stat_key] = p
+								stat_val = p
+								if side == 'Left':
+									stat_dict['Left'] = {stat_key: stat_val}
+								if side == 'Right':
+									stat_dict['Right'] = {stat_key: stat_val}
 							else:
 								_, p = stats.wilcoxon(array_times[t], array_times[next_t])
 								stat_key = (t, next_t)
-								stat_dict[stat_key] = p
+								stat_val = p
+								if side == 'Left':
+									stat_dict['Left'] = {stat_key: stat_val}
+								if side == 'Right':
+									stat_dict['Right'] = {stat_key: stat_val}
 					else:  # если распределение первой выборки НЕнормальное
 						for next_t in times_range[index + 1:]:
 							_, p = stats.wilcoxon(array_times[t], array_times[next_t])
 							stat_key = (t, next_t)
-							stat_dict[stat_key] = p
+							stat_val = p
+							if side == 'Left':
+								stat_dict['Left'] = {stat_key: stat_val}
+							if side == 'Right':
+								stat_dict['Right'] = {stat_key: stat_val}
 
 			# plot(mean, se, side=side, param=param, muscle=muscle, save_to=savepath, pval_dict=stat_dict)
 
@@ -190,55 +203,61 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 			# plot_combo(mean_left, se_left, mean_right, se_right, param=param, muscle=muscle, save_to=savepath)
 			log.info(f"Отрисован {param}_{muscle}")
 
+
 def render_stat(pval_dict, mean):
-	pairs = [k for k, v in pval_dict.items() if v < 0.05]
-	text = {
-		'*': (1e-2, 5e-2),
-		'**': (1e-3, 1e-2),
-		'***': (1e-4, 1e-3),
-		'****': (0, 1e-4)
-	}
+	side_key = [v for k, v in pval_dict.items()]
+	for i in range(len(side_key)):
+		pairs = [k for k, v in side_key[i].items() if v < 0.05]
+		text = {
+			'*': (1e-2, 5e-2),
+			'**': (1e-3, 1e-2),
+			'***': (1e-4, 1e-3),
+			'****': (0, 1e-4)
+		}
 
-	sorted_pairs = sorted(pairs, key=lambda pair: pair[1] - pair[0])
-	line_upper = max(mean) * 0.08
-	serif_size = line_upper / 5
-	bar_shift = 1 / 5
+		sorted_pairs = sorted(pairs, key=lambda pair: pair[1] - pair[0])
+		line_upper = max(mean) * 0.08
+		serif_size = line_upper / 5
+		bar_shift = 1 / 5
 
-	def calc_line_height(pair):
-		l_bar, r_bar = pair
-		return max(mean[l_bar], mean[r_bar], *mean[l_bar:r_bar]) + line_upper
+		def calc_line_height(pair):
+			l_bar, r_bar = pair
+			return max(mean[l_bar], mean[r_bar], *mean[l_bar:r_bar]) + line_upper
 
-	def diff(h1, h2):
-		return abs(h2 - h1) < line_upper / 2
+		def diff(h1, h2):
+			return abs(h2 - h1) < line_upper / 2
 
-	line_height = list(map(calc_line_height, sorted_pairs))
+		line_height = list(map(calc_line_height, sorted_pairs))
 
-	# plot text and lines
-	for index in range(len(sorted_pairs) - 1):
-		left_bar, right_bar = sorted_pairs[index]
-		hline = line_height[index]
-		# line
-		line_x1, line_x2 = left_bar + bar_shift, right_bar - bar_shift
-		# serifs
-		serif_x1, serif_x2 = left_bar + bar_shift, right_bar - bar_shift
-		serif_y1, serif_y2 = hline - serif_size, hline
+		# plot text and lines
+		for index in range(len(sorted_pairs)):
+			left_bar, right_bar = sorted_pairs[index]
+			# left_bar = index - 0.25
+			# right_bar = index + 0.25
+			hline = line_height[index]
+			# line
+			line_x1, line_x2 = left_bar + bar_shift, right_bar - bar_shift
+			# serifs
+			serif_x1, serif_x2 = left_bar + bar_shift, right_bar - bar_shift
+			serif_y1, serif_y2 = hline - serif_size, hline
 
-		plt.plot([line_x1, line_x2], [hline, hline], color='k')
-		plt.plot([serif_x1, serif_x1], [serif_y1, serif_y2], color='k')
-		plt.plot([serif_x2, serif_x2], [serif_y1, serif_y2], color='k')
+			plt.plot([line_x1, line_x2], [hline, hline], color='k')
+			plt.plot([serif_x1, serif_x1], [serif_y1, serif_y2], color='k')
+			plt.plot([serif_x2, serif_x2], [serif_y1, serif_y2], color='k')
 
-		# check the next lines and move them upper if need
-		for i1 in range(index + 1, len(sorted_pairs)):
-			if diff(line_height[i1], line_height[index]):
-				line_height[i1] += line_upper
-		pvalue = pval_dict[(left_bar, right_bar)]
+			# check the next lines and move them upper if need
+			for i1 in range(index + 1, len(sorted_pairs)):
+				if diff(line_height[i1], line_height[index]):
+					line_height[i1] += line_upper
+			pvalue = pval_dict[(left_bar, right_bar)]
 
-		for t, (l, r) in text.items():
-			if l < pvalue <= r:
-				plt.text((left_bar + right_bar) / 2, hline + line_upper / 5, t, ha='center')
+			for t, (l, r) in text.items():
+				if l < pvalue <= r:
+					plt.text((left_bar + right_bar) / 2, hline + line_upper / 5, t, ha='center')
 
-	# plt.ylim(0, max(line_height) + line_upper)
-	# plt.tight_layout()
+
+# plt.ylim(0, max(line_height) + line_upper)
+# plt.tight_layout()
 
 def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
 	color = color_l if side == "Left" else color_r
