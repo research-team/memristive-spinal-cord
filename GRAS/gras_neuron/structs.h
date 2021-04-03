@@ -113,6 +113,8 @@ struct Neurons {
 	double *g_inh_A;        // [S] inhibitory conductivity level
 	double *g_inh_B;        // [S] inhibitory conductivity level
 	double *factor;         // [const]
+	unsigned int *ref_time;     // [const]
+	unsigned int *ref_time_timer;   // [const]
 	unsigned int size;      // array size
 };
 

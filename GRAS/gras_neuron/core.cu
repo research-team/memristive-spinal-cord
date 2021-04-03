@@ -13,6 +13,7 @@ Based on the NEURON repository.
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <stdio.h>
 #define HANDLE_ERROR( err ) ( HandleError( err, __FILE__, __LINE__ ) )
 #define PI 3.141592654f
 
@@ -32,14 +33,14 @@ const double dt = 0.025;      // [ms] simulation step
 const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 const int step_number = 1;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 25 + one_step_time * step_number;
+const unsigned int sim_time = 50 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
@@ -48,17 +49,17 @@ const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
-const double k = 0.007;           // synaptic coef
-const double V_th = 0;            // [mV] voltage threshold
+const double k_coef = 0.007;           // synaptic coef
+const double V_th = -10;            // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
-const double ca0 = 2;             // initial calcium concentration
 const double amA = 0.4;           // const ??? todo
 const double amB = 66;            // const ??? todo
 const double amC = 5;             // const ??? todo
 const double bmA = 0.4;           // const ??? todo
 const double bmB = 32;            // const ??? todo
 const double bmC = 5;             // const ??? todo
+const double ca0 = 2;             // initial calcium concentration
 const double R_const = 8.314472;  // [k-mole] or [joule/degC] const
 const double F_const = 96485.34;  // [faraday] or [kilocoulombs] const
 // muscle fiber constants
@@ -134,7 +135,8 @@ Group form_group(const string &group_name,
 			tau_exc = 0.35;
 			tau_inh1 = 0.5;
 			tau_inh2 = 3.5;
-		} else if (model == AFFERENTS) {
+		}
+		else if (model == AFFERENTS) {
 			Cm = 2;
 			gnabar = 0.5;
 			gkbar = 0.04;
@@ -150,7 +152,8 @@ Group form_group(const string &group_name,
 			tau_exc = 0.35;
 			tau_inh1 = 0.5;
 			tau_inh2 = 3.5;
-		} else if (model == MOTO) {
+		}
+		else if (model == MOTO) {
 			Cm = moto_Cm_distr(rand_gen);
 			gnabar = 0.05;
 			gl = 0.002;
@@ -158,7 +161,7 @@ Group form_group(const string &group_name,
 			ena = 50.0;
 			ek = -80.0;
 			el = -70.0;
-			diam = moto_diam_distr(rand_gen);
+			diam = 50; //moto_diam_distr(rand_gen);
 			dx = diam;
 			gkrect = 0.3;
 			gcaN = 0.05;
@@ -321,9 +324,9 @@ double nrn_moto_current(States* S, Parameters* P, Neurons* N, int nrn, int nrn_s
 	double iK = P->gkrect[nrn] * pow(S->n[nrn_seg_index], 4) * (voltage - P->ek[nrn]) +
 	            P->gcak[nrn] * pow(S->cai[nrn_seg_index], 2) / (pow(S->cai[nrn_seg_index], 2) + 0.014 * 0.014) * (voltage - P->ek[nrn]);
 	double iL = P->gl[nrn] * (voltage - P->el[nrn]);
-	double eCa = (1000 * R_const * 309.15 / (2 * F_const)) * log(ca0 / S->cai[nrn_seg_index]);
-	S->I_Ca[nrn_seg_index] = P->gcaN[nrn] * pow(S->mc[nrn_seg_index], 2) * S->hc[nrn_seg_index] * (voltage - eCa) +
-	                         P->gcaL[nrn] * S->p[nrn_seg_index] * (voltage - eCa);
+	double E_Ca = (1000.0 * R_const * 309.15 / (2.0 * F_const)) * log(ca0 / S->cai[nrn_seg_index]);
+	S->I_Ca[nrn_seg_index] = P->gcaN[nrn] * S->mc[nrn_seg_index] * S->mc[nrn_seg_index] * S->hc[nrn_seg_index] * (voltage - E_Ca) +
+	                         P->gcaL[nrn] * S->p[nrn_seg_index] * (voltage - E_Ca);
 	return iNa + iK + iL + S->I_Ca[nrn_seg_index];
 }
 
@@ -344,21 +347,25 @@ void recalc_synaptic(States* S, Parameters* P, Neurons* N, int nrn) {
 	 * updating conductance(summed) of neurons' post-synaptic conenctions
 	 */
 	// exc synaptic conductance
-	if (N->g_exc[nrn] != 0) {
+	if (N->g_exc[nrn] != 0.0) {
+		if (nrn == 5)
+			printf("g %g ->", N->g_exc[nrn]);
 		N->g_exc[nrn] -= (1.0 - exp(-dt / P->tau_exc[nrn])) * N->g_exc[nrn];
+		if (nrn == 5)
+			printf("%g\n", N->g_exc[nrn]);
 		if (N->g_exc[nrn] < 1e-5) {
 			N->g_exc[nrn] = 0.0;
 		}
 	}
 	// inh1 synaptic conductance
-	if (N->g_inh_A[nrn] != 0) {
+	if (N->g_inh_A[nrn] != 0.0) {
 		N->g_inh_A[nrn] -= (1.0 - exp(-dt / P->tau_inh1[nrn])) * N->g_inh_A[nrn];
 		if (N->g_inh_A[nrn] < 1e-5) {
 			N->g_inh_A[nrn] = 0.0;
 		}
 	}
 	// inh2 synaptic conductance
-	if (N->g_inh_B[nrn] != 0) {
+	if (N->g_inh_B[nrn] != 0.0) {
 		N->g_inh_B[nrn] -= (1.0 - exp(-dt / P->tau_inh2[nrn])) * N->g_inh_B[nrn];
 		if (N->g_inh_B[nrn] < 1e-5)
 			N->g_inh_B[nrn] = 0.0;
@@ -686,7 +693,6 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		// nrn_rhs_ext has also computed the the internal axial current for those
 		// nodes containing the extracellular mechanism
 	}
-
 	double dv;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
 		dv = S->Vm[nrn_seg - 1] - S->Vm[nrn_seg];
@@ -875,9 +881,10 @@ void nrn_deliver_events(States* S, Parameters* P, Neurons* N, int nrn) {
 	// get the central segment (for detecting spikes): i1 + (2 or 1)
 	int seg_update = P->nrn_start_seg[nrn] + ((P->models[nrn] == MUSCLE)? 2 : 1);
 	// check if neuron has spike with special flag for avoidance multi-spike detecting
-	if (!N->spike_on[nrn] && S->Vm[seg_update] > V_th) {
+	if ((!N->spike_on[nrn]) && (S->Vm[seg_update] > V_th) && (N->ref_time_timer[nrn] == 0)) {
 		N->spike_on[nrn] = true;
 		N->has_spike[nrn] = true;
+		N->ref_time_timer[nrn] = N->ref_time[nrn];
 	} else if (S->Vm[seg_update] < V_th) {
 		N->spike_on[nrn] = false;
 	}
@@ -1115,93 +1122,14 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 	}
 }
 
-__global__
-void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
-	/**
-	 *
-	 */
-	int i1, i3;
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	//
-	for (int nrn = tid; nrn < N->size; nrn += blockDim.x * gridDim.x) {
-		// reset the spike state
-		N->has_spike[nrn] = false;
-		//
-		if (P->models[nrn] != GENERATOR) {
-			// calc the borders of the neuron by theirs segments
-			i1 = P->nrn_start_seg[nrn];
-			i3 = P->nrn_start_seg[nrn + 1];
-			// re-calc currents and states based on synaptic activity
-			setup_tree_matrix(S, P, N, nrn, i1, i3);
-			// solve equations
-			nrn_solve(S, P, N, nrn, i1, i3);
-			// change voltage of the neurons based on solved equations
-			update(S, P, N, nrn, i1, i3);
-			// recalc conductance, update channels and deliver network events
-			nrn_fixed_step_lastpart(S, P, N, nrn, i1, i3);
-		}
-
-	}
-	// update generators
-	if (tid == 0) {
-		for (int generator = 0; generator < G->size; ++generator) {
-			if (t == G->spike_each_step[generator] && t < G->time_end[generator]) {
-				G->spike_each_step[generator] += G->freq_in_steps[generator];
-				N->has_spike[G->nrn_id[generator]] = true;
-			}
-		}
-		// afferent
-		float part;
-		if ( ((25 / dt <= t) && (t < 50 / dt)) || ((150 / dt <= t) && (t < 175 / dt)) ) {
-			part = (2678 - 2559) * 0.4;
-			for (int n = 2559; n <= 2678 - part; n += 2)
-				N->has_spike[n] = false;
-		} else if ( ((50 / dt <= t) && (t < 75 / dt)) || ((125 / dt <= t) && (t < 150 / dt)) ) {
-			part = (2678 - 2559) * 0.6;
-			for (int n = 2559; n <= 2678 - part; n += 3)
-				N->has_spike[n] = false;
-		}
-	}
-}
-
-__global__
-void synapse_kernel(Neurons *N, Synapses* synapses) {
-	/**
-	 * void deliver_net_events(NrnThread* nt)
-	 */
-	int pre_nrn, post_id;
-	double weight;
-	for (int index = blockIdx.x * blockDim.x + threadIdx.x; index < synapses->size; index += blockDim.x * gridDim.x) {
-		pre_nrn = synapses->syn_pre_nrn[index];
-		// synapse update
-		if (synapses->syn_delay_timer[index] > 0) {
-			synapses->syn_delay_timer[index]--;
-			// if timer is over -> synapse change the conductance of the post neuron
-		} else if (synapses->syn_delay_timer[index] == 0) {
-			post_id = synapses->syn_post_nrn[index];
-			weight = synapses->syn_weight[index];
-			if (weight >= 0) {
-				atomicAdd(&N->g_exc[post_id], weight);
-			} else {
-				atomicAdd(&N->g_inh_A[post_id], -weight * N->factor[post_id]);
-				atomicAdd(&N->g_inh_B[post_id], -weight * N->factor[post_id]);
-			}
-			synapses->syn_delay_timer[index] = -1;
-			// if pre nrn has spike and synapse is ready to send siagnal
-		} else if (N->has_spike[pre_nrn] && synapses->syn_delay_timer[index] == -1) {
-			synapses->syn_delay_timer[index] = synapses->syn_delay[index];
-		}
-	}
-}
-
 void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
 	/**
 	 *
 	 */
-	if (weight > 0.01)
-		weight = 0.01;
-	if (weight < -0.1)
-		weight = -0.1;
+//	if (weight > 0.01)
+//		weight = 0.01;
+//	if (weight < -0.1)
+//		weight = -0.1;
 
 	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
 	normal_distribution<double> delay_distr(delay, delay / 5);
@@ -1224,8 +1152,10 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 		for (int i = 0; i < nsyn; ++i) {
 			vector_syn_pre_nrn.push_back(gen_id);
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+//			vector_syn_weight.push_back(weight_distr(rand_gen));
+			vector_syn_weight.push_back(weight);
+//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			vector_syn_delay.push_back(ms_to_step(delay));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1235,25 +1165,32 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	/**
 	 *
 	 */
-	if (vector_models[pre_neurons.id_start] == AFFERENTS && vector_models[post_neurons.id_start] == MOTO) {
-		if (weight > 0.1)
-			weight = 0.1;
-		if (weight < -0.1)
-			weight = -0.1;
-	} else {
-		if (vector_models[post_neurons.id_start] == MOTO) {
-			if (weight > 0.05)
-				weight = 0.05;
-			if (weight < -0.5)
-				weight = -0.5;
-		} else {
-			if (weight > 0.01)
-				weight = 0.01;
-			if (weight < -0.085) // -0.07
-				weight = -0.085;
-		}
-	}
-
+	 // STR
+//	if (weight < 0)
+//		weight /= 1000;
+//	else {
+//		if (vector_models[pre_neurons.id_start] == AFFERENTS && vector_models[post_neurons.id_start] == MOTO) {
+//			if (weight > 0.5)
+//				weight = 0.5;
+//			if (weight < -0.5)
+//				weight = -0.5;
+//		} else {
+//			if (vector_models[post_neurons.id_start] == MUSCLE) {
+//
+//			}else if (vector_models[post_neurons.id_start] == MOTO) {
+//				if (weight > 0.5) // 0.05
+//					weight = 0.5;
+//				if (weight < -0.5) // 0.5
+//					weight = -0.5;
+//			} else {
+//				if (weight > 0.01)
+//					weight = 0.01;
+//				if (weight < -0.08) // -0.07 -0.085
+//					weight = -0.08;
+//			}
+//		}
+////	}
+//
 	if (vector_models[post_neurons.id_start] == INTER) {
 		printf("POST INTER ");
 		weight /= 11.0;
@@ -1277,13 +1214,15 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 			prerand = pre_nrns_ids(rand_gen);
 			vector_syn_pre_nrn.push_back(prerand);
 			vector_syn_post_nrn.push_back(post);
-			if (vector_models[post] == AFFERENTS) {
-				vector_syn_weight.push_back(weight);
-				vector_syn_delay.push_back(ms_to_step(delay));
-			} else {
-				vector_syn_weight.push_back(weight_distr(rand_gen));
-				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
-			}
+//			if (vector_models[post] == AFFERENTS) {
+//				vector_syn_weight.push_back(weight);
+//				vector_syn_delay.push_back(ms_to_step(delay));
+//			} else {
+//			vector_syn_weight.push_back(weight_distr(rand_gen));
+			vector_syn_weight.push_back(weight);
+//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			vector_syn_delay.push_back(ms_to_step(delay));
+//			}
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1332,6 +1271,7 @@ void save(vector<Group> groups) {
 	}
 }
 
+
 void copy_data_to(GroupMetadata& metadata,
                   const double* Vm,
                   const double* g_exc,
@@ -1344,6 +1284,32 @@ void copy_data_to(GroupMetadata& metadata,
 	double nrn_mean_g_inh = 0;
 
 	int center;
+	/*
+	if (metadata.group.group_name == "mns_E") { // muscle_E
+		FILE* pFile;
+		pFile = fopen("file.bin", "ab");
+		if(pFile == NULL) {
+			printf("Error!");
+			exit(1);
+		}
+
+		short ressize = metadata.group.id_end - metadata.group.id_start + 1;
+		double res[ressize];
+		short i = 0;
+		for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
+			center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
+			res[i++] = Vm[center];
+		}
+		fwrite(res, sizeof(double), ressize, pFile);
+		fclose(pFile);
+	}*/
+
+//	if (metadata.group.group_name == "mns_E") {
+//		for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
+//			center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE) ? 2 : 1);
+//		}
+//	}
+
 	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
 		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
 		nrn_mean_volt += Vm[center];
@@ -1401,4 +1367,92 @@ void createmotif_flex(Group OM0, Group OM1, Group OM2, Group OM3) {
 	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
 	connect_fixed_indegree(OM3, OM2, 2, -4.5);
 	connect_fixed_indegree(OM3, OM1, 3, -4.5);
+}
+
+
+__global__
+void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
+	/**
+	 *
+	 */
+	int i1, i3;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	//
+	for (int nrn = tid; nrn < N->size; nrn += blockDim.x * gridDim.x) {
+		// reset the spike state
+		N->has_spike[nrn] = false;
+		//
+		if (P->models[nrn] != GENERATOR) {
+			// calc the borders of the neuron by theirs segments
+			i1 = P->nrn_start_seg[nrn];
+			i3 = P->nrn_start_seg[nrn + 1];
+			// re-calc currents and states based on synaptic activity
+			setup_tree_matrix(S, P, N, nrn, i1, i3);
+			// solve equations
+			nrn_solve(S, P, N, nrn, i1, i3);
+			// change voltage of the neurons based on solved equations
+			update(S, P, N, nrn, i1, i3);
+			// recalc conductance, update channels and deliver network events
+			nrn_fixed_step_lastpart(S, P, N, nrn, i1, i3);
+			if (N->ref_time_timer[nrn] > 0)
+				N->ref_time_timer[nrn]--;
+		}
+	}
+	// update generators
+	if (tid == 0) {
+		for (int generator = 0; generator < G->size; ++generator) {
+			if (t == G->spike_each_step[generator] && t < G->time_end[generator]) {
+				G->spike_each_step[generator] += G->freq_in_steps[generator];
+				N->has_spike[G->nrn_id[generator]] = true;
+			}
+		}
+		// afferent
+//		float part;
+//		if ( ((25 / dt <= t) && (t < 50 / dt)) || ((150 / dt <= t) && (t < 175 / dt)) ) {
+//			part = (2678 - 2559) * 0.4;
+//			for (int n = 2559; n <= 2678 - part; n += 2)
+//				N->has_spike[n] = false;
+//		} else if ( ((50 / dt <= t) && (t < 75 / dt)) || ((125 / dt <= t) && (t < 150 / dt)) ) {
+//			part = (2678 - 2559) * 0.6;
+//			for (int n = 2559; n <= 2678 - part; n += 3)
+//				N->has_spike[n] = false;
+//		}
+	}
+}
+
+__global__
+void synapse_kernel(Neurons *N, Synapses* synapses) {
+	/**
+	 * void deliver_net_events(NrnThread* nt)
+	 */
+	int pre_nrn, post_id;
+	short center;
+	double weight;
+	for (int index = blockIdx.x * blockDim.x + threadIdx.x; index < synapses->size; index += blockDim.x * gridDim.x) {
+		pre_nrn = synapses->syn_pre_nrn[index];
+		// synapse update
+		if (synapses->syn_delay_timer[index] > 0) {
+			synapses->syn_delay_timer[index]--;
+		} else {
+			// if timer is over -> synapse change the conductance of the post neuron
+			if (synapses->syn_delay_timer[index] == 0) {
+				post_id = synapses->syn_post_nrn[index];
+				if (N->ref_time_timer[post_id] == 0) {
+					weight = synapses->syn_weight[index];
+					if (weight >= 0) {
+						atomicAdd(&N->g_exc[post_id], weight);
+					} else {
+						atomicAdd(&N->g_inh_A[post_id], -weight * N->factor[post_id]);
+						atomicAdd(&N->g_inh_B[post_id], -weight * N->factor[post_id]);
+					}
+				}
+				synapses->syn_delay_timer[index] = -1;
+			} else {
+				// if pre nrn has spike and synapse is ready to send siagnal
+				if (N->has_spike[pre_nrn] && synapses->syn_delay_timer[index] == -1) {
+					synapses->syn_delay_timer[index] = synapses->syn_delay[index];
+				}
+			}
+		}
+	}
 }
