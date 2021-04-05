@@ -3,6 +3,7 @@ See the topology https://github.com/research-team/memristive-spinal-cord/blob/ma
 Based on the NEURON repository.
 */
 //#define LOG
+#include <assert.h>
 #include <random>
 #include <vector>
 #include <string>
@@ -110,6 +111,7 @@ Group form_group(const string &group_name,
 	group.id_start = nrns_number;      // first ID in the group
 	group.id_end = nrns_number + nrns_in_group - 1;  // the latest ID in the group
 	group.group_size = nrns_in_group;  // size of the neurons group
+	group.model = model;
 
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
 	normal_distribution<double> Cm_distr(1, 0.01);
@@ -161,7 +163,7 @@ Group form_group(const string &group_name,
 			ena = 50.0;
 			ek = -80.0;
 			el = -70.0;
-			diam = 50; //moto_diam_distr(rand_gen);
+			diam = moto_diam_distr(rand_gen);
 			dx = diam;
 			gkrect = 0.3;
 			gcaN = 0.05;
@@ -348,11 +350,7 @@ void recalc_synaptic(States* S, Parameters* P, Neurons* N, int nrn) {
 	 */
 	// exc synaptic conductance
 	if (N->g_exc[nrn] != 0.0) {
-		if (nrn == 5)
-			printf("g %g ->", N->g_exc[nrn]);
 		N->g_exc[nrn] -= (1.0 - exp(-dt / P->tau_exc[nrn])) * N->g_exc[nrn];
-		if (nrn == 5)
-			printf("%g\n", N->g_exc[nrn]);
 		if (N->g_exc[nrn] < 1e-5) {
 			N->g_exc[nrn] = 0.0;
 		}
@@ -881,7 +879,7 @@ void nrn_deliver_events(States* S, Parameters* P, Neurons* N, int nrn) {
 	// get the central segment (for detecting spikes): i1 + (2 or 1)
 	int seg_update = P->nrn_start_seg[nrn] + ((P->models[nrn] == MUSCLE)? 2 : 1);
 	// check if neuron has spike with special flag for avoidance multi-spike detecting
-	if ((!N->spike_on[nrn]) && (S->Vm[seg_update] > V_th) && (N->ref_time_timer[nrn] == 0)) {
+	if (!N->spike_on[nrn] && S->Vm[seg_update] > V_th && N->ref_time_timer[nrn] == 0) {
 		N->spike_on[nrn] = true;
 		N->has_spike[nrn] = true;
 		N->ref_time_timer[nrn] = N->ref_time[nrn];
@@ -911,7 +909,7 @@ void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* N, int nrn, int 
 			recalc_muslce_channels(S, P, N, nrn_seg, S->Vm[nrn_seg]);
 		}
 	} else {
-
+		assert(false);
 	}
 	//  spike detection for (in synapse kernel)
 	nrn_deliver_events(S, P, N, nrn);
@@ -1111,7 +1109,7 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 				} else if (P->models[nrn] == MUSCLE) {
 					nrn_muslce_initial(S, P, N, nrn_seg, v_init);
 				} else {
-
+					assert(false);
 				}
 			}
 			// init RHS/LHS
@@ -1126,11 +1124,6 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 	/**
 	 *
 	 */
-//	if (weight > 0.01)
-//		weight = 0.01;
-//	if (weight < -0.1)
-//		weight = -0.1;
-
 	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
 	normal_distribution<double> delay_distr(delay, delay / 5);
 	normal_distribution<double> weight_distr(weight, weight / 6);
@@ -1152,10 +1145,8 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 		for (int i = 0; i < nsyn; ++i) {
 			vector_syn_pre_nrn.push_back(gen_id);
 			vector_syn_post_nrn.push_back(post);
-//			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_weight.push_back(weight);
-//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
-			vector_syn_delay.push_back(ms_to_step(delay));
+			vector_syn_weight.push_back(weight_distr(rand_gen));
+			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1168,30 +1159,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	 // STR
 //	if (weight < 0)
 //		weight /= 1000;
-//	else {
-//		if (vector_models[pre_neurons.id_start] == AFFERENTS && vector_models[post_neurons.id_start] == MOTO) {
-//			if (weight > 0.5)
-//				weight = 0.5;
-//			if (weight < -0.5)
-//				weight = -0.5;
-//		} else {
-//			if (vector_models[post_neurons.id_start] == MUSCLE) {
-//
-//			}else if (vector_models[post_neurons.id_start] == MOTO) {
-//				if (weight > 0.5) // 0.05
-//					weight = 0.5;
-//				if (weight < -0.5) // 0.5
-//					weight = -0.5;
-//			} else {
-//				if (weight > 0.01)
-//					weight = 0.01;
-//				if (weight < -0.08) // -0.07 -0.085
-//					weight = -0.08;
-//			}
-//		}
-////	}
-//
-	if (vector_models[post_neurons.id_start] == INTER) {
+
+	if (post_neurons.model == INTER) {
 		printf("POST INTER ");
 		weight /= 11.0;
 	}
@@ -1214,15 +1183,13 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 			prerand = pre_nrns_ids(rand_gen);
 			vector_syn_pre_nrn.push_back(prerand);
 			vector_syn_post_nrn.push_back(post);
-//			if (vector_models[post] == AFFERENTS) {
-//				vector_syn_weight.push_back(weight);
-//				vector_syn_delay.push_back(ms_to_step(delay));
-//			} else {
-//			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_weight.push_back(weight);
-//			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
-			vector_syn_delay.push_back(ms_to_step(delay));
-//			}
+			if (post_neurons.model == AFFERENTS) {
+				vector_syn_weight.push_back(weight);
+				vector_syn_delay.push_back(ms_to_step(delay));
+			} else {
+				vector_syn_weight.push_back(weight_distr(rand_gen));
+				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			}
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1265,12 +1232,9 @@ void file_writing(int test_index, GroupMetadata &metadata, const string &folder)
 }
 
 void save(vector<Group> groups) {
-	for (Group &group : groups) {
-		GroupMetadata new_meta(group, SIM_TIME_IN_STEPS);
-		saving_groups.emplace_back(new_meta);
-	}
+	for (Group &group : groups)
+		saving_groups.emplace_back(GroupMetadata(group, SIM_TIME_IN_STEPS));
 }
-
 
 void copy_data_to(GroupMetadata& metadata,
                   const double* Vm,
@@ -1284,8 +1248,7 @@ void copy_data_to(GroupMetadata& metadata,
 	double nrn_mean_g_inh = 0;
 
 	int center;
-	/*
-	if (metadata.group.group_name == "mns_E") { // muscle_E
+	if (metadata.group.group_name == "muscle_E") {
 		FILE* pFile;
 		pFile = fopen("file.bin", "ab");
 		if(pFile == NULL) {
@@ -1302,13 +1265,7 @@ void copy_data_to(GroupMetadata& metadata,
 		}
 		fwrite(res, sizeof(double), ressize, pFile);
 		fclose(pFile);
-	}*/
-
-//	if (metadata.group.group_name == "mns_E") {
-//		for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
-//			center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE) ? 2 : 1);
-//		}
-//	}
+	}
 
 	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
 		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
@@ -1327,12 +1284,9 @@ void copy_data_to(GroupMetadata& metadata,
 
 void save_result(int test_index) {
 	string current_path = getcwd(nullptr, 0);
-
-	printf("[Test #%d] Save results to: %s \n", test_index, current_path.c_str());
-
-	for (GroupMetadata &metadata : saving_groups) {
+	for (GroupMetadata &metadata : saving_groups)
 		file_writing(test_index, metadata, current_path);
-	}
+	printf("[Test #%d] Saved results to: %s \n", test_index, current_path.c_str());
 }
 
 template<typename type>
@@ -1341,34 +1295,33 @@ type* arr_segs(int size = nrns_and_segs) {
 	return new type[size]();
 }
 
-void createmotif(Group OM0, Group OM1, Group OM2, Group OM3) {
+void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	/**
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 1, 2.85);
-	connect_fixed_indegree(OM1, OM2, 2, 2.85);
-	connect_fixed_indegree(OM2, OM1, 2, 1.95);
+	connect_fixed_indegree(OM0, OM1, 1, 0.85);
+	connect_fixed_indegree(OM1, OM2, 2, 0.85);
+	connect_fixed_indegree(OM2, OM1, 2, 0.95);
 	connect_fixed_indegree(OM2, OM3, 2, 0.0005);
 	connect_fixed_indegree(OM1, OM3, 2, 0.00005);
 	connect_fixed_indegree(OM3, OM2, 2, -4.5);
 	connect_fixed_indegree(OM3, OM1, 2, -4.5);
 }
 
-void createmotif_flex(Group OM0, Group OM1, Group OM2, Group OM3) {
+void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	/**
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 3, 2.85);
-	connect_fixed_indegree(OM1, OM2, 3, 0);
-	connect_fixed_indegree(OM2, OM1, 3, 0);
-	connect_fixed_indegree(OM2, OM3, 3, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
+	connect_fixed_indegree(OM0, OM1, 1, 0.85);
+	connect_fixed_indegree(OM1, OM2, 2, 0.85);
+	connect_fixed_indegree(OM2, OM1, 2, 0.95);
+	connect_fixed_indegree(OM2, OM3, 2, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 2, 0.00005);
 	connect_fixed_indegree(OM3, OM2, 2, -4.5);
-	connect_fixed_indegree(OM3, OM1, 3, -4.5);
+	connect_fixed_indegree(OM3, OM1, 2, -4.5);
 }
-
 
 __global__
 void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
@@ -1426,7 +1379,6 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 	 * void deliver_net_events(NrnThread* nt)
 	 */
 	int pre_nrn, post_id;
-	short center;
 	double weight;
 	for (int index = blockIdx.x * blockDim.x + threadIdx.x; index < synapses->size; index += blockDim.x * gridDim.x) {
 		pre_nrn = synapses->syn_pre_nrn[index];
@@ -1437,15 +1389,16 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 			// if timer is over -> synapse change the conductance of the post neuron
 			if (synapses->syn_delay_timer[index] == 0) {
 				post_id = synapses->syn_post_nrn[index];
-				if (N->ref_time_timer[post_id] == 0) {
+//				if () {
 					weight = synapses->syn_weight[index];
 					if (weight >= 0) {
-						atomicAdd(&N->g_exc[post_id], weight);
+						if (N->ref_time_timer[post_id] == 0)
+							atomicAdd(&N->g_exc[post_id], weight);
 					} else {
 						atomicAdd(&N->g_inh_A[post_id], -weight * N->factor[post_id]);
 						atomicAdd(&N->g_inh_B[post_id], -weight * N->factor[post_id]);
 					}
-				}
+//				}
 				synapses->syn_delay_timer[index] = -1;
 			} else {
 				// if pre nrn has spike and synapse is ready to send siagnal

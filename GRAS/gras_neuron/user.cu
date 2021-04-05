@@ -5,15 +5,15 @@ void init_network() {
 	/**
 	 * todo
 	 */
-	if (true) {
+	if (false) {
 		auto e1 = form_group("e1", 1, GENERATOR);
 		auto e2 = form_group("e2", 1, GENERATOR);
 		auto om1 = form_group("om1", 10);
 		auto moto = form_group("mns_E", 20);
-		add_generator(e1, 10, 100000, 100);
-		add_generator(e2, 15, 100000, 100);
-		conn_generator(e1, om1, 1.1, 5);
-		conn_generator(e2, om1, 1.1, 5);
+		add_generator(e1, 10, 100000, 400);
+		add_generator(e2, 15, 100000, 400);
+		conn_generator(e1, om1, 1.1, 0.000020);
+		conn_generator(e2, om1, 1.1, -0.000003);
 		connect_fixed_indegree(om1, moto, 1.35, 0.5);
 		save({e1, om1, moto});
 		return;
@@ -77,8 +77,8 @@ void init_network() {
 		V0v.push_back(form_group("V0v_step_" + name, 1, GENERATOR));
 	}
 	//
-	auto OM1_0E = form_group("OM1_0E", 50);
-	auto OM1_0F = form_group("OM1_0F", 50);
+	auto OM1_0E = form_group("OM1_0E");
+	auto OM1_0F = form_group("OM1_0F");
 	// OM groups by layer
 	for(int layer = 0; layer < layers; ++layer) {
 		name = to_string(layer + 1);
@@ -104,8 +104,8 @@ void init_network() {
 	auto mns_E = form_group("mns_E", 210, MOTO);
 	auto mns_F = form_group("mns_F", 180, MOTO);
 	// muscle fibers
-	auto muscle_E = form_group("muscle_E", 5000, MUSCLE, 3); // 150 * 210
-	auto muscle_F = form_group("muscle_F", 5000, MUSCLE, 3); // 100 * 180
+	auto muscle_E = form_group("muscle_E", 1000, MUSCLE, 3); // 150 * 210
+	auto muscle_F = form_group("muscle_F", 1000, MUSCLE, 3); // 100 * 180
 	// reflex arc E
 	auto Ia_E = form_group("Ia_E", neurons_in_ip);
 	auto iIP_E = form_group("iIP_E", neurons_in_ip);
@@ -115,10 +115,10 @@ void init_network() {
 	auto iIP_F = form_group("iIP_F", neurons_in_ip);
 	auto R_F = form_group("R_F");
 
-	double TESTCOEF = 4.15;
 
-	// create generators
+	// create EES generator
 	add_generator(ees, 0, sim_time, ees_fr);
+	// create CV generators (per step)
 	for (int layer = 0; layer < layers + 1; ++layer) {
 		for (int step_index = 0; step_index < step_number; ++step_index) {
 			normal_distribution<double> freq_distr(cv_fr, cv_fr / 10);
@@ -127,7 +127,7 @@ void init_network() {
 			add_generator(gen_C[layer], start, end, freq_distr(rand_gen));
 		}
 	}
-	//
+	// create C_0 and V0v generators (per step)
 	for (int step_index = 0; step_index < step_number; ++step_index) {
 		// freq = 200 (interval = 5ms), count = 125 / interval. Duration = count * interval = 125
 		double start = 25 + skin_time * 6 + step_index * (skin_time * 6 + flexor_dur);
@@ -138,6 +138,7 @@ void init_network() {
 		end = start + 75;
 		add_generator(V0v[step_index], start, end, cv_fr);
 	}
+
 	// extensor
 	createmotif(OM1_0E, L1[0], L2E[0], L3[0]);
 	for(int layer = 1; layer < layers; ++layer)
@@ -151,18 +152,19 @@ void init_network() {
 		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 1.5);
 	//
 	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025);
+//	connect_fixed_indegree(C[step], OM1_0F, 3, 2.75);
 //	for(int step = 0; step < step_number; ++step) {
 //		connect_fixed_indegree(V0v[step], OM1_0F, 3, 2.75);
 //	}
 	// between delays via excitatory pools
 	// extensor
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer - 1], E[layer], 4.5, 9.75); // 3
+		connect_fixed_indegree(E[layer - 1], E[layer], 3, 0.75); // 4.75
 	}
 	// connect E (from EES)
-	connect_fixed_indegree(E[0], OM1_0E, 2, 0.0004); // 0.00047
+	connect_fixed_indegree(E[0], OM1_0E, 2, 0.00044); // 0.00040 - 0.00047
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer], L0[layer], 2, 9); // 0.00048 * 0.4, 1.115
+		connect_fixed_indegree(E[layer], L0[layer], 2, 0.00048 * 0.54); // 0.00048 * 0.4, 1.115
 	}
 
 	// E inhibitory projections (via 3rd core)
@@ -186,34 +188,35 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5 + 2.0, 1.55);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5 + 2.0, 0.5);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 1.55);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 1, 4.5, 45); //15.5
-	connect_fixed_indegree(mns_F, muscle_F, 1, 4.5, 45); //15.5
+	connect_fixed_indegree(mns_E, muscle_E, 2, 15.5, 45);
+	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
 
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
 		// Extensor
 		connectinsidenucleus(IP_F[layer]);
-//		connectinsidenucleus(L2E[layer]);
+		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 2, 1.75); // 3
-		connect_fixed_indegree(IP_E[layer], mns_E, 3, 3); // 2.75
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 2.5);
+		connect_fixed_indegree(IP_E[layer], mns_E, 3, 2.75);
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
 		// Flexor
-		connect_fixed_indegree(L2F[layer], IP_F[layer], 3, 2.85);
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 2, 2.85);
 		connect_fixed_indegree(IP_F[layer], mns_F, 2, 3.75);
-		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.75);
+		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.95);
 	}
 	// skin inputs
 	for (int layer = 0; layer < layers + 1; ++layer)
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * k_coef * skin_time);
 
 	// CV
+	double TESTCOEF = 4.75; // 4.25
 	// OM1
 	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * k_coef * skin_time * TESTCOEF * 0.2);
 	connect_fixed_indegree(CV[1], OM1_0E, 2 + 0.3, 0.0005 * k_coef * skin_time * TESTCOEF * 0.35);
@@ -242,7 +245,7 @@ void init_network() {
 
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
-		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.5);
+		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.001);
 	//
 	for (int layer = 0; layer < layers + 1; ++layer) {
 		connect_fixed_indegree(CV[layer], iIP_E, 1, 1.8);
@@ -251,7 +254,7 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, OM1_0F, 1, -1.9);
 
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, L2F[layer], 2, -0.5);
+		connect_fixed_indegree(iIP_E, L2F[layer], 2, -1.8);
 		connect_fixed_indegree(iIP_F, L2E[layer], 2, -0.5);
 	}
 	//
@@ -264,8 +267,8 @@ void init_network() {
 	}
 	// C=0 Flexor
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.5);
-	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -2.2);
-//	connect_fixed_indegree(iIP_F, mns_E, 1, -0.8);
+	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -0.5);
+	connect_fixed_indegree(iIP_F, mns_E, 1, -0.4);
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(C_0[step], iIP_F, 1, 0.8);
 	}
@@ -424,7 +427,6 @@ void simulate(int test_index) {
 		synapse_kernel<<<5, 256>>>(dev_N, dev_synapses);
 		// updating neurons kernel
 		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_N, dev_G, sim_iter);
-		printf("%d =============================\n", sim_iter);
 		/// SAVE DATA ZONE
 //		memcpyDtH(S->EXT_V, EXT_V, ext_size);
 		memcpyDtH(S->Vm, Vm, nrns_and_segs);
