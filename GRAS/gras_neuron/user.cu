@@ -115,7 +115,6 @@ void init_network() {
 	auto iIP_F = form_group("iIP_F", neurons_in_ip);
 	auto R_F = form_group("R_F");
 
-
 	// create EES generator
 	add_generator(ees, 0, sim_time, ees_fr);
 	// create CV generators (per step)
@@ -188,10 +187,10 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 1.55);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 5.55);
 	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 2, 15.5, 45);
+	connect_fixed_indegree(mns_E, muscle_E, 3, 15.5, 45); // 15.5
 	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
 
 	// IP
@@ -200,8 +199,8 @@ void init_network() {
 		connectinsidenucleus(IP_F[layer]);
 		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 2.5);
-		connect_fixed_indegree(IP_E[layer], mns_E, 3, 2.75);
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 1, 0.02); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 2.5, 0.1, 50, 1); // 2.75 0.125 0.2
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
@@ -227,15 +226,15 @@ void init_network() {
 	// OM3
 	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * k_coef * skin_time * TESTCOEF);
 	connect_fixed_indegree(CV[1], L0[2], 3 + 1, 0.00025 * k_coef * skin_time * TESTCOEF * 0.85);  // 0.7);
-	connect_fixed_indegree(CV[2], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.66); // 0.54);
-	connect_fixed_indegree(CV[3], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.66); // 0.51);
-	connect_fixed_indegree(CV[4], L0[2], 3 + 0.5, 0.00035 * k_coef * skin_time * TESTCOEF * 0.66);// 0.5);
+	connect_fixed_indegree(CV[2], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76); // 0.54);
+	connect_fixed_indegree(CV[3], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76); // 0.51);
+	connect_fixed_indegree(CV[4], L0[2], 3 + 0.5, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76);// 0.5);
 	// OM4
 	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * k_coef * skin_time * TESTCOEF * 0.9); // -
-	connect_fixed_indegree(CV[2], L0[3], 3 - 0.5, 0.0002 * k_coef * skin_time * TESTCOEF * 0.95); // -
-	connect_fixed_indegree(CV[3], L0[3], 3 - .5, 0.00035 * k_coef * skin_time * TESTCOEF * 0.6);
-	connect_fixed_indegree(CV[4], L0[3], 3 - 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.6);
-//	connect_fixed_indegree(CV[5], L0[3], 3 + 0.5, 0.0001 * k_coef * skin_time * TESTCOEF * 0.5); //-
+	connect_fixed_indegree(CV[2], L0[3], 3, 0.0002 * k_coef * skin_time * TESTCOEF * 0.95); // -
+	connect_fixed_indegree(CV[3], L0[3], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.6);
+	connect_fixed_indegree(CV[4], L0[3], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.6);
+	connect_fixed_indegree(CV[5], L0[3], 3, 0.0001 * k_coef * skin_time * TESTCOEF * 0.5); //-
 	// OM5
 	connect_fixed_indegree(CV[1], L0[4], 3 + 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.8);
 	connect_fixed_indegree(CV[2], L0[4], 3 + 2, 0.0001 * k_coef * skin_time * TESTCOEF * 1.8);
@@ -314,7 +313,7 @@ void simulate(int test_index) {
 	// create neurons and their connectomes
 	init_network();
 	// note: important
-	vector_nrn_start_seg.push_back(nrns_and_segs);
+	vector_nrn_start_seg.push_back(NRNS_AND_SEGS);
 
 	// allocate generators into the GPU
 	unsigned int gens_number = vec_spike_each_step.size();
@@ -346,7 +345,7 @@ void simulate(int test_index) {
 	P->tau_exc = init_gpu_arr(vector_tau_exc);
 	P->tau_inh1 = init_gpu_arr(vector_tau_inh1);
 	P->tau_inh2 = init_gpu_arr(vector_tau_inh2);
-	P->size = nrns_number;
+	P->size = NRNS_NUMBER;
 
 	// dynamic states of neuron (CPU arrays) and allocate them into the GPU
 	auto *Vm = arr_segs<double>(); S->Vm = init_gpu_arr(Vm);
@@ -368,14 +367,14 @@ void simulate(int test_index) {
 	auto *NODE_RINV = arr_segs<double>(); S->NODE_RINV = init_gpu_arr(NODE_RINV);
 	auto *NODE_AREA = arr_segs<double>(); S->NODE_AREA = init_gpu_arr(NODE_AREA);
 
-	int ext_size = nrns_and_segs * 2;
+	int ext_size = NRNS_AND_SEGS * 2;
 	auto *EXT_A = arr_segs<double>(ext_size); S->EXT_A = init_gpu_arr(EXT_A, ext_size);
 	auto *EXT_B = arr_segs<double>(ext_size); S->EXT_B = init_gpu_arr(EXT_B, ext_size);
 	auto *EXT_D = arr_segs<double>(ext_size); S->EXT_D = init_gpu_arr(EXT_D, ext_size);
 	auto *EXT_V = arr_segs<double>(ext_size); S->EXT_V = init_gpu_arr(EXT_V, ext_size);
 	auto *EXT_RHS = arr_segs<double>(ext_size); S->EXT_RHS = init_gpu_arr(EXT_RHS, ext_size);
 
-	S->size = nrns_and_segs;
+	S->size = NRNS_AND_SEGS;
 	S->ext_size = ext_size;
 
 	// special neuron's state (CPU) and allocate them into the GPU
@@ -387,10 +386,10 @@ void simulate(int test_index) {
 	auto *factor = arr_segs<double>(); N->factor = init_gpu_arr(factor);
 	auto *ref_time_timer = arr_segs<unsigned int>(); N->ref_time_timer = init_gpu_arr(ref_time_timer);
 	auto *ref_time = arr_segs<unsigned int>();
-	for (int i = 0; i < nrns_number; ++i)
+	for (int i = 0; i < NRNS_NUMBER; ++i)
 		ref_time[i] = ms_to_step(2);
 	N->ref_time = init_gpu_arr(ref_time);
-	N->size = nrns_number;
+	N->size = NRNS_NUMBER;
 
 	// synaptic parameters
 	unsigned int synapses_number = vector_syn_delay.size();
@@ -409,7 +408,12 @@ void simulate(int test_index) {
 	auto *dev_synapses = init_gpu_arr(synapses, 1);
 
 	printf("Network: %d neurons (with segs: %d), %d synapses, %d generators\n",
-	       nrns_number, nrns_and_segs, synapses_number, gens_number);
+	       NRNS_NUMBER, NRNS_AND_SEGS, synapses_number, gens_number);
+
+	int THREADS = 32, BLOCKS = 10;
+
+	curandState *devStates;
+	HANDLE_ERROR(cudaMalloc((void **)&devStates, NRNS_NUMBER * sizeof(curandState)));
 
 	float time;
 	cudaEvent_t start, stop;
@@ -418,7 +422,7 @@ void simulate(int test_index) {
 	HANDLE_ERROR(cudaEventRecord(start, 0));
 
 	// call initialisation kernel
-	initialization_kernel<<<1, 1>>>(dev_S, dev_P, dev_N, -70.0);
+	initialization_kernel<<<1, 1>>>(devStates, dev_S, dev_P, dev_N, -70.0);
 
 	// the main simulation loop
 	for (unsigned int sim_iter = 0; sim_iter < SIM_TIME_IN_STEPS; ++sim_iter) {
@@ -426,14 +430,14 @@ void simulate(int test_index) {
 		// deliver_net_events, synapse updating and neuron conductance changing kernel
 		synapse_kernel<<<5, 256>>>(dev_N, dev_synapses);
 		// updating neurons kernel
-		neuron_kernel<<<10, 32>>>(dev_S, dev_P, dev_N, dev_G, sim_iter);
+		neuron_kernel<<<BLOCKS, THREADS>>>(devStates, dev_S, dev_P, dev_N, dev_G, sim_iter);
 		/// SAVE DATA ZONE
 //		memcpyDtH(S->EXT_V, EXT_V, ext_size);
-		memcpyDtH(S->Vm, Vm, nrns_and_segs);
-		memcpyDtH(N->g_exc, g_exc, nrns_number);
-		memcpyDtH(N->g_inh_A, g_inh_A, nrns_number);
-		memcpyDtH(N->g_inh_B, g_inh_B, nrns_number);
-		memcpyDtH(N->has_spike, has_spike, nrns_number);
+		memcpyDtH(S->Vm, Vm, NRNS_AND_SEGS);
+		memcpyDtH(N->g_exc, g_exc, NRNS_NUMBER);
+		memcpyDtH(N->g_inh_A, g_inh_A, NRNS_NUMBER);
+		memcpyDtH(N->g_inh_B, g_inh_B, NRNS_NUMBER);
+		memcpyDtH(N->has_spike, has_spike, NRNS_NUMBER);
 		// fill records arrays
 		for (GroupMetadata& metadata : saving_groups) {
 			copy_data_to(metadata, Vm, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);

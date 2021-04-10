@@ -9,6 +9,7 @@ Based on the NEURON repository.
 #include <string>
 #include "structs.h"
 #include <stdexcept>
+#include <curand_kernel.h>
 // for file writing
 #include <cstdlib>
 #include <iostream>
@@ -44,14 +45,14 @@ const unsigned int one_step_time = 6 * skin_time + 125;
 const unsigned int sim_time = 50 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
-unsigned int nrns_number = 0;     // [id] global neuron id = number of neurons
-unsigned int nrns_and_segs = 0;   // [id] global neuron+segs id = number of neurons with segments
+unsigned int NRNS_NUMBER = 0;     // [id] global neuron id = number of neurons
+unsigned int NRNS_AND_SEGS = 0;   // [id] global neuron+segs id = number of neurons with segments
 const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
 const double k_coef = 0.007;           // synaptic coef
-const double V_th = -10;            // [mV] voltage threshold
+const double V_th = -40;            // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
 const double amA = 0.4;           // const ??? todo
@@ -98,6 +99,28 @@ vector <Group> all_groups;
 // generators
 vector<unsigned int> vec_time_end, vec_nrn_id, vec_freq_in_steps, vec_spike_each_step;
 
+
+double *bimodal_distr_for_moto_neurons(const unsigned int nrnnumber) {
+	int standby_percent = 70;
+	double diameter_active = 27.0;
+	double diameter_standby = 57.0;
+	
+	double* nrn_diameter = new double [nrnnumber];
+	random_device r1;
+	default_random_engine generator1(r1());
+	normal_distribution<double> d_active(diameter_active, 3);
+	normal_distribution<double> d_standby(diameter_standby, 6);
+
+	int standby_size = (int) (nrnnumber * standby_percent / 100);
+	int active_size = nrnnumber - standby_size;
+
+	for (int i = 0; i < active_size; i++)
+		nrn_diameter[i] = d_active(generator1);
+	for (int i = active_size; i < nrnnumber; i++)
+		nrn_diameter[i] = d_standby(generator1);
+	return nrn_diameter;
+}
+
 // form structs of neurons global ID and groups name
 Group form_group(const string &group_name,
                  int nrns_in_group = neurons_in_group,
@@ -108,17 +131,20 @@ Group form_group(const string &group_name,
 	 */
 	Group group = Group();
 	group.group_name = group_name;     // name of a neurons group
-	group.id_start = nrns_number;      // first ID in the group
-	group.id_end = nrns_number + nrns_in_group - 1;  // the latest ID in the group
+	group.id_start = NRNS_NUMBER;      // first ID in the group
+	group.id_end = NRNS_NUMBER + nrns_in_group - 1;  // the latest ID in the group
 	group.group_size = nrns_in_group;  // size of the neurons group
 	group.model = model;
 
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
 	normal_distribution<double> Cm_distr(1, 0.01);
 	normal_distribution<double> moto_Cm_distr(2, 0.1);
-	uniform_int_distribution<int> moto_diam_distr(45, 55);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
 	uniform_real_distribution<double> afferent_diam_distr(15, 35);
+
+	double* diameters; // Works
+	if (model == MOTO)
+		diameters = bimodal_distr_for_moto_neurons(nrns_in_group);
 
 	for (int nrn = 0; nrn < nrns_in_group; nrn++) {
 		if (model == INTER) {
@@ -163,7 +189,7 @@ Group form_group(const string &group_name,
 			ena = 50.0;
 			ek = -80.0;
 			el = -70.0;
-			diam = moto_diam_distr(rand_gen);
+			diam = diameters[nrn];
 			dx = diam;
 			gkrect = 0.3;
 			gcaN = 0.05;
@@ -198,7 +224,7 @@ Group form_group(const string &group_name,
 			tau_inh1 = 1.0;
 			tau_inh2 = 1.0;
 		} else if (model == GENERATOR) {
-
+			// nothing
 		} else {
 			throw logic_error("Choose the model");
 		}
@@ -223,16 +249,16 @@ Group form_group(const string &group_name,
 		vector_tau_inh1.push_back(tau_inh1);
 		vector_tau_inh2.push_back(tau_inh2);
 		//
-		vector_nrn_start_seg.push_back(nrns_and_segs);
-		nrns_and_segs += (segs + 2);
+		vector_nrn_start_seg.push_back(NRNS_AND_SEGS);
+		NRNS_AND_SEGS += (segs + 2);
 		vector_models.push_back(model);
 		// void (*foo)(int);
 		// foo = &my_int_func;
 	}
 
-	nrns_number += nrns_in_group;
+	NRNS_NUMBER += nrns_in_group;
 	printf("Formed %s IDs [%d ... %d] = %d\n",
-	       group_name.c_str(), nrns_number - nrns_in_group, nrns_number - 1, nrns_in_group);
+	       group_name.c_str(), NRNS_NUMBER - nrns_in_group, NRNS_NUMBER - 1, nrns_in_group);
 
 	// for debugging
 	all_groups.push_back(group);
@@ -260,7 +286,7 @@ void memcpyDtH(type *gpu, type *host, unsigned int size) {
 
 // init GPU array and copy data from the CPU array
 template<typename type>
-type* init_gpu_arr(type *cpu_var, unsigned int size = nrns_and_segs) {
+type* init_gpu_arr(type *cpu_var, unsigned int size = NRNS_AND_SEGS) {
 	type *gpu_var;
 	HANDLE_ERROR(cudaMalloc(&gpu_var, size * sizeof(type)));
 	memcpyHtD<type>(cpu_var, gpu_var, size);
@@ -656,7 +682,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	}
 
 	// update MOD rhs, CAPS has no current [CAP MOD CAP]!
-	int center_segment = i1 + ((P->models[nrn] == MUSCLE)? 2 : 1);
+	// int center_segment = i1 + ((P->models[nrn] == MUSCLE)? 2 : 1);
 	// update segments except CAPs
 	double V, _rhs;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
@@ -715,7 +741,7 @@ void nrn_lhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 		S->NODE_D[nrn_seg] = 0;
 	}
 	// update MOD rhs, CAPS has no current [CAP MOD CAP]!
-	int center_segment = i1 + ((P->models[nrn] == MUSCLE)? 2 : 1);
+	// int center_segment = i1 + ((P->models[nrn] == MUSCLE)? 2 : 1);
 	// update segments except CAPs
 	double V, _g, _rhs;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3 - 1; ++nrn_seg) {
@@ -1083,7 +1109,7 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 }
 
 __global__
-void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) {
+void initialization_kernel(curandState *state, States* S, Parameters* P, Neurons* N, double v_init) {
 	/**
 	 *
 	 */
@@ -1094,6 +1120,9 @@ void initialization_kernel(States* S, Parameters* P, Neurons* N, double v_init) 
 		connection_coef(S, P, N);
 		// for different models -- different init function
 		for (int nrn = 0; nrn < N->size; ++nrn) {
+			// init random
+			curand_init(7 + nrn, nrn, 0, &state[nrn]);
+
 			// do not init neuron state for generator
 			if (P->models[nrn] == GENERATOR)
 				continue;
@@ -1134,7 +1163,6 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
 	       post_neurons.group_size, generator.group_size * post_neurons.group_size, delay, weight);
 	//
-	int synapse_index = 0;
 	int nsyn = nsyn_distr(rand_gen);
 	int gen_id = generator.id_start;
 	if (generator.group_size > 1) {
@@ -1152,7 +1180,7 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 	}
 }
 
-void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree=50) {
+void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree=50, short high_distr=0) {
 	/**
 	 *
 	 */
@@ -1167,8 +1195,19 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 
 	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
-	normal_distribution<double> delay_distr(delay, delay / 6);
-	normal_distribution<double> weight_distr(weight, weight / 6);
+	double d_spread, w_spread;
+	if (high_distr == 0) {
+		d_spread = delay / 6;
+		w_spread = weight / 6;
+	} else if (high_distr == 1) {
+		d_spread = delay / 5;
+		w_spread = weight / 5.5;
+	} else if (high_distr == 2) {
+		d_spread = delay / 5.5;
+		w_spread = weight / 5.5;
+	}
+	normal_distribution<double> delay_distr(delay, d_spread);
+	normal_distribution<double> weight_distr(weight, w_spread);
 	auto nsyn = nsyn_distr(rand_gen);
 
 	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
@@ -1177,7 +1216,6 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	       indegree, post_neurons.group_size * indegree, delay, weight);
 	//
 	int prerand = 0;
-	int synapse_index = 0;
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
 			prerand = pre_nrns_ids(rand_gen);
@@ -1290,8 +1328,8 @@ void save_result(int test_index) {
 }
 
 template<typename type>
-type* arr_segs(int size = nrns_and_segs) {
-	// important: nrns_and_segs initialized at network building
+type* arr_segs(int size = NRNS_AND_SEGS) {
+	// important: NRNS_AND_SEGS initialized at network building
 	return new type[size]();
 }
 
@@ -1300,13 +1338,13 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 2, 0.85);
-	connect_fixed_indegree(OM2, OM1, 2, 0.95);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
+	connect_fixed_indegree(OM1, OM2, 3, 0.85);
+	connect_fixed_indegree(OM2, OM1, 3, 0.95);
 	connect_fixed_indegree(OM2, OM3, 2, 0.0005);
 	connect_fixed_indegree(OM1, OM3, 2, 0.00005);
-	connect_fixed_indegree(OM3, OM2, 2, -4.5);
-	connect_fixed_indegree(OM3, OM1, 2, -4.5);
+	connect_fixed_indegree(OM3, OM2, 1, -4.5);
+	connect_fixed_indegree(OM3, OM1, 1, -4.5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1324,13 +1362,16 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 }
 
 __global__
-void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
+void neuron_kernel(curandState *state, States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 	/**
 	 *
 	 */
 	int i1, i3;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	//
+
+	bool flag = t % 25 == 0;
+
 	for (int nrn = tid; nrn < N->size; nrn += blockDim.x * gridDim.x) {
 		// reset the spike state
 		N->has_spike[nrn] = false;
@@ -1339,6 +1380,10 @@ void neuron_kernel(States *S, Parameters *P, Neurons *N, Generators *G, int t) {
 			// calc the borders of the neuron by theirs segments
 			i1 = P->nrn_start_seg[nrn];
 			i3 = P->nrn_start_seg[nrn + 1];
+			// generate pseudo-random noise
+			if (flag) {
+				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.00005;
+			}
 			// re-calc currents and states based on synaptic activity
 			setup_tree_matrix(S, P, N, nrn, i1, i3);
 			// solve equations
