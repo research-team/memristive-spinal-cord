@@ -190,7 +190,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 5.55);
 	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 3, 15.5, 45); // 15.5
+	connect_fixed_indegree(mns_E, muscle_E, 3, 15, 45, 3); // 15.5
 	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
 
 	// IP
@@ -199,8 +199,8 @@ void init_network() {
 		connectinsidenucleus(IP_F[layer]);
 		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 1, 0.02); // 2.5
-		connect_fixed_indegree(IP_E[layer], mns_E, 2.5, 0.1, 50, 1); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.02); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.1, 50, 1); // 2.75 0.125 0.2
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
@@ -215,20 +215,20 @@ void init_network() {
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * k_coef * skin_time);
 
 	// CV
-	double TESTCOEF = 4.75; // 4.25
+	double TESTCOEF = 2.8; // 4.25
 	// OM1
-	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * k_coef * skin_time * TESTCOEF * 0.2);
-	connect_fixed_indegree(CV[1], OM1_0E, 2 + 0.3, 0.0005 * k_coef * skin_time * TESTCOEF * 0.35);
+	connect_fixed_indegree(CV[0], OM1_0E, 2 + 1, 0.00075 * k_coef * skin_time * TESTCOEF * 0.2);
+	connect_fixed_indegree(CV[1], OM1_0E, 2 + 1, 0.0005 * k_coef * skin_time * TESTCOEF * 0.35);
 	// OM2
 	connect_fixed_indegree(CV[0], L0[1], 3, 0.00001 * k_coef * skin_time * TESTCOEF * 0.9);
 	connect_fixed_indegree(CV[1], L0[1], 3, 0.00045 * k_coef * skin_time * TESTCOEF * 0.48); // !!!
 	connect_fixed_indegree(CV[2], L0[1], 2 + 0.2, 0.0004 * k_coef * skin_time * TESTCOEF * 0.5);
 	// OM3
 	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * k_coef * skin_time * TESTCOEF);
-	connect_fixed_indegree(CV[1], L0[2], 3 + 1, 0.00025 * k_coef * skin_time * TESTCOEF * 0.85);  // 0.7);
-	connect_fixed_indegree(CV[2], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76); // 0.54);
-	connect_fixed_indegree(CV[3], L0[2], 3 + 1, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76); // 0.51);
-	connect_fixed_indegree(CV[4], L0[2], 3 + 0.5, 0.00035 * k_coef * skin_time * TESTCOEF * 0.76);// 0.5);
+	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * k_coef * skin_time * TESTCOEF * 0.65);  // 0.7);
+	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.65); // 0.54);
+	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.65); // 0.51);
+	connect_fixed_indegree(CV[4], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8);// 0.5);
 	// OM4
 	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * k_coef * skin_time * TESTCOEF * 0.9); // -
 	connect_fixed_indegree(CV[2], L0[3], 3, 0.0002 * k_coef * skin_time * TESTCOEF * 0.95); // -
@@ -236,11 +236,11 @@ void init_network() {
 	connect_fixed_indegree(CV[4], L0[3], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.6);
 	connect_fixed_indegree(CV[5], L0[3], 3, 0.0001 * k_coef * skin_time * TESTCOEF * 0.5); //-
 	// OM5
-	connect_fixed_indegree(CV[1], L0[4], 3 + 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.8);
-	connect_fixed_indegree(CV[2], L0[4], 3 + 2, 0.0001 * k_coef * skin_time * TESTCOEF * 1.8);
-	connect_fixed_indegree(CV[3], L0[4], 3 - 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.5);
-	connect_fixed_indegree(CV[4], L0[4], 3 - 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.5);
-	connect_fixed_indegree(CV[5], L0[4], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.66);
+	connect_fixed_indegree(CV[1], L0[4], 3 + 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.6);
+	connect_fixed_indegree(CV[2], L0[4], 3 + 2, 0.0001 * k_coef * skin_time * TESTCOEF * 1.6);
+	connect_fixed_indegree(CV[3], L0[4], 3 - 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.3);
+	connect_fixed_indegree(CV[4], L0[4], 3 - 1, 0.0001 * k_coef * skin_time * TESTCOEF * 1.3);
+	connect_fixed_indegree(CV[5], L0[4], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.5);
 
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)

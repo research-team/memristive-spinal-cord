@@ -209,13 +209,13 @@ Group form_group(const string &group_name,
 			}
 		} else if (model == MUSCLE) {
 			Cm = 3.6;
-			gnabar = 0.15;
-			gkbar = 0.03;
-			gl = 0.0002;
+			gnabar = 0.1; // 0.15
+			gkbar = 0.7; // 0.03
+			gl = 0.007; // 0.0002
 			Ra = 1.1;
 			ena = 55.0;
 			ek = -80.0;
-			el = -72.0;
+			el = -70.0; // - 72
 			diam = 40.0;
 			dx = 3000.0;
 			e_ex = 0.0;
@@ -553,17 +553,17 @@ void recalc_muslce_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_in
 	tau = 1.0 / (a + b);
 	inf = a / (a + b);
 	S->n[nrn_seg_index] += (1.0 - exp(-dt / tau)) * (inf - S->n[nrn_seg_index]);
-	//
-	double qt = pow(q10, (celsius - 33.0) / 10.0);
-	double linf = 1.0 / (1.0 + exp((V - vhalfl) / kl)); // l_steadystate
-	double taul = 1.0 / (qt * (at * exp(-V / vhalft) + bt * exp(V / vhalft)));
-	double alpha = 0.3 / (1.0 + exp((V + 43.0) / -5.0));
-	double beta = 0.03 / (1.0 + exp((V + 80.0) / -1.0));
-	double stau = 1.0 / (alpha + beta);
-	double sinf = alpha / (alpha + beta);
-	// states
-	S->l[nrn_seg_index] += (1.0 - exp(-dt / taul)) * (linf - S->l[nrn_seg_index]);
-	S->s[nrn_seg_index] += (1.0 - exp(-dt / stau)) * (sinf - S->s[nrn_seg_index]);
+//	//
+//	double qt = pow(q10, (celsius - 33.0) / 10.0);
+//	double linf = 1.0 / (1.0 + exp((V - vhalfl) / kl)); // l_steadystate
+//	double taul = 1.0 / (qt * (at * exp(-V / vhalft) + bt * exp(V / vhalft)));
+//	double alpha = 0.3 / (1.0 + exp((V + 43.0) / -5.0));
+//	double beta = 0.03 / (1.0 + exp((V + 80.0) / -1.0));
+//	double stau = 1.0 / (alpha + beta);
+//	double sinf = alpha / (alpha + beta);
+//	// states
+//	S->l[nrn_seg_index] += (1.0 - exp(-dt / taul)) * (linf - S->l[nrn_seg_index]);
+//	S->s[nrn_seg_index] += (1.0 - exp(-dt / stau)) * (sinf - S->s[nrn_seg_index]);
 }
 
 __device__
@@ -1205,6 +1205,11 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	} else if (high_distr == 2) {
 		d_spread = delay / 5.5;
 		w_spread = weight / 5.5;
+	} else if (high_distr == 3) {
+		d_spread = delay / 5.8;
+		w_spread = weight / 5.8;
+	} else {
+		logic_error("distr only 0 1 2");
 	}
 	normal_distribution<double> delay_distr(delay, d_spread);
 	normal_distribution<double> weight_distr(weight, w_spread);
@@ -1339,12 +1344,12 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 3, 0.85);
+	connect_fixed_indegree(OM1, OM2, 3, 0.72); // 0.85
 	connect_fixed_indegree(OM2, OM1, 3, 0.95);
-	connect_fixed_indegree(OM2, OM3, 2, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 2, 0.00005);
-	connect_fixed_indegree(OM3, OM2, 1, -4.5);
-	connect_fixed_indegree(OM3, OM1, 1, -4.5);
+	connect_fixed_indegree(OM2, OM3, 3, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
+	connect_fixed_indegree(OM3, OM2, 1, -6.5);
+	connect_fixed_indegree(OM3, OM1, 1, -6.5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1381,8 +1386,11 @@ void neuron_kernel(curandState *state, States *S, Parameters *P, Neurons *N, Gen
 			i1 = P->nrn_start_seg[nrn];
 			i3 = P->nrn_start_seg[nrn + 1];
 			// generate pseudo-random noise
-			if (flag) {
-				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.00005;
+//			if (flag) {
+//				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.00005;
+//			}
+			if (P->models[nrn] == MUSCLE) {
+				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.25;
 			}
 			// re-calc currents and states based on synaptic activity
 			setup_tree_matrix(S, P, N, nrn, i1, i3);
@@ -1434,16 +1442,14 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 			// if timer is over -> synapse change the conductance of the post neuron
 			if (synapses->syn_delay_timer[index] == 0) {
 				post_id = synapses->syn_post_nrn[index];
-//				if () {
-					weight = synapses->syn_weight[index];
-					if (weight >= 0) {
-						if (N->ref_time_timer[post_id] == 0)
-							atomicAdd(&N->g_exc[post_id], weight);
-					} else {
-						atomicAdd(&N->g_inh_A[post_id], -weight * N->factor[post_id]);
-						atomicAdd(&N->g_inh_B[post_id], -weight * N->factor[post_id]);
-					}
-//				}
+				weight = synapses->syn_weight[index];
+				if (weight >= 0) {
+					if (N->ref_time_timer[post_id] == 0)
+						atomicAdd(&N->g_exc[post_id], weight);
+				} else {
+					atomicAdd(&N->g_inh_A[post_id], -weight * N->factor[post_id]);
+					atomicAdd(&N->g_inh_B[post_id], -weight * N->factor[post_id]);
+				}
 				synapses->syn_delay_timer[index] = -1;
 			} else {
 				// if pre nrn has spike and synapse is ready to send siagnal
