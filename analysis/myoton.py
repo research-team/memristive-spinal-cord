@@ -9,8 +9,8 @@ log.basicConfig(level=log.INFO)
 
 color_l = '#89cc76'
 color_r = '#ffe042'
-color_bef = '#949494'
-color_aft = '#544848'
+color_bef = '#cfcfcf'
+color_aft = '#8a8a8a'
 
 patterns = {'DryImmersion': ['Ext Car Uln', 'Bic Br c l', 'Deltoideus', 'Rect Femoris', 'Tibialis Ant',
                              'Flex Car Uln', 'Tric Br c l', 'Bic Fem c l', 'Gastr c m', 'Soleus m', 'Achilles t']
@@ -124,6 +124,12 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 			stat_dict = {'Left': None,
 			             'Right': None}
 
+			mean_dict = {'Left': [],
+			             'Right': []}
+
+			se_dict = {'Left': [],
+			           'Right': []}
+
 			for side in "Left", "Right":
 
 				all_data = []
@@ -136,8 +142,7 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 					except Exception as e:
 						print(f"Кажется, не хватает какой-то мышцы: {e}")
 						print(f"Заполнено нулями")
-						all_data.append([0] * 6)
-				# exit()
+						all_data.append([[0, 0, 0, 0, 0, 0]])
 
 				if type_for_plotting == "ALL":
 					array_times = [merge(all_data[t]) for t in times_range]
@@ -150,10 +155,20 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 				if type_for_plotting == "DYN":
 					pass
 
-				mean_before = mean[0]
-				se_before = stats.sem(array_times[0])
-				mean_after = mean[1]
-				se_after = stats.sem(array_times[1])
+				if side == 'Left':
+					mean_dict['Left'].append(mean[0])
+					se_before = stats.sem(array_times[0])
+					se_dict['Left'].append(se_before)
+					mean_dict['Left'].append(mean[1])
+					se_after = stats.sem(array_times[1])
+					se_dict['Left'].append(se_after)
+				if side == 'Right':
+					mean_dict['Right'].append(mean[0])
+					se_before = stats.sem(array_times[0])
+					se_dict['Right'].append(se_before)
+					mean_dict['Right'].append(mean[1])
+					se_after = stats.sem(array_times[1])
+					se_dict['Right'].append(se_after)
 
 				# if side == "Left":
 				# 	mean_left = mean
@@ -198,16 +213,21 @@ def plotting(savepath, pattern, type_for_plotting, t_range):
 
 			# plot(mean, se, side=side, param=param, muscle=muscle, save_to=savepath, pval_dict=stat_dict)
 
-			plot_bef_aft(mean_before, se_before, mean_after, se_after, param=param, muscle=muscle, save_to=savepath,
+			plot_bef_aft(mean_dict, se_dict, param=param, muscle=muscle, save_to=savepath,
 			             pval_dict=stat_dict)
 			# plot_combo(mean_left, se_left, mean_right, se_right, param=param, muscle=muscle, save_to=savepath)
 			log.info(f"Отрисован {param}_{muscle}")
 
 
 def render_stat(pval_dict, mean):
-	side_key = [v for k, v in pval_dict.items()]
-	for i in range(len(side_key)):
-		pairs = [k for k, v in side_key[i].items() if v < 0.05]
+	for side, pair_pval in pval_dict.items():
+		if side == 'Left':
+			side = 0
+		else:
+			side = 1
+
+		pairs = [pair for pair, pval in pair_pval.items() if pval < 0.05]
+
 		text = {
 			'*': (1e-2, 5e-2),
 			'**': (1e-3, 1e-2),
@@ -215,26 +235,26 @@ def render_stat(pval_dict, mean):
 			'****': (0, 1e-4)
 		}
 
-		sorted_pairs = sorted(pairs, key=lambda pair: pair[1] - pair[0])
-		line_upper = max(mean) * 0.08
+		def calc_line_height(pair):
+			before_bar, after_bar = pair
+			return max(mean[before_bar], mean[after_bar], *mean[before_bar:after_bar]) + line_upper
+
+		# sorted_pairs = sorted(pairs, key=lambda pair: pair[1] - pair[0])
+		line_upper = max(mean[side]) * 0.08
 		serif_size = line_upper / 5
 		bar_shift = 1 / 5
 
-		def calc_line_height(pair):
-			l_bar, r_bar = pair
-			return max(mean[l_bar], mean[r_bar], *mean[l_bar:r_bar]) + line_upper
 
-		def diff(h1, h2):
-			return abs(h2 - h1) < line_upper / 2
+		# def diff(h1, h2):
+		# 	return abs(h2 - h1) < line_upper / 2
 
-		line_height = list(map(calc_line_height, sorted_pairs))
+		line_height = list(map(calc_line_height, pairs))
 
 		# plot text and lines
-		for index in range(len(sorted_pairs)):
-			left_bar, right_bar = sorted_pairs[index]
-			# left_bar = index - 0.25
-			# right_bar = index + 0.25
-			hline = line_height[index]
+		if pairs:
+			left_bar = side - 0.25
+			right_bar = side + 0.25
+			hline = line_height[0]
 			# line
 			line_x1, line_x2 = left_bar + bar_shift, right_bar - bar_shift
 			# serifs
@@ -246,10 +266,10 @@ def render_stat(pval_dict, mean):
 			plt.plot([serif_x2, serif_x2], [serif_y1, serif_y2], color='k')
 
 			# check the next lines and move them upper if need
-			for i1 in range(index + 1, len(sorted_pairs)):
-				if diff(line_height[i1], line_height[index]):
-					line_height[i1] += line_upper
-			pvalue = pval_dict[(left_bar, right_bar)]
+			# for i1 in range(index + 1, len(sorted_pairs)):
+			# 	if diff(line_height[i1], line_height[index]):
+			# 		line_height[i1] += line_upper
+			pvalue = pair_pval[(0, 1)]
 
 			for t, (l, r) in text.items():
 				if l < pvalue <= r:
@@ -258,6 +278,10 @@ def render_stat(pval_dict, mean):
 
 # plt.ylim(0, max(line_height) + line_upper)
 # plt.tight_layout()
+
+def near_round(x, base=5.0):
+	return base * np.ceil(x / base)
+
 
 def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
 	color = color_l if side == "Left" else color_r
@@ -274,22 +298,68 @@ def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None
 	plt.close()
 
 
-def plot_bef_aft(mean_b, err_b, mean_aft, err_aft, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
-	plt.figure(figsize=(4, 3))
+def plot_bef_aft(mean_dict, se_dict, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
+	fig, ax = plt.subplots(figsize=(4, 3))
+	# styles
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.spines['bottom'].set_visible(False)
+	for label in ax.get_xticklabels():
+		label.set_fontsize(15)
+	for label in ax.get_yticklabels():
+		label.set_fontsize(15)
+	for axis in 'bottom', 'left':
+		ax.spines[axis].set_linewidth(1.5)
+	ax.xaxis.set_tick_params(width=1.5)
+	ax.yaxis.set_tick_params(width=1.5)
+
+	# plot data
 	x = np.arange(len(bar_names_ba))
+	mean_before = [mean_dict['Left'][0], mean_dict['Right'][0]]
+	mean_after = [mean_dict['Left'][1], mean_dict['Right'][1]]
+	se_before = [se_dict['Left'][0], se_dict['Right'][0]]
+	se_after = [se_dict['Left'][1], se_dict['Right'][1]]
+	mean_for_stat_render = [mean_before, mean_after]
+
+	# ticks
+	max_val = max(max(mean_before), max(mean_after))
+	if max_val <= 2:
+		step = 0.5
+	elif 2 < max_val <= 15:
+		step = 1
+	elif 15 < max_val <= 25:
+		step = 5
+	elif 25 < max_val <= 100:
+		step = 10
+	else:
+		step = 100
+	max_nearby = near_round(max_val, step)
+
+	# set limits and ticks
 	width = 0.35
-	plt.bar(x - width / 2, mean_b, width, yerr=err_b, error_kw={'ecolor': '0.1', 'capsize': 3}, label='before',
-	        color=color_bef)
-	plt.bar(x + width / 2, mean_aft, width, yerr=err_aft, error_kw={'ecolor': '0.1', 'capsize': 3}, label='after',
-	        color=color_aft)
-	plt.xticks(bar_indicies, bar_names_ba)
-	plt.legend(loc="lower right")
+	ax.bar(x - width / 2, mean_before, width, yerr=se_before, error_kw={'ecolor': '0.1', 'capsize': 3}, label='before',
+	       color=color_bef)
+	ax.bar(x + width / 2, mean_after, width, yerr=se_after, error_kw={'ecolor': '0.1', 'capsize': 3}, label='after',
+	       color=color_aft)
+
+	# mean_for_render_stat = [mean_b, mean_aft]
+	# render_stat(pval_dict=pval_dict, mean=mean_for_render_stat)
+
+	ax.set_xticks(range(len(bar_indicies)))
+	ax.set_xticklabels(bar_names_ba)
+	if max_nearby <= 2:
+		ax.set_yticks(np.arange(int(0), max_nearby + 0.01, step))
+		ax.set_yticklabels(np.arange(int(0), max_nearby + 0.01, step))
+	else:
+		ax.set_yticks(range(0, int(max_nearby) + 1, step))
+		ax.set_yticklabels(range(0, int(max_nearby) + 1, step))
+	ax.set_ylim(0, max_nearby)
+
+	render_stat(pval_dict=pval_dict, mean=mean_for_stat_render)
+
+	# saving
 	plt.tight_layout()
-
-	mean_for_render_stat = [mean_b, mean_aft]
-
-	render_stat(pval_dict=pval_dict, mean=mean_for_render_stat)
-
+	plt.legend(loc="lower right")
 	plt.savefig(f'{save_to}/{muscle}_{param}_BA.png', format='png')
 	if show:
 		plt.show()
