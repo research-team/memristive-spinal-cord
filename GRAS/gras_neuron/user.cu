@@ -104,8 +104,8 @@ void init_network() {
 	auto mns_E = form_group("mns_E", 210, MOTO);
 	auto mns_F = form_group("mns_F", 180, MOTO);
 	// muscle fibers
-	auto muscle_E = form_group("muscle_E", 1000, MUSCLE, 3); // 150 * 210
-	auto muscle_F = form_group("muscle_F", 1000, MUSCLE, 3); // 100 * 180
+	auto muscle_E = form_group("muscle_E", 5000, MUSCLE, 3); // 150 * 210
+	auto muscle_F = form_group("muscle_F", 5000, MUSCLE, 3); // 100 * 180
 	// reflex arc E
 	auto Ia_E = form_group("Ia_E", neurons_in_ip);
 	auto iIP_E = form_group("iIP_E", neurons_in_ip);
@@ -180,17 +180,16 @@ void init_network() {
 			}
 		}
 	}
-
 	conn_generator(ees, Ia_aff_E, 1, 1.5);
 	conn_generator(ees, Ia_aff_F, 1, 1.5);
 	conn_generator(ees, E[0], 2, 9); // 1.5
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 5.55);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.5);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 2.5, 15);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 3, 15, 45, 3); // 15.5
+	connect_fixed_indegree(mns_E, muscle_E, 3, 1.4, 45, 3); // 15.5
 	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
 
 	// IP
@@ -199,8 +198,12 @@ void init_network() {
 		connectinsidenucleus(IP_F[layer]);
 		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
+		if (layer < 2)
+			connect_fixed_indegree(IP_E[layer], mns_E, 3, 0.09, 50, 2); // 2.75 0.125 0.2
+		else
+			connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.09, 50, 2); // 2.75 0.125 0.2
 		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.02); // 2.5
-		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.1, 50, 1); // 2.75 0.125 0.2
+
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
@@ -213,7 +216,6 @@ void init_network() {
 	// skin inputs
 	for (int layer = 0; layer < layers + 1; ++layer)
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * k_coef * skin_time);
-
 	// CV
 	double TESTCOEF = 2.8; // 4.25
 	// OM1
@@ -225,9 +227,9 @@ void init_network() {
 	connect_fixed_indegree(CV[2], L0[1], 2 + 0.2, 0.0004 * k_coef * skin_time * TESTCOEF * 0.5);
 	// OM3
 	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * k_coef * skin_time * TESTCOEF);
-	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * k_coef * skin_time * TESTCOEF * 0.65);  // 0.7);
-	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.65); // 0.54);
-	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.65); // 0.51);
+	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * k_coef * skin_time * TESTCOEF * 0.8);  // 0.7);
+	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8); // 0.54);
+	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8); // 0.51);
 	connect_fixed_indegree(CV[4], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8);// 0.5);
 	// OM4
 	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * k_coef * skin_time * TESTCOEF * 0.9); // -

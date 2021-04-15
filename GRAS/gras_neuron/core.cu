@@ -104,7 +104,7 @@ double *bimodal_distr_for_moto_neurons(const unsigned int nrnnumber) {
 	int standby_percent = 70;
 	double diameter_active = 27.0;
 	double diameter_standby = 57.0;
-	
+
 	double* nrn_diameter = new double [nrnnumber];
 	random_device r1;
 	default_random_engine generator1(r1());
@@ -209,12 +209,12 @@ Group form_group(const string &group_name,
 			}
 		} else if (model == MUSCLE) {
 			Cm = 3.6;
-			gnabar = 0.1; // 0.15
-			gkbar = 0.7; // 0.03
+			gnabar = 0.03; // 0.15
+			gkbar = 0.06; // 0.03
 			gl = 0.007; // 0.0002
 			Ra = 1.1;
 			ena = 55.0;
-			ek = -80.0;
+			ek = -90.0;
 			el = -70.0; // - 72
 			diam = 40.0;
 			dx = 3000.0;
@@ -580,10 +580,10 @@ void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 		}
 		S->EXT_RHS[nrn_seg + 0 * size] -= S->NODE_RHS[nrn_seg];
 	}
-	#ifdef LOG
+#ifdef LOG
 	printf("nrn_rhs_ext::EXT RHS 0 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii]); printf("\n");
 	printf("nrn_rhs_ext::EXT RHS 1 : "); for(int ii = i1; ii < i3; ++ii) printf("%g\t", S->EXT_RHS[ii + size]); printf("\n");
-	#endif
+#endif
 	double x, dv;
 	for (int nrn_seg = i1 + 1; nrn_seg < i3; ++nrn_seg) {
 #ifdef LOG
@@ -1184,7 +1184,7 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	/**
 	 *
 	 */
-	 // STR
+	// STR
 //	if (weight < 0)
 //		weight /= 1000;
 
@@ -1203,11 +1203,11 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 		d_spread = delay / 5;
 		w_spread = weight / 5.5;
 	} else if (high_distr == 2) {
-		d_spread = delay / 5.5;
-		w_spread = weight / 5.5;
+		d_spread = delay / 3.5;
+		w_spread = weight / 3.5;
 	} else if (high_distr == 3) {
-		d_spread = delay / 5.8;
-		w_spread = weight / 5.8;
+		d_spread = delay / 3;
+		w_spread = weight / 3;
 	} else {
 		logic_error("distr only 0 1 2");
 	}
@@ -1344,12 +1344,12 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 3, 0.72); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.95);
-	connect_fixed_indegree(OM2, OM3, 3, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 3, 0.00005);
-	connect_fixed_indegree(OM3, OM2, 1, -6.5);
-	connect_fixed_indegree(OM3, OM1, 1, -6.5);
+	connect_fixed_indegree(OM1, OM2, 3, 0.8); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.8);
+	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM3, OM2, 2, -5);
+	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1357,13 +1357,13 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 2, 0.85);
-	connect_fixed_indegree(OM2, OM1, 2, 0.95);
-	connect_fixed_indegree(OM2, OM3, 2, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 2, 0.00005);
-	connect_fixed_indegree(OM3, OM2, 2, -4.5);
-	connect_fixed_indegree(OM3, OM1, 2, -4.5);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
+	connect_fixed_indegree(OM1, OM2, 3, 0.8);
+	connect_fixed_indegree(OM2, OM1, 3, 0.8);
+	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM3, OM2, 2, -5);
+	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
 
 __global__
@@ -1374,9 +1374,6 @@ void neuron_kernel(curandState *state, States *S, Parameters *P, Neurons *N, Gen
 	int i1, i3;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	//
-
-	bool flag = t % 25 == 0;
-
 	for (int nrn = tid; nrn < N->size; nrn += blockDim.x * gridDim.x) {
 		// reset the spike state
 		N->has_spike[nrn] = false;
@@ -1386,12 +1383,9 @@ void neuron_kernel(curandState *state, States *S, Parameters *P, Neurons *N, Gen
 			i1 = P->nrn_start_seg[nrn];
 			i3 = P->nrn_start_seg[nrn + 1];
 			// generate pseudo-random noise
-//			if (flag) {
-//				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.00005;
+//			if (P->models[nrn] == MUSCLE) {
+//				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.6;
 //			}
-			if (P->models[nrn] == MUSCLE) {
-				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.25;
-			}
 			// re-calc currents and states based on synaptic activity
 			setup_tree_matrix(S, P, N, nrn, i1, i3);
 			// solve equations
