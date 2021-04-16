@@ -1206,8 +1206,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 		d_spread = delay / 3.5;
 		w_spread = weight / 3.5;
 	} else if (high_distr == 3) {
-		d_spread = delay / 3;
-		w_spread = weight / 3;
+		d_spread = delay / 2;
+		w_spread = weight / 2;
 	} else {
 		logic_error("distr only 0 1 2");
 	}
@@ -1226,6 +1226,64 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 			prerand = pre_nrns_ids(rand_gen);
 			vector_syn_pre_nrn.push_back(prerand);
 			vector_syn_post_nrn.push_back(post);
+			if (post_neurons.model == AFFERENTS) {
+				vector_syn_weight.push_back(weight);
+				vector_syn_delay.push_back(ms_to_step(delay));
+			} else {
+				vector_syn_weight.push_back(weight_distr(rand_gen));
+				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			}
+			vector_syn_delay_timer.push_back(-1);
+		}
+	}
+}
+
+void connect_fixed_outdegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int outdegree=50, short high_distr=0) {
+	/**
+	 *
+	 */
+	// STR
+//	if (weight < 0)
+//		weight /= 1000;
+
+	if (post_neurons.model == INTER) {
+		printf("POST INTER ");
+		weight /= 11.0;
+	}
+
+	uniform_int_distribution<int> nsyn_distr(outdegree - 15, outdegree);
+	uniform_int_distribution<int> post_nrns_ids(post_neurons.id_start, post_neurons.id_end);
+	double d_spread, w_spread;
+	if (high_distr == 0) {
+		d_spread = delay / 6;
+		w_spread = weight / 6;
+	} else if (high_distr == 1) {
+		d_spread = delay / 5;
+		w_spread = weight / 5.5;
+	} else if (high_distr == 2) {
+		d_spread = delay / 3.5;
+		w_spread = weight / 3.5;
+	} else if (high_distr == 3) {
+		d_spread = delay / 4;
+		w_spread = weight / 4;
+	} else {
+		logic_error("distr only 0 1 2");
+	}
+	normal_distribution<double> delay_distr(delay, d_spread);
+	normal_distribution<double> weight_distr(weight, w_spread);
+	auto nsyn = nsyn_distr(rand_gen);
+
+	printf("Connect OUTdegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	       pre_neurons.group_name.c_str(), pre_neurons.id_start, pre_neurons.id_end,
+	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
+	       outdegree, post_neurons.group_size * outdegree, delay, weight);
+	//
+	int postrand = 0;
+	for (int pre = pre_neurons.id_start; pre <= pre_neurons.id_end; ++pre) {
+		for (int i = 0; i < nsyn; ++i) {
+			postrand = post_nrns_ids(rand_gen);
+			vector_syn_pre_nrn.push_back(pre);
+			vector_syn_post_nrn.push_back(postrand);
 			if (post_neurons.model == AFFERENTS) {
 				vector_syn_weight.push_back(weight);
 				vector_syn_delay.push_back(ms_to_step(delay));
@@ -1344,10 +1402,10 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.8);
-	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM1, OM2, 3, 2, 50,2); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 2, 50,2);
+	connect_fixed_indegree(OM2, OM3, 4, 0.0005); // 2.5
+	connect_fixed_indegree(OM1, OM3, 4, 0.0005); // 2.5
 	connect_fixed_indegree(OM3, OM2, 2, -5);
 	connect_fixed_indegree(OM3, OM1, 2, -5);
 }

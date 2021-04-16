@@ -186,11 +186,11 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 2.5, 15);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 2.5, 25);
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 3, 1.4, 45, 3); // 15.5
-	connect_fixed_indegree(mns_F, muscle_F, 2, 15.5, 45);
+	connect_fixed_indegree(mns_E, muscle_E, 3, 2, 45, 3); // 15.5
+	connect_fixed_indegree(mns_F, muscle_F, 2, 2, 45);
 
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
@@ -199,10 +199,10 @@ void init_network() {
 		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
 		if (layer < 2)
-			connect_fixed_indegree(IP_E[layer], mns_E, 3, 0.09, 50, 2); // 2.75 0.125 0.2
+			connect_fixed_indegree(IP_E[layer], mns_E, 3, 0.3, 50, 3); // 2.75 0.125 0.2
 		else
-			connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.09, 50, 2); // 2.75 0.125 0.2
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.02); // 2.5
+			connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.3, 50, 3); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.3, 50, 3); // 2.5
 
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
