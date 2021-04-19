@@ -137,8 +137,9 @@ Group form_group(const string &group_name,
 	group.model = model;
 
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
-	normal_distribution<double> Cm_distr(1, 0.01);
-	normal_distribution<double> moto_Cm_distr(2, 0.1);
+//	normal_distribution<double> Cm_distr(1, 0.3);
+	lognormal_distribution<double> Cm_distr(0.1, 0.1);
+	normal_distribution<double> moto_Cm_distr(2, 0.5);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
 	uniform_real_distribution<double> afferent_diam_distr(15, 35);
 
@@ -1206,8 +1207,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 		d_spread = delay / 3.5;
 		w_spread = weight / 3.5;
 	} else if (high_distr == 3) {
-		d_spread = delay / 2;
-		w_spread = weight / 2;
+		d_spread = delay / 1.5;
+		w_spread = weight / 1.5;
 	} else {
 		logic_error("distr only 0 1 2");
 	}
@@ -1221,6 +1222,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	       indegree, post_neurons.group_size * indegree, delay, weight);
 	//
 	int prerand = 0;
+	double tmp_w = 0;
+	double tmp_d = 0;
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
 			prerand = pre_nrns_ids(rand_gen);
@@ -1230,8 +1233,16 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 				vector_syn_weight.push_back(weight);
 				vector_syn_delay.push_back(ms_to_step(delay));
 			} else {
-				vector_syn_weight.push_back(weight_distr(rand_gen));
-				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+				tmp_w = weight_distr(rand_gen);
+				if (tmp_w <= 0) {
+					tmp_w = weight;
+				}
+				tmp_d = delay_distr(rand_gen);
+				if (tmp_d <= 0.01) {
+					tmp_d = delay;
+				}
+				vector_syn_weight.push_back(tmp_w);
+				vector_syn_delay.push_back(ms_to_step(tmp_d));
 			}
 			vector_syn_delay_timer.push_back(-1);
 		}
@@ -1297,7 +1308,7 @@ void connect_fixed_outdegree(Group &pre_neurons, Group &post_neurons, double del
 }
 
 void connectinsidenucleus(Group &nucleus) {
-	connect_fixed_indegree(nucleus, nucleus, 0.5, 0.25);
+	connect_fixed_indegree(nucleus, nucleus, 0.5, 0.25, 50, 3);
 }
 
 void file_writing(int test_index, GroupMetadata &metadata, const string &folder) {
@@ -1401,9 +1412,9 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 3, 2, 50,2); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 2, 50,2);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 3); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
 	connect_fixed_indegree(OM2, OM3, 4, 0.0005); // 2.5
 	connect_fixed_indegree(OM1, OM3, 4, 0.0005); // 2.5
 	connect_fixed_indegree(OM3, OM2, 2, -5);
@@ -1415,9 +1426,9 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.85);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8);
-	connect_fixed_indegree(OM2, OM1, 3, 0.8);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.85, 50, 3);
+	connect_fixed_indegree(OM1, OM2, 3, 1, 50, 3);
+	connect_fixed_indegree(OM2, OM1, 3, 1, 50, 3);
 	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
 	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
 	connect_fixed_indegree(OM3, OM2, 2, -5);
