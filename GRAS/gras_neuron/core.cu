@@ -36,7 +36,7 @@ const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 1;  // [step] number of full cycle steps
+const int step_number = 2;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
@@ -138,7 +138,10 @@ Group form_group(const string &group_name,
 
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
 //	normal_distribution<double> Cm_distr(1, 0.3);
-	lognormal_distribution<double> Cm_distr(0.1, 0.1);
+//	lognormal_distribution<double> Cm_distr(0.1, 0.1);
+	uniform_real_distribution<double> Cm_distr(0.3, 2.5);
+	uniform_real_distribution<double> Cm_distr_muscle(2.5, 4.5);
+	uniform_real_distribution<double> length_distr_muscle(2700, 3300);
 	normal_distribution<double> moto_Cm_distr(2, 0.5);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
 	uniform_real_distribution<double> afferent_diam_distr(15, 35);
@@ -209,7 +212,7 @@ Group form_group(const string &group_name,
 				gcak = 0.2;
 			}
 		} else if (model == MUSCLE) {
-			Cm = 3.6;
+			Cm = Cm_distr_muscle(rand_gen);
 			gnabar = 0.03; // 0.15
 			gkbar = 0.06; // 0.03
 			gl = 0.007; // 0.0002
@@ -218,10 +221,10 @@ Group form_group(const string &group_name,
 			ek = -90.0;
 			el = -70.0; // - 72
 			diam = 40.0;
-			dx = 3000.0;
+			dx = length_distr_muscle(rand_gen);
 			e_ex = 0.0;
 			e_inh = -80.0;
-			tau_exc = 0.3;
+			tau_exc = 0.35;
 			tau_inh1 = 1.0;
 			tau_inh2 = 1.0;
 		} else if (model == GENERATOR) {
@@ -337,7 +340,7 @@ double betam(double volt) {
 }
 
 __device__
-double syn_current(Neurons* N, Parameters* P, int nrn, double voltage) {
+double syn_current(Neurons* N, const Parameters* P, int nrn, double voltage) {
 	/**
 	 * calculate synaptic current
 	 */
@@ -345,7 +348,7 @@ double syn_current(Neurons* N, Parameters* P, int nrn, double voltage) {
 }
 
 __device__
-double nrn_moto_current(States* S, Parameters* P, Neurons* N, int nrn, int nrn_seg_index, double voltage) {
+double nrn_moto_current(States* S, const Parameters* P, Neurons* N, int nrn, int nrn_seg_index, double voltage) {
 	/**
 	 * calculate channels current
 	 */
@@ -360,7 +363,7 @@ double nrn_moto_current(States* S, Parameters* P, Neurons* N, int nrn, int nrn_s
 }
 
 __device__
-double nrn_fastchannel_current(States* S, Parameters* P, Neurons* N, int nrn, int nrn_seg_index, double voltage) {
+double nrn_fastchannel_current(States* S, const Parameters* P, Neurons* N, int nrn, int nrn_seg_index, double voltage) {
 	/**
 	 * calculate channels current
 	 */
@@ -371,7 +374,7 @@ double nrn_fastchannel_current(States* S, Parameters* P, Neurons* N, int nrn, in
 }
 
 __device__
-void recalc_synaptic(States* S, Parameters* P, Neurons* N, int nrn) {
+void recalc_synaptic(States* S, const Parameters* P, Neurons* N, int nrn) {
 	/**
 	 * updating conductance(summed) of neurons' post-synaptic conenctions
 	 */
@@ -398,7 +401,7 @@ void recalc_synaptic(States* S, Parameters* P, Neurons* N, int nrn) {
 }
 
 __device__
-void syn_initial(States* S, Parameters* P, Neurons* N, int nrn) {
+void syn_initial(States* S, const Parameters* P, Neurons* N, int nrn) {
 	/**
 	 * initialize tau(rise / decay time, ms) and factor(const) variables
 	 */
@@ -414,7 +417,7 @@ void syn_initial(States* S, Parameters* P, Neurons* N, int nrn) {
 }
 
 __device__
-void nrn_inter_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void nrn_inter_initial(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * initialize channels, based on cropped evaluate_fct function
 	 */
@@ -434,7 +437,7 @@ void nrn_inter_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, 
 }
 
 __device__
-void nrn_moto_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void nrn_moto_initial(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * initialize channels, based on cropped evaluate_fct function
 	 */
@@ -449,7 +452,7 @@ void nrn_moto_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, d
 }
 
 __device__
-void nrn_muslce_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void nrn_muslce_initial(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * initialize channels, based on cropped evaluate_fct function
 	 */
@@ -469,7 +472,7 @@ void nrn_muslce_initial(States* S, Parameters* P, Neurons* N, int nrn_seg_index,
 }
 
 __device__
-void recalc_inter_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void recalc_inter_channels(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * calculate new states of channels (evaluate_fct)
 	 */
@@ -497,7 +500,7 @@ void recalc_inter_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_ind
 }
 
 __device__
-void recalc_moto_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void recalc_moto_channels(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * calculate new states of channels (evaluate_fct)
 	 */
@@ -530,7 +533,7 @@ void recalc_moto_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_inde
 }
 
 __device__
-void recalc_muslce_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_index, double V) {
+void recalc_muslce_channels(States* S, const Parameters* P, Neurons* N, int nrn_seg_index, double V) {
 	/**
 	 * calculate new states of channels (evaluate_fct)
 	 */
@@ -568,7 +571,7 @@ void recalc_muslce_channels(States* S, Parameters* P, Neurons* N, int nrn_seg_in
 }
 
 __device__
-void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
+void nrn_rhs_ext(States* S, const Parameters* P, Neurons* N, int i1, int i3) {
 	/**
 	 * void nrn_rhs_ext(NrnThread* _nt)
 	 */
@@ -610,7 +613,7 @@ void nrn_rhs_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 }
 
 __device__
-void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
+void nrn_setup_ext(States* S, const Parameters* P, Neurons* N, int i1, int i3) {
 	/**
 	 * void nrn_setup_ext(NrnThread* _nt)
 	 */
@@ -654,7 +657,7 @@ void nrn_setup_ext(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 }
 
 __device__
-void nrn_update_2d(States* S, Parameters* P, Neurons* N, int i1, int i3) {
+void nrn_update_2d(States* S, const Parameters* P, Neurons* N, int i1, int i3) {
 	/**
 	 * void nrn_update_2d(NrnThread* nt)
 	 * update has already been called so modify nd->v based on dvi we only need to
@@ -668,7 +671,7 @@ void nrn_update_2d(States* S, Parameters* P, Neurons* N, int i1, int i3) {
 }
 
 __device__
-void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_rhs(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void nrn_rhs(NrnThread *_nt) combined with the first part of nrn_lhs
 	 * calculate right hand side of
@@ -732,7 +735,7 @@ void nrn_rhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void nrn_lhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_lhs(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/** calculate left hand side of
 	 * cm*dvm/dt = -i(vm) + is(vi) + ai_j*(vi_j - vi)
 	 * cx*dvx/dt - cm*dvm/dt = -gx*(vx - ex) + i(vm) + ax_j*(vx_j - vx)
@@ -802,7 +805,7 @@ void nrn_lhs(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void bksub(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void bksub(NrnThread* _nt)
 	 */
@@ -829,7 +832,7 @@ void bksub(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void triang(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void triang(NrnThread* _nt)
 	 */
@@ -855,7 +858,7 @@ void triang(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void nrn_solve(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_solve(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void nrn_solve(NrnThread* _nt)
 	 */
@@ -871,7 +874,7 @@ void nrn_solve(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void setup_tree_matrix(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void setup_tree_matrix(NrnThread* _nt)
 	 */
@@ -880,7 +883,7 @@ void setup_tree_matrix(States* S, Parameters* P, Neurons* N, int nrn, int i1, in
 }
 
 __device__
-void update(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void update(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void update(NrnThread* _nt)
 	 */
@@ -899,7 +902,7 @@ void update(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 }
 
 __device__
-void nrn_deliver_events(States* S, Parameters* P, Neurons* N, int nrn) {
+void nrn_deliver_events(States* S, const Parameters* P, Neurons* N, int nrn) {
 	/**
 	 * void nrn_deliver_events(NrnThread* nt)
 	 */
@@ -916,7 +919,7 @@ void nrn_deliver_events(States* S, Parameters* P, Neurons* N, int nrn) {
 }
 
 __device__
-void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* N, int nrn, int i1, int i3) {
+void nrn_fixed_step_lastpart(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3) {
 	/**
 	 * void *nrn_fixed_step_lastpart(NrnThread *nth)
 	 */
@@ -943,7 +946,7 @@ void nrn_fixed_step_lastpart(States* S, Parameters* P, Neurons* N, int nrn, int 
 }
 
 __device__
-void nrn_area_ri(States* S, Parameters* P, Neurons* N) {
+void nrn_area_ri(States* S, const Parameters* P, Neurons* N) {
 	/**
 	 * void nrn_area_ri(Section *sec) [790] treeset.c
 	 * area for right circular cylinders. Ri as right half of parent + left half of this
@@ -977,7 +980,7 @@ void nrn_area_ri(States* S, Parameters* P, Neurons* N) {
 }
 
 __device__
-void ext_con_coef(States* S, Parameters* P, Neurons* N) {
+void ext_con_coef(States* S, const Parameters* P, Neurons* N) {
 	/**
 	 * void ext_con_coef(void)
 	 * setup a and b
@@ -1052,7 +1055,7 @@ void ext_con_coef(States* S, Parameters* P, Neurons* N) {
 }
 
 __device__
-void connection_coef(States* S, Parameters* P, Neurons* N) {
+void connection_coef(States* S, const Parameters* P, Neurons* N) {
 	/**
 	 * void connection_coef(void) treeset.c
 	 */
@@ -1110,7 +1113,7 @@ void connection_coef(States* S, Parameters* P, Neurons* N) {
 }
 
 __global__
-void initialization_kernel(curandState *state, States* S, Parameters* P, Neurons* N, double v_init) {
+void initialization_kernel(curandState *state, States* S, const Parameters* P, Neurons* N, double v_init) {
 	/**
 	 *
 	 */
@@ -1426,9 +1429,9 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.85, 50, 3);
-	connect_fixed_indegree(OM1, OM2, 3, 1, 50, 3);
-	connect_fixed_indegree(OM2, OM1, 3, 1, 50, 3);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 3);
+	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
 	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
 	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
 	connect_fixed_indegree(OM3, OM2, 2, -5);
@@ -1436,7 +1439,7 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 }
 
 __global__
-void neuron_kernel(curandState *state, States *S, Parameters *P, Neurons *N, Generators *G, int t) {
+void neuron_kernel(curandState *state, States *S, const Parameters *P, Neurons *N, Generators *G, int t) {
 	/**
 	 *
 	 */
