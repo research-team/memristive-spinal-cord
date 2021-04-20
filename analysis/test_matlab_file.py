@@ -17,7 +17,7 @@ datapath = 'C:/Users/Ann/PycharmProjects/test_matlab/data'
 def read_data(filename):
     filename = f'{datapath}/on the left side SS3'
     dict_data = sio.loadmat(filename)
-    save_folder = f'{datapath}/render data'
+    save_folder = f'{datapath}/render data2'
 
     raw_data = dict_data['data'][0]
     # by [:-2] we omit the last redundant art1/art2 data
@@ -31,11 +31,14 @@ def read_data(filename):
         muscles[t] = raw_data[s:e]
 
     for title, data in muscles.items():
-        original_render(title, data, save_folder, dx)
-        # smoothed_render(title, data, save_folder, dx)
+        # original_render(title, data, save_folder, dx)
+        # original_render_html(title, data, save_folder, dx)
+        smoothed_render(title, data, save_folder, dx)
+        # smoothed_render_html(title, data, save_folder, dx)
 
 
-def original_render(title, data, save_folder, dx):
+
+def original_render_html(title, data, save_folder, dx):
     trace1 = go.Scatter(x=np.arange(len(data)) * dx,
                         y=data,
                         mode="lines",
@@ -50,33 +53,75 @@ def original_render(title, data, save_folder, dx):
     configs = {'scrollZoom': True, 'displaylogo': False, 'displayModeBar': True}
     plotly.offline.plot(fig, config=configs, filename=f'{save_folder}/{title}_original.html', auto_open=False)
 
+def original_render(title, data, save_folder, dx):
+    plt.suptitle(f'{title} (original)')
+    x = np.arange(len(data)) * dx
+    plt.plot(x, data)
+    plt.axhline(y=0, lw=1, ls='--', color='gray')
+    plt.grid(axis='x')
 
-    # plt.suptitle(f'{title} (original)')
-    # x = np.arange(len(data)) * dx
-    # plt.plot(x, data)
-    # plt.axhline(y=0, lw=1, ls='--', color='gray')
-    # plt.grid(axis='x')
-    #
-    # if not os.path.exists(save_folder):
-    #     os.makedirs(save_folder)
-    # plt.savefig(f'{save_folder}/{title}_original.png', format='png')
-    # plt.close()
-
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    plt.savefig(f'{save_folder}/{title}_original.png', format='png')
+    plt.close()
 
 def smoothed_render(title, data, save_folder, dx):
     plt.suptitle(f'{title} (smoothed)')
     data = moving_average(data, 150)
     x = np.arange(len(data)) * dx
     plt.plot(x, data, color='g')
+    peaks = []
+    for index, point in enumerate(data):
+        if point > 4:
+            if not peaks:
+                peaks.append(index * dx)
+            if index * dx - peaks[-1] > 1:
+                peaks.append(index * dx)
+        difference = []
+        if peaks:
+            for i, peak in enumerate(peaks[:-1]):
+                for next_peak in peaks[index + 1:]:
+                    dif = next_peak - peak
+                    difference.append(dif)
+            if difference:
+                min_diff = min(difference)
+                print(min_diff)
+
+    # for p in peaks:
+    #     plt.axvline(x=p, color='r')
+    print(peaks)
+
+
+
+
+
     plt.xlabel('Seconds')
     plt.ylabel('Volts')
     plt.axhline(y=0, lw=1, ls='--', color='gray')
     plt.grid(axis='x')
+    if 'TA R' in title:
+        plt.show()
 
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
     plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
     plt.close()
+
+def smoothed_render_html(title, data, save_folder, dx):
+    data = moving_average(data, 150)
+    trace1 = go.Scatter(x=np.arange(len(data)) * dx,
+                        y=data,
+                        mode="lines",
+                        name="citations",
+                        marker=dict(color='rgba(16, 112, 2, 0.8)'))
+
+    layout = dict(title=title,
+                  xaxis=dict(title='Time', ticklen=5, zeroline=False))
+    fig = dict(data=trace1, layout=layout)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    configs = {'scrollZoom': True, 'displaylogo': False, 'displayModeBar': True}
+    plotly.offline.plot(fig, config=configs, filename=f'{save_folder}/{title}_smoothed.html', auto_open=False)
 
 
 def main():
