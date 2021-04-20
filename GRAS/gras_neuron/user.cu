@@ -347,47 +347,51 @@ void simulate(int test_index) {
 	P->size = NRNS_NUMBER;
 
 	// dynamic states of neuron (CPU arrays) and allocate them into the GPU
-	auto *Vm = arr_segs<double>(); S->Vm = init_gpu_arr(Vm);
-	auto *n = arr_segs<double>(); S->n = init_gpu_arr(n);
-	auto *m = arr_segs<double>(); S->m = init_gpu_arr(m);
-	auto *h = arr_segs<double>(); S->h = init_gpu_arr(h);
-	auto *l = arr_segs<double>(); S->l = init_gpu_arr(l);
-	auto *s = arr_segs<double>(); S->s = init_gpu_arr(s);
-	auto *p = arr_segs<double>(); S->p = init_gpu_arr(p);
-	auto *hc = arr_segs<double>(); S->hc = init_gpu_arr(hc);
-	auto *mc = arr_segs<double>(); S->mc = init_gpu_arr(mc);
-	auto *cai = arr_segs<double>(); S->cai = init_gpu_arr(cai);
-	auto *I_Ca = arr_segs<double>(); S->I_Ca = init_gpu_arr(I_Ca);
-	auto *NODE_A = arr_segs<double>(); S->NODE_A = init_gpu_arr(NODE_A);
-	auto *NODE_B = arr_segs<double>(); S->NODE_B = init_gpu_arr(NODE_B);
-	auto *NODE_D = arr_segs<double>(); S->NODE_D = init_gpu_arr(NODE_D);
-	auto *const_NODE_D = arr_segs<double>(); S->const_NODE_D = init_gpu_arr(const_NODE_D);
-	auto *NODE_RHS = arr_segs<double>(); S->NODE_RHS = init_gpu_arr(NODE_RHS);
-	auto *NODE_RINV = arr_segs<double>(); S->NODE_RINV = init_gpu_arr(NODE_RINV);
-	auto *NODE_AREA = arr_segs<double>(); S->NODE_AREA = init_gpu_arr(NODE_AREA);
+//	double *Vm; HANDLE_ERROR(cudaMallocHost((void**)&Vm, NRNS_AND_SEGS));
+	auto *Vm = arr_init<double>(); S->Vm = init_gpu_arr(Vm);
+	auto *n = arr_init<double>(); S->n = init_gpu_arr(n);
+	auto *m = arr_init<double>(); S->m = init_gpu_arr(m);
+	auto *h = arr_init<double>(); S->h = init_gpu_arr(h);
+	auto *l = arr_init<double>(); S->l = init_gpu_arr(l);
+	auto *s = arr_init<double>(); S->s = init_gpu_arr(s);
+	auto *p = arr_init<double>(); S->p = init_gpu_arr(p);
+	auto *hc = arr_init<double>(); S->hc = init_gpu_arr(hc);
+	auto *mc = arr_init<double>(); S->mc = init_gpu_arr(mc);
+	auto *cai = arr_init<double>(); S->cai = init_gpu_arr(cai);
+	auto *I_Ca = arr_init<double>(); S->I_Ca = init_gpu_arr(I_Ca);
+	auto *NODE_A = arr_init<double>(); S->NODE_A = init_gpu_arr(NODE_A);
+	auto *NODE_B = arr_init<double>(); S->NODE_B = init_gpu_arr(NODE_B);
+	auto *NODE_D = arr_init<double>(); S->NODE_D = init_gpu_arr(NODE_D);
+	auto *const_NODE_D = arr_init<double>(); S->const_NODE_D = init_gpu_arr(const_NODE_D);
+	auto *NODE_RHS = arr_init<double>(); S->NODE_RHS = init_gpu_arr(NODE_RHS);
+	auto *NODE_RINV = arr_init<double>(); S->NODE_RINV = init_gpu_arr(NODE_RINV);
+	auto *NODE_AREA = arr_init<double>(); S->NODE_AREA = init_gpu_arr(NODE_AREA);
 
-	int ext_size = NRNS_AND_SEGS * 2;
-	auto *EXT_A = arr_segs<double>(ext_size); S->EXT_A = init_gpu_arr(EXT_A, ext_size);
-	auto *EXT_B = arr_segs<double>(ext_size); S->EXT_B = init_gpu_arr(EXT_B, ext_size);
-	auto *EXT_D = arr_segs<double>(ext_size); S->EXT_D = init_gpu_arr(EXT_D, ext_size);
-	auto *EXT_V = arr_segs<double>(ext_size); S->EXT_V = init_gpu_arr(EXT_V, ext_size);
-	auto *EXT_RHS = arr_segs<double>(ext_size); S->EXT_RHS = init_gpu_arr(EXT_RHS, ext_size);
-
+//	int ext_size = NRNS_AND_SEGS * 2;
+//	auto *EXT_A = arr_init<double>(ext_size); S->EXT_A = init_gpu_arr(EXT_A, ext_size);
+//	auto *EXT_B = arr_init<double>(ext_size); S->EXT_B = init_gpu_arr(EXT_B, ext_size);
+//	auto *EXT_D = arr_init<double>(ext_size); S->EXT_D = init_gpu_arr(EXT_D, ext_size);
+//	auto *EXT_V = arr_init<double>(ext_size); S->EXT_V = init_gpu_arr(EXT_V, ext_size);
+//	auto *EXT_RHS = arr_init<double>(ext_size); S->EXT_RHS = init_gpu_arr(EXT_RHS, ext_size);
 	S->size = NRNS_AND_SEGS;
-	S->ext_size = ext_size;
+//	S->ext_size = ext_size;
 
 	// special neuron's state (CPU) and allocate them into the GPU
-	auto *has_spike = arr_segs<bool>(); N->has_spike = init_gpu_arr(has_spike);
-	auto *spike_on = arr_segs<bool>(); N->spike_on = init_gpu_arr(spike_on);
-	auto *g_exc = arr_segs<double>(); N->g_exc = init_gpu_arr(g_exc);
-	auto *g_inh_A = arr_segs<double>(); N->g_inh_A = init_gpu_arr(g_inh_A);
-	auto *g_inh_B = arr_segs<double>(); N->g_inh_B = init_gpu_arr(g_inh_B);
-	auto *factor = arr_segs<double>(); N->factor = init_gpu_arr(factor);
-	auto *ref_time_timer = arr_segs<unsigned int>(); N->ref_time_timer = init_gpu_arr(ref_time_timer);
-	auto *ref_time = arr_segs<unsigned int>();
+	auto *tmp = arr_init<double>(NRNS_NUMBER);
+	for (int i = 0; i < NRNS_NUMBER; ++i)
+		tmp[i] = 0.0;
+
+	auto *has_spike = arr_init<bool>(NRNS_NUMBER); N->has_spike = init_gpu_arr(has_spike, NRNS_NUMBER);
+	auto *g_exc = arr_init<double>(NRNS_NUMBER); N->g_exc = init_gpu_arr(g_exc, NRNS_NUMBER);
+	auto *g_inh_A = arr_init<double>(NRNS_NUMBER); N->g_inh_A = init_gpu_arr(g_inh_A, NRNS_NUMBER);
+	auto *g_inh_B = arr_init<double>(NRNS_NUMBER); N->g_inh_B = init_gpu_arr(g_inh_B, NRNS_NUMBER);
+	auto *spike_on = arr_init<bool>(NRNS_NUMBER); N->spike_on = init_gpu_arr(spike_on, NRNS_NUMBER);
+	auto *factor = arr_init<double>(NRNS_NUMBER); N->factor = init_gpu_arr(factor, NRNS_NUMBER);
+	auto *ref_time_timer = arr_init<unsigned int>(NRNS_NUMBER); N->ref_time_timer = init_gpu_arr(ref_time_timer, NRNS_NUMBER);
+	auto *ref_time = arr_init<unsigned int>(NRNS_NUMBER);
 	for (int i = 0; i < NRNS_NUMBER; ++i)
 		ref_time[i] = ms_to_step(2);
-	N->ref_time = init_gpu_arr(ref_time);
+	N->ref_time = init_gpu_arr(ref_time, NRNS_NUMBER);
 	N->size = NRNS_NUMBER;
 
 	// synaptic parameters
@@ -431,15 +435,15 @@ void simulate(int test_index) {
 		// updating neurons kernel
 		neuron_kernel<<<BLOCKS, THREADS>>>(devStates, dev_S, dev_P, dev_N, dev_G, sim_iter);
 		/// SAVE DATA ZONE
-//		memcpyDtH(S->EXT_V, EXT_V, ext_size);
 		memcpyDtH(S->Vm, Vm, NRNS_AND_SEGS);
 		memcpyDtH(N->g_exc, g_exc, NRNS_NUMBER);
 		memcpyDtH(N->g_inh_A, g_inh_A, NRNS_NUMBER);
 		memcpyDtH(N->g_inh_B, g_inh_B, NRNS_NUMBER);
 		memcpyDtH(N->has_spike, has_spike, NRNS_NUMBER);
 		// fill records arrays
+		#pragma omp parallel for
 		for (GroupMetadata& metadata : saving_groups) {
-			copy_data_to(metadata, Vm, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);
+			copy_data_to(metadata, Vm, tmp, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);
 		}
 	}
 	// properly ending work with GPU
@@ -468,9 +472,6 @@ int main(int argc, char **argv) {
 	printf("device %d: %s \n", dev, deviceProp.name);
 	HANDLE_ERROR(cudaSetDevice(dev));
 	// the main body of simulation
-
-	fclose(fopen("file.bin", "wb"));
-
 	simulate(0);
 	// reset device
 	HANDLE_ERROR(cudaDeviceReset());

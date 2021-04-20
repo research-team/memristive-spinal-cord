@@ -3,6 +3,7 @@ See the topology https://github.com/research-team/memristive-spinal-cord/blob/ma
 Based on the NEURON repository.
 */
 //#define LOG
+#include <omp.h>
 #include <assert.h>
 #include <random>
 #include <vector>
@@ -35,8 +36,8 @@ const double dt = 0.025;      // [ms] simulation step
 const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 2;  // [step] number of full cycle steps
+const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int step_number = 1;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
@@ -137,8 +138,6 @@ Group form_group(const string &group_name,
 	group.model = model;
 
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
-//	normal_distribution<double> Cm_distr(1, 0.3);
-//	lognormal_distribution<double> Cm_distr(0.1, 0.1);
 	uniform_real_distribution<double> Cm_distr(0.3, 2.5);
 	uniform_real_distribution<double> Cm_distr_muscle(2.5, 4.5);
 	uniform_real_distribution<double> length_distr_muscle(2700, 3300);
@@ -158,9 +157,9 @@ Group form_group(const string &group_name,
 			gl = 0.002;
 			Ra = 100.0;
 			ena = 50.0;
-			ek = -77.0; // -90
+			ek = -77.0;
 			el = -70.0;
-			diam = inter_diam_distr(rand_gen); // 10
+			diam = inter_diam_distr(rand_gen);
 			dx = diam;
 			e_ex = 50;
 			e_inh = -80;
@@ -213,13 +212,13 @@ Group form_group(const string &group_name,
 			}
 		} else if (model == MUSCLE) {
 			Cm = Cm_distr_muscle(rand_gen);
-			gnabar = 0.03; // 0.15
-			gkbar = 0.06; // 0.03
-			gl = 0.007; // 0.0002
+			gnabar = 0.03;
+			gkbar = 0.06;
+			gl = 0.007;
 			Ra = 1.1;
 			ena = 55.0;
 			ek = -90.0;
-			el = -70.0; // - 72
+			el = -70.0;
 			diam = 40.0;
 			dx = length_distr_muscle(rand_gen);
 			e_ex = 0.0;
@@ -1257,8 +1256,8 @@ void connect_fixed_outdegree(Group &pre_neurons, Group &post_neurons, double del
 	 *
 	 */
 	// STR
-//	if (weight < 0)
-//		weight /= 1000;
+	if (weight < 0)
+		weight /= 1000;
 
 	if (post_neurons.model == INTER) {
 		printf("POST INTER ");
@@ -1353,6 +1352,7 @@ void save(vector<Group> groups) {
 
 void copy_data_to(GroupMetadata& metadata,
                   const double* Vm,
+                  double* tmp,
                   const double* g_exc,
                   const double* g_inh_A,
                   const double* g_inh_B,
@@ -1363,35 +1363,32 @@ void copy_data_to(GroupMetadata& metadata,
 	double nrn_mean_g_inh = 0;
 
 	int center;
+	unsigned int id_start = metadata.group.id_start;
+	unsigned int id_end = metadata.group.id_end;
+
+	short shift = (vector_models[id_start] == MUSCLE) ? 2 : 1;
+
 	if (metadata.group.group_name == "muscle_E") {
-		FILE* pFile;
-		pFile = fopen("file.bin", "ab");
-		if(pFile == NULL) {
-			printf("Error!");
-			exit(1);
+//		#pragma omp parallel default(none) shared(vector_nrn_start_seg, Vm, tmp, nrn_mean_volt, id_start, id_end, shift)
+//		#pragma omp for reduction(+:nrn_mean_volt) private(center) schedule(auto)
+		for (auto nrn = id_start; nrn <= id_end; ++nrn) {
+			center = vector_nrn_start_seg[nrn] + shift;
+			nrn_mean_volt += (Vm[center] - tmp[nrn]);
+			tmp[nrn] = Vm[center];
 		}
-
-		short ressize = metadata.group.id_end - metadata.group.id_start + 1;
-		double res[ressize];
-		short i = 0;
-		for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {
-			center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
-			res[i++] = Vm[center];
+		metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size / dt * (4 * PI * 10000);
+	} else {
+		for (unsigned int nrn = id_start; nrn <= id_end; ++nrn) {
+			center = vector_nrn_start_seg[nrn] + shift;
+			nrn_mean_volt += Vm[center];
+			nrn_mean_g_exc += g_exc[nrn];
+			nrn_mean_g_inh += (g_inh_B[nrn] - g_inh_A[nrn]);
+			if (has_spike[nrn]) {
+				metadata.spike_vector.push_back(step_to_ms(sim_iter));
+			}
 		}
-		fwrite(res, sizeof(double), ressize, pFile);
-		fclose(pFile);
+		metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
 	}
-
-	for (unsigned int nrn = metadata.group.id_start; nrn <= metadata.group.id_end; ++nrn) {// nrn <= metadata.group.id_end; ++nrn) {
-		center = vector_nrn_start_seg[nrn] + ((vector_models[nrn] == MUSCLE)? 2 : 1);
-		nrn_mean_volt += Vm[center];
-		nrn_mean_g_exc += g_exc[nrn];
-		nrn_mean_g_inh += (g_inh_B[nrn] - g_inh_A[nrn]);
-		if (has_spike[nrn]) {
-			metadata.spike_vector.push_back(step_to_ms(sim_iter));
-		}
-	}
-	metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size;
 	metadata.g_exc[sim_iter] = nrn_mean_g_exc / metadata.group.group_size;
 	metadata.g_inh[sim_iter] = nrn_mean_g_inh / metadata.group.group_size;
 }
@@ -1405,7 +1402,7 @@ void save_result(int test_index) {
 }
 
 template<typename type>
-type* arr_segs(int size = NRNS_AND_SEGS) {
+type* arr_init(int size = NRNS_AND_SEGS) {
 	// important: NRNS_AND_SEGS initialized at network building
 	return new type[size]();
 }
@@ -1420,8 +1417,8 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
 	connect_fixed_indegree(OM2, OM3, 4, 0.0005); // 2.5
 	connect_fixed_indegree(OM1, OM3, 4, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2, -5);
-	connect_fixed_indegree(OM3, OM1, 2, -5);
+	connect_fixed_indegree(OM3, OM2, 3, -5);
+	connect_fixed_indegree(OM3, OM1, 3, -5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1455,9 +1452,6 @@ void neuron_kernel(curandState *state, States *S, const Parameters *P, Neurons *
 			i1 = P->nrn_start_seg[nrn];
 			i3 = P->nrn_start_seg[nrn + 1];
 			// generate pseudo-random noise
-//			if (P->models[nrn] == MUSCLE) {
-//				N->g_exc[nrn] += curand_uniform(&state[nrn]) * 0.6;
-//			}
 			// re-calc currents and states based on synaptic activity
 			setup_tree_matrix(S, P, N, nrn, i1, i3);
 			// solve equations
