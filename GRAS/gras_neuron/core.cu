@@ -36,8 +36,8 @@ const double dt = 0.025;      // [ms] simulation step
 const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 1;  // [step] number of full cycle steps
+const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int step_number = 2;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
@@ -52,8 +52,8 @@ const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
-const double k_coef = 0.007;           // synaptic coef
-const double V_th = -40;            // [mV] voltage threshold
+const double k_coef = 0.017;      // synaptic coef
+const double V_th = -40;          // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
 const double amA = 0.4;           // const ??? todo
@@ -87,7 +87,7 @@ const double xraxial = 1e9;       // [MOhm/cm]
 vector<unsigned int> vector_nrn_start_seg;
 vector<char> vector_models;
 vector<double> vector_Cm, vector_gnabar, vector_gkbar, vector_gl, vector_Ra, vector_diam, vector_length, vector_ena,
-		vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;
+               vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;
 // synaptic parameters
 vector<double> vector_E_ex, vector_E_inh, vector_tau_exc, vector_tau_inh1, vector_tau_inh2;
 // synapses varaibels
@@ -144,6 +144,8 @@ Group form_group(const string &group_name,
 	normal_distribution<double> moto_Cm_distr(2, 0.5);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
 	uniform_real_distribution<double> afferent_diam_distr(15, 35);
+
+	uniform_real_distribution<double> gl_distr_MUSCLE(0.007, 0.07);
 
 	double* diameters; // Works
 	if (model == MOTO)
@@ -214,7 +216,8 @@ Group form_group(const string &group_name,
 			Cm = Cm_distr_muscle(rand_gen);
 			gnabar = 0.03;
 			gkbar = 0.06;
-			gl = 0.007;
+			gl = 0.001;
+//			gl = gl_distr_MUSCLE(rand_gen);
 			Ra = 1.1;
 			ena = 55.0;
 			ek = -90.0;
@@ -778,7 +781,7 @@ void nrn_lhs(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3
 			_g = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V + 0.001);
 			_rhs = nrn_fastchannel_current(S, P, N, nrn, nrn_seg, V);
 		} else {
-			printf("\nERROR\n");
+			assert(false);
 		}
 		// save data like in NEURON (after .mod nrn_cur)
 		_g = (_g - _rhs) / 0.001;
@@ -1199,23 +1202,49 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
 	uniform_int_distribution<int> pre_nrns_ids(pre_neurons.id_start, pre_neurons.id_end);
 	double d_spread, w_spread;
+	double d_left, d_right, w_left, w_right = 0;
 	if (high_distr == 0) {
-		d_spread = delay / 6;
-		w_spread = weight / 6;
+		d_spread = 0;//delay / 6;
+		w_spread = 0;//weight / 6;
 	} else if (high_distr == 1) {
 		d_spread = delay / 5;
 		w_spread = weight / 5.5;
 	} else if (high_distr == 2) {
 		d_spread = delay / 3.5;
-		w_spread = weight / 3.5;
+		w_spread = weight / 2.5;
 	} else if (high_distr == 3) {
-		d_spread = delay / 1.5;
-		w_spread = weight / 1.5;
-	} else {
+		d_spread = delay / 1.2;
+		w_spread = weight / 1.1;
+		d_left = delay - d_spread;
+		d_right = delay + d_spread;
+
+		w_left = weight - w_spread;
+		w_right = weight + w_spread + w_spread / 2;
+	} else if (high_distr == 4) {
+		d_spread = delay / 3;
+		w_spread = weight / 3;
+		d_left = delay - d_spread;
+		d_right = delay + d_spread;
+
+		w_left = weight - w_spread;
+		w_right = weight + w_spread + w_spread / 2;
+	} else if (high_distr == 5) {
+		d_spread = delay / 1.1;
+		w_spread = weight / 1.1;
+
+		d_left = delay - d_spread;
+		d_right = delay + d_spread + d_spread / 2;
+
+		w_left = weight - w_spread;
+		w_right = weight + w_spread + w_spread / 2;
+	}else {
 		logic_error("distr only 0 1 2");
 	}
 	normal_distribution<double> delay_distr(delay, d_spread);
 	normal_distribution<double> weight_distr(weight, w_spread);
+	uniform_real_distribution<double> delay_distr_U(d_left, d_right);
+	uniform_real_distribution<double> weight_distr_U(w_left, w_right);
+
 	auto nsyn = nsyn_distr(rand_gen);
 
 	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
@@ -1235,17 +1264,85 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 				vector_syn_weight.push_back(weight);
 				vector_syn_delay.push_back(ms_to_step(delay));
 			} else {
-				tmp_w = weight_distr(rand_gen);
-				if (tmp_w <= 0) {
-					tmp_w = weight;
-				}
-				tmp_d = delay_distr(rand_gen);
-				if (tmp_d <= 0.01) {
-					tmp_d = delay;
+				if (high_distr == 3 || high_distr == 4 || high_distr == 5) {
+					tmp_w = weight_distr_U(rand_gen);
+					tmp_d = delay_distr_U(rand_gen);
+				} else {
+					tmp_w = weight_distr(rand_gen);
+					if (tmp_w <= 0) {
+						tmp_w = weight;
+					}
+					tmp_d = delay_distr(rand_gen);
+					if (tmp_d <= 0.01) {
+						tmp_d = delay;
+					}
 				}
 				vector_syn_weight.push_back(tmp_w);
 				vector_syn_delay.push_back(ms_to_step(tmp_d));
 			}
+			vector_syn_delay_timer.push_back(-1);
+		}
+	}
+}
+
+
+void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree=50, short high_distr=0) {
+	/**
+	 *
+	 */
+	// STR
+//	if (weight < 0)
+//		weight /= 1000;
+
+	if (post_neurons.model == INTER) {
+		printf("POST INTER ");
+		weight /= 11.0;
+	}
+
+	uniform_int_distribution<int> nsyn_distr(indegree - 15, indegree);
+
+	double d_spread, w_spread;
+	if (high_distr == 0) {
+		d_spread = 0;//delay / 6;
+		w_spread = 0;//weight / 6;
+	} else if (high_distr == 1) {
+		d_spread = delay / 5;
+		w_spread = weight / 5.5;
+	} else if (high_distr == 2) {
+		d_spread = delay / 3.5;
+		w_spread = weight / 2.5;
+	}else {
+		logic_error("distr only 0 1 2");
+	}
+	normal_distribution<double> delay_distr(delay, d_spread);
+	normal_distribution<double> weight_distr(weight, w_spread);
+
+	auto nsyn = nsyn_distr(rand_gen);
+
+	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
+	       pre_neurons.group_name.c_str(), pre_neurons.id_start, pre_neurons.id_end,
+	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
+	       indegree, post_neurons.group_size * indegree, delay, weight);
+	//
+	int post_rand = 0;
+	double tmp_w = 0;
+	double tmp_d = 0;
+	int shift = 0;
+	int m_start = post_neurons.id_start;
+	for (int pre = pre_neurons.id_start; pre <= pre_neurons.id_end; ++pre) {
+		uniform_int_distribution<int> post_nrns_ids(m_start + 50 * shift, m_start + 50 * (shift + 1));
+		for (int i = 0; i < nsyn; ++i) {
+			post_rand = post_nrns_ids(rand_gen);
+			vector_syn_pre_nrn.push_back(pre);
+			vector_syn_post_nrn.push_back(post_rand);
+			tmp_w = weight_distr(rand_gen);
+			if (tmp_w <= 0)
+				tmp_w = weight;
+			tmp_d = delay_distr(rand_gen);
+			if (tmp_d <= 0.01)
+				tmp_d = delay;
+			vector_syn_weight.push_back(tmp_w);
+			vector_syn_delay.push_back(ms_to_step(tmp_d));
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1375,6 +1472,11 @@ void copy_data_to(GroupMetadata& metadata,
 			center = vector_nrn_start_seg[nrn] + shift;
 			nrn_mean_volt += (Vm[center] - tmp[nrn]);
 			tmp[nrn] = Vm[center];
+			nrn_mean_g_exc += g_exc[nrn];
+			nrn_mean_g_inh += (g_inh_B[nrn] - g_inh_A[nrn]);
+			if (has_spike[nrn]) {
+				metadata.spike_vector.push_back(step_to_ms(sim_iter));
+			}
 		}
 		metadata.voltage_array[sim_iter] = nrn_mean_volt / metadata.group.group_size / dt * (4 * PI * 10000);
 	} else {
@@ -1413,10 +1515,10 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 3); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
-	connect_fixed_indegree(OM2, OM3, 4, 0.0005); // 2.5
-	connect_fixed_indegree(OM1, OM3, 4, 0.0005); // 2.5
+	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 5);
+	connect_fixed_indegree(OM2, OM3, 3.5, 0.0005); // 2.5
+	connect_fixed_indegree(OM1, OM3, 3.5, 0.0005); // 2.5
 	connect_fixed_indegree(OM3, OM2, 3, -5);
 	connect_fixed_indegree(OM3, OM1, 3, -5);
 }
@@ -1429,8 +1531,8 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
 	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 3);
 	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
-	connect_fixed_indegree(OM2, OM3, 4, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 4, 0.0005);
+	connect_fixed_indegree(OM2, OM3, 3.5, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 3.5, 0.0005);
 	connect_fixed_indegree(OM3, OM2, 2, -5);
 	connect_fixed_indegree(OM3, OM1, 2, -5);
 }

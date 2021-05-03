@@ -104,7 +104,7 @@ void init_network() {
 	auto mns_E = form_group("mns_E", 210, MOTO);
 	auto mns_F = form_group("mns_F", 180, MOTO);
 	// muscle fibers
-	auto muscle_E = form_group("muscle_E", 10000, MUSCLE, 3); // 150 * 210
+	auto muscle_E = form_group("muscle_E", 210 * 50, MUSCLE, 3); // 150 * 210
 	auto muscle_F = form_group("muscle_F", 10000, MUSCLE, 3); // 100 * 180
 	// reflex arc E
 	auto Ia_E = form_group("Ia_E", neurons_in_ip);
@@ -188,7 +188,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_aff_E, mns_E, 2.5, 25);
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.5);
 
-	connect_fixed_indegree(mns_E, muscle_E, 3, 1.8, 45, 2); // 2.0
+	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.08, 45, 2); // 2.0
 	connect_fixed_indegree(mns_F, muscle_F, 2, 2, 45);
 
 	// IP
@@ -196,10 +196,10 @@ void init_network() {
 		// Extensor
 //		connectinsidenucleus(IP_F[layer]);
 //		connectinsidenucleus(IP_E[layer]);
-		connectinsidenucleus(L2E[layer]);
-		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.15, 50, 3); // 2.75 0.125 0.2
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.1, 50, 3); // 2.5
+//		connectinsidenucleus(L2E[layer]);
+//		connectinsidenucleus(L2F[layer]);
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.005, 500, 5); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.005, 500, 5); // 2.75 0.125 0.2
 
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
@@ -441,7 +441,6 @@ void simulate(int test_index) {
 		memcpyDtH(N->g_inh_B, g_inh_B, NRNS_NUMBER);
 		memcpyDtH(N->has_spike, has_spike, NRNS_NUMBER);
 		// fill records arrays
-		#pragma omp parallel for
 		for (GroupMetadata& metadata : saving_groups) {
 			copy_data_to(metadata, Vm, tmp, g_exc, g_inh_A, g_inh_B, has_spike, sim_iter);
 		}
