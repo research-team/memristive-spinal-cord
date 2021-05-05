@@ -185,10 +185,10 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 2.5, 25);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.5);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 2, 25);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 2, 0.5);
 
-	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.08, 45, 2); // 2.0
+	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.1, 45, 2); // 2.0
 	connect_fixed_indegree(mns_F, muscle_F, 2, 2, 45);
 
 	// IP
@@ -216,30 +216,30 @@ void init_network() {
 	// CV
 	double TESTCOEF = 2.8; // 4.25
 	// OM1
-	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * k_coef * skin_time * TESTCOEF * 0.2, 50, 3);
-	connect_fixed_indegree(CV[1], OM1_0E, 2, 0.00051 * k_coef * skin_time * TESTCOEF * 0.4, 50, 3);
+	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * k_coef * TESTCOEF * 0.2, 50, 3);
+	connect_fixed_indegree(CV[1], OM1_0E, 2, 0.00051 * k_coef * TESTCOEF * 0.4, 50, 3);
 	// OM2
-	connect_fixed_indegree(CV[0], L0[1], 3, 0.00001 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[1], L0[1], 3, 0.00045 * k_coef * skin_time * TESTCOEF * 0.5, 50, 3);
-	connect_fixed_indegree(CV[2], L0[1], 2, 0.00045 * k_coef * skin_time * TESTCOEF * 0.5, 50, 3);
+	connect_fixed_indegree(CV[0], L0[1], 3, 0.00001 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[1], L0[1], 3, 0.00045 * k_coef * TESTCOEF * 0.5, 50, 3);
+	connect_fixed_indegree(CV[2], L0[1], 2, 0.00045 * k_coef * TESTCOEF * 0.5, 50, 3);
 	// OM3
-	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * k_coef * skin_time * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[4], L0[2], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * k_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[4], L0[2], 3, 0.00035 * k_coef * TESTCOEF * 0.9, 50, 3);
 	// OM4
-	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[2], L0[3], 3, 0.00022 * k_coef * skin_time * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[3], L0[3], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8, 50, 3);
-	connect_fixed_indegree(CV[4], L0[3], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.8, 50, 3);
-	connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * k_coef * skin_time * TESTCOEF * 0.8, 50, 3);
+	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[2], L0[3], 3, 0.00022 * k_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[3], L0[3], 3, 0.00035 * k_coef * TESTCOEF * 0.8, 50, 3);
+	connect_fixed_indegree(CV[4], L0[3], 3, 0.00035 * k_coef * TESTCOEF * 0.8, 50, 3);
+	connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * k_coef * TESTCOEF * 0.8, 50, 3);
 	// OM5
-	connect_fixed_indegree(CV[1], L0[4], 3, 0.00022 * k_coef * skin_time * TESTCOEF * 1.6, 50, 3);
-	connect_fixed_indegree(CV[2], L0[4], 3, 0.00022 * k_coef * skin_time * TESTCOEF * 1.6, 50, 3);
-	connect_fixed_indegree(CV[3], L0[4], 3, 0.00022 * k_coef * skin_time * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[4], L0[4], 3, 0.00022 * k_coef * skin_time * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[5], L0[4], 3, 0.00035 * k_coef * skin_time * TESTCOEF * 0.7, 50, 3);
+	connect_fixed_indegree(CV[1], L0[4], 3, 0.00022 * k_coef * TESTCOEF * 1.6, 50, 3);
+	connect_fixed_indegree(CV[2], L0[4], 3, 0.00022 * k_coef * TESTCOEF * 1.6, 50, 3);
+	connect_fixed_indegree(CV[3], L0[4], 3, 0.00022 * k_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[4], L0[4], 3, 0.00022 * k_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[5], L0[4], 3, 0.00035 * k_coef * TESTCOEF * 0.7, 50, 3);
 
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
@@ -294,6 +294,7 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
+//	save({muscle_E});
 	save(all_groups);
 }
 

@@ -36,7 +36,7 @@ const double dt = 0.025;      // [ms] simulation step
 const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 25;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 const int step_number = 2;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
@@ -1215,6 +1215,7 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	} else if (high_distr == 3) {
 		d_spread = delay / 1.2;
 		w_spread = weight / 1.1;
+
 		d_left = delay - d_spread;
 		d_right = delay + d_spread;
 
@@ -1223,6 +1224,7 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	} else if (high_distr == 4) {
 		d_spread = delay / 3;
 		w_spread = weight / 3;
+
 		d_left = delay - d_spread;
 		d_right = delay + d_spread;
 
@@ -1233,10 +1235,10 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 		w_spread = weight / 1.1;
 
 		d_left = delay - d_spread;
-		d_right = delay + d_spread + d_spread / 2;
+		d_right = delay + d_spread + delay * 1.5;
 
 		w_left = weight - w_spread;
-		w_right = weight + w_spread + w_spread / 2;
+		w_right = weight + w_spread + w_spread;
 	}else {
 		logic_error("distr only 0 1 2");
 	}
@@ -1309,7 +1311,7 @@ void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, dou
 		d_spread = delay / 5;
 		w_spread = weight / 5.5;
 	} else if (high_distr == 2) {
-		d_spread = delay / 3.5;
+		d_spread = delay / 2.5;
 		w_spread = weight / 2.5;
 	}else {
 		logic_error("distr only 0 1 2");
@@ -1514,13 +1516,13 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 5);
-	connect_fixed_indegree(OM2, OM3, 3.5, 0.0005); // 2.5
-	connect_fixed_indegree(OM1, OM3, 3.5, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 3, -5);
-	connect_fixed_indegree(OM3, OM1, 3, -5);
+	connect_fixed_indegree(OM0, OM1, 2, 0.8, 50, 5);
+	connect_fixed_indegree(OM1, OM2, 2, 0.6, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 2, 0.6, 50, 5);
+	connect_fixed_indegree(OM2, OM3, 2.5, 0.0005); // 2.5
+	connect_fixed_indegree(OM1, OM3, 2.5, 0.0005); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2, -5);
+	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1528,11 +1530,11 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 3);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 3);
-	connect_fixed_indegree(OM2, OM1, 3, 0.8, 50, 3);
-	connect_fixed_indegree(OM2, OM3, 3.5, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 3.5, 0.0005);
+	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 5);
+	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5);
+	connect_fixed_indegree(OM2, OM1, 3, 0.6, 50, 5);
+	connect_fixed_indegree(OM2, OM3, 2.5, 0.0005);
+	connect_fixed_indegree(OM1, OM3, 2.5, 0.0007);
 	connect_fixed_indegree(OM3, OM2, 2, -5);
 	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
