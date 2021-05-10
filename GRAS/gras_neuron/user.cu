@@ -162,7 +162,7 @@ void init_network() {
 	// connect E (from EES)
 	connect_fixed_indegree(E[0], OM1_0E, 2, 0.00044); // 0.00040 - 0.00047
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer], L0[layer], 2, 0.00048 * 0.54); // 0.00048 * 0.4, 1.115
+		connect_fixed_indegree(E[layer], L0[layer], 0.1, 0.0005 * 0.8, 50, 3); // 0.00048 * 0.4, 1.115
 	}
 
 	// E inhibitory projections (via 3rd core)
@@ -185,11 +185,11 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 2, 25);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 25);
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2, 0.5);
 
-	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.1, 45, 2); // 2.0
-	connect_fixed_indegree(mns_F, muscle_F, 2, 2, 45);
+	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.1, 35, 2); // 2.0
+	connect_fixed_indegree(mns_F, muscle_F, 1.5, 2, 45);
 
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
@@ -198,8 +198,8 @@ void init_network() {
 //		connectinsidenucleus(IP_E[layer]);
 //		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 1.5, 0.005, 500, 5); // 2.5
-		connect_fixed_indegree(IP_E[layer], mns_E, 1.5, 0.005, 500, 5); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 0.005, 500, 5); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 3, 0.005, 500, 5); // 2.75 0.125 0.2
 
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
@@ -212,9 +212,9 @@ void init_network() {
 	}
 	// skin inputs
 	for (int layer = 0; layer < layers + 1; ++layer)
-		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * k_coef * skin_time);
+		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * k_coef);
 	// CV
-	double TESTCOEF = 2.8; // 4.25
+	double TESTCOEF = 35.0; // 4.25
 	// OM1
 	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * k_coef * TESTCOEF * 0.2, 50, 3);
 	connect_fixed_indegree(CV[1], OM1_0E, 2, 0.00051 * k_coef * TESTCOEF * 0.4, 50, 3);
@@ -294,8 +294,8 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
-//	save({muscle_E});
-	save(all_groups);
+	save({muscle_E});
+//	save(all_groups);
 }
 
 

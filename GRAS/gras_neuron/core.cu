@@ -37,7 +37,7 @@ const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 2;  // [step] number of full cycle steps
+const int step_number = 5;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
@@ -140,14 +140,15 @@ Group form_group(const string &group_name,
 	double Cm, gnabar, gkbar, gl, Ra, ena, ek, el, diam, dx, gkrect, gcaN, gcaL, gcak, e_ex, e_inh, tau_exc, tau_inh1, tau_inh2;
 	uniform_real_distribution<double> Cm_distr(0.3, 2.5);
 	uniform_real_distribution<double> Cm_distr_muscle(2.5, 4.5);
-	uniform_real_distribution<double> length_distr_muscle(2700, 3300);
+	uniform_real_distribution<double> length_distr_muscle(2500, 3500);
 	normal_distribution<double> moto_Cm_distr(2, 0.5);
 	uniform_int_distribution<int> inter_diam_distr(5, 15);
 	uniform_real_distribution<double> afferent_diam_distr(15, 35);
 
-	uniform_real_distribution<double> gl_distr_MUSCLE(0.007, 0.07);
+	uniform_real_distribution<double> gl_distr_MUSCLE(0.0008, 0.0012);
+	uniform_real_distribution<double> tau_exc_distr_MUSCLE(0.33, 0.35);
 
-	double* diameters; // Works
+	double* diameters; //
 	if (model == MOTO)
 		diameters = bimodal_distr_for_moto_neurons(nrns_in_group);
 
@@ -216,8 +217,8 @@ Group form_group(const string &group_name,
 			Cm = Cm_distr_muscle(rand_gen);
 			gnabar = 0.03;
 			gkbar = 0.06;
-			gl = 0.001;
-//			gl = gl_distr_MUSCLE(rand_gen);
+//			gl = 0.001;
+			gl = gl_distr_MUSCLE(rand_gen);
 			Ra = 1.1;
 			ena = 55.0;
 			ek = -90.0;
@@ -226,7 +227,8 @@ Group form_group(const string &group_name,
 			dx = length_distr_muscle(rand_gen);
 			e_ex = 0.0;
 			e_inh = -80.0;
-			tau_exc = 0.35;
+//			tau_exc = 0.35;
+			tau_exc = tau_exc_distr_MUSCLE(rand_gen);
 			tau_inh1 = 1.0;
 			tau_inh2 = 1.0;
 		} else if (model == GENERATOR) {
@@ -1319,6 +1321,9 @@ void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, dou
 	normal_distribution<double> delay_distr(delay, d_spread);
 	normal_distribution<double> weight_distr(weight, w_spread);
 
+	uniform_real_distribution<double> delay_distr_U(delay - 1, delay + 3);
+	uniform_real_distribution<double> weight_distr_U(weight - weight / 1.5, weight + weight / 1.5);
+
 	auto nsyn = nsyn_distr(rand_gen);
 
 	printf("Connect indegree %s [%d..%d] to %s [%d..%d] (1:%d). Synapses %d, D=%.1f, W=%.2f\n",
@@ -1337,10 +1342,12 @@ void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, dou
 			post_rand = post_nrns_ids(rand_gen);
 			vector_syn_pre_nrn.push_back(pre);
 			vector_syn_post_nrn.push_back(post_rand);
-			tmp_w = weight_distr(rand_gen);
+//			tmp_w = weight_distr(rand_gen);
+			tmp_w = weight_distr_U(rand_gen);
 			if (tmp_w <= 0)
 				tmp_w = weight;
-			tmp_d = delay_distr(rand_gen);
+//			tmp_d = delay_distr(rand_gen);
+			tmp_d = delay_distr_U(rand_gen);
 			if (tmp_d <= 0.01)
 				tmp_d = delay;
 			vector_syn_weight.push_back(tmp_w);
@@ -1516,13 +1523,13 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 2, 0.8, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 2, 0.6, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 2, 0.6, 50, 5);
-	connect_fixed_indegree(OM2, OM3, 2.5, 0.0005); // 2.5
-	connect_fixed_indegree(OM1, OM3, 2.5, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2, -5);
-	connect_fixed_indegree(OM3, OM1, 2, -5);
+	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
+	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.3, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2.3, 0.0007); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2.3, -5);
+	connect_fixed_indegree(OM3, OM1, 2.3, -5);
 }
 
 void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
@@ -1530,13 +1537,13 @@ void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 0.1, 0.8, 50, 5);
+	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5);
-	connect_fixed_indegree(OM2, OM1, 3, 0.6, 50, 5);
-	connect_fixed_indegree(OM2, OM3, 2.5, 0.0005);
-	connect_fixed_indegree(OM1, OM3, 2.5, 0.0007);
-	connect_fixed_indegree(OM3, OM2, 2, -5);
-	connect_fixed_indegree(OM3, OM1, 2, -5);
+	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.3, 0.0003);
+	connect_fixed_indegree(OM2, OM3, 2.3, 0.0007);
+	connect_fixed_indegree(OM3, OM2, 2.3, -5);
+	connect_fixed_indegree(OM3, OM1, 2.3, -5);
 }
 
 __global__
