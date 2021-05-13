@@ -66,6 +66,7 @@ def average(path):
     for filename in filenames:
         if filename.startswith('test1'):
             if '40' in filename:
+                pass
 
 
 
