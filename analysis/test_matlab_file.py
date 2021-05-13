@@ -72,28 +72,29 @@ def smoothed_render(title, data, save_folder, dx):
     plt.plot(x, data, color='g')
     peaks = []
     for index, point in enumerate(data):
+        difference = []
+        min_diff = None
         if point > 4:
             if not peaks:
                 peaks.append(index * dx)
             if index * dx - peaks[-1] > 1:
                 peaks.append(index * dx)
-        difference = []
         if peaks:
             for i, peak in enumerate(peaks[:-1]):
-                for next_peak in peaks[index + 1:]:
-                    dif = next_peak - peak
-                    difference.append(dif)
+                dif = peaks[i+1] - peaks[i]
+                difference.append(dif)
             if difference:
-                min_diff = min(difference)
-                print(min_diff)
+                if len(difference) > 1:
+                    min_diff = min(difference)
+                else:
+                    min_diff = difference[0]
+    print(f'peaks = {peaks}')
+    print(f'difference = {difference}')
+    print(f'min_diff = {min_diff}')
 
-    # for p in peaks:
-    #     plt.axvline(x=p, color='r')
-    print(peaks)
-
-
-
-
+    for i, p in enumerate(peaks):
+        wtf = peaks[0] + min_diff * i
+        plt.axvline(x=wtf, color='r')
 
     plt.xlabel('Seconds')
     plt.ylabel('Volts')
