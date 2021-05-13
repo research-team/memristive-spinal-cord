@@ -1,3 +1,4 @@
+import inspect
 import os
 import scipy.io as sio
 import matplotlib.pyplot as plt
@@ -5,26 +6,25 @@ import numpy as np
 import plotly.graph_objs as go
 import pandas as pd
 import plotly
-
+import pprint
 
 def moving_average(data, weight):
     return np.convolve(data, np.ones(weight), 'valid') / weight
 
 
-datapath = 'C:/Users/Ann/PycharmProjects/test_matlab/data'
-
-
-def read_data(filename):
+def read_data(datapath):
     filename = f'{datapath}/on the left side SS3'
     dict_data = sio.loadmat(filename)
-    save_folder = f'{datapath}/render data2'
+    save_folder = f'{datapath}/render'
 
     raw_data = dict_data['data'][0]
+
     # by [:-2] we omit the last redundant art1/art2 data
     starts = [int(d[0]) for d in dict_data['datastart']][:-2]
     ends = [int(d[0]) for d in dict_data['dataend']][:-2]
     titles = dict_data['titles'][:-2]
     dx = 1 / dict_data['samplerate'][0][0]
+
 
     muscles = {}
     for t, s, e in zip(titles, starts, ends):
@@ -35,7 +35,6 @@ def read_data(filename):
         # original_render_html(title, data, save_folder, dx)
         smoothed_render(title, data, save_folder, dx)
         # smoothed_render_html(title, data, save_folder, dx)
-
 
 
 def original_render_html(title, data, save_folder, dx):
@@ -53,6 +52,7 @@ def original_render_html(title, data, save_folder, dx):
     configs = {'scrollZoom': True, 'displaylogo': False, 'displayModeBar': True}
     plotly.offline.plot(fig, config=configs, filename=f'{save_folder}/{title}_original.html', auto_open=False)
 
+
 def original_render(title, data, save_folder, dx):
     plt.suptitle(f'{title} (original)')
     x = np.arange(len(data)) * dx
@@ -64,6 +64,7 @@ def original_render(title, data, save_folder, dx):
         os.makedirs(save_folder)
     plt.savefig(f'{save_folder}/{title}_original.png', format='png')
     plt.close()
+
 
 def smoothed_render(title, data, save_folder, dx):
     plt.suptitle(f'{title} (smoothed)')
@@ -79,22 +80,23 @@ def smoothed_render(title, data, save_folder, dx):
                 peaks.append(index * dx)
             if index * dx - peaks[-1] > 1:
                 peaks.append(index * dx)
-        if peaks:
-            for i, peak in enumerate(peaks[:-1]):
-                dif = peaks[i+1] - peaks[i]
-                difference.append(dif)
-            if difference:
-                if len(difference) > 1:
-                    min_diff = min(difference)
-                else:
-                    min_diff = difference[0]
-    print(f'peaks = {peaks}')
-    print(f'difference = {difference}')
-    print(f'min_diff = {min_diff}')
+        # if peaks:
+        #     for i, peak in enumerate(peaks[:-1]):
+        #         dif = peaks[i + 1] - peaks[i]
+        #         difference.append(dif)
+        #     if difference:
+        #         if len(difference) > 1:
+        #             min_diff = min(difference)
+        #         else:
+        #             min_diff = difference[0]
+    print(f'peaks = {peaks} \n')
+    # print(f'difference = {difference} \n')
+    # print(f'min_diff = {min_diff} \n')
 
     for i, p in enumerate(peaks):
-        wtf = peaks[0] + min_diff * i
-        plt.axvline(x=wtf, color='r')
+        # line = peaks[0] + min_diff * i
+        line = peaks[i] - 0.01
+        plt.axvline(x=line, color='r')
 
     plt.xlabel('Seconds')
     plt.ylabel('Volts')
@@ -107,6 +109,7 @@ def smoothed_render(title, data, save_folder, dx):
         os.makedirs(save_folder)
     plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
     plt.close()
+
 
 def smoothed_render_html(title, data, save_folder, dx):
     data = moving_average(data, 150)
@@ -126,9 +129,9 @@ def smoothed_render_html(title, data, save_folder, dx):
 
 
 def main():
-    datapath = 'C:/Users/Ann/PycharmProjects/test_matlab/data'
+    datapath = '/home/b-rain/rhythmic'
     filename = f'{datapath}/on the left side SS3'
-    read_data(filename)
+    read_data(datapath)
 
 
 if __name__ == '__main__':
