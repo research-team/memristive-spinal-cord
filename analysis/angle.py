@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+
 # exclude = ('40', '5')
 
 
@@ -34,7 +35,7 @@ def read_data(datapath, savepath, type):
                     angle_hip.append(angle_data[-1])
                     angle_ankle.append(angle_data[3])
 
-            #сглаживает данные
+            # сглаживает данные
             angle_hip_smoothed = moving_average(angle_hip, 150)
             angle_ankle_smoothed = moving_average(angle_ankle, 150)
 
@@ -61,6 +62,7 @@ def read_data(datapath, savepath, type):
 
             print(f'голеностоп = {angle_ankle}, колено = {angle_hip}')
 
+
 def average(path):
     filenames = [name for name in os.listdir(f"{path}") if name.endswith(".txt")]
     for filename in filenames:
@@ -69,21 +71,18 @@ def average(path):
                 pass
 
 
-
-
-
 def main():
     # datapath = 'C:/Users/Ann/Desktop/angles'
     # savepath = 'C:/Users/Ann/Desktop/angles/results'
     # type = 'free walking'
     # read_data(datapath, savepath, type=type)
 
-    path = 'C:/Users/Ann/Desktop/angles/protocol_data'
+    path = '/home/b-rain/angles/protocol_data'
     foldernames = [name for name in os.listdir(f"{path}")]
     type = 'pattern'
     for foldername in foldernames:
         datapath = os.path.join(path, foldername)
-        savepath = f'C:/Users/Ann/Desktop/angles/protocol_data/{foldername}/results'
+        savepath = f'/home/b-rain/angles/protocol_data/{foldername}/results'
         if os.path.exists(savepath):
             pass
         else:
