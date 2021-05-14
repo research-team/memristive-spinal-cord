@@ -6,7 +6,6 @@ import numpy as np
 import plotly.graph_objs as go
 import pandas as pd
 import plotly
-import pprint
 
 def moving_average(data, weight):
     return np.convolve(data, np.ones(weight), 'valid') / weight
@@ -19,10 +18,9 @@ def read_data(datapath):
 
     raw_data = dict_data['data'][0]
 
-    # by [:-2] we omit the last redundant art1/art2 data
-    starts = [int(d[0]) for d in dict_data['datastart']][:-2]
-    ends = [int(d[0]) for d in dict_data['dataend']][:-2]
-    titles = dict_data['titles'][:-2]
+    starts = [int(d[0]) for d in dict_data['datastart']]
+    ends = [int(d[0]) for d in dict_data['dataend']]
+    titles = dict_data['titles']
     dx = 1 / dict_data['samplerate'][0][0]
 
 
@@ -72,6 +70,7 @@ def smoothed_render(title, data, save_folder, dx):
     x = np.arange(len(data)) * dx
     plt.plot(x, data, color='g')
     peaks = []
+
     for index, point in enumerate(data):
         difference = []
         min_diff = None
@@ -102,8 +101,7 @@ def smoothed_render(title, data, save_folder, dx):
     plt.ylabel('Volts')
     plt.axhline(y=0, lw=1, ls='--', color='gray')
     plt.grid(axis='x')
-    if 'TA R' in title:
-        plt.show()
+    plt.show()
 
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
@@ -127,6 +125,23 @@ def smoothed_render_html(title, data, save_folder, dx):
     configs = {'scrollZoom': True, 'displaylogo': False, 'displayModeBar': True}
     plotly.offline.plot(fig, config=configs, filename=f'{save_folder}/{title}_smoothed.html', auto_open=False)
 
+def draw_slices(start, end, titles, time, period, muscle):
+    logger.info("slices")
+    for s, e, t in zip(start, end, titles):
+        # slices
+        # if t == muscle:
+        logger.info("muscle is here")
+        d = data[int(s):int(e)] # + 2 *k
+        d_f = butter_bandpass_filter(np.array(d), lowcut, highcut, fs)
+        # d_f = d
+        logger.info(len(d))
+        f = 0
+        plt.clf()
+        for i in range(8):
+            p = d_f[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
+            plt.plot(np.arange(len(p)) * 0.25, p)
+        plt.savefig(f'/Users/sulgod/Desktop/graphs/1312/{t}_time{time}_f.png')
+        # plt.show()
 
 def main():
     datapath = '/home/b-rain/rhythmic'
