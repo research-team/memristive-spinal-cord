@@ -105,7 +105,7 @@ void init_network() {
 	auto mns_F = form_group("mns_F", 180, MOTO);
 	// muscle fibers
 	auto muscle_E = form_group("muscle_E", 210 * 50, MUSCLE, 3); // 150 * 210
-	auto muscle_F = form_group("muscle_F", 10000, MUSCLE, 3); // 100 * 180
+	auto muscle_F = form_group("muscle_F", 100, MUSCLE, 3); // 100 * 180
 	// reflex arc E
 	auto Ia_E = form_group("Ia_E", neurons_in_ip);
 	auto iIP_E = form_group("iIP_E", neurons_in_ip);
@@ -150,7 +150,7 @@ void init_network() {
 	for(int layer = 1; layer < layers; ++layer)
 		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 1.5);
 	//
-	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025);
+	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025, 50, 3);
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(V0v[step], OM1_0F, 3, 2.75);
 	}
@@ -160,9 +160,9 @@ void init_network() {
 		connect_fixed_indegree(E[layer - 1], E[layer], 3, 0.75); // 4.75
 	}
 	// connect E (from EES)
-	connect_fixed_indegree(E[0], OM1_0E, 2, 0.00044); // 0.00040 - 0.00047
+	connect_fixed_indegree(E[0], OM1_0E, 2, 0.005 * 0.8, 50, 3); // 0.00040 - 0.00047
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer], L0[layer], 0.1, 0.0005 * 0.8, 50, 3); // 0.00048 * 0.4, 1.115
+		connect_fixed_indegree(E[layer], L0[layer], 2, 0.005 * 0.8, 50, 3); // 0.00048 * 0.4, 1.115
 	}
 
 	// E inhibitory projections (via 3rd core)
@@ -181,14 +181,15 @@ void init_network() {
 	}
 	conn_generator(ees, Ia_aff_E, 1, 1.5);
 	conn_generator(ees, Ia_aff_F, 1, 1.5);
-	conn_generator(ees, E[0], 2, 9); // 1.5
+	conn_generator(ees, E[0], 2, 0.7); // 1.5
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 25);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 2, 0.5);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 25);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 0.5, 0.5);
 
-	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 2, 0.1, 35, 2); // 2.0
+	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
+//	connect_fixed_indegree(mns_E, muscle_E, 0.5, 0.11, 45);
 	connect_fixed_indegree(mns_F, muscle_F, 1.5, 2, 45);
 
 	// IP
@@ -198,8 +199,8 @@ void init_network() {
 //		connectinsidenucleus(IP_E[layer]);
 //		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
-		connect_fixed_indegree(L2E[layer], IP_E[layer], 3, 0.005, 500, 5); // 2.5
-		connect_fixed_indegree(IP_E[layer], mns_E, 3, 0.005, 500, 5); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 2, 0.005, 500, 5); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.005, 500, 5); // 2.75 0.125 0.2
 
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
