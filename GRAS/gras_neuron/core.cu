@@ -37,13 +37,13 @@ const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
 const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 10;  // [step] number of full cycle steps
+const int step_number = 2;  // [step] number of full cycle steps
 const int cv_fr = 200;      // frequency of CV
 const int ees_fr = 40;      // frequency of EES
 const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
 
 const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 50 + one_step_time * step_number;
+const unsigned int sim_time = 25 + one_step_time * step_number;
 const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
 unsigned int NRNS_NUMBER = 0;     // [id] global neuron id = number of neurons
@@ -52,7 +52,11 @@ const int neurons_in_group = 50;  // number of neurons in a group
 const int neurons_in_ip = 196;    // number of neurons in a group
 
 // common neuron constants
-const double k_coef = 0.017;      // synaptic coef
+// normal
+
+const double k_coef = 0.005;      // AIR
+//const double k_coef = 0.017;      // NORMAL
+//const double k_coef = 0.25;      // QPZ
 const double V_th = -40;          // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants

@@ -179,17 +179,17 @@ void init_network() {
 			}
 		}
 	}
-	conn_generator(ees, Ia_aff_E, 1, 1.5);
-	conn_generator(ees, Ia_aff_F, 1, 1.5);
-	conn_generator(ees, E[0], 2, 0.7); // 1.5
+	conn_generator(ees, Ia_aff_E, 1, 2.5);
+	conn_generator(ees, Ia_aff_F, 1, 2.5);
+//	conn_generator(ees, E[0], 2, 0.7); // NORMAL
+	conn_generator(ees, E[0], 2, 0.00025); // AIR
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 25);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 0.5, 0.5);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 0.1);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 0.5, 0.1);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
-//	connect_fixed_indegree(mns_E, muscle_E, 0.5, 0.11, 45);
 	connect_fixed_indegree(mns_F, muscle_F, 1.5, 2, 45);
 
 	// IP
@@ -295,8 +295,8 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
-	save({muscle_E});
-//	save(all_groups);
+//	save({muscle_E});
+	save(all_groups);
 }
 
 
