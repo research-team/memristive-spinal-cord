@@ -54,8 +54,8 @@ const int neurons_in_ip = 196;    // number of neurons in a group
 // common neuron constants
 // normal
 
-const double k_coef = 0.005;      // AIR
-//const double k_coef = 0.017;      // NORMAL
+//const double k_coef = 0.005;      // AIR
+const double k_coef = 0.017;      // NORMAL
 //const double k_coef = 0.25;      // QPZ
 const double V_th = -40;          // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
@@ -1316,8 +1316,7 @@ void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, dou
 //	normal_distribution<double> delay_distr(delay, d_spread);
 //	normal_distribution<double> weight_distr(weight, w_spread);
 
-	uniform_real_distribution<double> delay_distr_U(delay, delay + 3);
-	uniform_real_distribution<double> weight_distr_U(weight - weight / 1.5, weight);
+
 
 	auto nsyn = nsyn_distr(rand_gen);
 
@@ -1326,10 +1325,30 @@ void connect_fixed_outdegree_MUSCLE(Group &pre_neurons, Group &post_neurons, dou
 	       post_neurons.group_name.c_str(), post_neurons.id_start, post_neurons.id_end,
 	       indegree, post_neurons.group_size * indegree, delay, weight);
 	//
-	int post_rand = 0;
-	double tmp_w = 0;
-	double tmp_d = 0;
-	int shift = 0;
+	int shift, post_rand = 0;
+	double tmp_w, tmp_d = 0;
+	double d_left, d_right, w_left, w_right, d_spread, w_spread = 0;
+
+	if (high_distr == 5) {
+		d_spread = delay / 1.1;
+		w_spread = weight / 1.1;
+
+		d_left = delay - d_spread;
+		d_right = delay + d_spread + delay * 1.5;
+
+		w_left = weight - w_spread;
+		w_right = weight + w_spread + w_spread;
+	} else {
+		d_left = delay;
+		d_right = delay + 3;
+
+		w_left = weight - weight / 1.5;
+		w_right = weight;
+	}
+
+	uniform_real_distribution<double> delay_distr_U(d_left, d_right);
+	uniform_real_distribution<double> weight_distr_U(w_left, w_right);
+
 	int m_start = post_neurons.id_start;
 	for (int pre = pre_neurons.id_start; pre <= pre_neurons.id_end; ++pre) {
 		uniform_int_distribution<int> post_nrns_ids(m_start + 50 * shift, m_start + 50 * (shift + 1));
@@ -1469,7 +1488,7 @@ void copy_data_to(GroupMetadata& metadata,
 
 	short shift = (vector_models[id_start] == MUSCLE) ? 2 : 1;
 
-	if (metadata.group.group_name == "muscle_E") {
+	if (metadata.group.group_name == "muscle_E" || metadata.group.group_name == "muscle_F") {
 //		#pragma omp parallel default(none) shared(vector_nrn_start_seg, Vm, tmp, nrn_mean_volt, id_start, id_end, shift)
 //		#pragma omp for reduction(+:nrn_mean_volt) private(center) schedule(auto)
 		for (auto nrn = id_start; nrn <= id_end; ++nrn) {
@@ -1527,17 +1546,13 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM3, OM1, 3, -5);
 }
 
-void createmotif_flex(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
-	/**
-	 * Connects motif module
-	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
-	 */
+void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5);
+	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 3, 0.0003);
-	connect_fixed_indegree(OM2, OM3, 3, 0.0007);
-	connect_fixed_indegree(OM3, OM2, 3, -5);
+	connect_fixed_indegree(OM1, OM3, 3, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 3, 0.0004); // 2.5
+	connect_fixed_indegree(OM3, OM2, 1, -2); // -1 - noise, -5 - void
 	connect_fixed_indegree(OM3, OM1, 3, -5);
 }
 
