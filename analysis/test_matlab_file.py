@@ -1,10 +1,9 @@
-import inspect
 import os
 import scipy.io as sio
 import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objs as go
 import pandas as pd
+import plotly.graph_objs as go
 import plotly
 
 
@@ -31,8 +30,10 @@ def read_data(datapath):
     for title, data in muscles.items():
         # original_render(title, data, save_folder, dx)
         # original_render_html(title, data, save_folder, dx)
-        smoothed_render(title, data, save_folder, dx)
+        zip_data_x = smoothed_render(title, data, save_folder, dx)
         # smoothed_render_html(title, data, save_folder, dx)
+
+    return titles, dx, zip_data_x
 
 
 # def original_render_html(title, data, save_folder, dx):
@@ -64,32 +65,39 @@ def read_data(datapath):
 #     plt.close()
 
 def draw_slices(zip_file, frequency, dx, save_folder, title):
+    d = np.array(zip_file)[:, 0][1000:]
+
     for i in range(10):
-        start_x = i * frequency
-        end_x = (i + 1) * frequency
-        for value, x_ind in zip_file:
-            if x_ind == start_x:
-                start = value
-            if x_ind == end_x:
-                end = value
+        start = int(1.7 * i / dx)
+        end = int(1.7 * (i + 1) / dx)
+        plt.plot(d[start:end] + i)
+    plt.show()
 
-                data = list(zip(*zip_file))[0]
-                start_ind = np.where(data == start)[0][0]
-                end_ind = np.where(data == end)[0][0]
-                slice = [i for i in data[start_ind:end_ind]]
-                x = np.arange(len(slice)) * dx
-                plt.plot(x, slice, color='y')
-                plt.xlabel('Seconds')
-                plt.ylabel('Volts')
-                plt.axhline(y=0, lw=1, ls='--', color='gray')
-                plt.grid(axis='x')
-
-                if not os.path.exists(save_folder):
-                    os.makedirs(title)
-
-                    plt.savefig(f'{save_folder}/{title}_smoothed_slice_{i}.png', format='png')
-                    plt.show()
-                    plt.close()
+    # with kek:
+    #     for value, x_ind in zip_file:
+    #         if x_ind == start_x:
+    #             start = value
+    #         if x_ind == end_x:
+    #             end = value
+    #
+    #             data = list(zip(*zip_file))[0]
+    #             start_ind = np.where(data == start)[0][0]
+    #             end_ind = np.where(data == end)[0][0]
+    #             slice = [i for i in data[start_ind:end_ind]]
+    #             x = np.arange(len(slice)) * dx
+    #             plt.plot(x, slice, color='y')
+    #             plt.xlabel('Seconds')
+    #             plt.ylabel('Volts')
+    #             plt.axhline(y=0, lw=1, ls='--', color='gray')
+    #             plt.grid(axis='x')
+    #
+    #             slice_folder = os.path.join(save_folder, title)
+    #             if not os.path.exists(slice_folder):
+    #                 os.makedirs(slice_folder)
+    #
+    #             plt.savefig(f'{slice_folder}/{title}_slice_{i}.png', format='png')
+    #             plt.show()
+    #             plt.close()
 
 
 def smoothed_render(title, data, save_folder, dx):
@@ -129,9 +137,11 @@ def smoothed_render(title, data, save_folder, dx):
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
     plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
+    plt.show()
     plt.close()
 
     draw_slices(zip_file=zip_data_x, dx=dx, frequency=1.7, save_folder=save_folder, title=title)
+    return zip_data_x
 
 
 # def smoothed_render_html(title, data, save_folder, dx):
@@ -153,7 +163,9 @@ def smoothed_render(title, data, save_folder, dx):
 
 def main():
     datapath = '/home/b-rain/rhythmic'
-    read_data(datapath)
+    titles, dx, zip_data_x = read_data(datapath)
+    save_folder = f'{datapath}/render'
+    # draw_slices(zip_file=zip_data_x, dx=dx, frequency=1.7, save_folder=save_folder, title=titles)
 
 
 if __name__ == '__main__':
