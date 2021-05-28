@@ -1,50 +1,46 @@
-import numpy
-from analysis.real_data_slices import read_data, trim_myogram
-import os
-import pylab as plt
-import logging 
+import numpy as np
+import matplotlib.pyplot as plt
 
-logging.basicConfig(level=logging.DEBUG)
+sampling_frequency = 40_000 # frquency of the data [Hz]
+sampling_interval = 1 / sampling_frequency * 1000 # convert [Hz] to [ms]
 
+# get the data
+###### remove me from here
+path = '/home/alex/GitHub/memristive-spinal-cord/GRAS/gras_neuron/dat/0_muscle_E.dat'
+myogram = np.array(open(path).readline().split()).astype(np.float)
+myogram[0] = 0
+###### to here
 
-def fast_fourier_transform(volt_data):
-	"""
+sampling_size = len(myogram)    # get size (length) of the data
+time = np.arange(sampling_size) * sampling_interval # convert a ticks to time
 
-	Parameters
-	----------
-	volt_data: list
-		the voltages array (raw_real_data processed with slice_myogram fuction (first returned list))
+# frequency domain representation
+fourier_transform = np.fft.fft(myogram) / sampling_size  # normalize amplitude
+fourier_transform = abs(fourier_transform[range(int(sampling_size / 2))])  # exclude sampling frequency
+# remove the mirrored part of the FFT
+values = np.arange(int(sampling_size / 2))
+time_period = sampling_size / sampling_frequency
+frequencies = values / time_period
 
-	Returns
-	-------
-	four_tran: list
-		the result of the work of numpy.fft.fft function, array, processed with fast Fourier transform
-	"""
-	four_tran = numpy.fft.fft(volt_data)
-	# for i in range(len(four_tran)):
-	# 	logging.debug(four_tran[i])
-	# logging.debug(len(four_tran))
-	return four_tran
+# find the maximal frequence
+max_value_index = np.argmax(fourier_transform)
+max_freq = frequencies[max_value_index]
+max_ampl = fourier_transform[max_value_index]
 
-
-raw_real_data = read_data(os.getcwd() + '/../bio-data/SCI_Rat-1_11-22-2016_RMG_40Hz_one_step.mat')
-myogram_data = trim_myogram(raw_real_data)
-volt_data = myogram_data[0]
-sliced_data = volt_data[:100]
-# for i in range(slices_begin_time)
-length = len(sliced_data)
-logging.debug("length = ", length)
-FD = 400
-frequency = fast_fourier_transform(sliced_data)
-# plt.plot(volt_data)
-# plt.show()
-# plt.plot(frequency)
-# plt.show()
-# a = numpy.fft.rfftfreq(length, 1. / FD)
-# for i in range(len(a)):
-# 	logging.debug(a[i])
-# logging.debug(len(numpy.fft.rfftfreq((length ) - 1, 1. / FD)))
-# logging.debug(len(numpy.abs(frequency)))
-# logging.debug(len(frequency))
-plt.plot(numpy.fft.fftfreq(length, 1. / FD), numpy.abs(frequency))
+# plotting
+figure, axis = plt.subplots(2, 1)
+# plot myogram
+axis[0].set_title('Myogram, 40KHz')
+axis[0].plot(time, myogram)
+axis[0].set_xlabel('Time')
+axis[0].set_ylabel('Amplitude')
+# plot FFT
+axis[1].set_title('Fourier transform depicting the frequency components')
+axis[1].plot(frequencies, fourier_transform)
+axis[1].plot([max_freq], [max_ampl], '.', color='r', label='maximum')
+axis[1].set_xlabel('Frequency')
+axis[1].set_ylabel('Amplitude')
+axis[1].legend()
+# squeeze plot
+plt.tight_layout()
 plt.show()
