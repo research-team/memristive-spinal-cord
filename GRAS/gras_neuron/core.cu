@@ -33,18 +33,23 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 }
 
 const double dt = 0.025;      // [ms] simulation step
+const int cv_fr = 200;      // frequency of CV
+int step_number;  // [step] number of full cycle steps
+const int ees_fr = 40;      // frequency of EES
 const bool EXTRACELLULAR = false;
 
 const char layers = 5;      // number of OM layers (5 is default)
-const int skin_time = 50;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
-const int step_number = 2;  // [step] number of full cycle steps
-const int cv_fr = 200;      // frequency of CV
-const int ees_fr = 40;      // frequency of EES
-const int flexor_dur = 125; // flexor duration (125 or 175 ms for 4pedal)
+unsigned int one_step_time;
+int skin_time;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
+int slices_extensor;
+unsigned int slice_time = 25;
+double koe;
+int slices_flexor; // flexor duration (125 or 175 ms for 4pedal)
+double cv_coef;
+bool str_flag = false;
 
-const unsigned int one_step_time = 6 * skin_time + 125;
-const unsigned int sim_time = 25 + one_step_time * step_number;
-const auto SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
+unsigned int sim_time;
+unsigned int SIM_TIME_IN_STEPS;
 
 unsigned int NRNS_NUMBER = 0;     // [id] global neuron id = number of neurons
 unsigned int NRNS_AND_SEGS = 0;   // [id] global neuron+segs id = number of neurons with segments
@@ -54,9 +59,6 @@ const int neurons_in_ip = 196;    // number of neurons in a group
 // common neuron constants
 // normal
 
-//const double k_coef = 0.005;      // AIR
-const double k_coef = 0.017;      // NORMAL
-//const double k_coef = 0.25;      // QPZ
 const double V_th = -40;          // [mV] voltage threshold
 const double V_adj = -63;         // [mV] adjust voltage for -55 threshold
 // moto neuron constants
@@ -1197,8 +1199,8 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	 *
 	 */
 	// STR
-//	if (weight < 0)
-//		weight = 0;
+	if (str_flag && weight < 0)
+		weight = 0;
 
 	if (post_neurons.model == INTER) {
 		printf("POST INTER ");
@@ -1540,20 +1542,20 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 3, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 3, 0.0007); // 2.5
-	connect_fixed_indegree(OM3, OM2, 3, -5);
-	connect_fixed_indegree(OM3, OM1, 3, -5);
+	connect_fixed_indegree(OM1, OM3, 2, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2, 0.0007); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2, -5);
+	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
 
 void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 3, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 3, 0.0004); // 2.5
-	connect_fixed_indegree(OM3, OM2, 1, -2); // -1 - noise, -5 - void
-	connect_fixed_indegree(OM3, OM1, 3, -5);
+	connect_fixed_indegree(OM1, OM3, 2, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2, 0.0004); // 2.5
+	connect_fixed_indegree(OM3, OM2, 1, -1); // -1 - noise, -5 - void
+	connect_fixed_indegree(OM3, OM1, 2, -5);
 }
 
 __global__
