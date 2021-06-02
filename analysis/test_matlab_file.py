@@ -1,11 +1,10 @@
 import os
 import scipy.io as sio
 import matplotlib.pyplot as plt
-import math
 import numpy as np
 from scipy.signal import butter, lfilter, argrelextrema
 
-fs = 5000.0
+fs = 4000.0
 lowcut = 20.0
 highcut = 1000.0
 
@@ -24,7 +23,7 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     return y
 
 
-def calc_frequency(data, samplerate, save_folder, show=False):
+def calc_frequency(data, samplerate, show=False):
     for title, art_data in data.items():
         sampling_frequency = samplerate
         sampling_size = len(art_data)  # get size (length) of the data
@@ -42,20 +41,24 @@ def calc_frequency(data, samplerate, save_folder, show=False):
         mask = (frequencies <= 40) & (frequencies >= 20)
         frequencies = frequencies[mask]
         fourier_transform = fourier_transform[mask]
-        fourier_dict = dict(zip(frequencies, fourier_transform))
-        max_frequency = list(fourier_dict.keys())[list(fourier_dict.values()).index(max(fourier_transform))]
+        # find the maximal frequence
+        max_value_index = np.argmax(fourier_transform)
+        max_frequency = frequencies[max_value_index]
 
         # plotting
-        plt.suptitle('Fourier transform depicting the frequency components')
+        plt.figure()
+        plt.title('Fourier transform depicting the frequency components')
         plt.plot(frequencies, fourier_transform)
-        plt.ylabel("Amplitude")
-        plt.xlabel("Frequency ")
+        plt.xlabel('Frequency')
+        plt.ylabel('Amplitude')
 
         # squeeze plot
         plt.tight_layout()
         if show:
             plt.show()
         plt.close()
+
+    # assert max_freqs[0] == max_freqs[1]
 
     return max_frequency
 
@@ -77,55 +80,70 @@ def read_data(datapath):
         dx = 1 / samplerate
 
         arts = {}
-        for t, s, e in zip(arts_titles, starts[-2:], ends[-2:]):
+        for t, s, e in zip(arts_titles, starts[-1:], ends[-1:]):
             arts[t] = raw_data[s:e]
-        frequency = calc_frequency(data=arts, samplerate=samplerate, save_folder=save_folder, show=True)
+        frequency = calc_frequency(data=arts, samplerate=samplerate, show=True)
 
-        for title, data in arts.items():
-            smoothed_render(title=title, data=data, save_folder=save_folder, dx=dx, frequency=frequency,
-                            show=True)
+        title = arts.keys()
+        data = arts.items()
+        zip_start_end = render_art(title=title, data=data, save_folder=save_folder, dx=dx, frequency=frequency,
+                                   show=True)
 
         muscles = {}
         for t, s, e in zip(titles, starts, ends):
             muscles[t] = raw_data[s:e]
 
         for title, data in muscles.items():
-            smoothed_render(title=title, data=data, save_folder=save_folder, dx=dx, frequency=frequency,
+            smoothed_render(title=title, data=data, save_folder=save_folder, dx=dx, zip_start_end=zip_start_end,
                             show=True)
 
 
-def draw_slices(zip_data_duration, frequency, duration, dx, save_folder, title, show=False):
+# def draw_slices(zip_data_duration, frequency, duration, dx, save_folder, title, show=False):
+#     d = np.array(zip_data_duration)[:, 0]
+#     slice_duration = 1 / frequency
+#     number_of_slices = math.floor(max(duration) / slice_duration)
+#     number_of_picture = (number_of_slices // 100 + 1)
+#
+#     shift = 0.01  # max(shift_min, shift_max)
+#
+#     start = 0
+#     delta = abs(0 - int(slice_duration * (1 / dx)))
+#     crop = 0
+#     for k in range(number_of_picture)[1:]:
+#         for i in range(100):
+#             # end = math.floor(start + delta - crop)
+#             start = int(slice_duration * i * k / dx)
+#             end = int((slice_duration * (i * k + 1) / dx))
+#             # crop = end * 0.005
+#
+#             plt.suptitle(f'{title} slices ({k} part)')
+#             plt.plot(d[start:end] + (i * shift))
+#             plt.ylabel("Voltage")
+#             plt.xlabel("Time ")
+#             plt.savefig(f'{save_folder}/{title}_slices_{k}_part.png', format='png')
+#
+#             start = end
+#         if show:
+#             plt.show()
+#         plt.close()
+#     plt.close()
+
+def draw_slices(zip_data_duration, zip_start_end, save_folder, title, show=False):
     d = np.array(zip_data_duration)[:, 0]
-    slice_duration = 1 / frequency
-    number_of_slices = math.floor(max(duration) / slice_duration)
-    number_of_picture = (number_of_slices // 100 + 1)
 
-    shift = 0.01  # max(shift_min, shift_max)
-
-    start = 0
-    delta = abs(0 - int(slice_duration * (1 / dx)))
-    crop = 0
-    for k in range(number_of_picture)[1:]:
-        for i in range(100):
-            # end = math.floor(start + delta - crop)
-            start = int(slice_duration * i * k / dx)
-            end = int((slice_duration * (i * k + 1) / dx))
-            # crop = end * 0.005
-
-            plt.suptitle(f'{title} slices ({k} part)')
-            plt.plot(d[start:end] + (i * shift))
-            plt.ylabel("Voltage")
-            plt.xlabel("Time ")
-            plt.savefig(f'{save_folder}/{title}_slices_{k}_part.png', format='png')
-
-            start = end
-        if show:
-            plt.show()
-        plt.close()
+    plt.suptitle(f'{title} slices (part)')
+    shift = 0.01
+    for index, (s, e) in enumerate(zip_start_end):
+        plt.plot(d[s:e] + shift * index)
+    plt.ylabel("Voltage")
+    plt.xlabel("Time ")
+    plt.savefig(f'{save_folder}/{title}_slices_part.png', format='png')
+    if show:
+        plt.show()
     plt.close()
 
 
-def smoothed_render(title, data, save_folder, dx, frequency, show=False):
+def smoothed_render(title, data, save_folder, dx, zip_start_end, show=False):
     plt.suptitle(f'{title}')
     data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
     duration = np.arange(len(data)) * dx
@@ -142,14 +160,12 @@ def smoothed_render(title, data, save_folder, dx, frequency, show=False):
         plt.show()
     plt.close()
 
-    draw_slices(zip_data_duration=zip_data_duration, duration=duration, dx=dx, frequency=frequency,
+    draw_slices(zip_data_duration=zip_data_duration, zip_start_end=zip_start_end,
                 save_folder=save_folder,
-                title=title, show=False)  # show=False)
+                title=title, show=True)
 
-def smoothed_render(title, data, save_folder, dx, frequency, show=False):
-    fs = 4000.0
-    lowcut = 20.0
-    highcut = 1000.0
+
+def render_art(title, data, save_folder, dx, frequency, show=False):
 
     plt.suptitle(f'{title}')
     data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
@@ -163,44 +179,38 @@ def smoothed_render(title, data, save_folder, dx, frequency, show=False):
     # find the extrema
     extrema_index = argrelextrema(diff, np.less)[0]
     extrema_vals = diff[extrema_index]
-
-    plt.plot(diff)
-    plt.plot(extrema_index, extrema_vals, '.', color='r')
-    top = np.array(sorted(zip(extrema_index, extrema_vals), key=lambda x: x[1])[:slices])
-
-    plt.plot(top[:, 0], top[:, 1], '.', color='green')
-    plt.show()
-
     extrema = np.stack((extrema_index, extrema_vals), axis=-1)
-
-    extrema.view('i8,f8').sort(order=['f1', 'f0'], axis=0)
-    print(extrema)
-    # exit()
-
-    # let numpy guess the type with dtype=None
-    # access columns by name
-    # sort column 1 and column 0
-    indicies = np.lexsort((extrema_index, extrema_vals), axis=0)
-    print(extrema_index[indicies])
-    print(extrema_vals[indicies])
-    # exit()
-
-    top = np.argsort(diff)[:slices]
+    extrema.view('i8,f8').sort(order=['f1'], axis=0)
     plt.plot(diff)
-    plt.plot(top, diff[top], '.', color='r')
-    plt.show()
-    # print(d)
-    # exit()
+    # take top
+    extrema = extrema[:slices, :]
+    extrema.view('i8,f8').sort(order=['f0'], axis=0)
 
-    mask = diff[extrema_index] < -0.03
-    extrema_index = extrema_index[mask]
-    plt.plot(diff)
-    plt.plot(extrema_index, diff[extrema_index], '.', color='r')
-    for index, (start, end) in enumerate(zip(extrema_index, extrema_index[1:])):
-        d = data[start - 10:end - 10] + (index * 0.001)
-        t = np.arange(len(d)) * dx * 1000
-        plt.plot(t, d)
+    difference = []
+    min_diff = None
+    if extrema.any():
+        for i, peak in enumerate(extrema[:-1, 1]):
+            dif = abs(extrema[:, 1][i + 1] - extrema[:, 1][i])
+            difference.append(dif)
+        if difference:
+            if len(difference) > 1:
+                min_diff = min(difference)
+            else:
+                min_diff = difference[0]
+    print(f'extrema = {extrema[:, 1]} \n')
+    print(f'difference = {difference} \n')
+    print(f'min_diff = {min_diff} \n')
+
+    filtred_extrema = []
+    for number, i in enumerate(extrema[:-1]):
+        ext_dif = extrema[:, 0][number + 1] - extrema[:, 0][number]
+        if ext_dif > min_diff:
+            filtred_extrema.append(list(extrema[number]))
+
+    plt.plot(extrema[:, 0], extrema[:, 1], '.', color='b')
     plt.show()
+    extrema.view('i8,f8').sort(order=['f0'], axis=0)
+    zip_start_end = zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))
 
     plt.plot(duration, data, color='g')
     plt.ylabel("Voltage")
@@ -213,9 +223,11 @@ def smoothed_render(title, data, save_folder, dx, frequency, show=False):
         plt.show()
     plt.close()
 
-    draw_slices(zip_data_duration=zip_data_duration, duration=duration, dx=dx, frequency=frequency,
+    draw_slices(zip_data_duration=zip_data_duration,
                 save_folder=save_folder,
-                title=title, show=True)  # show=False)
+                title=title, show=True, zip_start_end=zip_start_end)
+
+    return zip_start_end
 
 
 def main():
