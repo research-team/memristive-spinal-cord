@@ -62,12 +62,13 @@ void init_network() {
 		//	save(groups);
 		*/
 	}
+	const int TEST = -1;
 
 	string name;
 	vector<Group> E, CV, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
 	auto ees = form_group("EES", 1, GENERATOR);
-	for(int layer = 0; layer < layers + 1; ++layer) {
+	for(int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		name = to_string(layer + 1);
 		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
 	}
@@ -89,7 +90,7 @@ void init_network() {
 		L3.push_back(form_group("OM" + name + "_3"));
 	}
 	//
-	for(int layer = 0; layer < layers + 1; ++layer) {
+	for(int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		name = to_string(layer + 1);
 		E.push_back(form_group("E" + name, 50, AFFERENTS));
 		CV.push_back(form_group("CV_" + name, 50, AFFERENTS));
@@ -118,7 +119,8 @@ void init_network() {
 	// create EES generator
 	add_generator(ees, 0, sim_time, ees_fr);
 	// create CV generators (per step)
-	for (int layer = 0; layer < layers + 1; ++layer) {
+
+	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		for (int step_index = 0; step_index < step_number; ++step_index) {
 			normal_distribution<double> freq_distr(cv_fr, cv_fr / 10);
 			double start = 25 + skin_time * layer + step_index * (skin_time * (layers + 1) + 25 * slices_flexor);
@@ -130,12 +132,12 @@ void init_network() {
 	for (int step_index = 0; step_index < step_number; ++step_index) {
 		// freq = 200 (interval = 5ms), count = 125 / interval. Duration = count * interval = 125
 		double start = 25 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
-		double end = start + skin_time * slices_extensor;
+		double end = start + 25 * slices_flexor;
 		add_generator(C_0[step_index], start, end, cv_fr);
 		// V0v
 		start = 30 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
-		end = start + 75;
-		add_generator(V0v[step_index], start, end, cv_fr);
+		end = start + 75; // 75
+//		add_generator(V0v[step_index], start, end, cv_fr);
 	}
 
 	// extensor
@@ -168,12 +170,12 @@ void init_network() {
 	// E inhibitory projections (via 3rd core)
 	for (int layer = 0; layer < layers - 1; ++layer) {
 		if (layer >= 3) {
-			for (int i = layer + 3; i < layers + 1; ++i) {
+			for (int i = layer + 3; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (layer > 3)\n", i, layer);
 				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 1.5);
 			}
 		} else {
-			for (int i = layer + 2; i < layers + 1; ++i) {
+			for (int i = layer + 2; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (else)\n", i, layer);
 				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 1.5);
 			}
@@ -210,7 +212,7 @@ void init_network() {
 		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.95);
 	}
 	// skin inputs
-	for (int layer = 0; layer < layers + 1; ++layer)
+	for (int layer = 0; layer < layers + 1 + TEST; ++layer)
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * cv_coef);
 	// CV
 	double TESTCOEF = 35.0; // 4.25
@@ -244,7 +246,7 @@ void init_network() {
 	for (int layer = 0; layer < layers; ++layer)
 		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.001);
 //	//
-	for (int layer = 0; layer < layers + 1; ++layer) {
+	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		connect_fixed_indegree(CV[layer], iIP_E, 1, 1.8);
 		connect_fixed_indegree(gen_C[layer], iIP_E, 1, 1.8);
 	}
