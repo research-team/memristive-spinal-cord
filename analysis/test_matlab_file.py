@@ -166,8 +166,7 @@ def smoothed_render(title, data, save_folder, dx, zip_start_end, show=False):
 
 
 def render_art(title, data, save_folder, dx, frequency, show=False):
-
-    debug = True
+	debug = True
 	fs = 4000.0
 	lowcut = 20.0
 	highcut = 1000.0
@@ -262,10 +261,10 @@ def render_art(title, data, save_folder, dx, frequency, show=False):
 	if show:
 		plt.show()
 	plt.close()
-    
-    zip_start_end = zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))
 
-    return zip_start_end
+	zip_start_end = zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))
+
+	return zip_start_end
 
 
 def main():
