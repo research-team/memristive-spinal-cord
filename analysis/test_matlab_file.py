@@ -167,65 +167,103 @@ def smoothed_render(title, data, save_folder, dx, zip_start_end, show=False):
 
 def render_art(title, data, save_folder, dx, frequency, show=False):
 
-    plt.suptitle(f'{title}')
-    data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
-    duration = np.arange(len(data)) * dx
-    zip_data_duration = list(zip(data, duration))
+    debug = True
+	fs = 4000.0
+	lowcut = 20.0
+	highcut = 1000.0
 
-    # here is not the best code, but the most short and stable
-    # get the 1st derivative
-    diff = np.diff(data, n=1)
-    slices = int(len(data) / (1 / frequency / dx)) + 1
-    # find the extrema
-    extrema_index = argrelextrema(diff, np.less)[0]
-    extrema_vals = diff[extrema_index]
-    extrema = np.stack((extrema_index, extrema_vals), axis=-1)
-    extrema.view('i8,f8').sort(order=['f1'], axis=0)
-    plt.plot(diff)
-    # take top
-    extrema = extrema[:slices, :]
-    extrema.view('i8,f8').sort(order=['f0'], axis=0)
+	plt.suptitle(f'{title}')
+	data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
+	xticks = np.arange(len(data)) * dx
 
-    difference = []
-    min_diff = None
-    if extrema.any():
-        for i, peak in enumerate(extrema[:-1, 1]):
-            dif = abs(extrema[:, 1][i + 1] - extrema[:, 1][i])
-            difference.append(dif)
-        if difference:
-            if len(difference) > 1:
-                min_diff = min(difference)
-            else:
-                min_diff = difference[0]
-    print(f'extrema = {extrema[:, 1]} \n')
-    print(f'difference = {difference} \n')
-    print(f'min_diff = {min_diff} \n')
+	"""here is not the best code, but the most short (by NumPy) and stable (as some tests have shown)"""
+	# get the 1st derivative to get the highest amplitude of voltage changing
+	diff = np.diff(data, n=1)
+	# slice in ticks: 1 / freq of stimulation = slice in seconds, divide it by dx and get the number of ticks
+	slice_length = 1 / frequency / dx
+	# approximate number of slices (157.7 -> 158, 134.1 - > 135)
+	slices = int(len(data) / slice_length) + 1
 
-    filtred_extrema = []
-    for number, i in enumerate(extrema[:-1]):
-        ext_dif = extrema[:, 0][number + 1] - extrema[:, 0][number]
-        if ext_dif > min_diff:
-            filtred_extrema.append(list(extrema[number]))
+	# get the indices of extrema
+	extrema_index = argrelextrema(diff, np.less)[0]
+	# get the values of extrema
+	extrema_vals = diff[extrema_index]
+	# make the 2d presentation of the data (extremum per row)
+	extrema = np.stack((extrema_index, extrema_vals), axis=-1)
+	# sort by value (from the lowest to the highest)
+	extrema.view('i8,f8').sort(order=['f1'], axis=0)
 
-    plt.plot(extrema[:, 0], extrema[:, 1], '.', color='b')
-    plt.show()
-    extrema.view('i8,f8').sort(order=['f0'], axis=0)
+	if debug:
+		# plot the all found extrema
+		plt.plot(diff)
+		plt.plot(extrema[:, 0], extrema[:, 1], '.', color='r')
+		plt.plot(ans[:, 0], ans[:, 1], '.', color='b')
+
+	# top lowest extrema is exactly what we needed
+	err_tolerance = 5 # add more slices to catch all potential extrema
+	extrema = extrema[:slices + err_tolerance, :]
+	# sort by index
+	extrema.view('i8,f8').sort(order=['f0'], axis=0)
+
+	def inside(indices_diff):
+		# +/-3 just to be sure that the difference of extrema is approx. close to the slice length (in ticks)
+		# use abs() for safety
+		return slice_length - 3 <= abs(indices_diff) <= slice_length + 3
+
+	# start from the center, while do not find the properly pair of extrema with approx slice length (by indices)
+	start_index = (slices + err_tolerance) // 2
+	while not inside(extrema[start_index, 0] - extrema[start_index + 1, 0]):
+		start_index += 1
+
+	# check extrema from the center to the right
+	index = start_index
+	while index < len(extrema) - 1:
+		if not inside(extrema[index + 1, 0] - extrema[index, 0]):
+			# remove the right extrema if difference is too small
+			extrema = np.delete(extrema, index + 1, axis=0)
+			# do not increment while we are not confident at distance
+			continue
+		index += 1
+	# check extrema from the center to the left
+	index = start_index
+	while index > 0:
+		# because of deleting at the end, we have to check the index (overflow error)
+		if index == len(extrema):
+			index -= 1
+		if not inside(extrema[index, 0] - extrema[index - 1, 0]):
+			# remove the left extrema if difference is too small
+			extrema = np.delete(extrema, index - 1, axis=0)
+			# do not increment while we are not confident at distance
+			continue
+		index -= 1
+
+	# check all filtered extrema
+	assert all(map(lambda x, y: inside(x - y), extrema[:, 0], extrema[1:, 0]))
+
+	if debug:
+		plt.plot(extrema[:, 0], extrema[:, 1], '.', color='b')
+		plt.show()
+
+	if debug:
+		for index, (start, end) in enumerate(zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))):
+			d = data[start-10:end-10] + (index * 0.001)
+			t = np.arange(len(d)) * dx * 1000
+			plt.plot(t, d)
+		plt.show()
+
+	plt.close()
+	plt.plot(xticks, data, color='g')
+	plt.ylabel("Voltage")
+	plt.xlabel("Time (sec)")
+
+	if not os.path.exists(save_folder):
+		os.makedirs(save_folder)
+	plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
+	if show:
+		plt.show()
+	plt.close()
+    
     zip_start_end = zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))
-
-    plt.plot(duration, data, color='g')
-    plt.ylabel("Voltage")
-    plt.xlabel("Time (sec)")
-
-    if not os.path.exists(save_folder):
-        os.makedirs(save_folder)
-    plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
-    if show:
-        plt.show()
-    plt.close()
-
-    draw_slices(zip_data_duration=zip_data_duration,
-                save_folder=save_folder,
-                title=title, show=True, zip_start_end=zip_start_end)
 
     return zip_start_end
 
