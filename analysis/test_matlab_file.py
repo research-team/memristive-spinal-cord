@@ -65,7 +65,6 @@ def calc_frequency(data, samplerate, show=False):
 def read_data(datapath):
 	filenames = [name[:-4] for name in os.listdir(f"{datapath}") if name.endswith(".mat")]
 	for filename in filenames:
-		filename = 'on the right side SS2'
 		dict_data = sio.loadmat(f'{datapath}/{filename}')
 		save_folder = f'{datapath}/render/{filename}'
 
@@ -81,43 +80,45 @@ def read_data(datapath):
 		arts = {}
 		for t, s, e in zip(arts_titles, starts[-1:], ends[-1:]):
 			arts[t] = raw_data[s:e]
-		frequency = calc_frequency(data=arts, samplerate=samplerate, show=True)
+		frequency = calc_frequency(data=arts, samplerate=samplerate, show=False)
 
-		title = arts.keys()
+		title = list(arts.keys())[0]
 		data = list(arts.values())[0]
-		print(data)
-		zip_start_end = render_art(title=title, data=data, save_folder=save_folder, dx=dx, frequency=frequency, show=True)
+		zip_start_end = render_art(title=title, data=data, save_folder=save_folder, dx=dx, frequency=frequency,
+		                           show=False)
+
+
 		muscles = {}
 		for t, s, e in zip(titles, starts, ends):
 			muscles[t] = raw_data[s:e]
 
 		for title, data in muscles.items():
-			smoothed_render(title=title, data=data, save_folder=save_folder, dx=dx, zip_start_end=zip_start_end,
-							show=True)
+			smoothed_render(title=title, data=data, save_folder=save_folder, dx=dx,
+			                zip_start_end=zip_start_end, show=False)
 
 
-def draw_slices(zip_data_duration, zip_start_end, save_folder, title, show=False):
-	d = np.array(zip_data_duration)[:, 0]
+def draw_slices(data, zip_start_end, dx, save_folder, title, show=False):
+	shift = 0.1
 
-	plt.suptitle(f'{title} slices (part)')
-	shift = 0.01
-	for index, (s, e) in enumerate(zip_start_end):
-		plt.plot(d[s:e] + shift * index)
-	plt.ylabel("Voltage")
-	plt.xlabel("Time ")
-	plt.savefig(f'{save_folder}/{title}_slices_part.png', format='png')
-	if show:
-		plt.show()
+	for index, (s, e) in enumerate(zip_start_end, 1):
+		d = data[s:e] + shift * index
+		xticks = np.arange(len(d)) * dx
+		plt.plot(xticks, d)
+		plt.ylabel("Voltage")
+		plt.xlabel("Time")
+		if index % 50 == 0:
+			plt.suptitle(f'{title} slices {int(index/50)} part')
+			plt.savefig(f'{save_folder}/{title}_slices_{int(index/50)}_part.png', format='png')
+			if show:
+				plt.show()
+			plt.close()
 	plt.close()
 
 
 def smoothed_render(title, data, save_folder, dx, zip_start_end, show=False):
 	plt.suptitle(f'{title}')
 	data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
-	duration = np.arange(len(data)) * dx
-	zip_data_duration = list(zip(data, duration))
-
-	plt.plot(duration, data, color='g')
+	plt.plot(np.arange(len(data)) * dx, data, color='g')
 	plt.ylabel("Voltage")
 	plt.xlabel("Time (sec)")
 
@@ -127,10 +128,8 @@ def smoothed_render(title, data, save_folder, dx, zip_start_end, show=False):
 	if show:
 		plt.show()
 	plt.close()
-
-	draw_slices(zip_data_duration=zip_data_duration, zip_start_end=zip_start_end,
-				save_folder=save_folder,
-				title=title, show=True)
+	draw_slices(data, zip_start_end, dx, save_folder=save_folder, title=title,
+	            show=False)
 
 
 def render_art(title, data, save_folder, dx, frequency, show=False):
@@ -139,7 +138,6 @@ def render_art(title, data, save_folder, dx, frequency, show=False):
 	lowcut = 20.0
 	highcut = 1000.0
 
-	plt.suptitle(f'{title}')
 	data = butter_bandpass_filter(np.array(data), lowcut, highcut, fs)
 	xticks = np.arange(len(data)) * dx
 
@@ -166,7 +164,7 @@ def render_art(title, data, save_folder, dx, frequency, show=False):
 		plt.plot(extrema[:, 0], extrema[:, 1], '.', color='r')
 
 	# top lowest extrema is exactly what we needed
-	err_tolerance = 5 # add more slices to catch all potential extrema
+	err_tolerance = 5  # add more slices to catch all potential extrema
 	extrema = extrema[:slices + err_tolerance, :]
 	# sort by index
 	extrema.view('i8,f8').sort(order=['f0'], axis=0)
@@ -212,30 +210,36 @@ def render_art(title, data, save_folder, dx, frequency, show=False):
 
 	if debug:
 		for index, (start, end) in enumerate(zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))):
-			d = data[start-10:end-10] + (index * 0.001)
+			d = data[start - 10:end - 10] + (index * 0.001)
 			t = np.arange(len(d)) * dx * 1000
 			plt.plot(t, d)
 		plt.show()
 
 	plt.close()
+	plt.suptitle('Art')
 	plt.plot(xticks, data, color='g')
 	plt.ylabel("Voltage")
 	plt.xlabel("Time (sec)")
 
 	if not os.path.exists(save_folder):
 		os.makedirs(save_folder)
-	plt.savefig(f'{save_folder}/{title}_smoothed.png', format='png')
+	plt.savefig(f'{save_folder}/Art_smoothed.png', format='png')
 	if show:
 		plt.show()
 	plt.close()
 
-	zip_start_end = zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int))
+	zip_start_end = list(zip(extrema[:, 0].astype(int), extrema[1:, 0].astype(int)))
+
+	draw_slices(data, zip_start_end, dx, save_folder=save_folder, title=title,
+	            show=False)
 
 	return zip_start_end
 
 
 def main():
-	datapath = '/home/alex/Documents'
+	path = '/home/b-rain/rhythmic/data'
+	folder = '15122020'
+	datapath = os.path.join(path, folder)
 	read_data(datapath)
 	print('done')
 
