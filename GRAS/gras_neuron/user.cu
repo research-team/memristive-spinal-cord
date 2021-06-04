@@ -1,74 +1,18 @@
 #include "core.cu"
 #include "structs.h"
 
+int TEST;
+double E2F_coef;
+double V0v2F_coef;
 void init_network() {
 	/**
 	 * todo
 	 */
-	if (false) {
-		auto e1 = form_group("e1", 1, GENERATOR);
-		auto e2 = form_group("e2", 1, GENERATOR);
-		auto om1 = form_group("om1", 10);
-		auto moto = form_group("mns_E", 20);
-		add_generator(e1, 10, 100000, 400);
-		add_generator(e2, 15, 100000, 400);
-		conn_generator(e1, om1, 1.1, 0.000020);
-		conn_generator(e2, om1, 1.1, -0.000003);
-		connect_fixed_indegree(om1, moto, 1.35, 0.5);
-		save({e1, om1, moto});
-		return;
-		/*
-		auto ees = form_group("EES", 1, GENERATOR);
-		auto stim = form_group("stim", 1, GENERATOR);
-
-		auto OM0 = form_group("OM0", 2);
-		auto OM1 = form_group("OM1", 2);
-		auto OM2 = form_group("OM2", 2);
-		auto OM3 = form_group("OM3", 2);
-
-		auto CV = form_group("CV", 2);
-		auto E = form_group("E", 2);
-
-		add_generator(ees, 10, 100000, 40);
-		add_generator(stim, 10, 60, 200);
-
-		conn_generator(ees, E, 1, 0.25);
-		conn_generator(stim, CV, 1, 1.7);
-
-		// testing topology coef (WITHOUT)
-		connect_fixed_indegree(OM0, OM1, 2.1, 0.01);
-		connect_fixed_indegree(OM1, OM2, 2.2, 0.01);
-		connect_fixed_indegree(OM2, OM1, 3.2, 0.005);
-		connect_fixed_indegree(OM2, OM3, 3.2, 0.0015);
-		connect_fixed_indegree(OM1, OM3, 3.2, 0.00005);
-		connect_fixed_indegree(OM3, OM2, 2.2, -0.1);
-		connect_fixed_indegree(OM3, OM1, 3.2, -0.1);
-		connect_fixed_indegree(CV, OM0, 3, 0.00035 * 1.5);
-		connect_fixed_indegree(E, OM0, 3, 0.00045 * 1.5);
-		save(all_groups);
-	    */
-		// testing topology coef (WITH)
-		/*
-		connect_fixed_indegree(OM0, OM1, 2.1, 2.85 / 8);
-		connect_fixed_indegree(OM1, OM2, 2.2, 2.85 / 8);
-		connect_fixed_indegree(OM2, OM1, 3.2, 1.95 / 8);
-		connect_fixed_indegree(OM2, OM3, 3.2, 0.0015 / 8);
-		connect_fixed_indegree(OM1, OM3, 3.2, 0.00005 / 8);
-		connect_fixed_indegree(OM3, OM2, 2.2, -4.5 / 8);
-		connect_fixed_indegree(OM3, OM1, 3.2, -4.5 / 8);
-		connect_fixed_indegree(CV, OM0, 3.1, 0.00035 / 8);
-		connect_fixed_indegree(E, OM0, 3.1, 0.00045 / 4);
-		//	vector<Group> groups = {OM0, OM1, OM2, OM3, stim, ees};
-		//	save(groups);
-		*/
-	}
-	const int TEST = -1;
-
 	string name;
 	vector<Group> E, CV, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
 	auto ees = form_group("EES", 1, GENERATOR);
-	for(int layer = 0; layer < layers + 1 + TEST; ++layer) {
+	for(int layer = 0; layer < layers + 1; ++layer) {
 		name = to_string(layer + 1);
 		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
 	}
@@ -90,7 +34,7 @@ void init_network() {
 		L3.push_back(form_group("OM" + name + "_3"));
 	}
 	//
-	for(int layer = 0; layer < layers + 1 + TEST; ++layer) {
+	for(int layer = 0; layer < layers + 1; ++layer) {
 		name = to_string(layer + 1);
 		E.push_back(form_group("E" + name, 50, AFFERENTS));
 		CV.push_back(form_group("CV_" + name, 50, AFFERENTS));
@@ -119,14 +63,14 @@ void init_network() {
 	// create EES generator
 	add_generator(ees, 0, sim_time, ees_fr);
 	// create CV generators (per step)
-
 	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		for (int step_index = 0; step_index < step_number; ++step_index) {
 			normal_distribution<double> freq_distr(cv_fr, cv_fr / 10);
-			double start = 25 + skin_time * layer + step_index * (skin_time * (layers + 1) + 25 * slices_flexor);
-			double end = start + skin_time;
+			double start = 25 + skin_time * layer + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
+			double end = start + skin_time - 3; // remove merging CV
 			add_generator(gen_C[layer], start, end, freq_distr(rand_gen));
 		}
+		printf("step\n");
 	}
 	// create C_0 and V0v generators (per step)
 	for (int step_index = 0; step_index < step_number; ++step_index) {
@@ -135,9 +79,9 @@ void init_network() {
 		double end = start + 25 * slices_flexor;
 		add_generator(C_0[step_index], start, end, cv_fr);
 		// V0v
-		start = 30 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
+		start = 20 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
 		end = start + 75; // 75
-//		add_generator(V0v[step_index], start, end, cv_fr);
+		add_generator(V0v[step_index], start, end, cv_fr);
 	}
 
 	// extensor
@@ -150,11 +94,12 @@ void init_network() {
 		createmotif_flexor(L0[layer], L1[layer], L2F[layer], L3[layer]);
 
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 5, 1.5, 50, 5);
+		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 0.5, 50, 2);
 	//
-	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025, 50, 3);
+
+	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025 * E2F_coef, 50, 3);
 	for(int step = 0; step < step_number; ++step) {
-		connect_fixed_indegree(V0v[step], OM1_0F, 1, 2.75, 50, 5);
+		connect_fixed_indegree(V0v[step], OM1_0F, 3, 2.75 * V0v2F_coef, 50, 5);
 	}
 	// between delays via excitatory pools
 	// extensor
@@ -162,9 +107,9 @@ void init_network() {
 		connect_fixed_indegree(E[layer - 1], E[layer], 3, 0.75); // 4.75
 	}
 	// connect E (from EES)
-	connect_fixed_indegree(E[0], OM1_0E, 2, 0.005 * 0.8 * koe, 50, 3); // 0.00040 - 0.00047
+	connect_fixed_indegree(E[0], OM1_0E, 2, 0.005 * 0.8 * E_coef, 50, 3); // 0.00040 - 0.00047
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer], L0[layer], 2, 0.005 * 0.8 * koe, 50, 4); // 0.00048 * 0.4, 1.115
+		connect_fixed_indegree(E[layer], L0[layer], 2, 0.005 * 0.8 * E_coef, 50, 4); // 0.00048 * 0.4, 1.115
 	}
 
 	// E inhibitory projections (via 3rd core)
@@ -172,12 +117,12 @@ void init_network() {
 		if (layer >= 3) {
 			for (int i = layer + 3; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (layer > 3)\n", i, layer);
-				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 1.5);
+				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 0.1);
 			}
 		} else {
 			for (int i = layer + 2; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (else)\n", i, layer);
-				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 1.5);
+				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 0.1);
 			}
 		}
 	}
@@ -188,7 +133,7 @@ void init_network() {
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
 	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 0.1);
-	connect_fixed_indegree(Ia_aff_F, mns_F, 1.5, 0.1);
+	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.1);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
 	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 1, 0.11, 45, 5); // 2.0
@@ -220,27 +165,27 @@ void init_network() {
 	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * cv_coef * TESTCOEF * 0.2, 50, 3);
 	connect_fixed_indegree(CV[1], OM1_0E, 2, 0.00051 * cv_coef * TESTCOEF * 0.4, 50, 3);
 	// OM2
-	connect_fixed_indegree(CV[0], L0[1], 3, 0.00001 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[1], L0[1], 3, 0.00045 * cv_coef * TESTCOEF * 0.5, 50, 3);
-	connect_fixed_indegree(CV[2], L0[1], 2, 0.00045 * cv_coef * TESTCOEF * 0.5, 50, 3);
+	connect_fixed_indegree(CV[0], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[1], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[2], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
 	// OM3
-	connect_fixed_indegree(CV[0], L0[2], 3, 0.00001 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[2], L0[2], 3, 0.00035 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[3], L0[2], 3, 0.00035 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[4], L0[2], 3, 0.00035 * cv_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[0], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[2], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[3], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	connect_fixed_indegree(CV[4], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
 	// OM4
 	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * cv_coef * TESTCOEF * 0.9, 50, 3);
 	connect_fixed_indegree(CV[2], L0[3], 3, 0.00022 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[3], L0[3], 3, 0.00035 * cv_coef * TESTCOEF * 0.8, 50, 3);
-	connect_fixed_indegree(CV[4], L0[3], 3, 0.00035 * cv_coef * TESTCOEF * 0.8, 50, 3);
-	connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * cv_coef * TESTCOEF * 0.8, 50, 3);
+	connect_fixed_indegree(CV[3], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[4], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
+	connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * cv_coef * TESTCOEF * 0.9, 50, 3);
 	// OM5
-	connect_fixed_indegree(CV[1], L0[4], 3, 0.00022 * cv_coef * TESTCOEF * 1.6, 50, 3);
-	connect_fixed_indegree(CV[2], L0[4], 3, 0.00022 * cv_coef * TESTCOEF * 1.6, 50, 3);
-	connect_fixed_indegree(CV[3], L0[4], 3, 0.00022 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[4], L0[4], 3, 0.00022 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[5], L0[4], 3, 0.00035 * cv_coef * TESTCOEF * 0.7, 50, 3);
+	connect_fixed_indegree(CV[1], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[2], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[3], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[4], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	connect_fixed_indegree(CV[5], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
 
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
@@ -250,7 +195,7 @@ void init_network() {
 		connect_fixed_indegree(CV[layer], iIP_E, 1, 1.8);
 		connect_fixed_indegree(gen_C[layer], iIP_E, 1, 1.8);
 	}
-	connect_fixed_indegree(iIP_E, OM1_0F, 0.1, -0.01);
+	connect_fixed_indegree(iIP_E, OM1_0F, 0.1, -0.001);
 
 	for (int layer = 0; layer < layers; ++layer) {
 		connect_fixed_indegree(iIP_E, L2F[layer], 2, -1.8);
@@ -258,7 +203,7 @@ void init_network() {
 	}
 	//
 	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
-	connect_fixed_indegree(iIP_E, mns_F, 1, -0.6);
+	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.3);
 	for (int layer = 0; layer < layers; ++layer) {
 		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.1);
 		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
@@ -275,7 +220,7 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, Ia_E, 1, 0.001);
 	connect_fixed_indegree(Ia_aff_E, Ia_E, 1, 0.008);
 	connect_fixed_indegree(mns_E, R_E, 1, 0.00015);
-	connect_fixed_indegree(Ia_E, mns_F, 1, -0.002);
+	connect_fixed_indegree(Ia_E, mns_F, 0.1, -0.002);
 //	connect_fixed_indegree(R_E, mns_E, 1, -0.00015);
 	connect_fixed_indegree(R_E, Ia_E, 1, -0.001);
 	//
@@ -283,7 +228,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_aff_F, Ia_F, 1, 0.008);
 	connect_fixed_indegree(mns_F, R_F, 1, 0.00015);
 //	connect_fixed_indegree(Ia_F, mns_E, 1, -0.08);
-	connect_fixed_indegree(R_F, mns_F, 1, -0.00015);
+	connect_fixed_indegree(R_F, mns_F, 0.1, -0.00015);
 	connect_fixed_indegree(R_F, Ia_F, 1, -0.001);
 	// todo C_0
 
@@ -467,10 +412,13 @@ void simulate(int test_index) {
 int main(int argc, char **argv) {
 	enum string_code {air, toe, plt, normal, qpz, str, s6, s13, s21};
 
-	string_code mode = air;     // air toe plt
+	string_code mode = toe;     // air toe plt
 	string_code pharma = normal;   // normal qpz str
 	string_code speed = s13;    // s21 s13 s6
 	step_number = 2;
+	TEST = 0;
+	E2F_coef = 1;
+	V0v2F_coef = 1;
 
 	switch(speed) {
 		case s6:
@@ -488,23 +436,31 @@ int main(int argc, char **argv) {
 
 	switch(mode) {
 		case air:
+			TEST = -1;
 			skin_time = 25;
-			cv_coef = 0.005;
-			koe = 0.07;
+			cv_coef = 0.03; // 037
+			E_coef = 0.04;
 			slices_extensor = 5;
 			slices_flexor = 4;
+			E2F_coef = 0;
+			V0v2F_coef = 0;
 			break;
 		case toe:
-			cv_coef = 0.01;
-			koe = 0.1;
+			TEST = -2;
+			cv_coef = 0.035;
+			E_coef = 0.04;
 			slices_extensor = 4;
 			slices_flexor = 4;
+			E2F_coef = 8;
+			V0v2F_coef = 0;
 			break;
 		case plt:
-			cv_coef = 0.017;
-			koe = 1.0;
+			cv_coef = 0.05; // 037
+			E_coef = 0.04;
 			slices_extensor = 6;
 			slices_flexor = 5;
+			E2F_coef = 10;
+			V0v2F_coef = 0.001;
 			break;
 		default:
 			return -1;
@@ -514,10 +470,13 @@ int main(int argc, char **argv) {
 		case normal:
 			break;
 		case qpz:
-			cv_coef = 0.25;
+			cv_coef = 0.05;
+			V0v2F_coef = 0.01;
 			break;
 		case str:
 			str_flag = true;
+			V0v2F_coef = 0.01;
+
 			break;
 		default:
 			return -1;

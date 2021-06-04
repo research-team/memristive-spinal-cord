@@ -43,7 +43,7 @@ unsigned int one_step_time;
 int skin_time;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 int slices_extensor;
 unsigned int slice_time = 25;
-double koe;
+double E_coef;
 int slices_flexor; // flexor duration (125 or 175 ms for 4pedal)
 double cv_coef;
 bool str_flag = false;
@@ -1539,23 +1539,23 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * Connects motif module
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
-	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
+	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
 	connect_fixed_indegree(OM1, OM3, 2, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2, 0.0007); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2, -5);
-	connect_fixed_indegree(OM3, OM1, 2, -5);
+	connect_fixed_indegree(OM2, OM3, 2, 0.0005); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2, -3);
+	connect_fixed_indegree(OM3, OM1, 2, -3);
 }
 
 void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
-	connect_fixed_indegree(OM0, OM1, 3, 0.7, 50, 5);
+	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2, 0.0004); // 2.5
-	connect_fixed_indegree(OM3, OM2, 1, -1); // -1 - noise, -5 - void
-	connect_fixed_indegree(OM3, OM1, 2, -5);
+	connect_fixed_indegree(OM1, OM3, 2, 0.0002); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2, 0.0004); // 4
+	connect_fixed_indegree(OM3, OM2, 2, -1); // -1 - noise, -5 - void
+	connect_fixed_indegree(OM3, OM1, 2, -3);
 }
 
 __global__
