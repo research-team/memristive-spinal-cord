@@ -4,6 +4,7 @@
 int TEST;
 double E2F_coef;
 double V0v2F_coef;
+double QUADRU_Ia;
 void init_network() {
 	/**
 	 * todo
@@ -132,7 +133,7 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.5, 0.1);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1, 0.1 * QUADRU_Ia); // was 1.5ms
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.1);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
@@ -240,8 +241,8 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
-//	save({muscle_E, muscle_F});
-	save(all_groups);
+	save({muscle_E, muscle_F});
+//	save(all_groups);
 }
 
 
@@ -410,16 +411,17 @@ void simulate(int test_index) {
 }
 
 int main(int argc, char **argv) {
-	enum string_code {air, toe, plt, normal, qpz, str, s6, s13, s21};
-
-	string_code mode = toe;     // air toe plt
+	enum string_code {air, toe, plt, quadru, normal, qpz, str, s6, s13, s21};
+	//
+	string_code mode = quadru;     // air toe plt quadro
 	string_code pharma = normal;   // normal qpz str
 	string_code speed = s13;    // s21 s13 s6
-	step_number = 2;
+	step_number = 10;
 	TEST = 0;
 	E2F_coef = 1;
 	V0v2F_coef = 1;
-
+	QUADRU_Ia = 1;
+	//
 	switch(speed) {
 		case s6:
 			skin_time = 125;
@@ -431,9 +433,9 @@ int main(int argc, char **argv) {
 			skin_time = 25;
 			break;
 		default:
-			return -1;
+			exit(-1);
 	}
-
+	//
 	switch(mode) {
 		case air:
 			TEST = -1;
@@ -462,24 +464,33 @@ int main(int argc, char **argv) {
 			E2F_coef = 10;
 			V0v2F_coef = 0.001;
 			break;
+		case quadru:
+			QUADRU_Ia = 0.6;
+			cv_coef = 0.03; // 037
+			E_coef = 0.03;
+			slices_extensor = 6;
+			slices_flexor = 7;
+			E2F_coef = 10;
+			V0v2F_coef = 0.001;
+			break;
 		default:
-			return -1;
+			exit(-1);
 	}
-
+	//
 	switch(pharma) {
 		case normal:
 			break;
 		case qpz:
-			cv_coef = 0.05;
+			cv_coef = 0.12;
+			E_coef = 0.08;
 			V0v2F_coef = 0.01;
 			break;
 		case str:
 			str_flag = true;
 			V0v2F_coef = 0.01;
-
 			break;
 		default:
-			return -1;
+			exit(-1);
 	}
 
 	one_step_time = slices_extensor * skin_time + 25 * slices_flexor;
@@ -494,7 +505,7 @@ int main(int argc, char **argv) {
 	printf("device %d: %s \n", dev, deviceProp.name);
 	HANDLE_ERROR(cudaSetDevice(dev));
 	// the main body of simulation
-	simulate(0);
+	simulate(1);
 	// reset device
 	HANDLE_ERROR(cudaDeviceReset());
 }
