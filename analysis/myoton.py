@@ -7,95 +7,77 @@ import matplotlib.pyplot as plt
 
 log.basicConfig(level=log.INFO)
 
-color_l = '#89cc76'
-color_r = '#ffe042'
 color_bef = '#cfcfcf'
 color_aft = '#8a8a8a'
 
-patterns = {'DryImmersion': ['Ext Car Uln', 'Bic Br c l', 'Deltoideus', 'Rect Femoris', 'Tibialis Ant',
-                             'Flex Car Uln', 'Tric Br c l', 'Bic Fem c l', 'Gastr c m', 'Soleus m', 'Achilles tendon']
-            }
+# muscles = ['Ext Car Uln', 'Bic Br c l', 'Deltoideus', 'Rect Femoris', 'Tibialis Ant',
+#            'Flex Car Uln', 'Tric Br c l', 'Bic Fem c l', 'Gastr c m', 'Soleus m', 'Achilles tendon']
+
+muscles = []
 params = ["Frequency", "Stiffness", "Decrement", "Relaxation", "Creep"]
 
-bar_names_lr = ['Before', 'After']
 bar_names_ba = ['Left', 'Right']
 bar_indicies = range(len(bar_names_ba))
 
 dict_data = dict()
 
-plotting_types = ("BA", "DYN", "ALL")
+times_range = range(2)
 
 
 def merge(list_of_list):
 	return sum(list_of_list, [])
 
 
-def set_time_range(t_range):
-	times_range = range(t_range)
-	return times_range
+def read_data(datapath):
+	filenames = [name[:-4] for name in os.listdir(f"{datapath}") if name.endswith(".xlsx")]
+	for filename in filenames:
+		filename = '01 feb.xlsx'
+		with open(f"{datapath}/{filename}", encoding='windows-1251') as file:
+			# remove header
+			header = file.readline().strip().split(".")[-5:]
+			assert header == params, 'Проверь кол-во столбцов в файле'
+			# get data
+			time_index = 0
+			prev_time = None
+			for index, line in enumerate(file):
+				# читает строку, раскидывает по переменным
+				line = line.strip().replace(",", ".").split(";")
+				name, time, pattern, muscle, side, *values = line  # *values = freq, stiff, decr, relax, creep
 
+				if muscle not in muscles:
+					muscles.append(muscle)
 
-def read_data(datapath, filename, t_range):
-	with open(f"{datapath}/{filename}", encoding='windows-1251') as file:
-		# remove header
-		header = file.readline().strip().split(";")[-5:]
-		assert header == params, 'Проверь кол-во столбцов в файле'
-		# get data
-		time_index = 0
-		prev_time = None
-		for index, line in enumerate(file):
-			# читает строку, раскидывает по переменным
-			line = line.strip().replace(",", ".").split(";")
-			name, time, pattern, muscle, side, *values = line  # *values = freq, stiff, decr, relax, creep
+				# парсит время в 2ух форматах
+				try:
+					time = datetime.strptime(time, "%d.%m.%Y %H:%M:%S")
+				except ValueError:
+					time = datetime.strptime(time, "%d.%m.%Y %H:%M")
 
-			# парсит время в 2ух форматах
-			try:
-				time = datetime.strptime(time, "%d.%m.%Y %H:%M:%S")
-			except ValueError:
-				time = datetime.strptime(time, "%d.%m.%Y %H:%M")
+				# если разница м-у предыдущим и нынешним временем >20 мин => новый временной индекс
+				if prev_time is None:
+					prev_time = time
+				if (time - prev_time).seconds / 60 > 20:
+					time_index += 1
+				if time_index >= 2:
+					break
 
-			# если разница м-у предыдущим и нынешним временем >20 мин => новый временной индекс
-			if prev_time is None:
+				# заполнение словаря
+				if name not in dict_data:
+					dict_data[name] = {}
+				if muscle not in dict_data[name]:
+					dict_data[name][muscle] = {}
+				if side not in dict_data[name][muscle]:
+					dict_data[name][muscle][side] = {t: {} for t in times_range}
+					for t in times_range:
+						dict_data[name][muscle][side][t] = {p: [] for p in params}
+
+				# перезапись повторяющихся мышц
+				for p, v in zip(params, map(float, values)):
+					if len(dict_data[name][muscle][side][time_index][p]) >= 6:
+						dict_data[name][muscle][side][time_index][p] = []
+					dict_data[name][muscle][side][time_index][p].append(v)
+
 				prev_time = time
-			if (time - prev_time).seconds / 60 > 20:
-				time_index += 1
-			if time_index >= 2:
-				break
-
-			times_range = set_time_range(t_range)
-
-			# заполнение словаря
-			if name not in dict_data:
-				dict_data[name] = {}
-			if muscle not in dict_data[name]:
-				dict_data[name][muscle] = {}
-			if side not in dict_data[name][muscle]:
-				dict_data[name][muscle][side] = {t: {} for t in times_range}
-				for t in times_range:
-					dict_data[name][muscle][side][t] = {p: [] for p in params}
-
-			# перезапись повторяющихся мышц
-			for p, v in zip(params, map(float, values)):
-				if len(dict_data[name][muscle][side][time_index][p]) >= 6:
-					dict_data[name][muscle][side][time_index][p] = []
-				dict_data[name][muscle][side][time_index][p].append(v)
-
-			prev_time = time
-	# print(dict_data)
-	# exit()
-
-def read_data_by_plt_type(datapath, filename, type_for_plotting, t_range):
-	if type_for_plotting == "ALL":
-		filenames = [name for name in os.listdir(f"{datapath}") if name.endswith(".csv")]
-		for filename in filenames:
-			log.info(f"Обработан файл {filename}")
-			read_data(datapath, filename, t_range)
-
-	if type_for_plotting == "BA":
-		read_data(datapath, filename, t_range)
-
-	if type_for_plotting == "DYN":
-		pass
 
 
 def check_norm_dist(list_for_check):
@@ -106,16 +88,7 @@ def check_norm_dist(list_for_check):
 		return True
 
 
-def plotting(savepath, pattern, type_for_plotting, t_range, filename):
-	array_times = []
-	mean = None
-	muscles = []
-	times_range = set_time_range(t_range)
-
-	# проверка паттерна и выбор группы мышц
-	if pattern == "DryImmersion":
-		muscles = patterns["DryImmersion"]
-
+def plotting(datapath, muscles, filename):
 	# заполнение списков значениями показателей, взятыми у каждого человека за определенный период времени
 	for muscle in muscles:
 		for param in params:
@@ -143,16 +116,8 @@ def plotting(savepath, pattern, type_for_plotting, t_range, filename):
 						print(f"Заполнено нулями")
 						all_data.append([[0, 0, 0, 0, 0, 0]])
 
-				if type_for_plotting == "ALL":
-					array_times = [merge(all_data[t]) for t in times_range]
-					mean = [np.mean(array_times[t]) for t in times_range]
-
-				if type_for_plotting == "BA":
-					array_times = [merge(all_data[t]) for t in times_range]
-					mean = [np.mean(array_times[t]) for t in times_range]
-
-				if type_for_plotting == "DYN":
-					pass
+				array_times = [merge(all_data[t]) for t in times_range]
+				mean = [np.mean(array_times[t]) for t in times_range]
 
 				if side == 'Left':
 					mean_dict['Left'].append(mean[0])
@@ -168,17 +133,6 @@ def plotting(savepath, pattern, type_for_plotting, t_range, filename):
 					mean_dict['Right'].append(mean[1])
 					se_after = stats.sem(array_times[1])
 					se_dict['Right'].append(se_after)
-
-				# if side == "Left":
-				# 	mean_left = mean
-				# else:
-				# 	mean_right = mean
-
-				# se = [stats.sem(array_times[t]) for t in times_range]
-				# if side == "Left":
-				# 	se_left = se
-				# else:
-				# 	se_right = se
 
 				# statistic
 				for index, t in enumerate(times_range[:-1]):
@@ -209,24 +163,13 @@ def plotting(savepath, pattern, type_for_plotting, t_range, filename):
 							if side == 'Right':
 								stat_dict['Right'] = {stat_key: stat_val}
 
-			# plot(mean, se, side=side, param=param, muscle=muscle, save_to=savepath, pval_dict=stat_dict)
-
-			plot_bef_aft(mean_dict, se_dict, param=param, muscle=muscle, save_to=savepath,
+			plot(mean_dict, se_dict, param=param, muscle=muscle, save_to=datapath,
 			             pval_dict=stat_dict, filename=filename)
-			# plot_combo(mean_left, se_left, mean_right, se_right, param=param, muscle=muscle, save_to=savepath)
+
 			log.info(f"Отрисован {param}_{muscle}")
 
 
 def render_stat(pval_dict, mean, axis=None):
-	"""
-
-	Args:
-		pval_dict: dfdsfdfds wtf
-		mean (list of list): dfdfdfdfd
-
-	Returns:
-
-	"""
 	if axis is None:
 		axis = plt
 
@@ -235,28 +178,16 @@ def render_stat(pval_dict, mean, axis=None):
 
 		pairs = [pair for pair, pval in pair_pval.items() if pval < 0.05]
 
-		# text = {
-		# 	'*': (1e-2, 5e-2),
-		# 	'**': (1e-3, 1e-2),
-		# 	'***': (1e-4, 1e-3),
-		# 	'****': (0, 1e-4)
-		# }
-
 		def calc_line_height(pair):
 			before_bar, after_bar = pair
 			return max(*mean[before_bar],
 			           *mean[after_bar]) + line_upper
 
-		# sorted_pairs = sorted(pairs, key=lambda pair: pair[1] - pair[0])
 		line_upper = max(mean[side]) * 0.08
 		serif_size = line_upper / 5
 		bar_shift = 1 / 2.5
-
-
-		# def diff(h1, h2):
-		# 	return abs(h2 - h1) < line_upper / 2
-
 		line_height = list(map(calc_line_height, pairs))
+
 		# plot text and lines
 		if pairs:
 			left_bar = side - 0.25
@@ -269,7 +200,6 @@ def render_stat(pval_dict, mean, axis=None):
 				serif_x1, serif_x2 = left_bar + bar_shift, right_bar - bar_shift
 			else:
 				line_x1, line_x2 = left_bar + bar_shift, right_bar - bar_shift
-				# serifs
 				serif_x1, serif_x2 = left_bar + bar_shift, right_bar - bar_shift
 			serif_y1, serif_y2 = hline - serif_size, hline
 
@@ -277,36 +207,15 @@ def render_stat(pval_dict, mean, axis=None):
 			axis.plot([serif_x1, serif_x1], [serif_y1, serif_y2], color='k')
 			axis.plot([serif_x2, serif_x2], [serif_y1, serif_y2], color='k')
 
-			# check the next lines and move them upper if need
-			# for i1 in range(index + 1, len(sorted_pairs)):
-			# 	if diff(line_height[i1], line_height[index]):
-			# 		line_height[i1] += line_upper
-			# pvalue = pair_pval[(0, 1)]
-
 			axis.text((left_bar + right_bar) / 2, hline + line_upper / 5, "*", ha='center')
-			# axis.plot([(left_bar + right_bar) / 2], [hline + line_upper / 5], '.', color='r', ms=15)
+		# axis.plot([(left_bar + right_bar) / 2], [hline + line_upper / 5], '.', color='r', ms=15)
 
 
 def near_round(x, base=5.0):
 	return base * np.ceil(x / base)
 
 
-def plot(mean, err, side=None, param=None, muscle=None, show=False, save_to=None, pval_dict=None):
-	color = color_l if side == "Left" else color_r
-	plt.figure(figsize=(4, 3))
-
-	plt.bar(bar_indicies, mean, yerr=err, error_kw={'ecolor': '0.1', 'capsize': 6}, color=color)
-	plt.xticks(bar_indicies, bar_names_lr)
-
-	render_stat(pval_dict=pval_dict, mean=mean)
-
-	plt.savefig(f'{save_to}/{muscle}_{param}_{side}.png', format='png')
-	if show:
-		plt.show()
-	plt.close()
-
-
-def plot_bef_aft(mean_dict, se_dict, param=None, muscle=None, show=False, save_to=None, pval_dict=None, filename=None):
+def plot(mean_dict, se_dict, param=None, muscle=None, show=False, save_to=None, pval_dict=None, filename=None):
 	plt.close()
 	fig, ax = plt.subplots(figsize=(4, 3))
 	# styles
@@ -389,34 +298,12 @@ def plot_bef_aft(mean_dict, se_dict, param=None, muscle=None, show=False, save_t
 	plt.close()
 
 
-
-def plot_lr(mean_l, err_l, mean_r, err_r, param=None, muscle=None, show=False, save_to=None):
-	plt.figure(figsize=(4, 3))
-	x = np.arange(len(bar_names_lr))
-	width = 0.35
-	plt.bar(x - width / 2, mean_l, width, yerr=err_l, error_kw={'ecolor': '0.1', 'capsize': 3}, label='L',
-	        color=color_l)
-	plt.bar(x + width / 2, mean_r, width, yerr=err_r, error_kw={'ecolor': '0.1', 'capsize': 3}, label='R',
-	        color=color_r)
-	plt.xticks(bar_indicies, bar_names_ba)
-	plt.legend(loc="lower right")
-	plt.tight_layout()
-	plt.savefig(f'{save_to}/{muscle}_{param}_combo.png', format='png')
-	if show:
-		plt.show()
-	plt.close()
-
-
 def main():
-	filename = '02feb2021.csv'
-	datapath = 'C:/Users/exc24/PycharmProjects/test/SCC/Suleimanov/data'
-	savepath = 'C:/Users/exc24/PycharmProjects/test/SCC/Suleimanov'
-	plt_type = 'BA'
-	time_range = 2
-
-	read_data_by_plt_type(datapath=datapath, filename=filename, type_for_plotting=plt_type, t_range=time_range, )
-	plotting(savepath=savepath, pattern="DryImmersion", type_for_plotting=plt_type, t_range=time_range,
-	         filename=filename)
+	path = '/home/b-rain/SCC'
+	folder = 'Suleimanov'
+	datapath = os.path.join(path, folder)
+	read_data(datapath=datapath)
+	print('Done')
 
 
 if __name__ == '__main__':
