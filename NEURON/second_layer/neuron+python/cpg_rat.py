@@ -23,11 +23,11 @@ logging.info(mode)
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 2 # number of steps
-layers = 3  # 5 is default
+step_number = 10 # number of steps
+layers = 5  # 5 is default
 
 CV_number = 6
-extra_layers = 0 + layers
+extra_layers = 1 + layers
 nMN = 210
 nAff = 120
 nInt = 196
@@ -46,7 +46,7 @@ if mode == 'QUAD':
     CV_0_len = 175
     k = 0.003
 
-one_step_time = CV_number * speed + CV_0_len
+one_step_time = int((6 * speed + CV_0_len)/(int(1000 / ees_fr))) * (int(1000 / ees_fr))
 time_sim = 25 + one_step_time * step_number
 
 exnclist = []
@@ -101,7 +101,7 @@ class CPG:
             self.dict_2E = {layer: 'OM{}_2E'.format(layer + 1)}
             self.dict_2F = {layer: 'OM{}_2F'.format(layer + 1)}
             self.dict_3 = {layer: 'OM{}_3'.format(layer + 1)}
-            self.dict_C = {layer: 'C{l}'.format(layer + 1)}
+            self.dict_C = {layer: 'C{}'.format(layer + 1)}
 
         if mode == 'QPZ':
             self.OM1_0E = self.addpool(self.ncell, "OM1_0E", "delay")
@@ -180,7 +180,7 @@ class CPG:
         for layer in range(layers, extra_layers):
             self.dict_C[layer] = []
             for i in range(step_number):
-                self.dict_C[layer].append(self.addgener(25 + speed * (extra_layers - layers) + int(speed * 0.3) + i * (speed * CV_number + CV_0_len), random.gauss(cfr, cfr/10), speed / c_int))
+                self.dict_C[layer].append(self.addgener(25 + speed * (layer - 4) + i * (speed * CV_number + CV_0_len), random.gauss(cfr, cfr/10), (speed / c_int + 1)))
 
         self.C_1 = []
         self.C_0 = []
@@ -190,8 +190,8 @@ class CPG:
         # for i in range(step_number):
         #     self.Iagener_F.append(self.addIagener((speed * 6 + i * (speed * 6 + 125)), self.ncell, 25))
         for i in range(step_number):
-            self.C_0.append(self.addgener(25 + speed * CV_number + i * (speed * CV_number + CV_0_len), cfr, CV_0_len/c_int, False))
-            self.V0v.append(self.addgener(40 + speed * CV_number + i * (speed * CV_number + CV_0_len), cfr, 100/c_int, False))
+            self.C_0.append(self.addgener(25 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, CV_0_len/c_int, False))
+            self.V0v.append(self.addgener(40 + speed * 6 + i * (speed * 6 + CV_0_len), cfr, 100/c_int, False))
 
 
         # self.C_0.append(self.addgener(0, cfr, (speed / c_int)))
@@ -220,7 +220,7 @@ class CPG:
             createmotif(self.dict_0[layer], self.dict_1[layer], self.dict_2F[layer], self.dict_3[layer])
 
         for layer in range(1, layers):
-            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 1.5, 2)
+            connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 2.5, 2)
 
         for layer in range(layers, extra_layers):
             connectcells(self.dict_2F[layer - 1], self.dict_2F[layer], 0.45, 2)
@@ -228,8 +228,8 @@ class CPG:
         # connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
         # connectcells(self.V0v, self.dict_2F[0], 0.75, 1)
 
-        connectcells(self.dict_CV[0], self.OM1_0F, 0.0005, 3)
-        connectcells(self.V0v, self.OM1_0F, 2.75, 3)
+        connectcells(self.dict_CV[0], self.OM1_0F, 0.00075, 3)
+        connectcells(self.V0v, self.OM1_0F, 3.75, 3)
         # connectcells(self.V0v, self.dict_2F[0], 3.5, 3)
 
         '''between delays via excitatory pools'''
@@ -252,6 +252,9 @@ class CPG:
                 for i in range(0, (layer - 1)):
                     connectcells(self.dict_C[layer], self.dict_3[i], 1.95, 1)
                     # connectcells(self.dict_C[layer], self.dict_2E[i], 1.75, 1, True)
+        for layer in range(layers, extra_layers):
+            connectcells(self.dict_C[layer-3], self.dict_3[layer], 1.95, 1)
+
 
         genconnect(self.ees, self.Ia_aff_E, 1.5, 1)
         genconnect(self.ees, self.Ia_aff_F, 1.5, 1)
@@ -276,7 +279,7 @@ class CPG:
             connectinsidenucleus(self.dict_2E[layer])
             connectinsidenucleus(self.dict_2F[layer])
             # connectcells(self.dict_1[layer], self.dict_IP_E[layer], 0.75, 2)
-            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 2.5, 3)
+            connectcells(self.dict_2E[layer], self.dict_IP_E[layer], 1.75, 3)
             connectcells(self.dict_IP_E[layer], self.mns_E, 2.75, 3)
             if layer > 3:
                 connectcells(self.dict_IP_E[layer], self.Ia_aff_E, layer*0.0002, 1, True)
@@ -594,7 +597,7 @@ def createmotif(OM0, OM1, OM2, OM3):
     connectcells(OM0, OM1, 2.85, 3)
     connectcells(OM1, OM2, 2.85, 3)
     connectcells(OM2, OM1, 1.95, 3)
-    connectcells(OM2, OM3, 0.0005, 3)
+    connectcells(OM2, OM3, 0.001, 3)
     connectcells(OM1, OM3, 0.00005, 3)
     connectcells(OM3, OM2, 4.5, 1, True)
     connectcells(OM3, OM1, 4.5, 1, True)
@@ -672,9 +675,9 @@ def spikeout(pool, name, version, v_vec):
     if rank == 0:
         logging.info("start recording")
         result = np.mean(np.array(result), axis = 0, dtype=np.float32)
-        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
+        with hdf5.File('./res/new_rat4_{}_speed_{}_layers_{}1_eeshz_{}.hdf5'.format(name, speed, layers, ees_fr), 'w') as file:
             for i in range(step_number):
-                sl = slice((1000+i*one_step_time*40),(1000+(i+1)*one_step_time*40))
+                sl = slice((int(1000/ees_fr)*40+i*one_step_time*40),(int(1000/ees_fr)*40+(i+1)*one_step_time*40))
                 file.create_dataset('#0_step_{}'.format(i), data=np.array(result)[sl], compression="gzip")
     else:
         logging.info(rank)

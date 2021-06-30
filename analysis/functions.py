@@ -358,7 +358,7 @@ def calibrate_data(dataset, source):
 		elif source == "neuron":
 			centered_data = data_per_test #+ 0.57
 		elif source == "gras":
-			centered_data = data_per_test - data_per_test[0]
+			centered_data = data_per_test #- data_per_test[0]
 		else:
 			# centered_data = butter_bandpass_filter(data_per_test, lowcut, highcut, fs)#raise Exception(f"Cannot recognize '{source}' source")
 			# centered_data = gaussian_filter(centered_data, sigma=2.15)#raise Exception(f"Cannot recognize '{source}' source")
@@ -399,7 +399,7 @@ def parse_filename(filename):
 		raise Exception("Cannot recognize speed")
 
 	rate = int(meta[4].replace("Hz", ""))
-	if rate not in range(5, 201, 5):
+	if rate not in range(0, 201):
 		raise Exception("Cannot recognize Hz rate")
 
 	pedal = meta[5].replace("pedal", "")
