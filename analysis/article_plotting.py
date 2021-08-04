@@ -217,8 +217,33 @@ class Analyzer:
 		kde_ax.set_xlim(border[0], border[1])
 		kde_ax.set_ylim(border[2], border[3])
 		plt.tight_layout()
+	@staticmethod
+	def form_1d_kde(X, xmin, xmax):
+		xx = np.linspace(xmin, xmax, 1000)
+		dx = st.gaussian_kde(X)(xx)
+		return xx, dx
 
-	def outside_compare(self, comb, border, axis, muscletype='E', per_step=False, plot=False, show=False):
+	@staticmethod
+	def form_2d_kde(x, y, xmin, xmax, ymin, ymax):
+		xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+		# re-present grid in 1D and pair them as (x1, y1 ...)
+		positions = np.vstack([xx.ravel(), yy.ravel()])
+		values = np.vstack([x, y])
+		# use a Gaussian KDE
+		a = st.gaussian_kde(values)(positions).T
+		# re-present grid back to 2D
+		z = np.reshape(a, xx.shape)
+		return xx, yy, z
+
+	@staticmethod
+	def overlap_density(d1, d2):
+		assert d1.size == d2.size
+		overlay = np.sum(d1[d1 <= d2]) + np.sum(d2[d2 < d1])
+		area1, area2 = np.sum(d1), np.sum(d2)
+		iou = overlay / (area1 + area2 - overlay)
+		return iou
+
+	def outside_compare(self, comb, border, axis, muscletype='E', per_step=False, get_iou=False, get_pvalue=False, plot=False, show=False):
 		if len(comb) != 2:
 			raise Exception("Only pairing analysis")
 		#
@@ -238,73 +263,137 @@ class Analyzer:
 		meta_names = (metadata1.shortname, metadata2.shortname)
 		#
 		all_pval = []
+		iou_values = []
 		for rat1 in comb[0][1]:
 			for rat2 in comb[1][1]:
 				# check if pval file is exist to save a calulcation time
 				if per_step:
-					"""
-					Here p-value will be calculated for each step in R KDE test.
-					Convertation lists with different lengths to matrix is only way to pass the matrix to R.
-					Because of that the emptines filled by -9999 (trash) values, whtich will be filtered in R.
-					np.where is used instead of classic slice because of saving true shape of the matrix
-					"""
-					dataXY = []
+					if get_iou:
+						times1 = metadata1.get_peak_times(rat=rat1, unslice=True, muscle=muscletype)
+						ampls1 = metadata1.get_peak_ampls(rat=rat1, unslice=True, muscle=muscletype)
+						slice1 = metadata1.get_peak_slices(rat=rat1, unslice=True, muscle=muscletype)
 
-					for r, m in zip((rat1, rat2), (metadata1, metadata2)):
-						t = m.get_peak_times(rat=r, unslice=True, muscle=muscletype)
+						times2 = metadata2.get_peak_times(rat=rat2, unslice=True, muscle=muscletype)
+						ampls2 = metadata2.get_peak_ampls(rat=rat2, unslice=True, muscle=muscletype)
+						slice2 = metadata2.get_peak_slices(rat=rat2, unslice=True, muscle=muscletype)
 
-						a = m.get_peak_ampls(rat=r, unslice=True, muscle=muscletype)
-						s = m.get_peak_slices(rat=r, unslice=True, muscle=muscletype)
-						maxlen = max(map(len, t))
-						t = np.array([d + [-9999] * (maxlen - len(d)) for d in t]) * m.dstep_to
-						a = np.array([d + [-9999] * (maxlen - len(d)) for d in a])
-						s = np.array([d + [-9999] * (maxlen - len(d)) for d in s])
-						shape = t.shape
+						t1, a1, s1 = [], [], []
+						t2, a2, s2 = [], [], []
+						# 1 rat
+						for time, ampl, sl in zip(times1, ampls1, slice1):
+							time = np.array(time) * metadata1.dstep_to
+							sl = np.array(sl)
+							ampl = np.array(ampl)
+							if border == 'poly_tail':
+								time[time <= 3] += 25
+								mask = time >= 8
+							else:
+								mask = (border[0] <= time) & (time <= border[1]) & (sl <= slice_border)
+							t1.append(time[mask])
+							a1.append(ampl[mask])
+							s1.append(sl[mask])
 
-						if border == 'poly_tail':
-							t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
-							mask = t >= 8
+						# 2 rat
+						for time, ampl, sl in zip(times2, ampls2, slice2):
+							time = np.array(time) * metadata2.dstep_to
+							sl = np.array(sl)
+							ampl = np.array(ampl)
+							if border == 'poly_tail':
+								time[time <= 3] += 25
+								mask = time >= 8
+							else:
+								mask = (border[0] <= time) & (time <= border[1]) & (sl <= slice_border)
+							t2.append(time[mask])
+							a2.append(ampl[mask])
+							s2.append(sl[mask])
+
+						data1 = [t1, a1, s1]
+						data2 = [t2, a2, s2]
+						X1, Y1 = data1[ax1_index], data1[ax2_index]
+						X2, Y2 = data2[ax1_index], data2[ax2_index]
+
+						xmin, xmax, ymin, ymax = *axis_borders[ax1_index], *axis_borders[ax2_index]
+
+						iou2d = []
+						for x1, y1 in zip(X1, Y1):
+							for x2, y2 in zip(X2, Y2):
+								# 1D x1 x2
+								# xx1, dx1 = self.form_1d_kde(X1, xmin=xmin, xmax=xmax)
+								# xx2, dx2 = self.form_1d_kde(X2, xmin=xmin, xmax=xmax)
+								# iou1d_x = self.overlap_density(dx1, dx2)
+								# 1D y1 y2
+								# yy1, dy1 = self.form_1d_kde(Y1, xmin=ymin, xmax=ymax)
+								# yy2, dy2 = self.form_1d_kde(Y2, xmin=ymin, xmax=ymax)
+								# iou1d_y = self.overlap_density(dy1, dy2)
+								# 2D
+								_, _, z1 = self.form_2d_kde(x1, y1, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+								_, _, z2 = self.form_2d_kde(x2, y2, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+								iou2d.append(self.overlap_density(z1, z2))
+						iou_values.append(iou2d)
+
+					if get_pvalue:
+						"""
+						Here p-value will be calculated for each step in R KDE test.
+						Convertation lists with different lengths to matrix is only way to pass the matrix to R.
+						Because of that the emptines filled by -9999 (trash) values, whtich will be filtered in R.
+						np.where is used instead of classic slice because of saving true shape of the matrix
+						"""
+						dataXY = []
+						for r, m in zip((rat1, rat2), (metadata1, metadata2)):
+							t = m.get_peak_times(rat=r, unslice=True, muscle=muscletype)
+							a = m.get_peak_ampls(rat=r, unslice=True, muscle=muscletype)
+							s = m.get_peak_slices(rat=r, unslice=True, muscle=muscletype)
+
+							maxlen = max(map(len, t))
+							t = np.array([d + [-9999] * (maxlen - len(d)) for d in t]) * m.dstep_to
+							a = np.array([d + [-9999] * (maxlen - len(d)) for d in a])
+							s = np.array([d + [-9999] * (maxlen - len(d)) for d in s])
+							shape = t.shape
+
+							if border == 'poly_tail':
+								t[t <= 3] += 25 # all peaks at [0, 3] becomes [25, 28]
+								mask = t >= 8
+							else:
+								mask = (border[0] <= t) & (t <= border[1]) & (s <= slice_border)
+
+							# pick the data which corresponds to the axis name with saving shape
+							data = (np.where(mask, t, -9999).reshape(shape),
+							        np.where(mask, a, -9999).reshape(shape),
+							        np.where(mask, s, -9999).reshape(shape))
+							X, Y = data[ax1_index], data[ax2_index]
+
+							# number of point must be more than 16!
+							not_good_rows = [i for i, d in enumerate(X) if len(d[d >= 0]) < 10]
+
+							X = np.delete(X, not_good_rows, axis=0)
+							Y = np.delete(Y, not_good_rows, axis=0)
+
+							if len(X) == 0:
+								print('EMPTY')
+								break
+							dataXY.append((X, Y))
 						else:
-							mask = (border[0] <= t) & (t <= border[1]) & (s <= slice_border)
-
-						# pick the data which corresponds to the axis name with saving shape
-						data = (np.where(mask, t, -9999).reshape(shape),
-						        np.where(mask, a, -9999).reshape(shape),
-						        np.where(mask, s, -9999).reshape(shape))
-						X, Y = data[ax1_index], data[ax2_index]
-
-						# number of point must be more than 16!
-						not_good_rows = [i for i, d in enumerate(X) if len(d[d >= 0]) < 10]
-
-						X = np.delete(X, not_good_rows, axis=0)
-						Y = np.delete(Y, not_good_rows, axis=0)
-
-						if len(X) == 0:
-							print('EMPTY')
-							break
-						dataXY.append((X, Y))
-					else:
-						# !
-						# todo about .T
-						pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1]).T
-						print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} muscle {muscletype}"
-						      f"'{axis[0]} by step': {np.median(pval_t)}; "
-						      f"'{axis[1]} by step': {np.median(pval_a)}; "
-						      f"2D by step: {np.median(pval_2d)}")
-						all_pval.append(pval_2d)
-						# plot data if necessary
-						if plot:
-							kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
-							for xstep1, ystep1 in zip(*dataXY[0]):
-								for xstep2, ystep2 in zip(*dataXY[1]):
-									xy1 = xstep1[xstep1 >= 0], ystep1[ystep1 >= 0]
-									xy2 = xstep2[xstep2 >= 0], ystep2[ystep2 >= 0]
-									self.KDE_plot(xy1, xy2, meta_names, (rat1, rat2), kde_border)
-									filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_{muscletype}_merged"
-									plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
-									if show:
-										plt.show()
-									plt.close()
+							# !
+							# todo about .T
+							pval_t, pval_a, pval_2d = self._multi_R_KDE_test(*dataXY[0], *dataXY[1]).T
+							print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} muscle {muscletype}"
+							      f"'{axis[0]} by step': {np.median(pval_t)}; "
+							      f"'{axis[1]} by step': {np.median(pval_a)}; "
+							      f"2D by step: {np.median(pval_2d)}")
+							all_pval.append(pval_2d)
+							# plot data if necessary
+							if plot:
+								kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
+								for xstep1, ystep1 in zip(*dataXY[0]):
+									for xstep2, ystep2 in zip(*dataXY[1]):
+										xy1 = xstep1[xstep1 >= 0], ystep1[ystep1 >= 0]
+										xy2 = xstep2[xstep2 >= 0], ystep2[ystep2 >= 0]
+										self.KDE_plot(xy1, xy2, meta_names, (rat1, rat2), kde_border)
+										filename = f"{meta_names[0]}_rat{rat1}_{meta_names[1]}_rat{rat2}_{muscletype}_merged"
+										plt.savefig(f'{self.plots_folder}/{filename}.pdf', format='pdf')
+										if show:
+											plt.show()
+										plt.close()
 				else:
 					"""
 					The simpliest way to compare data -- 1D representation.
@@ -357,13 +446,13 @@ class Analyzer:
 							plt.show()
 						plt.close()
 		filename = f"{muscletype}_{meta_names[0]}_{meta_names[1]}_{ax1_index}_{ax2_index}"
-		p_val_all = np.array(list(flatten(all_pval)))
-		mask = ((p_val_all <= 1) & (p_val_all >= 0))
-		p_val_all = p_val_all[mask]
-		plt.boxplot(p_val_all)
-		print(p_val_all)
+		fullname = f'{self.plots_folder}/{filename}_box.pdf'
+		if get_pvalue:
+			plt.boxplot(list(flatten(all_pval)))
+		if get_iou:
+			plt.boxplot(list(flatten(iou_values)))
 		plt.ylim(0, 1)
-		plt.savefig(f'{self.plots_folder}/{filename}_box.pdf', format='pdf')
+		plt.savefig(fullname, format='pdf')
 
 	def plot_cumulative(self, cmltv, border, order=None, pval_slices_peak=False):
 		"""
@@ -829,6 +918,34 @@ class Analyzer:
 			ytick_labels[i] = yticks_indices[i]
 		return ytick_labels
 
+	def decrease_degree(self, source, rats, border):
+
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		for rat_id in rats:
+			amp = metadata.get_peak_ampls(rat_id, muscle='E')
+			t = metadata.get_peak_times(rat_id, muscle='E')
+			decrease_degree = []
+			for step, times in zip(amp, t):
+				for i in range(len(step)):
+					times[i] = np.array(times[i]) * metadata.dstep_to
+					if border == 'poly_tail':
+						step[i] = list(np.ma.MaskedArray(step[i], np.invert((times[i] <= 2) | (times[i] >= 8))).compressed())
+					else:
+						# [T1, T2]
+						step[i] =  list(np.ma.MaskedArray(step[i], np.invert((border[0] <= times[i]) & (times[i] <= border[1]))).compressed())
+				step = list(filter(None, step))
+				max_amp = max(max(x) for x in step)
+				max_last = max(step[len(step)-1])
+				print(f'max - {max_amp} last max - {max_last}')
+				decrease_degree.append((1-max_last/max_amp)*100)
+			print(np.median(decrease_degree))
+			plt.boxplot(decrease_degree)
+			plt.show()
+
 	def print_metainfo(self, source, rats):
 		if type(source) is not Metadata:
 			metadata = Metadata(self.pickle_folder, source)
@@ -848,6 +965,8 @@ class Analyzer:
 				f = metadata.get_fMEP_count(rat_id, muscle=muscle)
 				v = metadata.get_latency_volume(rat_id, muscle=muscle)
 				# plt.plot(metadata.get_peak_ampls(rat_id, muscle='E', flat=True))
+
+
 				print(f"{metadata.shortname} _ {muscle} | {rat_id} | {f} | {c} | {h} | {v}")
 
 				x = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * metadata.dstep_to
@@ -892,8 +1011,8 @@ class Analyzer:
 
 		# plot per each rat
 		for rat_id in rats:
-			rat_myograms = metadata.get_myograms(rat_id, muscle='E')
-			rat_peak_times = metadata.get_peak_times(rat_id, muscle='E')
+			rat_myograms = metadata.get_myograms(rat_id, muscle='F')
+			rat_peak_times = metadata.get_peak_times(rat_id, muscle='F')
 
 			total_rat_steps = rat_myograms.shape[0]
 			total_slices = rat_myograms.shape[1]
@@ -2009,7 +2128,7 @@ class Analyzer:
 		colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 		# plot filled contour
 		ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-		z_mid = (np.max(z) + np.min(z)) / 2
+		z_mid = (np.max(z) + np.min(z)) / 3 * 2
 		mid_contours = plt.contour(xx, yy, z, levels=[z_mid], alpha=0).allsegs[0]
 		for contour in mid_contours:
 			plt.plot(contour[:, 0], contour[:, 1], c='#f2aa2e', linewidth=4)
@@ -2027,7 +2146,7 @@ class Analyzer:
 			print(sorted_x)
 			print(sorted_y)
 
-			mask = ((sorted_x >= 15) & (sorted_x <= 23) & (sorted_y > 5))
+			mask = ((sorted_x >= 15) & (sorted_x <= 23) & (sorted_y > 3))
 			masked_x = sorted_x[mask]
 			masked_y = sorted_y[mask]
 			print(masked_x)
@@ -2043,7 +2162,7 @@ class Analyzer:
 			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[0]
 			# print(interpolate.sproot((fsec.t, fsec.c, k)))
 			spl = interpolate.splrep(sorted_x, sorted_y, k=1)
-			small_t = np.arange(pointcur - 0.6, pointcur + 0.5, 0.01)
+			small_t = np.arange(pointcur - 3.0, pointcur + 0.8, 0.01)
 			# print(small_t)
 			# t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
 			fa = interpolate.splev(pointcur, spl, der=0)     # f(a)
