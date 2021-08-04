@@ -447,11 +447,11 @@ class Analyzer:
 							plt.show()
 						plt.close()
 		filename = f"{muscletype}_{meta_names[0]}_{meta_names[1]}_{ax1_index}_{ax2_index}"
-		#plt.boxplot(list(flatten(all_pval)))
-		#print(list(flatten(all_pval)))
 		fullname = f'{self.plots_folder}/{filename}_box.pdf'
-		print(np.median(iou_values), fullname)
-		plt.boxplot(iou_values)
+		if get_pvalue:
+			plt.boxplot(list(flatten(all_pval)))
+		if get_iou:
+			plt.boxplot(iou_values)
 		plt.ylim(0, 1)
 		plt.savefig(fullname, format='pdf')
 
