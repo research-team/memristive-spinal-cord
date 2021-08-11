@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 import matplotlib.patches as mpatches
 from scipy import interpolate
 import math
+from collections import defaultdict
+
 from rpy2.robjects.packages import importr
 from rpy2.robjects import FloatVector
 from rpy2.robjects import r
@@ -64,6 +66,19 @@ class Metadata:
 			return np.array(list(flatten(flatten(data))))
 		if unslice:
 			return [list(flatten(d)) for d in data]
+		return data
+
+	def get_peak_per_step(self, muscle='E'):
+		rats = self.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		data = []
+		for rat_id in rats:
+			times = self.get_peak_times(rat_id, unslice=True, muscle=muscle)
+			for time in times:
+				data.append(len(time))
+
 		return data
 
 	def get_peak_ampls(self, rat, muscle='E', flat=False, unslice=False):
@@ -242,6 +257,22 @@ class Analyzer:
 		area1, area2 = np.sum(d1), np.sum(d2)
 		iou = overlay / (area1 + area2 - overlay)
 		return iou
+
+	def peaks_step_compare(self, comb, muscletype='E'):
+		if len(comb) != 2:
+			raise Exception("Only pairing analysis")
+
+		metadata1 = Metadata(self.pickle_folder, comb[0][0])
+		metadata2 = Metadata(self.pickle_folder, comb[1][0])
+
+		meta_names = (metadata1.shortname, metadata2.shortname)
+		mode_0 = metadata1.get_peak_per_step()
+		mode_1 = metadata2.get_peak_per_step()
+		print(f'normality test {meta_names[0]} - {st.shapiro(mode_0)} normality test {meta_names[1]} - {st.shapiro(mode_1)}')
+
+		print(f'step number comparison {meta_names[0]} vs {meta_names[1]} t-test result - {st.ttest_ind(mode_0, mode_1)}')
+		print(f'mean of {meta_names[0]} - {np.mean(mode_0)} +- {np.std(mode_0)} and {meta_names[1]} mean {np.mean(mode_1)} +- {np.std(mode_1)}')
+
 
 	def outside_compare(self, comb, border, axis, muscletype='E', per_step=False, get_iou=False, get_pvalue=False, plot=False, show=False):
 		if len(comb) != 2:
@@ -451,6 +482,7 @@ class Analyzer:
 			plt.boxplot(list(flatten(all_pval)))
 		if get_iou:
 			plt.boxplot(list(flatten(iou_values)))
+			print(f'median IOU - {np.median(list(flatten(iou_values)))}')
 		plt.ylim(0, 1)
 		plt.savefig(fullname, format='pdf')
 
@@ -942,7 +974,7 @@ class Analyzer:
 				max_last = max(step[len(step)-1])
 				print(f'max - {max_amp} last max - {max_last}')
 				decrease_degree.append((1-max_last/max_amp)*100)
-			print(np.median(decrease_degree))
+			print(f'median - {np.median(decrease_degree)}')
 			plt.boxplot(decrease_degree)
 			plt.show()
 
