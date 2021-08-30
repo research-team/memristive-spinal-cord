@@ -5,6 +5,9 @@
 #include <vector>
 #include <iostream>
 
+// customize
+enum string_code {air, toe, plt, quadru, normal, qpz, str, s6, s13, s21};
+
 // global name of the models
 const char GENERATOR = 'g';
 const char INTER = 'i';
@@ -12,15 +15,25 @@ const char MOTO = 'm';
 const char MUSCLE = 'u';
 const char AFFERENTS = 'a';
 
-class Group {
-public:
-	Group() = default;
-	std::string group_name;
-	char model{};
-	unsigned int id_start{};
-	unsigned int id_end{};
-	unsigned int group_size{};
-};
+ class Group {
+    public:
+        Group() = default;
+        std::string group_name;
+        char model{};
+        unsigned int id_start{};
+        unsigned int id_end{};
+        unsigned int group_size{};
+ };
+
+///////////////////
+void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double delay, double weight, int indegree, short high_distr);
+void add_generator(Group &group, double start, double end, double freq);
+void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree);
+Group form_group(const std::string &group_name, int nrns_in_group, const char model, const int segs);
+void custom(void (*t_network)(), int steps, int test_ind, int TEST, int E2F_coef, int V0v2F_coef, int QUADRU_Ia,
+            string_code mode, string_code pharma, string_code speed);
+////////////////////
+
 
 // struct for human-readable initialization of connectomes
 struct GroupMetadata {
@@ -128,4 +141,10 @@ struct Synapses {
 	unsigned int size;      // array size
 };
 
+
+
+
+
 #endif //NEURON_GRAS_STRUCTS_H
+
+////
