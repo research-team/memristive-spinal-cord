@@ -1,29 +1,28 @@
 import os
+import math
 import pickle
 import logging
 import numpy as np
-import pylab as plt
+import matplotlib.pyplot as plt
 import scipy.stats as st
 import plotly.offline as py
 import plotly.graph_objects as go
 import matplotlib.patches as mpatches
-from scipy import interpolate
-import math
-from rpy2.robjects.packages import importr
-from rpy2.robjects import FloatVector
-from rpy2.robjects import r
+
 from colour import Color
 from itertools import chain
 from shapely import affinity
+from shapely.geometry.point import Point
+from scipy import interpolate
 from matplotlib import gridspec
 from collections import defaultdict
+from rpy2.robjects import r, FloatVector
+from rpy2.robjects.packages import importr, STAP
+from rpy2.robjects.numpy2ri import numpy2rpy
 from matplotlib.patches import Polygon
 from scipy.signal import argrelextrema
 from matplotlib.patches import Ellipse
-from rpy2.robjects.packages import STAP
-from shapely.geometry.point import Point
 from scipy.stats import ks_2samp, kstwobign
-from rpy2.robjects.numpy2ri import numpy2rpy
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from analysis.functions import read_hdf5, trim_data, calibrate_data, get_boxplots, parse_filename, subsampling
 
@@ -916,6 +915,52 @@ class Analyzer:
 		for i in [0, -1, int(1 / 3 * ticks_length), int(2 / 3 * ticks_length)]:
 			ytick_labels[i] = yticks_indices[i]
 		return ytick_labels
+
+	@staticmethod
+	def fft(myogram, sampling_interval, title):
+		min_Hz, max_Hz = 5, 250
+		sampling_frequency = 1000 / sampling_interval  # frequency of the data [Hz]
+		sampling_size = len(myogram)  # get size (length) of the data
+
+		# frequency domain representation
+		fourier_transform = np.fft.fft(myogram) / sampling_size  # normalize amplitude
+		fourier_transform = abs(fourier_transform[range(int(sampling_size / 2))])  # exclude sampling frequency
+		# remove the mirrored part of the FFT
+		values = np.arange(int(sampling_size / 2))
+		time_period = sampling_size / sampling_frequency
+		frequencies = values / time_period
+		#
+		mask = (frequencies <= max_Hz) & (frequencies >= min_Hz)
+		frequencies = frequencies[mask]
+		fourier_transform = fourier_transform[mask]
+
+		# plot FFT
+		plt.close()
+		plt.title("FFT " + title)
+		plt.plot(frequencies, fourier_transform)
+		plt.xlabel('Frequency')
+		plt.ylabel('Amplitude')
+		plt.grid(axis='x')
+		plt.xlim([min_Hz, max_Hz])
+		xticks = np.arange(0, frequencies.max() + 1, 10)
+		plt.xticks(xticks)
+		plt.tight_layout()
+		plt.show()
+
+	def fft_analysis(self, source, rats, muscle='E'):
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		for rat_id in rats:
+			merged_myogram = metadata.get_myograms(rat_id, muscle=muscle).flatten()
+			self.fft(merged_myogram, metadata.dstep_to, title=f"{metadata.shortname} rat {rat_id}")
 
 	def print_metainfo(self, source, rats):
 		if type(source) is not Metadata:
