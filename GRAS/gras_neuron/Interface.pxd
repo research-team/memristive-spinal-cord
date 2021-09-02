@@ -24,5 +24,4 @@ cdef extern from "structs.h":
 
     cdef void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree)
 
-    cdef void custom(void (*t_network)(), int steps, int test_ind, int TEST , int E2F_coef, int V0v2F_coef, int QUADRU_Ia,
-            string_code mode , string_code pharma, string_code speed)
+    cdef void simulate()

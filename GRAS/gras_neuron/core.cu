@@ -1644,7 +1644,7 @@ void synapse_kernel(Neurons *N, Synapses* synapses) {
 		}
 	}
 }
-void simulate(void (*network)()) {
+void simulate() {
     /**
      *
      */
@@ -1655,8 +1655,6 @@ void simulate(void (*network)()) {
     Synapses *synapses = (Synapses *)malloc(sizeof(Synapses));
     Generators *G = (Generators *)malloc(sizeof(Generators));
 
-    // create neurons and their connectomes
-    network();
     // note: important
     vector_nrn_start_seg.push_back(NRNS_AND_SEGS);   //добавляет ноль?
 
@@ -1807,90 +1805,90 @@ void simulate(void (*network)()) {
     save_result(1);
 
 }
-void custom(void (*t_network)(), int steps = 1, int test_ind=1, int TEST = 0, int E2F_coef = 1, int V0v2F_coef = 1, int QUADRU_Ia = 1,
-            string_code mode = quadru, string_code pharma = normal, string_code speed = s13){
-    switch(speed) {
-        case s6:
-            skin_time = 125;
-            break;
-        case s13:
-            skin_time = 50;
-            break;
-        case s21:
-            skin_time = 25;
-            break;
-        default:
-            exit(-1);
-    }
-    switch(mode) {
-        case air:
-            TEST = -1;
-            skin_time = 25;
-            cv_coef = 0.03; // 037
-            E_coef = 0.04;
-            slices_extensor = 5;
-            slices_flexor = 4;
-            E2F_coef = 0;
-            V0v2F_coef = 0;
-            break;
-        case toe:
-            TEST = -2;
-            cv_coef = 0.035;
-            E_coef = 0.04;
-            slices_extensor = 4;
-            slices_flexor = 4;
-            E2F_coef = 8;
-            V0v2F_coef = 0;
-            break;
-        case plt:
-            cv_coef = 0.05; // 037
-            E_coef = 0.04;
-            slices_extensor = 6;
-            slices_flexor = 5;
-            E2F_coef = 10;
-            V0v2F_coef = 0.001;
-            break;
-        case quadru:
-            QUADRU_Ia = 0.6;
-            cv_coef = 0.03; // 037
-            E_coef = 0.03;
-            slices_extensor = 6;
-            slices_flexor = 7;
-            E2F_coef = 10;
-            V0v2F_coef = 0.001;
-            break;
-        default:
-            exit(-1);
-    }
-    //
-    switch(pharma) {
-        case normal:
-            break;
-        case qpz:
-            cv_coef = 0.12;
-            E_coef = 0.08;
-            V0v2F_coef = 0.01;
-            break;
-        case str:
-            str_flag = true;
-            V0v2F_coef = 0.01;
-            break;
-        default:
-            exit(-1);
-    }
-
-    one_step_time = slices_extensor * skin_time + 25 * slices_flexor;
-    sim_time = 25 + one_step_time * steps;
-    SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
-
-    // init the device
-    int dev = 0;
-    cudaDeviceProp deviceProp;
-    HANDLE_ERROR(cudaGetDeviceProperties(&deviceProp, dev));
-    printf("device %d: %s \n", dev, deviceProp.name);
-    HANDLE_ERROR(cudaSetDevice(dev));
-    // the main body of simulation
-    simulate(t_network);
-    // reset device
-    HANDLE_ERROR(cudaDeviceReset());
-}
+//void custom(void (*t_network)(), int steps = 1, int test_ind=1, int TEST = 0, int E2F_coef = 1, int V0v2F_coef = 1, int QUADRU_Ia = 1,
+//            string_code mode = quadru, string_code pharma = normal, string_code speed = s13){
+//    switch(speed) {
+//        case s6:
+//            skin_time = 125;
+//            break;
+//        case s13:
+//            skin_time = 50;
+//            break;
+//        case s21:
+//            skin_time = 25;
+//            break;
+//        default:
+//            exit(-1);
+//    }
+//    switch(mode) {
+//        case air:
+//            TEST = -1;
+//            skin_time = 25;
+//            cv_coef = 0.03; // 037
+//            E_coef = 0.04;
+//            slices_extensor = 5;
+//            slices_flexor = 4;
+//            E2F_coef = 0;
+//            V0v2F_coef = 0;
+//            break;
+//        case toe:
+//            TEST = -2;
+//            cv_coef = 0.035;
+//            E_coef = 0.04;
+//            slices_extensor = 4;
+//            slices_flexor = 4;
+//            E2F_coef = 8;
+//            V0v2F_coef = 0;
+//            break;
+//        case plt:
+//            cv_coef = 0.05; // 037
+//            E_coef = 0.04;
+//            slices_extensor = 6;
+//            slices_flexor = 5;
+//            E2F_coef = 10;
+//            V0v2F_coef = 0.001;
+//            break;
+//        case quadru:
+//            QUADRU_Ia = 0.6;
+//            cv_coef = 0.03; // 037
+//            E_coef = 0.03;
+//            slices_extensor = 6;
+//            slices_flexor = 7;
+//            E2F_coef = 10;
+//            V0v2F_coef = 0.001;
+//            break;
+//        default:
+//            exit(-1);
+//    }
+//    //
+//    switch(pharma) {
+//        case normal:
+//            break;
+//        case qpz:
+//            cv_coef = 0.12;
+//            E_coef = 0.08;
+//            V0v2F_coef = 0.01;
+//            break;
+//        case str:
+//            str_flag = true;
+//            V0v2F_coef = 0.01;
+//            break;
+//        default:
+//            exit(-1);
+//    }
+//
+//    one_step_time = slices_extensor * skin_time + 25 * slices_flexor;
+//    sim_time = 25 + one_step_time * steps;
+//    SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
+//
+//    // init the device
+//    int dev = 0;
+//    cudaDeviceProp deviceProp;
+//    HANDLE_ERROR(cudaGetDeviceProperties(&deviceProp, dev));
+//    printf("device %d: %s \n", dev, deviceProp.name);
+//    HANDLE_ERROR(cudaSetDevice(dev));
+//    // the main body of simulation
+//    simulate(t_network);
+//    // reset device
+//    HANDLE_ERROR(cudaDeviceReset());
+//}

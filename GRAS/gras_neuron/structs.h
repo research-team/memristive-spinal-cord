@@ -32,9 +32,8 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 Group form_group(const std::string &group_name, int nrns_in_group, const char model, const int segs);
 void custom(void (*t_network)(), int steps, int test_ind, int TEST, int E2F_coef, int V0v2F_coef, int QUADRU_Ia,
             string_code mode, string_code pharma, string_code speed);
+void simulate();
 ////////////////////
-
-
 // struct for human-readable initialization of connectomes
 struct GroupMetadata {
 	Group group;
