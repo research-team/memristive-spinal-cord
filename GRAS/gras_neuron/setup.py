@@ -13,7 +13,7 @@ def find_in_path(name, path):
             return os.path.abspath(binpath)
     return None
 
-def locate_cuda(hardpath='/usr/local/cuda/bin/nvcc'):
+def locate_cuda(hardpath='/etc/alternatives/cuda/bin/nvcc'):
     """Locate the CUDA environment on the system
     Returns a dict with keys 'home', 'nvcc', 'include', and 'lib64'
     and values giving the absolute path to each directory.
@@ -37,7 +37,7 @@ def locate_cuda(hardpath='/usr/local/cuda/bin/nvcc'):
     # form the config: CUDA home and inside folders (lib/include)
     cudaconfig = {'home': home, 'nvcc': nvcc,
                   'include': pjoin(home, 'include'),
-                  'lib64': pjoin(home, 'lib64')}
+                  'lib64': pjoin(home, 'lib')}
 
     # check if paths are exist
     for k, v in iter(cudaconfig.items()):

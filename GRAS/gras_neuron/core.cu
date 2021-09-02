@@ -90,7 +90,7 @@ const double e_extracellular = 0; // [mV]
 const double xraxial = 1e9;       // [MOhm/cm]
 
 // neuron parameters
-vector<unsigned int> vector_nrn_start_seg;
+vector<unsigned int> vector_nrn_start_seg;  // array of the beginning of the neuron segments
 vector<char> vector_models;
 vector<double> vector_Cm, vector_gnabar, vector_gkbar, vector_gl, vector_Ra, vector_diam, vector_length, vector_ena,
                vector_ek, vector_el, vector_gkrect, vector_gcaN, vector_gcaL, vector_gcak;

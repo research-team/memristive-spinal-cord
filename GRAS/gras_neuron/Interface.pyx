@@ -26,7 +26,6 @@ def py_connect_gen(generator: Py_Group, group: Py_Group, py_delay: float, py_wei
     conn_generator(generator.cpp_group, group.cpp_group, py_delay, py_weight, py_indegree)
 
 
-def start(create()):
-    cdef void ptr = create
-    custom(ptr, steps = 1, test_ind=1, TEST = 0, E2F_coef = 1, V0v2F_coef = 1, QUADRU_Ia = 1,
+cdef start(py_create(*args)):
+    custom(py_create(), steps = 1, test_ind=1, TEST = 0, E2F_coef = 1, V0v2F_coef = 1, QUADRU_Ia = 1,
             mode = quadru, pharma = normal, speed = s13)
