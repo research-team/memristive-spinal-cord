@@ -5,6 +5,7 @@ int TEST;
 double E2F_coef;
 double V0v2F_coef;
 double QUADRU_Ia;
+
 void init_network() {
 	/**
 	 * todo
@@ -95,7 +96,7 @@ void init_network() {
 		createmotif_flexor(L0[layer], L1[layer], L2F[layer], L3[layer]);
 
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 0.5, 50, 2);
+		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 0.2, 50, 2);
 	//
 
 	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025 * E2F_coef, 50, 3);
@@ -137,7 +138,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.1);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
-	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 1, 0.11, 45, 5); // 2.0
+	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 2.0, 0.1, 45, 5); // 2.0
 
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
@@ -153,40 +154,48 @@ void init_network() {
 		else
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
 		// Flexor
-		connect_fixed_indegree(L2F[layer], IP_F[layer], 1, 0.001, 500, 5); // 2.5
-		connect_fixed_indegree(IP_F[layer], mns_F, 1, 0.003, 500, 5); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 4, 0.001, 500, 5); // 2.5
+		connect_fixed_indegree(IP_F[layer], mns_F, 4, 0.003, 100, 5); // 2.75 0.125 0.2
 		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.95);
 	}
 	// skin inputs
 	for (int layer = 0; layer < layers + 1 + TEST; ++layer)
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * cv_coef);
 	// CV
-	double TESTCOEF = 35.0; // 4.25
+	double TESTCOEF = 35.0;
 	// OM1
 	connect_fixed_indegree(CV[0], OM1_0E, 2, 0.00075 * cv_coef * TESTCOEF * 0.2, 50, 3);
 	connect_fixed_indegree(CV[1], OM1_0E, 2, 0.00051 * cv_coef * TESTCOEF * 0.4, 50, 3);
 	// OM2
-	connect_fixed_indegree(CV[0], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[1], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[2], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	if (layers >= 1) {
+		connect_fixed_indegree(CV[0], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		connect_fixed_indegree(CV[1], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		if (layers >= 2) connect_fixed_indegree(CV[2], L0[1], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	}
 	// OM3
-	connect_fixed_indegree(CV[0], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[2], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[3], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
-	connect_fixed_indegree(CV[4], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	if (layers >= 2) {
+		connect_fixed_indegree(CV[0], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		connect_fixed_indegree(CV[1], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		connect_fixed_indegree(CV[2], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		if (layers >= 3) connect_fixed_indegree(CV[3], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+		if (layers >= 4) connect_fixed_indegree(CV[4], L0[2], 3, 0.00025 * cv_coef * TESTCOEF * 1.0, 50, 3);
+	}
 	// OM4
-	connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[2], L0[3], 3, 0.00022 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[3], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[4], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
-	connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * cv_coef * TESTCOEF * 0.9, 50, 3);
+	if (layers >= 3) {
+		connect_fixed_indegree(CV[1], L0[3], 3, 0.00002 * cv_coef * TESTCOEF * 0.9, 50, 3);
+		connect_fixed_indegree(CV[2], L0[3], 3, 0.00022 * cv_coef * TESTCOEF * 0.9, 50, 3);
+		connect_fixed_indegree(CV[3], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
+		if (layers >= 4) connect_fixed_indegree(CV[4], L0[3], 3, 0.00025 * cv_coef * TESTCOEF * 0.9, 50, 3);
+		if (layers >= 5) connect_fixed_indegree(CV[5], L0[3], 3, 0.00015 * cv_coef * TESTCOEF * 0.9, 50, 3);
+	}
 	// OM5
-	connect_fixed_indegree(CV[1], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[2], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[3], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[4], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
-	connect_fixed_indegree(CV[5], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	if (layers >= 4) {
+		connect_fixed_indegree(CV[1], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+		connect_fixed_indegree(CV[2], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+		connect_fixed_indegree(CV[3], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+		connect_fixed_indegree(CV[4], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+		if (layers >= 5) connect_fixed_indegree(CV[5], L0[4], 3, 0.00012 * cv_coef * TESTCOEF * 1.3, 50, 3);
+	}
 
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
@@ -199,16 +208,16 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, OM1_0F, 0.1, -0.001);
 
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, L2F[layer], 2, -1.8);
+		connect_fixed_indegree(iIP_E, L2F[layer], 2, -0.8);
 		connect_fixed_indegree(iIP_F, L2E[layer], 2, -0.5);
 	}
 	//
 	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
 	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.3);
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.1);
+		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.01); // 0.1
 		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
-		connect_fixed_indegree(iIP_F, IP_E[layer], 1, -0.5);
+		connect_fixed_indegree(iIP_F, IP_E[layer], 1, -0.08); // -0.1
 	}
 	// C=0 Flexor
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.5);
@@ -229,6 +238,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_aff_F, Ia_F, 1, 0.008);
 	connect_fixed_indegree(mns_F, R_F, 1, 0.00015);
 //	connect_fixed_indegree(Ia_F, mns_E, 1, -0.08);
+
 	connect_fixed_indegree(R_F, mns_F, 0.1, -0.00015);
 	connect_fixed_indegree(R_F, Ia_F, 1, -0.001);
 	// todo C_0
@@ -241,8 +251,8 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
-	save({muscle_E, muscle_F});
-//	save(all_groups);
+	// save({muscle_E, muscle_F});
+	save(all_groups);
 }
 
 
@@ -413,10 +423,11 @@ void simulate(int test_index) {
 int main(int argc, char **argv) {
 	enum string_code {air, toe, plt, quadru, normal, qpz, str, s6, s13, s21};
 	//
-	string_code mode = quadru;     // air toe plt quadro
+	int iter = atoi(argv[1]);
+	string_code mode = plt;     // air toe plt quadro
 	string_code pharma = normal;   // normal qpz str
 	string_code speed = s13;    // s21 s13 s6
-	step_number = 10;
+	step_number = 3;
 	TEST = 0;
 	E2F_coef = 1;
 	V0v2F_coef = 1;
@@ -505,7 +516,7 @@ int main(int argc, char **argv) {
 	printf("device %d: %s \n", dev, deviceProp.name);
 	HANDLE_ERROR(cudaSetDevice(dev));
 	// the main body of simulation
-	simulate(1);
+	simulate(iter);
 	// reset device
 	HANDLE_ERROR(cudaDeviceReset());
 }
