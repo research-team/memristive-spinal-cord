@@ -14,6 +14,8 @@ void init_network() {
 	vector<Group> E, CV, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
 	auto ees = form_group("EES", 1, GENERATOR);
+	auto MOTO_NOISE = form_group("MOTO_NOISE", 1, GENERATOR);
+
 	for(int layer = 0; layer < layers + 1; ++layer) {
 		name = to_string(layer + 1);
 		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
@@ -64,6 +66,10 @@ void init_network() {
 
 	// create EES generator
 	add_generator(ees, 0, sim_time, ees_fr);
+
+	add_generator(MOTO_NOISE, 0, sim_time, 200);
+
+
 	// create CV generators (per step)
 	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
 		for (int step_index = 0; step_index < step_number; ++step_index) {
@@ -96,7 +102,7 @@ void init_network() {
 		createmotif_flexor(L0[layer], L1[layer], L2F[layer], L3[layer]);
 
 	for(int layer = 1; layer < layers; ++layer)
-		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 2, 0.2, 50, 2);
+		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 3, 0.2, 50, 2);
 	//
 
 	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025 * E2F_coef, 50, 3);
@@ -134,11 +140,17 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1, 0.1 * QUADRU_Ia); // was 1.5ms
-	connect_fixed_indegree(Ia_aff_F, mns_F, 2.5, 0.1);
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 0.05 * QUADRU_Ia); // was 1.5ms
+	connect_fixed_indegree(Ia_aff_F, mns_F, 1.0, 0.002);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
-	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 2.0, 0.1, 45, 5); // 2.0
+	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 5, 0.10, 45, 5); // 2.0
+
+	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, mns_E, 5, 0.1, 50, 5);
+	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, mns_F, 5, 0.1, 50, 5);
+
+	// connect_fixed_outdegree_MUSCLE(MOTO_NOISE, muscle_E, 5, 0.1, 50, 5);
+	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, muscle_F, 5, 0.3, 50, 5);
 
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
@@ -154,8 +166,8 @@ void init_network() {
 		else
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
 		// Flexor
-		connect_fixed_indegree(L2F[layer], IP_F[layer], 4, 0.001, 500, 5); // 2.5
-		connect_fixed_indegree(IP_F[layer], mns_F, 4, 0.003, 100, 5); // 2.75 0.125 0.2
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 5, 0.001, 500, 5); // 2.5
+		connect_fixed_indegree(IP_F[layer], mns_F, 5, 0.003, 100, 5); // 2.75 0.125 0.2
 		connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.95);
 	}
 	// skin inputs
@@ -213,7 +225,7 @@ void init_network() {
 	}
 	//
 	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
-	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.3);
+	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.08);
 	for (int layer = 0; layer < layers; ++layer) {
 		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.01); // 0.1
 		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
@@ -250,6 +262,7 @@ void init_network() {
 	connect_fixed_indegree(Ia_F, Ia_E, 1, -0.08);
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
+
 
 	// save({muscle_E, muscle_F});
 	save(all_groups);
