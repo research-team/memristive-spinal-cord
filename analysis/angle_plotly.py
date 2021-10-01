@@ -37,11 +37,11 @@ if __name__ == "__main__":
     red = []
     black = []
 
-    with open("/home/ann/Downloads/Telegram Desktop/red.txt") as f:
+    with open("/home/b-rain/Desktop/red.txt") as f:
         for line in f:
             red.append(list(map(float, line.split())))
 
-    with open("/home/ann/Downloads/Telegram Desktop/black.txt") as f:
+    with open("/home/b-rain/Desktop/black.txt") as f:
         for line in f:
             black.append(list(map(float, line.split())))
 
@@ -84,8 +84,12 @@ if __name__ == "__main__":
 
     fig.add_trace(go.Scatter(x=np.arange(len(hip_left)), y=get_mean(hip_left), name="hip_left",
                              visible=red), 3, 1)
+    fig.add_trace(go.Scatter(x=np.arange(len(united_left)), y=get_mean(united_left), name="united_left",
+                             visible='legendonly'), 3, 1)
     fig.add_trace(go.Scatter(x=np.arange(len(hip_right)), y=get_mean(hip_right), name="hip_right",
                              visible=black), 3, 1)
+    fig.add_trace(go.Scatter(x=np.arange(len(united_right)), y=get_mean(united_right), name="united_right",
+                             visible='legendonly'), 3, 1)
 
     fig.update_layout(legend_orientation="h",
                       margin=dict(l=0, r=0, t=30, b=0),
