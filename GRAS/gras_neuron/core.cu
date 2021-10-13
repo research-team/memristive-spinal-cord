@@ -35,10 +35,8 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 const double dt = 0.025;      // [ms] simulation step
 const int cv_fr = 200;      // frequency of CV
 int step_number;  // [step] number of full cycle steps
-const int ees_fr = 40;      // frequency of EES
 const bool EXTRACELLULAR = false;
 
-const char layers = 5;      // number of OM layers (5 is default)
 unsigned int one_step_time;
 int skin_time;   // duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 int slices_extensor;
@@ -1165,7 +1163,7 @@ void initialization_kernel(curandState *state, States* S, const Parameters* P, N
 
 void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
 	/**
-	 *
+	 * todo
 	 */
 	uniform_int_distribution<int> nsyn_distr(indegree, indegree + 5);
 	normal_distribution<double> delay_distr(delay, delay / 5);
@@ -1540,22 +1538,22 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 3, 0.6, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2, -3);
-	connect_fixed_indegree(OM3, OM1, 2, -3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.55, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.2, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2.2, 0.0005); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2.2, -3);
+	connect_fixed_indegree(OM3, OM1, 2.2, -3);
 }
 
 void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 3, 0.8, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 4, 0.6, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2, 0.0002); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2, 0.0004); // 4
-	connect_fixed_indegree(OM3, OM2, 2, -1); // -1 - noise, -5 - void
-	connect_fixed_indegree(OM3, OM1, 2, -3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.61, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.2, 0.0002); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2.2, 0.0004); // 4
+	connect_fixed_indegree(OM3, OM2, 2.2, -2); // -1 - noise, -5 - void
+	connect_fixed_indegree(OM3, OM1, 2.2, -3);
 }
 
 __global__
