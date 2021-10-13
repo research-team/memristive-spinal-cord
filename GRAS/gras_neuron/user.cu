@@ -143,7 +143,7 @@ void init_network() {
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 0.025 * QUADRU_Ia); // was 1.5ms
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 0.045 * QUADRU_Ia); // was 1.5ms
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.0, 0.006);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
@@ -240,7 +240,7 @@ void init_network() {
 	}
 	//
 	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
-	connect_fixed_indegree(iIP_E, mns_F, 2, -0.08); // 0.08
+	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.08); // 0.08
 	for (int layer = 0; layer < layers; ++layer) {
 		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.01); // 0.1
 		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
@@ -249,7 +249,7 @@ void init_network() {
 	// C=0 Flexor
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.5);
 	connect_fixed_indegree(iIP_F, Ia_aff_E, 1, -3.5);
-	connect_fixed_indegree(iIP_F, mns_E, 1, -0.5);
+	connect_fixed_indegree(iIP_F, mns_E, 1, -0.35); //0.5
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(C_0[step], iIP_F, 1, 0.8);
 	}
@@ -542,10 +542,9 @@ int main(int argc, char **argv) {
 			E2F_coef = 8;
 			V0v2F_coef = 0;
 			break;
-		case plt:
-			QUADRU_Ia = 0.9;
-			cv_coef = 0.044;
-			E_coef = 0.04;
+		case plt: // 0.45
+			cv_coef = 0.061;
+			E_coef = 0.052;
 			slices_extensor = 6;
 			slices_flexor = 5;
 			E2F_coef = 8;
