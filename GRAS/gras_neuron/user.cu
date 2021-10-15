@@ -114,8 +114,10 @@ void init_network() {
 	}
 	// between delays via excitatory pools
 	// extensor
+
+	/// !!!!!
 	for(int layer = 1; layer < layers; ++layer) {
-		connect_fixed_indegree(E[layer - 1], E[layer], 2 + 0.5, 0.75); // 4.75
+		connect_fixed_indegree(E[layer - 1], E[layer], 2 + 1, 0.75); // 4.75
 	}
 	// connect E (from EES)
 	connect_fixed_indegree(E[0], OM1_0E, 2 + 0.5, 0.005 * 0.8 * E_coef, 50, 3); // 0.00040 - 0.00047
@@ -139,7 +141,7 @@ void init_network() {
 	}
 	conn_generator(ees, Ia_aff_E, 1, 2.5 * EES_test_stregth);
 	conn_generator(ees, Ia_aff_F, 1, 2.5 * EES_test_stregth);
-	conn_generator(ees, E[0], 1, 1.0 * EES_test_stregth); // NORMAL
+	conn_generator(ees, E[0], 3, 1.0 * EES_test_stregth); // NORMAL
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
 
@@ -174,7 +176,7 @@ void init_network() {
 //		connectinsidenucleus(L2E[layer]);
 //		connectinsidenucleus(L2F[layer]);
 		connect_fixed_indegree(L2E[layer], IP_E[layer], 2, 0.005, 500, 5); // 2.5
-		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.005, 500, 5); // 2.75 0.125 0.2
+		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.0045, 500, 5); // 0.005
 		if (layer > 3)
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
 		else
@@ -278,8 +280,8 @@ void init_network() {
 	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
-	// save({muscle_E, muscle_F});
-	save(all_groups);
+	save({muscle_E, muscle_F});
+	// save(all_groups);
 }
 
 
@@ -499,7 +501,7 @@ int main(int argc, char **argv) {
 		speed = s6;    
 	}
 
-	step_number = 2;
+	step_number = 11;
 	
 	TEST = 0;
 	E2F_coef = 1;
@@ -526,8 +528,8 @@ int main(int argc, char **argv) {
 		case air:
 			TEST = -1;
 			skin_time = 25;
-			cv_coef = 0.03; // 037
-			E_coef = 0.04;
+			cv_coef = 0.043; // 037
+			E_coef = 0.05;
 			slices_extensor = 5;
 			slices_flexor = 4;
 			E2F_coef = 0;
@@ -535,25 +537,26 @@ int main(int argc, char **argv) {
 			break;
 		case toe:
 			TEST = -2;
-			cv_coef = 0.035;
-			E_coef = 0.04;
+			cv_coef = 0.038;
+			E_coef = 0.05;
 			slices_extensor = 4;
 			slices_flexor = 4;
 			E2F_coef = 8;
 			V0v2F_coef = 0;
 			break;
-		case plt: // 0.45
-			cv_coef = 0.061;
-			E_coef = 0.052;
-			slices_extensor = 6;
-			slices_flexor = 5;
-			E2F_coef = 8;
-			V0v2F_coef = 0.001;
+		case plt:
+			QUADRU_Ia = 1.4;
+			cv_coef = 0.07;		// cv_coef = 0.0615;	gut 0.08
+			E_coef = 0.063;			// 	E_coef = 0.052;
+			slices_extensor = 6;	// 	slices_extensor = 6;		
+			slices_flexor = 5;		// 	slices_flexor = 5;	
+			E2F_coef = 8;			// 	E2F_coef = 8;
+			V0v2F_coef = 0.001;		// 	V0v2F_coef = 0.001;	
 			break;
 		case quadru:
 			QUADRU_Ia = 1.0;
-			cv_coef = 0.03; // 0.042
-			E_coef = 0.03; // 0.045
+			cv_coef = 0.04; // 0.042
+			E_coef = 0.052; // 0.045
 			slices_extensor = 6;
 			slices_flexor = 7;
 			E2F_coef = 8;
@@ -567,9 +570,9 @@ int main(int argc, char **argv) {
 		case normal:
 			break;
 		case qpz:
-			QUADRU_Ia = 2.5;
-			cv_coef = 0.063; // 0.12
-			E_coef = 0.063; // 0.08
+			QUADRU_Ia = 1.5;
+			cv_coef = 0.09; // 0.12
+			E_coef = 0.09; // 0.08
 			V0v2F_coef = 0.001;
 			break;
 		case str:

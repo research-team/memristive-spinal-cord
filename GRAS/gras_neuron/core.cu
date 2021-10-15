@@ -1540,20 +1540,20 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.55, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2.5, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2.5, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2.5, -3);
-	connect_fixed_indegree(OM3, OM1, 2.5, -3);
+	connect_fixed_indegree(OM1, OM3, 2.4, 0.0003); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2.4, 0.0005); // 2.5
+	connect_fixed_indegree(OM3, OM2, 2.4, -3);
+	connect_fixed_indegree(OM3, OM1, 2.4, -3);
 }
 
 void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
 	connect_fixed_indegree(OM1, OM2, 3, 0.61, 50, 5); // 0.85
 	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2.5, 0.0002); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2.5, 0.0004); // 4
-	connect_fixed_indegree(OM3, OM2, 2.5, -2); // -1 - noise, -5 - void
-	connect_fixed_indegree(OM3, OM1, 2.5, -3);
+	connect_fixed_indegree(OM1, OM3, 2.4, 0.0002); // 2.5
+	connect_fixed_indegree(OM2, OM3, 2.4, 0.0004); // 4
+	connect_fixed_indegree(OM3, OM2, 2.4, -2); // -1 - noise, -5 - void
+	connect_fixed_indegree(OM3, OM1, 2.4, -3);
 }
 
 __global__
