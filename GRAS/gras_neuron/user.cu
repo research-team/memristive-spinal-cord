@@ -459,43 +459,44 @@ int main(int argc, char **argv) {
 	int arg_exp = atoi(argv[2]);
 
 	modes bws, pharma, speed;
-	// plt 13
+
 	if (arg_exp == 0) {
+		printf("PLT 13.5\n");
 		bws = plt;     
 		pharma = normal;  
 		speed = s13;
-	// toe  
 	} else if (arg_exp == 1) {
+		printf("TOE 13.5\n");
 		bws = toe;
 		pharma = normal;
 		speed = s13;
-	// air
 	} else if (arg_exp == 2) {
+		printf("AIR 13.5\n");
 		bws = air;
 		pharma = normal;
 		speed = s13;
-	// quadru
 	} else if (arg_exp == 3) {
+		printf("QUADRU 13.5\n");
 		bws = quadru;     
 		pharma = normal;  
 		speed = s13;    
-	// qpz
 	} else if (arg_exp == 4) {
+		printf("QPZ 13.5\n");
 		bws = plt; 
 		pharma = qpz;
 		speed = s13; 
-	// str
 	} else if (arg_exp == 5) {
+		printf("STR 13.5\n");
 		bws = plt; 
 		pharma = str;
 		speed = s13;  
-	// plt 12
 	} else if (arg_exp == 6) {
+		printf("PLT 21\n");
 		bws = plt;     
 		pharma = normal;
 		speed = s21;
-	// plt 6
 	} else if (arg_exp == 7) {
+		printf("PLT 6\n");
 		bws = plt;     
 		pharma = normal;
 		speed = s6;    
@@ -537,17 +538,17 @@ int main(int argc, char **argv) {
 			break;
 		case toe:
 			TEST = -2;
-			cv_coef = 0.038;
+			cv_coef = 0.05;
 			E_coef = 0.05;
 			slices_extensor = 4;
 			slices_flexor = 4;
 			E2F_coef = 8;
 			V0v2F_coef = 0;
 			break;
-		case plt:
-			QUADRU_Ia = 1.4;
+		case plt: //!
+			QUADRU_Ia = 1.0;
 			cv_coef = 0.07;		// cv_coef = 0.0615;	gut 0.08
-			E_coef = 0.063;			// 	E_coef = 0.052;
+			E_coef = 0.05;			// 	E_coef = 0.052;
 			slices_extensor = 6;	// 	slices_extensor = 6;		
 			slices_flexor = 5;		// 	slices_flexor = 5;	
 			E2F_coef = 8;			// 	E2F_coef = 8;
@@ -555,8 +556,8 @@ int main(int argc, char **argv) {
 			break;
 		case quadru:
 			QUADRU_Ia = 1.0;
-			cv_coef = 0.04; // 0.042
-			E_coef = 0.052; // 0.045
+			cv_coef = 0.05; // 0.042
+			E_coef = 0.05; // 0.045
 			slices_extensor = 6;
 			slices_flexor = 7;
 			E2F_coef = 8;
@@ -571,8 +572,8 @@ int main(int argc, char **argv) {
 			break;
 		case qpz:
 			QUADRU_Ia = 1.5;
-			cv_coef = 0.09; // 0.12
-			E_coef = 0.09; // 0.08
+			cv_coef = 0.15; // 0.05 1ю15
+			E_coef = 0.17; // 0.07  3ю0
 			V0v2F_coef = 0.001;
 			break;
 		case str:
