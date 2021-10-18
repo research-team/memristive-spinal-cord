@@ -556,8 +556,8 @@ int main(int argc, char **argv) {
 			break;
 		case quadru:
 			QUADRU_Ia = 1.0;
-			cv_coef = 0.05; // 0.042
-			E_coef = 0.05; // 0.045
+			cv_coef = 0.036; // 0.042
+			E_coef = 0.039; // 0.045
 			slices_extensor = 6;
 			slices_flexor = 7;
 			E2F_coef = 8;
