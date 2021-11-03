@@ -68,7 +68,7 @@ class Metadata:
 			return [list(flatten(d)) for d in data]
 		return data
 
-	def get_peak_per_step(self, muscle='E'):
+	def get_peak_per_step(self, border='poly_tail', muscle='E'):
 		rats = self.get_rats_id()
 		if type(rats) is int:
 			rats = [rats]
@@ -77,7 +77,14 @@ class Metadata:
 		for rat_id in rats:
 			times = self.get_peak_times(rat_id, unslice=True, muscle=muscle)
 			for time in times:
-				data.append(len(time))
+				time = np.array(time) * self.pdata['dstep_to']
+				if border == 'poly_tail':
+					# [0 - 3] and [8 - 25]
+					mask = (time <= 3) | (8 <= time)
+				else:
+					# [T1, T2]
+					mask = (border[0] <= time) & (time <= border[1])
+				data.append(len(time[mask]))
 
 		return data
 
@@ -127,6 +134,18 @@ class Metadata:
 
 	def get_latency_volume(self, rat, muscle='E'):
 		return self.pdata['rats_data'][muscle][rat]['latency_volume']
+
+	def get_volumes(self, muscle='E'):
+		rats = self.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		data = []
+		for rat_id in rats:
+			volume = self.get_latency_volume(rat_id, muscle=muscle)
+			data.append(volume)
+
+		return data
 
 	@property
 	def shortname(self):
@@ -232,10 +251,18 @@ class Analyzer:
 		kde_ax.set_xlim(border[0], border[1])
 		kde_ax.set_ylim(border[2], border[3])
 		plt.tight_layout()
+
 	@staticmethod
 	def form_1d_kde(X, xmin, xmax):
 		xx = np.linspace(xmin, xmax, 1000)
 		dx = st.gaussian_kde(X)(xx)
+		# importr('ks')
+		# data = FloatVector(X)
+		# kde_data = r['kde'](data)
+		# kde_data = dict(zip(kde_data.names, list(kde_data)))
+		# ydata = kde_data["estimate"]
+		# xdata = kde_data["eval.points"]
+
 		return xx, dx
 
 	@staticmethod
@@ -266,11 +293,29 @@ class Analyzer:
 		metadata2 = Metadata(self.pickle_folder, comb[1][0])
 
 		meta_names = (metadata1.shortname, metadata2.shortname)
-		mode_0 = metadata1.get_peak_per_step()
-		mode_1 = metadata2.get_peak_per_step()
-		print(f'normality test {meta_names[0]} - {st.shapiro(mode_0)} normality test {meta_names[1]} - {st.shapiro(mode_1)}')
+		mode_0 = metadata1.get_peak_per_step(muscle=muscletype)
+		mode_1 = metadata2.get_peak_per_step(muscle=muscletype)
+
+		# print(f'normality test {meta_names[0]} - {st.shapiro(mode_0)} normality test {meta_names[1]} - {st.shapiro(mode_1)}')
 
 		print(f'step number comparison {meta_names[0]} vs {meta_names[1]} t-test result - {st.ttest_ind(mode_0, mode_1)}')
+		print(f'mean of {meta_names[0]} - {np.mean(mode_0)} +- {np.std(mode_0)} and {meta_names[1]} mean {np.mean(mode_1)} +- {np.std(mode_1)}')
+
+	def volume_compare(self, comb, muscletype='E'):
+		if len(comb) != 2:
+			raise Exception("Only pairing analysis")
+
+		metadata1 = Metadata(self.pickle_folder, comb[0][0])
+		metadata2 = Metadata(self.pickle_folder, comb[1][0])
+
+		meta_names = (metadata1.shortname, metadata2.shortname)
+		mode_0 = metadata1.get_volumes()
+		mode_1 = metadata2.get_volumes()
+		# mode_0 = np.random.choice(mode_0, size=30)
+		# mode_1 = np.random.choice(mode_1, size=30)
+
+
+		print(f'volume comparison {meta_names[0]} vs {meta_names[1]} t-test result - {st.ttest_ind(mode_0, mode_1)}')
 		print(f'mean of {meta_names[0]} - {np.mean(mode_0)} +- {np.std(mode_0)} and {meta_names[1]} mean {np.mean(mode_1)} +- {np.std(mode_1)}')
 
 
@@ -295,6 +340,10 @@ class Analyzer:
 		#
 		all_pval = []
 		iou_values = []
+		iouX_values = []
+		iouY_values = []
+
+		amp_p_val = []
 		for rat1 in comb[0][1]:
 			for rat2 in comb[1][1]:
 				# check if pval file is exist to save a calulcation time
@@ -319,7 +368,7 @@ class Analyzer:
 								time[time <= 3] += 25
 								mask = time >= 8
 							else:
-								mask = (border[0] <= time) & (time <= border[1]) & (sl <= slice_border)
+								mask = (border[0] <= time) & (time <= border[1]) #& (sl <= slice_border)
 							t1.append(time[mask])
 							a1.append(ampl[mask])
 							s1.append(sl[mask])
@@ -333,7 +382,7 @@ class Analyzer:
 								time[time <= 3] += 25
 								mask = time >= 8
 							else:
-								mask = (border[0] <= time) & (time <= border[1]) & (sl <= slice_border)
+								mask = (border[0] <= time) & (time <= border[1]) #& (sl <= slice_border)
 							t2.append(time[mask])
 							a2.append(ampl[mask])
 							s2.append(sl[mask])
@@ -346,21 +395,29 @@ class Analyzer:
 						xmin, xmax, ymin, ymax = *axis_borders[ax1_index], *axis_borders[ax2_index]
 
 						iou2d = []
+						iouX = []
+						iouY = []
 						for x1, y1 in zip(X1, Y1):
 							for x2, y2 in zip(X2, Y2):
 								# 1D x1 x2
-								# xx1, dx1 = self.form_1d_kde(X1, xmin=xmin, xmax=xmax)
-								# xx2, dx2 = self.form_1d_kde(X2, xmin=xmin, xmax=xmax)
-								# iou1d_x = self.overlap_density(dx1, dx2)
+								xx1, dx1 = self.form_1d_kde(x1, xmin=xmin, xmax=xmax)
+								xx2, dx2 = self.form_1d_kde(x2, xmin=xmin, xmax=xmax)
+								iou1d_x = self.overlap_density(dx1, dx2)
+								iouX.append(iou1d_x)
 								# 1D y1 y2
-								# yy1, dy1 = self.form_1d_kde(Y1, xmin=ymin, xmax=ymax)
-								# yy2, dy2 = self.form_1d_kde(Y2, xmin=ymin, xmax=ymax)
-								# iou1d_y = self.overlap_density(dy1, dy2)
+								yy1, dy1 = self.form_1d_kde(y1, xmin=ymin, xmax=ymax)
+								yy2, dy2 = self.form_1d_kde(y2, xmin=ymin, xmax=ymax)
+								iou1d_y = self.overlap_density(dy1, dy2)
+								iouY.append(iou1d_y)
+
 								# 2D
 								_, _, z1 = self.form_2d_kde(x1, y1, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 								_, _, z2 = self.form_2d_kde(x2, y2, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 								iou2d.append(self.overlap_density(z1, z2))
 						iou_values.append(iou2d)
+						iouX_values.append(iouX)
+						iouY_values.append(iouY)
+
 
 					if get_pvalue:
 						"""
@@ -467,6 +524,7 @@ class Analyzer:
 					      f"'{axis[0]} merged': {pval_t}; "
 					      f"'{axis[1]} merged': {pval_a}; "
 					      f"2D merged: {pval_2d}")
+					amp_p_val.append(pval_a)
 					# plot data if necessary
 					if plot:
 						kde_border = (*axis_borders[ax1_index], *axis_borders[ax2_index])
@@ -480,8 +538,12 @@ class Analyzer:
 		fullname = f'{self.plots_folder}/{filename}_box.pdf'
 		if get_pvalue:
 			plt.boxplot(list(flatten(all_pval)))
+			print(f'median ampl_pval - {np.median(amp_p_val)}')
 		if get_iou:
 			plt.boxplot(list(flatten(iou_values)))
+			print(f"{meta_names[0]} rat {rat1} vs {meta_names[1]} rat {rat2} - {muscletype} muscle"
+				  f"'{axis[0]} median IOU': {np.median(list(flatten(iouX_values)))}; "
+				  f"'{axis[1]} median IOU': {np.median(list(flatten(iouY_values)))}; ")
 			print(f'median IOU - {np.median(list(flatten(iou_values)))}')
 		plt.ylim(0, 1)
 		plt.savefig(fullname, format='pdf')
@@ -739,7 +801,7 @@ class Analyzer:
 		# constant number of slices (mode, speed): (extensor, flexor))
 		slices_number_dict = {
 			("PLT", '21'): (6, 5),
-			("PLT", '13.5'): (12, 5),
+			("PLT", '13.5'): (12, 7),
 			("PLT", '6'): (30, 5),
 			("TOE", '21'): (4, 4),
 			("TOE", '13.5'): (8, 4),
@@ -771,9 +833,9 @@ class Analyzer:
 			abs_filename = f"{folder}/{filename}"
 			# read the raw data
 			dataset = read_hdf5(abs_filename, rat=rat_id)
+			print(dataset)
 			if dataset is None:
 				continue
-
 			dataset = subsampling(dataset, dstep_from=dstep_from, dstep_to=dstep_to)
 			if source == "bio":
 				# get the size of the data which we are waiting for
@@ -792,23 +854,23 @@ class Analyzer:
 					begin = 0 * standard_slice_length_in_steps
 					print(begin)
 					end = begin + e_slices_number * standard_slice_length_in_steps
-					# full_size = int(e_slices_number * 25 / dstep_to)
+					full_size = int(e_slices_number * 25 / dstep_to)
 				# extract data of flexor
 				else:
 					begin = standard_slice_length_in_steps * (e_slices_number + 0)
-					# full_size = int(f_slices_number * 25 / dstep_to)
+					full_size = int(f_slices_number * 25 / dstep_to)
 
-					if hz_analysis:
-						ees_int = int(1000 / metadata['rate'])
-						slice_len = 50#((50 // ees_int) * ees_int)
-						slice_frame = int(slice_len / dstep_to)
-						begin = 0#slice_frame * 3
-					end = begin + (7 if metadata['pedal'] == "4" else 5) * standard_slice_length_in_steps
+					# if hz_analysis:
+					# 	ees_int = int(1000 / metadata['rate'])
+					# 	slice_len = 50#((50 // ees_int) * ees_int)
+					# 	slice_frame = int(slice_len / dstep_to)
+					# 	begin = 0#slice_frame * 3
+					end = begin + (7 if metadata['pedal'] == "4" else f_slices_number) * standard_slice_length_in_steps
 					print(begin, end)
 				# trim redundant simulation data
 				dataset = trim_data(dataset, begin, end)
 				prepared_data = np.array(calibrate_data(dataset, source))
-				# prepared_data = np.array([d + [0] * (full_size - len(d)) for d in calibrate_data(dataset, source)])
+				prepared_data = np.array([d + [0] * (full_size - len(d)) for d in calibrate_data(dataset, source)])
 				# print(len(prepared_data))
 			if hz_analysis:
 				if muscle == "E":
@@ -854,7 +916,7 @@ class Analyzer:
 				if muscle == "E":
 					sliced_data = [np.array_split(beg, e_slices_number) for beg in prepared_data]
 				else:
-					sliced_data = [np.array_split(beg, (7 if metadata['pedal'] == "4" else 5)) for beg in prepared_data]
+					sliced_data = [np.array_split(beg, (7 if metadata['pedal'] == "4" else f_slices_number)) for beg in prepared_data]
 				sliced_data = np.array(sliced_data)
 
 			print(sliced_data.shape)
@@ -885,6 +947,52 @@ class Analyzer:
 			metadata['rats_data'][muscle][rat_id]['latency_volume'] = latency_volume
 
 	#
+	@staticmethod
+	def fft(myogram, sampling_interval, title):
+		min_Hz, max_Hz = 5, 250
+		sampling_frequency = 1000 / sampling_interval  # frequency of the data [Hz]
+		sampling_size = len(myogram)  # get size (length) of the data
+
+		# frequency domain representation
+		fourier_transform = np.fft.fft(myogram) / sampling_size  # normalize amplitude
+		fourier_transform = abs(fourier_transform[range(int(sampling_size / 2))])  # exclude sampling frequency
+		# remove the mirrored part of the FFT
+		values = np.arange(int(sampling_size / 2))
+		time_period = sampling_size / sampling_frequency
+		frequencies = values / time_period
+		#
+		mask = (frequencies <= max_Hz) & (frequencies >= min_Hz)
+		frequencies = frequencies[mask]
+		fourier_transform = fourier_transform[mask]
+
+		# plot FFT
+		plt.close()
+		plt.title("FFT " + title)
+		plt.plot(frequencies, fourier_transform)
+		plt.xlabel('Frequency')
+		plt.ylabel('Amplitude')
+		plt.grid(axis='x')
+		plt.xlim([min_Hz, max_Hz])
+		xticks = np.arange(0, frequencies.max() + 1, 10)
+		plt.xticks(xticks)
+		plt.tight_layout()
+		plt.show()
+
+	def fft_analysis(self, source, rats, muscle='E'):
+		if type(source) is not Metadata:
+			metadata = Metadata(self.pickle_folder, source)
+		else:
+			metadata = source
+
+		if rats is None or rats is all:
+			rats = metadata.get_rats_id()
+		if type(rats) is int:
+			rats = [rats]
+
+		for rat_id in rats:
+			merged_myogram = metadata.get_myograms(rat_id, muscle=muscle).flatten()
+			self.fft(merged_myogram, metadata.dstep_to, title=f"{metadata.shortname} rat {rat_id}")
+
 	def prepare_data(self, folder, dstep_to=None, fill_zeros=True, filter_val=0.05, hz_analysis=False):
 		"""
 
@@ -988,7 +1096,7 @@ class Analyzer:
 			rats = metadata.get_rats_id()
 		if type(rats) is int:
 			rats = [rats]
-
+		ampls = []
 		for muscle in ['E']:#, 'F']:
 			print("Filename | rat id | fMEPs | number of peaks per fMEP | median peak height | latency volume")
 			for rat_id in rats:
@@ -996,6 +1104,17 @@ class Analyzer:
 				h = metadata.get_peak_median_height(rat_id, border='poly_tail', muscle=muscle)
 				f = metadata.get_fMEP_count(rat_id, muscle=muscle)
 				v = metadata.get_latency_volume(rat_id, muscle=muscle)
+				a = metadata.get_peak_ampls(rat_id, muscle=muscle, flat=True)
+				times = metadata.get_peak_times(rat_id, muscle=muscle, flat=True) * metadata.dstep_to
+				border='poly_tail'
+				if border == 'poly_tail':
+					# [0 - 3] and [8 - 25]
+					mask = (times <= 3) | (8 <= times)
+				else:
+					# [T1, T2]
+					mask = (border[0] <= times) & (times <= border[1])
+
+				ampls.append(a[mask])
 				# plt.plot(metadata.get_peak_ampls(rat_id, muscle='E', flat=True))
 
 
@@ -1020,6 +1139,11 @@ class Analyzer:
 				# distr = {1: 'uni', 2: 'bi'}
 				# print(f"{metadata.shortname} #{rat_id} ({distr.get(len(modes), 'multi')}modal): {modes} ms")
 				# plt.plot(xx, dx, label=metadata.shortname)
+			# print(list(flatten(ampls)))
+			mode_0 = metadata.get_peak_per_step()
+			print(f'mean ampls of {metadata.shortname} - {np.median(list(flatten(ampls)))} +- {np.std(list(flatten(ampls)))}')
+			print(f'mean of peaks {metadata.shortname} - {np.mean(mode_0)} +- {np.std(mode_0)}')
+
 			print("- " * 10)
 
 	def plot_fMEP_boxplots(self, source, borders, rats=None, show=False, slice_ms=None):
@@ -1589,10 +1713,10 @@ class Analyzer:
 			# re-present grid back to 2D
 			z = np.reshape(a, xmesh.shape)
 			# set the mid isoline (2/3)
-			if any(n in shortname for n in ["AIR", "TOE", "PLT"]):
+			if any(n in shortname for n in ["AIR", "TOE"]):
 				z_mid = (np.max(z) + np.min(z)) / 2
 			else:
-				z_mid = (np.max(z) + np.min(z)) / 2
+				z_mid = (np.max(z) + np.min(z)) / 3 * 2
 
 			conty_ymax = -np.inf
 			conty_ymin = np.inf
@@ -1707,7 +1831,7 @@ class Analyzer:
 		if only_volume:
 			return volumes
 
-	def plot_shadow_slices(self, source, rats=None, only_extensor=False, add_kde=False, show=False):
+	def plot_shadow_slices(self, source, rats=None, only_extensor=False, add_kde=False, show=False, add_angle=False):
 		shadow_color = "#472650"
 		kde_color = "#275b78"
 		k_fliers_high, k_fliers_low = 5, 6
@@ -1791,7 +1915,7 @@ class Analyzer:
 				x = metadata.get_peak_times(rat_id, muscle='E', flat=True) * dstep_to
 				y = metadata.get_peak_slices(rat_id, muscle='E', flat=True)
 				borders = 0, slice_in_ms, -1, e_slices_number
-				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15, addtan=False)
+				self._contour_plot(x=x, y=y, color=kde_color, ax=ax, z_prev=[0], borders=borders, levels_num=15, addtan=add_angle)
 				# ax.plot(x, y, '.', c='k', zorder=3, ms=4)
 
 				if flexor_flag:
@@ -2160,7 +2284,7 @@ class Analyzer:
 		colors = [Color(hsl=(h_norm, s_norm, l_level)).rgb for l_level in light_gradient]
 		# plot filled contour
 		ax.contour(xx, yy, z, levels=levels, linewidths=1, colors=color)
-		z_mid = (np.max(z) + np.min(z)) / 3 * 2
+		z_mid = (np.max(z) + np.min(z)) / 2
 		mid_contours = plt.contour(xx, yy, z, levels=[z_mid], alpha=0).allsegs[0]
 		for contour in mid_contours:
 			plt.plot(contour[:, 0], contour[:, 1], c='#f2aa2e', linewidth=4)
@@ -2175,14 +2299,14 @@ class Analyzer:
 			ind = np.lexsort((y,x))
 			sorted_x = np.array([x[i] for i in ind])
 			sorted_y = np.array([y[i] for i in ind])
-			print(sorted_x)
-			print(sorted_y)
+			# print(sorted_x)
+			# print(sorted_y)
 
-			mask = ((sorted_x >= 15) & (sorted_x <= 23) & (sorted_y > 3))
+			mask = ((sorted_x >= 10) & (sorted_x <= 15) & (sorted_y >= 3))
 			masked_x = sorted_x[mask]
 			masked_y = sorted_y[mask]
-			print(masked_x)
-			print(masked_y)
+			# print(masked_x)
+			# print(masked_y)
 
 			t,c,k = interpolate.splrep(masked_x, masked_y, k=3)
 			b = interpolate.BSpline(t, c, k)
@@ -2191,10 +2315,10 @@ class Analyzer:
 			# print(fsec)
 			# print(interpolate.sproot((t, c - fsec, k)))
 
-			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[0]
-			# print(interpolate.sproot((fsec.t, fsec.c, k)))
+			pointcur = interpolate.sproot((fsec.t, fsec.c, k))[-1]
+			print(interpolate.sproot((fsec.t, fsec.c, k)))
 			spl = interpolate.splrep(sorted_x, sorted_y, k=1)
-			small_t = np.arange(pointcur - 3.0, pointcur + 0.8, 0.01)
+			small_t = np.arange(pointcur - 0.01, pointcur + 0.01, 0.005)
 			# print(small_t)
 			# t,c,k = interpolate.splrep(masked_x, masked_y, k=1)
 			fa = interpolate.splev(pointcur, spl, der=0)     # f(a)
@@ -2203,9 +2327,11 @@ class Analyzer:
 
 			tan = fa + fprime * (small_t - pointcur) # tangent
 			# print(tan)
-			slopedegree = math.atan2((small_t[-1] - small_t[0]), (tan[-1] - tan[0])) * 180 / math.pi
+			slopedegree = math.atan2((tan[-1] - tan[0]), (small_t[-1] - small_t[0])) * 180 / math.pi
 			print(f'SLOPE IN DEGREE - {slopedegree}')
 			plt.plot(small_t, tan, c='#a6261d', linewidth=5)
+			# for i in interpolate.sproot((fsec.t, fsec.c, k)):
+			# 	plt.plot(i, interpolate.splev(i, spl, der=0) ,  'om')
 			# plt.plot(pointcur, fa,  'om')
 
 		ax.contourf(xx, yy, z, levels=levels, colors=colors, alpha=0.7, zorder=0)
