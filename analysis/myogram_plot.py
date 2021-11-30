@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, lfilter, argrelextrema
+from scipy.ndimage import gaussian_filter
 
 fs = 10000.0
-lowcut = 100.0
+lowcut = 200.0
 highcut = 1000.0
 
 
@@ -25,22 +26,70 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
 def get_mean(data):
     meaned = []
     for i, a in enumerate(data):
-        if i < 20:
+        if i < 10:
             meaned.append(a)
         else:
             s = 0
-            for j in range(1, 21):
+            for j in range(1, 11):
                 s += data[i - j]
-            meaned.append(s / 20)
+            meaned.append(s / 10)
 
     return meaned
 
 
+def outline(array):
+    diff_array = np.diff(array)
+    diff_array = np.append(diff_array, 0)
+
+    # points of crossing of myogram and its diff
+    cross_idx = np.argwhere(np.diff(np.sign(array - diff_array))).flatten()
+
+    max_x_arr = []
+    max_y_arr = []
+    min_x_arr = []
+    min_y_arr = []
+    total_dict = {max: [max_x_arr, max_y_arr], min: [min_x_arr, min_y_arr]}
+    for i in range(len(cross_idx) - 1):
+        part = array[cross_idx[i]: cross_idx[i + 1]]
+        if all(np.sign(part) == 1):
+            max_val = max(part)
+            total_dict[max][1].append(max_val)
+            total_dict[max][0].append((np.where(array == max_val)[0][0]))
+        else:
+            min_val = min(part)
+            total_dict[min][1].append(min_val)
+            total_dict[min][0].append((np.where(array == min_val)[0][0]))
+    return total_dict
+
+
+# useless
+# def adding_points(x_arr, y_arr):
+#     merged_points = []
+#     for i in range(x_arr[0]):
+#         if i < x_arr[0]:
+#             merged_points.append(y_arr[0])
+#     for idx in range(len(x_arr) - 1):
+#         x_val = x_arr[idx]
+#         y_val = y_arr[idx]
+#         next_x_val = x_arr[idx + 1]
+#         next_y_val = y_arr[idx + 1]
+#         merged_points.append(y_val)
+#         must_have_val = next_x_val - x_val
+#         max_difference_btw_y = next_y_val - y_val
+#         tan = max_difference_btw_y / must_have_val
+#
+#         for i in range(1, must_have_val):
+#             plus_val = y_val + (i * tan)
+#             merged_points.append(plus_val)
+#
+#     return np.asarray(merged_points)
+
+
 if __name__ == "__main__":
-    with open("Y3.txt") as f:
+    with open("/home/ann/Desktop/plot_mio/8.txt") as f:
         all_lines = f.readlines()
 
-    all_lines = all_lines[400000:410000]
+    all_lines = all_lines[10000:20000]
 
     arr = []
     for line in all_lines:
@@ -54,9 +103,7 @@ if __name__ == "__main__":
         arr.append(res_arr)
 
     arr = np.array(arr)
-
     arr = arr.T
-
     left_ankle_angle_index = 4
     left_hip_angle_index_1 = 2
     left_hip_angle_index_2 = 5
@@ -91,45 +138,25 @@ if __name__ == "__main__":
     plt.plot(left_ankle_angle, label="ankle left")
     plt.legend()
 
+    total_dict_myo_outline = outline(left_ex_ankle)
+    max_arr_myo_outline = total_dict_myo_outline[max]
+    min_arr_myo_outline = total_dict_myo_outline[min]
+
     plt.subplot(3, 1, 2)
-    plt.plot(left_hip_angle, label="hip left")
-    plt.legend()
+    plt.plot(left_ex_ankle)
+    plt.plot(max_arr_myo_outline[0], gaussian_filter(max_arr_myo_outline[1], sigma=2, mode="wrap"), color="black")
+    plt.plot(min_arr_myo_outline[0], gaussian_filter(min_arr_myo_outline[1], sigma=2, mode="wrap"), color="black")
+
+
+    total_dict_myo_outline2 = outline(left_fl_ankle)
+    max_arr_myo_outline2 = total_dict_myo_outline2[max]
+    min_arr_myo_outline2 = total_dict_myo_outline2[min]
 
     plt.subplot(3, 1, 3)
-    plt.plot(left_ex_ankle, label="ext ankle left")
-    plt.legend()
+    plt.plot(left_fl_ankle)
+    plt.plot(max_arr_myo_outline2[0], gaussian_filter(max_arr_myo_outline2[1], sigma=2, mode="wrap"),  color="black")
+    plt.plot(min_arr_myo_outline2[0], gaussian_filter(min_arr_myo_outline2[1], sigma=2, mode="wrap"),  color="black")
 
-    diff_array = np.diff(left_ex_ankle)
-    diff_array = np.append(diff_array, 0)
-
-    cross_idx = np.argwhere(np.diff(np.sign(left_ex_ankle - diff_array))).flatten()
-
-    max_x_arr = []
-    max_y_arr = []
-    min_x_arr = []
-    min_y_arr = []
-    for i in range(len(cross_idx) - 1):
-        part = left_ex_ankle[cross_idx[i]: cross_idx[i + 1]]
-        print(part)
-        if all(np.sign(part) == 1):
-            print(np.sign(part))
-            max_val = max(part)
-            max_y_arr.append(max_val)
-            max_x_arr.append((np.where(left_ex_ankle == max_val)[0][0]))
-        # print(max_val_arr)
-        # exit()
-        # elif all(np.sign(part)) == -1:
-        else:
-            print(np.sign(part))
-            min_val = min(part)
-            min_y_arr.append(min_val)
-            min_x_arr.append((np.where(left_ex_ankle == min_val)[0][0]))
-
-    # for num, data in enumerate(left_ankle_angle):
-    # 	if num % 100 == 0:
-    # 		plt.axvline(x=num, color="red")
-    plt.plot(max_x_arr, max_y_arr, color="red")
-    plt.plot(min_x_arr, min_y_arr, color="red")
     plt.show()
 
 # plt.subplot(12, 1, 1)
