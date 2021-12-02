@@ -73,33 +73,33 @@ def outline(array):
 
 
 # useless
-# def adding_points(x_arr, y_arr):
-#     merged_points = []
-#     for i in range(x_arr[0]):
-#         if i < x_arr[0]:
-#             merged_points.append(y_arr[0])
-#     for idx in range(len(x_arr) - 1):
-#         x_val = x_arr[idx]
-#         y_val = y_arr[idx]
-#         next_x_val = x_arr[idx + 1]
-#         next_y_val = y_arr[idx + 1]
-#         merged_points.append(y_val)
-#         must_have_val = next_x_val - x_val
-#         max_difference_btw_y = next_y_val - y_val
-#         tan = max_difference_btw_y / must_have_val
-#
-#         for i in range(1, must_have_val):
-#             plus_val = y_val + (i * tan)
-#             merged_points.append(plus_val)
-#
-#     return np.asarray(merged_points)
+def adding_points(x_arr, y_arr):
+    merged_points = []
+    for i in range(x_arr[0]):
+        if i < x_arr[0]:
+            merged_points.append(y_arr[0])
+    for idx in range(len(x_arr) - 1):
+        x_val = x_arr[idx]
+        y_val = y_arr[idx]
+        next_x_val = x_arr[idx + 1]
+        next_y_val = y_arr[idx + 1]
+        merged_points.append(y_val)
+        must_have_val = next_x_val - x_val
+        max_difference_btw_y = next_y_val - y_val
+        tan = max_difference_btw_y / must_have_val
+
+        for i in range(1, must_have_val):
+            plus_val = y_val + (i * tan)
+            merged_points.append(plus_val)
+
+    return np.asarray(merged_points)
 
 
 if __name__ == "__main__":
-	with open("/home/ann/Desktop/plot_mio/8.txt") as f:
+	with open("/home/b-rain/Desktop/plot_mio/8.txt") as f:
 		all_lines = f.readlines()
 
-	all_lines = all_lines[100000:140000]
+	all_lines = all_lines[100000:220000]
 
 	arr = []
 	for line in all_lines:
@@ -185,34 +185,33 @@ if __name__ == "__main__":
 	for i in range(len(index_of_maximum) - 1):
 		start_step = index_of_maximum[i]
 		end_step = index_of_maximum[i + 1]
-		gaussian_angle = gaussian_angle[start_step:end_step]
-		plt.plot(gaussian_angle, linestyle="-")
+		# gaussian_angle = gaussian_angle[start_step:end_step]
+		plt.plot(gaussian_angle[start_step:end_step], linestyle="-")
 
 	# plt.legend()
 
 	total_dict_myo_outline = outline(left_ex_ankle)
-	max_arr_myo_outline = total_dict_myo_outline[max]
-	min_arr_myo_outline = total_dict_myo_outline[min]
 
 	plt.subplot(3, 1, 2)
-	# plt.plot(left_ex_ankle)
+	ceiling_arr_myo_outline = gaussian_filter(adding_points(total_dict_myo_outline[max][0], total_dict_myo_outline[max][1]), sigma=10)
+	floor_arr_myo_outline = gaussian_filter(adding_points(total_dict_myo_outline[min][0], total_dict_myo_outline[min][1]), sigma=10)
 	for i in range(len(index_of_maximum) - 1):
 		start_step = index_of_maximum[i]
 		end_step = index_of_maximum[i + 1]
-		plt.plot(max_arr_myo_outline[0][start_step:end_step], gaussian_filter(max_arr_myo_outline[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
-		plt.plot(min_arr_myo_outline[0][start_step:end_step], gaussian_filter(min_arr_myo_outline[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+		plt.plot(ceiling_arr_myo_outline[start_step:end_step])
+		plt.plot(floor_arr_myo_outline[start_step:end_step])
 
-	total_dict_myo_outline2 = outline(left_fl_ankle)
-	max_arr_myo_outline2 = total_dict_myo_outline2[max]
-	min_arr_myo_outline2 = total_dict_myo_outline2[min]
+	# total_dict_myo_outline2 = outline(left_fl_ankle)
+	# max_arr_myo_outline2 = total_dict_myo_outline2[max]
+	# min_arr_myo_outline2 = total_dict_myo_outline2[min]
 
 	plt.subplot(3, 1, 3)
 	# plt.plot(left_fl_ankle)
-	for i in range(len(index_of_maximum) - 1):
-		start_step = index_of_maximum[i]
-		end_step = index_of_maximum[i + 1]
-		plt.plot(max_arr_myo_outline2[0][start_step:end_step], gaussian_filter(max_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
-		plt.plot(min_arr_myo_outline2[0][start_step:end_step], gaussian_filter(min_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+	# for i in range(len(index_of_maximum) - 1):
+	# 	start_step = index_of_maximum[i]
+	# 	end_step = index_of_maximum[i + 1]
+	# 	plt.plot(max_arr_myo_outline2[0][start_step:end_step], gaussian_filter(max_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+	# 	plt.plot(min_arr_myo_outline2[0][start_step:end_step], gaussian_filter(min_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
 
 	plt.show()
 
