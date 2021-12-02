@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from scipy.signal import butter, lfilter, argrelextrema
 from scipy.ndimage import gaussian_filter
-from sklearn.preprocessing import normalize
 
 # def normalize(arr, t_min, t_max):
 # 	norm_arr = []
@@ -97,7 +96,7 @@ def outline(array):
 
 
 if __name__ == "__main__":
-	with open("/home/b-rain/Desktop/plot_mio/8.txt") as f:
+	with open("/home/ann/Desktop/plot_mio/8.txt") as f:
 		all_lines = f.readlines()
 
 	all_lines = all_lines[100000:140000]
@@ -147,27 +146,49 @@ if __name__ == "__main__":
 
 	gaussian_angle = gaussian_filter(left_hip_angle, sigma=50)
 	max_val = max(gaussian_angle)
-	dispersion = 0.3
-	range_ = []
+	sign = np.sign(max_val)
+	percent_for_dispersion = 0.25
+	percent_for_limiting = 0.75
+	dispersion_for_max_peak = (max_val - min(gaussian_angle)) * percent_for_dispersion
+	range_limiting = (max_val - min(gaussian_angle)) * percent_for_limiting
+	range_of_peaks = []
 	array_of_maximum = []
 	index_of_maximum = []
 	for i in gaussian_angle:
-		if max_val + dispersion >= i > max_val - dispersion:
-			range_.append(i)
-		if range_ and i < (max_val-1):
-			max_in_diapason = max(range_)
-			array_of_maximum.append(max_in_diapason)
-			index_of_maximum.append((np.where(gaussian_angle == max_in_diapason)[0][0]))
-			range_ = []
+		if sign * (abs(max_val) + dispersion_for_max_peak) <= i < sign * (abs(max_val) - dispersion_for_max_peak):
+			range_of_peaks.append(i)
+		if range_of_peaks and i < (max_val - range_limiting):
+			max_in_range = max(range_of_peaks)
+			array_of_maximum.append(max_in_range)
+			index_of_maximum.append((np.where(gaussian_angle == max_in_range)[0][0]))
+			range_of_peaks = []
 
 	# plt.plot(gaussian_angle, linestyle=" ", marker="o")
 	# plt.plot(index_of_maximum, array_of_maximum, linestyle=" ", marker="o", color = "red")
 
-	plt.subplot(3, 1, 1)
-	plt.plot(gaussian_angle, linestyle=" ", marker="o")
-	plt.plot(index_of_maximum, array_of_maximum, linestyle=" ", marker="o", color="red")
+	# plt.show()
+	# exit()
 
-	plt.legend()
+	# for i in range(len(index_of_maximum) - 1):
+	# 	start_step = index_of_maximum[i]
+	# 	end_step = index_of_maximum[i + 1]
+	# 	gaussian_angle = gaussian_angle[start_step:end_step]
+	# 	plt.plot(gaussian_angle, linestyle="-")
+	#
+	# plt.show()
+	# exit()
+
+
+	plt.subplot(3, 1, 1)
+	# plt.plot(gaussian_angle, linestyle=" ", marker="o")
+	# plt.plot(index_of_maximum, array_of_maximum, linestyle=" ", marker="o", color="red")
+	for i in range(len(index_of_maximum) - 1):
+		start_step = index_of_maximum[i]
+		end_step = index_of_maximum[i + 1]
+		gaussian_angle = gaussian_angle[start_step:end_step]
+		plt.plot(gaussian_angle, linestyle="-")
+
+	# plt.legend()
 
 	total_dict_myo_outline = outline(left_ex_ankle)
 	max_arr_myo_outline = total_dict_myo_outline[max]
@@ -175,8 +196,11 @@ if __name__ == "__main__":
 
 	plt.subplot(3, 1, 2)
 	# plt.plot(left_ex_ankle)
-	plt.plot(max_arr_myo_outline[0], gaussian_filter(max_arr_myo_outline[1], sigma=2, mode="wrap"), color="black")
-	plt.plot(min_arr_myo_outline[0], gaussian_filter(min_arr_myo_outline[1], sigma=2, mode="wrap"), color="black")
+	for i in range(len(index_of_maximum) - 1):
+		start_step = index_of_maximum[i]
+		end_step = index_of_maximum[i + 1]
+		plt.plot(max_arr_myo_outline[0][start_step:end_step], gaussian_filter(max_arr_myo_outline[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+		plt.plot(min_arr_myo_outline[0][start_step:end_step], gaussian_filter(min_arr_myo_outline[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
 
 	total_dict_myo_outline2 = outline(left_fl_ankle)
 	max_arr_myo_outline2 = total_dict_myo_outline2[max]
@@ -184,59 +208,62 @@ if __name__ == "__main__":
 
 	plt.subplot(3, 1, 3)
 	# plt.plot(left_fl_ankle)
-	plt.plot(max_arr_myo_outline2[0], gaussian_filter(max_arr_myo_outline2[1], sigma=2, mode="wrap"), color="black")
-	plt.plot(min_arr_myo_outline2[0], gaussian_filter(min_arr_myo_outline2[1], sigma=2, mode="wrap"), color="black")
+	for i in range(len(index_of_maximum) - 1):
+		start_step = index_of_maximum[i]
+		end_step = index_of_maximum[i + 1]
+		plt.plot(max_arr_myo_outline2[0][start_step:end_step], gaussian_filter(max_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+		plt.plot(min_arr_myo_outline2[0][start_step:end_step], gaussian_filter(min_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
 
 	plt.show()
 
-	# plt.subplot(12, 1, 1)
-	# p = plt.plot(left_ankle_angle, label="ankle left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 2)
-	# p = plt.plot(left_hip_angle, label="hip left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 3)
-	# plt.plot(left_ex_ankle, label="ext ankle left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 4)
-	# plt.plot(left_fl_ankle, label="flex ankle left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 5)
-	# plt.plot(left_ex_hip, label="ext hip left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 6)
-	# plt.plot(left_fl_hip, label="flex hip left")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 7)
-	# p = plt.plot(right_ankle_angle, label="ankle right")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 8)
-	# p = plt.plot(right_hip_angle, label="hip right")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 9)
-	# plt.plot(right_ex_ankle, label="ext ankle right")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 10)
-	# plt.plot(right_fl_ankle, label="flex ankle right")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 11)
-	# plt.plot(right_ex_hip, label="ext hip right")
-	# plt.legend()
-	#
-	# plt.subplot(12, 1, 12)
-	# plt.plot(right_fl_hip, label="flex hip right")
-	# plt.legend()
-	#
-	# plt.savefig("res.png")
-	#
-	# plt.show()
+# plt.subplot(12, 1, 1)
+# p = plt.plot(left_ankle_angle, label="ankle left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 2)
+# p = plt.plot(left_hip_angle, label="hip left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 3)
+# plt.plot(left_ex_ankle, label="ext ankle left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 4)
+# plt.plot(left_fl_ankle, label="flex ankle left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 5)
+# plt.plot(left_ex_hip, label="ext hip left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 6)
+# plt.plot(left_fl_hip, label="flex hip left")
+# plt.legend()
+#
+# plt.subplot(12, 1, 7)
+# p = plt.plot(right_ankle_angle, label="ankle right")
+# plt.legend()
+#
+# plt.subplot(12, 1, 8)
+# p = plt.plot(right_hip_angle, label="hip right")
+# plt.legend()
+#
+# plt.subplot(12, 1, 9)
+# plt.plot(right_ex_ankle, label="ext ankle right")
+# plt.legend()
+#
+# plt.subplot(12, 1, 10)
+# plt.plot(right_fl_ankle, label="flex ankle right")
+# plt.legend()
+#
+# plt.subplot(12, 1, 11)
+# plt.plot(right_ex_hip, label="ext hip right")
+# plt.legend()
+#
+# plt.subplot(12, 1, 12)
+# plt.plot(right_fl_hip, label="flex hip right")
+# plt.legend()
+#
+# plt.savefig("res.png")
+#
+# plt.show()
