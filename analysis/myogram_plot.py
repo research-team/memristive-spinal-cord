@@ -1,22 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from scipy.signal import butter, lfilter, argrelextrema
+from scipy.signal import butter, lfilter
 from scipy.ndimage import gaussian_filter
-
-# def normalize(arr, t_min, t_max):
-# 	norm_arr = []
-# 	diff = t_max - t_min
-# 	diff_arr = max(arr) - min(arr)
-# 	for i in arr:
-# 		temp = (((i - min(arr)) * diff) / diff_arr) + t_min
-# 		norm_arr.append(temp)
-# 	return norm_arr
-
-
-fs = 10000.0
-lowcut = 200.0
-highcut = 1000.0
 
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -53,7 +38,6 @@ def outline(array):
 
 	# points of crossing of myogram and its diff
 	cross_idx = np.argwhere(np.diff(np.sign(array - diff_array))).flatten()
-
 	max_x_arr = []
 	max_y_arr = []
 	min_x_arr = []
@@ -69,38 +53,48 @@ def outline(array):
 			min_val = min(part)
 			total_dict[min][1].append(min_val)
 			total_dict[min][0].append((np.where(array == min_val)[0][0]))
-	return total_dict
+
+	ceiling_arr_myo_outline = gaussian_filter(adding_points(total_dict[max][0], total_dict[max][1]), sigma=10)
+	floor_arr_myo_outline = gaussian_filter(adding_points(total_dict[min][0], total_dict[min][1]), sigma=10)
+
+	return [ceiling_arr_myo_outline, floor_arr_myo_outline]
 
 
-# useless
 def adding_points(x_arr, y_arr):
-    merged_points = []
-    for i in range(x_arr[0]):
-        if i < x_arr[0]:
-            merged_points.append(y_arr[0])
-    for idx in range(len(x_arr) - 1):
-        x_val = x_arr[idx]
-        y_val = y_arr[idx]
-        next_x_val = x_arr[idx + 1]
-        next_y_val = y_arr[idx + 1]
-        merged_points.append(y_val)
-        must_have_val = next_x_val - x_val
-        max_difference_btw_y = next_y_val - y_val
-        tan = max_difference_btw_y / must_have_val
+	merged_points = []
+	for i in range(x_arr[0]):
+		if i < x_arr[0]:
+			merged_points.append(y_arr[0])
+	for idx in range(len(x_arr) - 1):
+		x_val = x_arr[idx]
+		y_val = y_arr[idx]
+		next_x_val = x_arr[idx + 1]
+		next_y_val = y_arr[idx + 1]
+		merged_points.append(y_val)
+		must_have_val = next_x_val - x_val
+		max_difference_btw_y = next_y_val - y_val
+		tan = max_difference_btw_y / must_have_val
 
-        for i in range(1, must_have_val):
-            plus_val = y_val + (i * tan)
-            merged_points.append(plus_val)
+		for i in range(1, must_have_val):
+			plus_val = y_val + (i * tan)
+			merged_points.append(plus_val)
 
-    return np.asarray(merged_points)
+	return np.asarray(merged_points)
 
 
-if __name__ == "__main__":
-	with open("/home/b-rain/Desktop/plot_mio/8.txt") as f:
+def read(path, start, end):
+	with open(path) as f:
 		all_lines = f.readlines()
 
-	all_lines = all_lines[100000:220000]
+	all_lines = all_lines[start:end]
 
+	names_dict = {"right_hip_angle_index_1": [], "right_hip_angle_index_2": [], "left_hip_angle_index_1": [],
+	              "right_ankle_angle_index": [],
+	              "left_ankle_angle_index": [], "left_hip_angle_index_2": [], "right_fl_hip_index": [],
+	              "right_ex_hip_index": [],
+	              "right_fl_ankle_index": [], "right_ex_ankle_index": [], "left_fl_hip_index": [],
+	              "left_ex_hip_index": [],
+	              "left_fl_ankle_index": [], "left_ex_ankle_index": []}
 	arr = []
 	for line in all_lines:
 		s = line.split(" ")
@@ -114,155 +108,88 @@ if __name__ == "__main__":
 
 	arr = np.array(arr)
 	arr = arr.T
-	left_ankle_angle_index = 4
-	left_hip_angle_index_1 = 2
-	left_hip_angle_index_2 = 5
-	left_ex_ankle_index = 13
-	left_fl_ankle_index = 12
-	left_ex_hip_index = 11
-	left_fl_hip_index = 10
 
-	right_ankle_angle_index = 3
-	right_hip_angle_index_1 = 0
-	right_hip_angle_index_2 = 1
-	right_ex_ankle_index = 9
-	right_fl_ankle_index = 8
-	right_ex_hip_index = 7
-	right_fl_hip_index = 6
+	right_hip_angle = []
+	left_hip_angle = []
+	for indx, name in enumerate(names_dict.keys()):
+		if indx == 3 or indx == 4:
+			names_dict[name] = np.array(get_mean(arr[indx]))
+		if indx == 0:
+			right_hip_angle = gaussian_filter(get_mean(arr[0] - arr[1]), sigma=50)
+		if indx == 2:
+			left_hip_angle = gaussian_filter(get_mean(arr[2] - arr[5]), sigma=50)
+		if indx > 5:
+			names_dict[name].append(gaussian_filter(butter_bandpass_filter(arr[indx], lowcut, highcut, fs), sigma=10))
 
-	left_ankle_angle = get_mean(arr[left_ankle_angle_index])
-	left_hip_angle = get_mean(arr[left_hip_angle_index_1] - arr[left_hip_angle_index_2])
-	left_ex_ankle = butter_bandpass_filter(np.array(arr[left_ex_ankle_index]), lowcut, highcut, fs)
-	left_fl_ankle = butter_bandpass_filter(np.array(arr[left_fl_ankle_index]), lowcut, highcut, fs)
-	left_ex_hip = butter_bandpass_filter(np.array(arr[left_ex_hip_index]), lowcut, highcut, fs)
-	left_fl_hip = butter_bandpass_filter(np.array(arr[left_fl_hip_index]), lowcut, highcut, fs)
+	names_dict.update({"right_hip_angle": right_hip_angle})
+	names_dict.update({"left_hip_angle": left_hip_angle})
 
-	right_ankle_angle = get_mean(- arr[right_ankle_angle_index])
-	right_hip_angle = get_mean(arr[right_hip_angle_index_1] - arr[right_hip_angle_index_2])
-	right_ex_ankle = butter_bandpass_filter(np.array(arr[right_ex_ankle_index]), lowcut, highcut, fs)
-	right_fl_ankle = butter_bandpass_filter(np.array(arr[right_fl_ankle_index]), lowcut, highcut, fs)
-	right_ex_hip = butter_bandpass_filter(np.array(arr[right_ex_hip_index]), lowcut, highcut, fs)
-	right_fl_hip = butter_bandpass_filter(np.array(arr[right_fl_hip_index]), lowcut, highcut, fs)
+	return names_dict
 
-	gaussian_angle = gaussian_filter(left_hip_angle, sigma=50)
-	max_val = max(gaussian_angle)
+
+def peak_search(angle):
+	max_val = max(angle)
 	sign = np.sign(max_val)
 	percent_for_dispersion = 0.25
 	percent_for_limiting = 0.75
-	dispersion_for_max_peak = (max_val - min(gaussian_angle)) * percent_for_dispersion
-	range_limiting = (max_val - min(gaussian_angle)) * percent_for_limiting
+	dispersion_for_max_peak = (max_val - min(angle)) * percent_for_dispersion
+	range_limiting = (max_val - min(angle)) * percent_for_limiting
 	range_of_peaks = []
 	array_of_maximum = []
 	index_of_maximum = []
-	for i in gaussian_angle:
+	for i in angle:
 		if sign * (abs(max_val) + dispersion_for_max_peak) <= i < sign * (abs(max_val) - dispersion_for_max_peak):
 			range_of_peaks.append(i)
 		if range_of_peaks and i < (max_val - range_limiting):
 			max_in_range = max(range_of_peaks)
 			array_of_maximum.append(max_in_range)
-			index_of_maximum.append((np.where(gaussian_angle == max_in_range)[0][0]))
+			index_of_maximum.append((np.where(angle == max_in_range)[0][0]))
 			range_of_peaks = []
 
-	# plt.plot(gaussian_angle, linestyle=" ", marker="o")
-	# plt.plot(index_of_maximum, array_of_maximum, linestyle=" ", marker="o", color = "red")
-
-	# plt.show()
-	# exit()
-
-	# for i in range(len(index_of_maximum) - 1):
-	# 	start_step = index_of_maximum[i]
-	# 	end_step = index_of_maximum[i + 1]
-	# 	gaussian_angle = gaussian_angle[start_step:end_step]
-	# 	plt.plot(gaussian_angle, linestyle="-")
-	#
-	# plt.show()
-	# exit()
+	return [index_of_maximum, array_of_maximum]
 
 
-	plt.subplot(3, 1, 1)
-	# plt.plot(gaussian_angle, linestyle=" ", marker="o")
-	# plt.plot(index_of_maximum, array_of_maximum, linestyle=" ", marker="o", color="red")
-	for i in range(len(index_of_maximum) - 1):
-		start_step = index_of_maximum[i]
-		end_step = index_of_maximum[i + 1]
-		# gaussian_angle = gaussian_angle[start_step:end_step]
-		plt.plot(gaussian_angle[start_step:end_step], linestyle="-")
+def plot(names_dict, index_of_maximum, first_idx, last_idx, angle_idx):
+	for num, k in enumerate(names_dict.keys()):
+		if first_idx < num < last_idx or num == angle_idx:
+			for i in range(len(index_of_maximum) - 1):
+				start_step = index_of_maximum[i]
+				end_step = index_of_maximum[i + 1]
+				if num == angle_idx:
+					plt.subplot(5, 1, 1)
+					plt.title("right leg \n hip angle, hip fl, hip ex, ankle fl, ankle ex")
+					plt.plot(names_dict[k][start_step:end_step])
+				# plt.legend()
+				else:
+					plt.subplot(5, 1, num - first_idx + 1)
+					ceiling_arr_myo_outline, floor_arr_myo_outline = outline(names_dict[k][0])
+					plt.plot(ceiling_arr_myo_outline[start_step:end_step])
+					plt.plot(floor_arr_myo_outline[start_step:end_step])
 
-	# plt.legend()
+			if first_idx == 5:
+				leg_name = "right"
+			else:
+				leg_name = "left"
+			plt.savefig(f"/home/b-rain/Desktop/plot_mio/{leg_name}_{filename}_{number}.png")
 
-	total_dict_myo_outline = outline(left_ex_ankle)
+			plt.show()
+	plt.close()
 
-	plt.subplot(3, 1, 2)
-	ceiling_arr_myo_outline = gaussian_filter(adding_points(total_dict_myo_outline[max][0], total_dict_myo_outline[max][1]), sigma=10)
-	floor_arr_myo_outline = gaussian_filter(adding_points(total_dict_myo_outline[min][0], total_dict_myo_outline[min][1]), sigma=10)
-	for i in range(len(index_of_maximum) - 1):
-		start_step = index_of_maximum[i]
-		end_step = index_of_maximum[i + 1]
-		plt.plot(ceiling_arr_myo_outline[start_step:end_step])
-		plt.plot(floor_arr_myo_outline[start_step:end_step])
 
-	# total_dict_myo_outline2 = outline(left_fl_ankle)
-	# max_arr_myo_outline2 = total_dict_myo_outline2[max]
-	# min_arr_myo_outline2 = total_dict_myo_outline2[min]
+if __name__ == "__main__":
+	fs = 10000.0
+	lowcut = 200.0
+	highcut = 1000.0
 
-	plt.subplot(3, 1, 3)
-	# plt.plot(left_fl_ankle)
-	# for i in range(len(index_of_maximum) - 1):
-	# 	start_step = index_of_maximum[i]
-	# 	end_step = index_of_maximum[i + 1]
-	# 	plt.plot(max_arr_myo_outline2[0][start_step:end_step], gaussian_filter(max_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
-	# 	plt.plot(min_arr_myo_outline2[0][start_step:end_step], gaussian_filter(min_arr_myo_outline2[1][start_step:end_step], sigma=2, mode="wrap"), color="black")
+	path = "/home/b-rain/Desktop/plot_mio/"
+	filename = "8.txt"
+	start = 100000
+	end = 140000
+	number = round(end / start, 2)
+	names_dict = read(path + filename, start, end)
 
-	plt.show()
+	index_of_maximum_right, array_of_maximum_right = peak_search(names_dict["right_hip_angle"])
+	index_of_maximum_left, array_of_maximum_left = peak_search(names_dict["left_hip_angle"])
 
-# plt.subplot(12, 1, 1)
-# p = plt.plot(left_ankle_angle, label="ankle left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 2)
-# p = plt.plot(left_hip_angle, label="hip left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 3)
-# plt.plot(left_ex_ankle, label="ext ankle left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 4)
-# plt.plot(left_fl_ankle, label="flex ankle left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 5)
-# plt.plot(left_ex_hip, label="ext hip left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 6)
-# plt.plot(left_fl_hip, label="flex hip left")
-# plt.legend()
-#
-# plt.subplot(12, 1, 7)
-# p = plt.plot(right_ankle_angle, label="ankle right")
-# plt.legend()
-#
-# plt.subplot(12, 1, 8)
-# p = plt.plot(right_hip_angle, label="hip right")
-# plt.legend()
-#
-# plt.subplot(12, 1, 9)
-# plt.plot(right_ex_ankle, label="ext ankle right")
-# plt.legend()
-#
-# plt.subplot(12, 1, 10)
-# plt.plot(right_fl_ankle, label="flex ankle right")
-# plt.legend()
-#
-# plt.subplot(12, 1, 11)
-# plt.plot(right_ex_hip, label="ext hip right")
-# plt.legend()
-#
-# plt.subplot(12, 1, 12)
-# plt.plot(right_fl_hip, label="flex hip right")
-# plt.legend()
-#
-# plt.savefig("res.png")
-#
-# plt.show()
+	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_right, first_idx=5, last_idx=10, angle_idx=14)
+	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_left, first_idx=9, last_idx=14, angle_idx=15)
