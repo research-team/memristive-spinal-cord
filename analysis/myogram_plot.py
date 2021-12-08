@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import butter, lfilter
 from scipy.ndimage import gaussian_filter
+import warnings
+import matplotlib.cbook
 
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -149,30 +151,34 @@ def peak_search(angle):
 	return [index_of_maximum, array_of_maximum]
 
 
-def plot(names_dict, index_of_maximum, first_idx, last_idx, angle_idx):
+def plot(names_dict, index_of_maximum, first_idx, last_idx, angle_idx, peka_name):
+	if first_idx == 5:
+		leg_name = "right"
+	else:
+		leg_name = "left"
+
+	warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+	step_count = 0
 	for num, k in enumerate(names_dict.keys()):
-		if first_idx < num < last_idx or num == angle_idx:
+		if first_idx < num < last_idx or num == angle_idx:  # special indexes for legs
 			for i in range(len(index_of_maximum) - 1):
 				start_step = index_of_maximum[i]
 				end_step = index_of_maximum[i + 1]
+				step_count += 1
 				if num == angle_idx:
 					plt.subplot(5, 1, 1)
-					plt.title("right leg \n hip angle, hip fl, hip ex, ankle fl, ankle ex")
-					plt.plot(names_dict[k][start_step:end_step])
-				# plt.legend()
+					plt.title(f"{leg_name} \n hip angle, ankle ex, ankle fl, hip ex, hip fl")
+					plt.plot(names_dict[k][start_step:end_step], color="teal")
 				else:
-					plt.subplot(5, 1, num - first_idx + 1)
+					plt.subplot(5, 1, (first_idx + 6) - num)
 					ceiling_arr_myo_outline, floor_arr_myo_outline = outline(names_dict[k][0])
-					plt.plot(ceiling_arr_myo_outline[start_step:end_step])
-					plt.plot(floor_arr_myo_outline[start_step:end_step])
+					plt.plot(ceiling_arr_myo_outline[start_step:end_step], color="cadetblue")
+					plt.plot(floor_arr_myo_outline[start_step:end_step], color="cadetblue")
 
-			if first_idx == 5:
-				leg_name = "right"
-			else:
-				leg_name = "left"
-			plt.savefig(f"/home/b-rain/Desktop/plot_mio/{leg_name}_{filename}_{number}.png")
-
-			plt.show()
+			print(step_count, leg_name)
+			step_count = 0
+	plt.savefig(f"/home/{peka_name}/Desktop/plot_mio/{leg_name}_{filename}_{number}.png")
+	plt.show()
 	plt.close()
 
 
@@ -181,15 +187,19 @@ if __name__ == "__main__":
 	lowcut = 200.0
 	highcut = 1000.0
 
-	path = "/home/b-rain/Desktop/plot_mio/"
+	peka_name = "ann"
+	# peka_name = "b-rain"
+	path = f"/home/{peka_name}/Desktop/plot_mio/"
 	filename = "8.txt"
-	start = 100000
-	end = 140000
+	start = 480000
+	end = 620000
 	number = round(end / start, 2)
 	names_dict = read(path + filename, start, end)
 
 	index_of_maximum_right, array_of_maximum_right = peak_search(names_dict["right_hip_angle"])
 	index_of_maximum_left, array_of_maximum_left = peak_search(names_dict["left_hip_angle"])
 
-	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_right, first_idx=5, last_idx=10, angle_idx=14)
-	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_left, first_idx=9, last_idx=14, angle_idx=15)
+	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_right, first_idx=5, last_idx=10, angle_idx=14,
+	     peka_name=peka_name)
+	plot(names_dict=names_dict, index_of_maximum=index_of_maximum_left, first_idx=9, last_idx=14, angle_idx=15,
+	     peka_name=peka_name)
