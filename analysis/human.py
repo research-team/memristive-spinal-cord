@@ -16,7 +16,7 @@ import math
 from scipy.signal import butter, lfilter, filtfilt
 
 fs = 5000.0
-lowcut = 40.0
+lowcut = 30.0
 highcut = 1000.0
 
 v='bior4.4'
@@ -29,7 +29,7 @@ def lowpassfilter(signal, thresh=0.4, wavelet=v):
     reconstructed_signal = pywt.waverec(coeff, wavelet, mode="per" )
     return reconstructed_signal
 
-def lowfilter(signal, N = 2, Wn = 0.1):
+def lowfilter(signal, N = 2, Wn = 0.08):
     B, A = butter(N, Wn, output='ba')
     signalf = filtfilt(B, A, signal)
     return signalf
@@ -46,15 +46,13 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-def draw_channels(start, end, titles, k = 0, yticks = [], filer = False):
-    logger.info("channels")
-    titl = []
+def get_indexes(start, end, titles, filter = False):
+    k=0
     for s, e, t in zip(start, end, titles):
-        # channels
-        if "ACC" not in t and "GYRO" not in t and "MAG" not in t:
+        if "TA L" in t:
             d = data[int(s+50*40):int(e)] + 2 * k
             if len(d) == 0:
-                d = np.array([0] * 200) + 2 * k
+                d = np.array([0] * 200)
 
             if filter:
                 # plt.plot(np.arange(len(d)) * 0.25, d)
@@ -62,48 +60,106 @@ def draw_channels(start, end, titles, k = 0, yticks = [], filer = False):
                 # plt.plot(np.arange(len(d_f)) * 0.25, d_f)
                 # plt.plot(np.arange(len(d_f)) * 0.25, d_f-d)
                 d = butter_bandpass_filter(np.array(d), lowcut, highcut, fs) + 2 * k
-            plt.plot(np.arange(len(d)) * 0.25, d)
+                d = lowfilter(np.array(d))
+            indexes = argrelextrema(d, np.greater)[0]
+            values = d[indexes]
+            indexes = indexes[values > max(values)*0.745]
+            values = values[values > max(values)*0.745]
+
+            diff_steps = []
+            diff_steps.append(True)
+            for i in range (1, len(indexes)):
+                if indexes[i] - indexes[i-1] > 1000/0.25:
+                    diff_steps.append(True)
+                else:
+                    diff_steps.append(False)
+
+            # diff_steps = np.diff(indexes, n=1)
+            # diff_ms = np.append(diff_steps * 0.25, 10)
+
+            indexes = indexes[diff_steps]
+            values = values[diff_steps]
+        k += 1
+    return indexes, values
+
+def draw_channels(start, end, titles, k = 0, filter = False):
+    logger.info("channels")
+    yticks = []
+    titl = []
+    indexes, values = get_indexes(start, end, titles, True)
+    for s, e, t in zip(start, end, titles):
+        # channels
+        if "ACC" not in t and "GYRO" not in t and "MAG" not in t and "Art" not in t and "Channel" not in t:
+            height = (np.max(data[int(s+50*40):int(e)]) - np.min(data[int(s+50*40):int(e)]))*0.3
+            d = data[int(s+50*40):int(e)] + k*0.7
+            if len(d) == 0:
+                d = np.array([0] * 200) + k
+
+            if filter:
+                # plt.plot(np.arange(len(d)) * 0.25, d)
+                # d_f = lowfilter(np.array(d))
+                # plt.plot(np.arange(len(d_f)) * 0.25, d_f)
+                # plt.plot(np.arange(len(d_f)) * 0.25, d_f-d)
+                d = butter_bandpass_filter(np.array(d), lowcut, highcut, fs) + k*0.4
+                d = lowfilter(np.array(d))
+            print(len(indexes))
+
+            # plt.scatter(indexes * 0.25, values)
+            for i in range(1, len(indexes)):
+                plt.plot(i*20000+np.arange(len(d[indexes[i-1]:indexes[i]])) * 0.25, d[indexes[i-1]:indexes[i]])
+            # plt.plot(np.arange(len(d)) * 0.25, d)
+
             titl.append(t)
             yticks.append(d[0])
             k += 1
     plt.yticks(yticks, titl)
     plt.show()
 
-def draw_slices(start, end, titles, time, period, muscle, filer = False):
+def draw_slices(start, end, titles, time, period, muscle, filter = False):
     logger.info("slices")
-    for s, e, t in zip(start, end, titles):
-        # slices
-        # if t == muscle:
-        logger.info("muscle is here")
-        d = data[int(s):int(e)] # + 2 *k
-        if filter:
-            d_b = butter_bandpass_filter(np.array(d), lowcut, highcut, fs)
-            d_f = lowfilter(np.array(d_b))
+    indexes, values = get_indexes(start, end, titles, True)
+    plt.figure(figsize=(10, 20))
 
-            # d_b = detrend(d_f)
+    for j in range(2, len(indexes)-1):
+        for s, e, t in zip(start, end, titles):
+            # slices
+            if "ACC" not in t and "GYRO" not in t and "MAG" not in t and "Channel" not in t:
+                logger.info("muscle is here")
+                d = data[int(s):int(e)] # + 2 *k
+                if filter:
+                    d = lowfilter(np.array(d))
 
-        # d_f = d
-        logger.info(len(d))
-        f = 0
-        plt.clf()
-        for i in range(12):
-            # p = d[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
-            # plt.plot(np.arange(len(p)) * 0.25, p)
-            # p = d_f[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
-            # plt.plot(np.arange(len(p)) * 0.25, p)
-            # p = d_p[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
-            # plt.plot(np.arange(len(p)) * 0.25, p)
-            p = d_f[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
-            plt.plot(np.arange(len(p)) * 0.25, p)
-            # plt.legend(['Original','Filtered', 'R', 'Bandpass'])
-        plt.savefig(f'/Users/sulgod/Desktop/graphs/new/{t}_time{time}_f.png')
+                    d = butter_bandpass_filter(np.array(d), lowcut, highcut, fs)
+
+                    # d_b = detrend(d_f)
+
+                # d_f = d
+                logger.info(len(d))
+                f = 0
+                plt.clf()
+                slice_height = (np.max(d[indexes[j]:indexes[j+1]]) - np.min(d[indexes[j]:indexes[j+1]]))*0.25
+                step_len = int((indexes[j+1]-indexes[j])*0.25/period)
+                print(f'step len {step_len}')
+                if step_len > 80:
+                    step_len = 80
+                for i in range(step_len):
+                    # p = d[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
+                    # plt.plot(np.arange(len(p)) * 0.25, p)
+                    # p = d_f[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
+                    # plt.plot(np.arange(len(p)) * 0.25, p)
+                    # p = d_p[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
+                    # plt.plot(np.arange(len(p)) * 0.25, p)
+                    p = d[indexes[j]+i*period*4:indexes[j]+(i+1)*period*4] + slice_height *i
+                    plt.plot(np.arange(len(p)) * 0.25, p)
+                    # plt.legend(['Original','Filtered', 'R', 'Bandpass'])
+                plt.savefig(f'/Users/sulgod/Desktop/graphs/new/{t}_time{indexes[j]*0.25}_f.png')
         # plt.show()
 
 #Start it up!
-slice_height = 0.025
+slice_height = 0.02
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
-mat_contents = sio.loadmat('/Users/sulgod/Downloads/humandata_new/7v/Vertical walk SS.mat')
+mat_contents = sio.loadmat('/Users/sulgod/Downloads/humandata_new/6v/17062021 2+5- 210ms 20hz 10.2ma  walk 3.mat')
 # mat_contents = sio.loadmat('/Users/sulgod/Downloads/131219.mat')
 
 for i in sorted(mat_contents.keys()):
@@ -122,7 +178,7 @@ logger.info(len(data))
 # constants
 #start_time = 5005
 #start_time = 8810
-start_time = 1470
+start_time = 5395
 period = 50
 muscle_channel = "SOL L    "
 # muscle_channel = "RF R     "
@@ -137,9 +193,8 @@ for i in range(1):
     end = ends[:, i]
     # plt.subplot(len(starts), 1, (i+1))
     k = 0
-    yticks = []
-    # draw_channels(start, end, titles, filer = False)
-    draw_slices(start, end, titles, start_time, period, muscle_channel, filer = False)
+    draw_channels(start, end, titles, filter = True)
+    # draw_slices(start, end, titles, start_time, period, muscle_channel, filter = True)
     # plt.savefig('./graphs/05.29-07-R23-R-AS{}.png'.format(i))
     # plt.clf()
 
