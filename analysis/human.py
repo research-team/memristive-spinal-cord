@@ -120,12 +120,25 @@ def draw_slices(start, end, titles, time, period, muscle, filter = False):
     indexes, values = get_indexes(start, end, titles, True)
     plt.figure(figsize=(10, 20))
 
-    for j in range(2, len(indexes)-1):
+    starts = []
+    #
+    for j in range(0, len(indexes)-1):
+        for s, e, t in zip(start, end, titles):
+            if "Art 2" in t:
+                d = data[int(s+50*40):int(e)]
+                d = d[indexes[j]:indexes[j+1]]
+                s = argrelextrema(d, np.greater)[0]# + 2 *k
+                values = d[s]
+                s = s[values > max(values)*0.745]
+                starts.append(s[0]+indexes[j])
+                print(f'ind - {indexes[j]}, start {s[0]} {starts[j]}')
+
+    for j in range(0, len(indexes)-1):
         for s, e, t in zip(start, end, titles):
             # slices
             if "ACC" not in t and "GYRO" not in t and "MAG" not in t and "Channel" not in t:
                 logger.info("muscle is here")
-                d = data[int(s):int(e)] # + 2 *k
+                d = data[int(s+50*40):int(e)] # + 2 *k
                 if filter:
                     d = lowfilter(np.array(d))
 
@@ -149,10 +162,10 @@ def draw_slices(start, end, titles, time, period, muscle, filter = False):
                     # plt.plot(np.arange(len(p)) * 0.25, p)
                     # p = d_p[time*4+i*period*4:time*4+(i+1)*period*4] + slice_height *i
                     # plt.plot(np.arange(len(p)) * 0.25, p)
-                    p = d[indexes[j]+i*period*4:indexes[j]+(i+1)*period*4] + slice_height *i
+                    p = d[starts[j]+i*period*4:starts[j]+(i+1)*period*4] + slice_height *i
                     plt.plot(np.arange(len(p)) * 0.25, p)
                     # plt.legend(['Original','Filtered', 'R', 'Bandpass'])
-                plt.savefig(f'/Users/sulgod/Desktop/graphs/new/{t}_time{indexes[j]*0.25}_f.png')
+                plt.savefig(f'/Users/sulgod/Desktop/graphs/new/{t}_time{starts[j]*0.25}_f.png')
         # plt.show()
 
 #Start it up!
@@ -193,8 +206,8 @@ for i in range(1):
     end = ends[:, i]
     # plt.subplot(len(starts), 1, (i+1))
     k = 0
-    draw_channels(start, end, titles, filter = True)
-    # draw_slices(start, end, titles, start_time, period, muscle_channel, filter = True)
+    # draw_channels(start, end, titles, filter = True)
+    draw_slices(start, end, titles, start_time, period, muscle_channel, filter = True)
     # plt.savefig('./graphs/05.29-07-R23-R-AS{}.png'.format(i))
     # plt.clf()
 
