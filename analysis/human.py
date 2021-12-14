@@ -165,15 +165,15 @@ def draw_slices(start, end, titles, time, period, muscle, filter = False):
                     p = d[starts[j]+i*period*4:starts[j]+(i+1)*period*4] + slice_height *i
                     plt.plot(np.arange(len(p)) * 0.25, p)
                     # plt.legend(['Original','Filtered', 'R', 'Bandpass'])
-                plt.savefig(f'/Users/sulgod/Desktop/graphs/new/{t}_time{starts[j]*0.25}_f.png')
+                plt.savefig(f'../Desktop/graphs/new/{t}_time{starts[j]*0.25}_f.png')
         # plt.show()
 
 #Start it up!
 slice_height = 0.02
 logging.basicConfig(format='[%(funcName)s]: %(message)s', level=logging.INFO)
 logger = logging.getLogger()
-mat_contents = sio.loadmat('/Users/sulgod/Downloads/humandata_new/6v/17062021 2+5- 210ms 20hz 10.2ma  walk 3.mat')
-# mat_contents = sio.loadmat('/Users/sulgod/Downloads/131219.mat')
+mat_contents = sio.loadmat('../Downloads/humandata_new/6v/17062021 2+5- 210ms 20hz 10.2ma  walk 3.mat')
+# mat_contents = sio.loadmat('~/Downloads/131219.mat')
 
 for i in sorted(mat_contents.keys()):
     logger.info(i)
