@@ -1,0 +1,3 @@
+/home/b-rain/test/screens/tmp/CMakeFiles/rebuild_cache.dir
+/home/b-rain/test/screens/tmp/CMakeFiles/edit_cache.dir
+/home/b-rain/test/screens/tmp/CMakeFiles/main.dir

@@ -1,0 +1,60 @@
+#include <iostream>
+#include "shape_of_signal.h"
+#include "self_test.h"
+#include "printing_functions.h"
+
+using namespace std;
+
+int MIXED(string selected_channel = "1")
+{
+    //fill with text
+    string channels_message[8] = {};
+
+    channels_message[0] = "ANKLE EXTENSOR (G)    150 ms ";
+    channels_message[1] = "ANKLE FLEXOR (G)    150 ms";
+    channels_message[2] = "HIP EXTENSOR (G)    150 ms";
+    channels_message[3] = "HIP FLEXOR (G)    150 ms";
+    channels_message[4] = "ANKLE EXTENSOR (G)    150 ms";
+    channels_message[5] = "MONOPHASIC    250 us, 40 Hz";
+    channels_message[6] = "BIPHASIC    250 us, 40 Hz";
+    channels_message[7] = "HIP FLEXOR (G)    150 ms";
+
+    string F1_F4_message = "F1  SAVE & BACK    F2  SELECT   F3  SAVE & STIM";
+
+    //to switch between screens
+    if (selected_channel == "F1")
+    {
+        SHAPE_OF_SIGNAL(selected_channel);
+    }
+    if (selected_channel == "F2")
+    {
+        SELF_TEST(selected_channel);
+    }
+
+    //main lines
+    cout << header("SETUP") << endl;
+    cout << "  MIXED "  << "\n" << endl;
+    cout << "  Press the encoder or F2 for detaled channel setup" << "\n" << endl;
+    cout << "  LEFT LEG " << endl;
+
+    int first_channel = 0;
+    int last_channel = 4;
+    int first_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    //cout << first_blok_lines_with_text << endl;
+
+    cout << "  RIGHT LEG " << endl;
+    first_channel = 4;
+    last_channel = 8;
+    int second_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    //cout << second_blok_lines_with_text << endl;
+
+    // 26 - max hight, 4 - header + ending line, 6 - other printed lines
+    int lines_without_text = 26 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - 6;
+    //cout << empty_line(lines_without_text) << endl;
+
+    cout << F1_F4_message << endl;
+
+    std::cin.ignore();
+
+    return 0;
+}
