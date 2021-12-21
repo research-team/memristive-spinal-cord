@@ -9,7 +9,7 @@ using namespace std;
 int ALL_SENSORS(string selected_channel = "1")
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "ACTIVE";
     channels_message[1] = "PASSIVE";

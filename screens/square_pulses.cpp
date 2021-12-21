@@ -8,7 +8,7 @@ using namespace std;
 int SQUARE_PULSES(string selected_channel = "1")
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "PHASE    MONOPHASIC";
     channels_message[1] = "PULSE DURATION    250 us";
@@ -34,7 +34,7 @@ int SQUARE_PULSES(string selected_channel = "1")
     cout << "  SQUARE PULSES \n" << endl;
 
     int first_channel = 0;
-    int last_channel = 8;
+    int last_channel = 10;
     int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     // 26 - max hight, 4 - header + ending line, 2 - other printed lines

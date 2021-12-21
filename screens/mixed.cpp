@@ -8,7 +8,7 @@ using namespace std;
 int MIXED(string selected_channel = "1")
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "ANKLE EXTENSOR (G)    150 ms ";
     channels_message[1] = "ANKLE FLEXOR (G)    150 ms";
@@ -18,6 +18,8 @@ int MIXED(string selected_channel = "1")
     channels_message[5] = "MONOPHASIC    250 us, 40 Hz";
     channels_message[6] = "BIPHASIC    250 us, 40 Hz";
     channels_message[7] = "HIP FLEXOR (G)    150 ms";
+    channels_message[8] = "MONOPHASIC    250 us, 40 Hz";
+    channels_message[9] = "BIPHASIC    250 us, 40 Hz";
 
     string F1_F4_message = "F1  SAVE & BACK    F2  SELECT   F3  SAVE & STIM";
 
@@ -40,17 +42,23 @@ int MIXED(string selected_channel = "1")
     int first_channel = 0;
     int last_channel = 4;
     int first_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
-    //cout << first_blok_lines_with_text << endl;
+    cout << "\n" << endl;
 
     cout << "  RIGHT LEG " << endl;
     first_channel = 4;
     last_channel = 8;
     int second_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
-    //cout << second_blok_lines_with_text << endl;
+    cout << "\n" << endl;
 
-    // 26 - max hight, 4 - header + ending line, 6 - other printed lines
-    int lines_without_text = 26 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - 6;
-    //cout << empty_line(lines_without_text) << endl;
+    cout << "  SCS " << endl;
+    first_channel = 8;
+    last_channel = 10;
+    int third_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+
+
+    // 26 - max hight, 4 - header + ending line, 8 - other printed lines
+    int lines_without_text = 26 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - third_blok_lines_with_text - 9;
+    cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;
 

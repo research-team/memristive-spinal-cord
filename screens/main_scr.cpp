@@ -8,7 +8,7 @@ using namespace std;
 int MAIN(string selected_channel = "1", bool error = false)
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "PATIENT ID: ----";
 
@@ -34,21 +34,18 @@ int MAIN(string selected_channel = "1", bool error = false)
     int first_channel = 0;
     int last_channel = 2;
     int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
-    cout << "  DATE: YYYY-MM-DD" << "\n" << endl;
-    cout << "  PATIENT NAME: ----" << "\n" << endl;
-    cout << "  BIRTH DATE: YYYY-MM-DD" << "\n" << endl;
 
     if (error == true)
     {
         cout << error_line("Select patient in the web application or enter patient ID") << endl;
-        // 26 - max hight, 4 - header + ending line, 14 - other, 4 - for error
-        int lines_without_text = 26 - 4 - 14 - 4;
+        // 26 - max hight, 4 - header + ending line, 8 - other, 4 - for error
+        int lines_without_text = 26 - 4 - 8 - 4;
         cout << empty_line(lines_without_text) << endl;
     }
     else
     {
-        // 26 - max hight, 4 - header + ending line, 14 - other
-        int lines_without_text = 26 - 4 - 14;
+        // 26 - max hight, 4 - header + ending line, 8 - other
+        int lines_without_text = 26 - 4 - 8;
         cout << empty_line(lines_without_text) << endl;
     }
 

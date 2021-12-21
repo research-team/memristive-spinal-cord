@@ -19,18 +19,22 @@ using namespace std;
 int main()
 {
 	STIMULATION("1");
-	ELECTRODES_CONTACT("1");
-	ACTIVE_TEST("1");
-	PASSIVE_TEST("1");
+	ACTIVE_TEST("1", false);
+	ACTIVE_TEST("1", true);
+	PASSIVE_TEST("1", false);
+	PASSIVE_TEST("1", true);
 	ALL_SENSORS("1");
+	CURRENT_LIMITS("1");
+	ELECTRODES_CONTACT("1");
+	MAIN("1", false);
+	MAIN("1", true);
+	MIXED("1");
+	PATTERN("1");
 	SELF_TEST("1");
 	SETUP("1");
-	MAIN("1");
-	SQUARE_PULSES("1");
-	PATTERN("1");
-	MIXED("1");
 	SHAPE_OF_SIGNAL("1");
-	CURRENT_LIMITS("1");
+	SQUARE_PULSES("1");
+	STIMULATION("1");
 
     return 0;
 }

@@ -8,9 +8,11 @@ using namespace std;
 int PATTERN(string selected_channel = "1")
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "PACK DURATION    150 ms";
+    channels_message[1] = "9 CHANNEL    250 us, 40 Hz";
+    channels_message[2] = "10 CHANNEL    250 us, 40 Hz";
 
     string F1_F4_message = "F1  SAVE & BACK    F2  SAVE & STIM";
 
@@ -29,11 +31,17 @@ int PATTERN(string selected_channel = "1")
     cout << "  PATTERN \n" << endl;
 
     int first_channel = 0;
-    int last_channel = 8;
-    int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    int last_channel = 2;
+    int first_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    cout << "\n" << endl;
+
+    cout << "  SCS: " << endl;
+    first_channel = 2;
+    last_channel = 4;
+    int second_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     // 26 - max hight, 4 - header + ending line, 2 - other printed lines
-    int lines_without_text = 26 - 4 - lines_with_text - 2;
+    int lines_without_text = 26 - 4 - first_lines_with_text - second_lines_with_text - 5;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

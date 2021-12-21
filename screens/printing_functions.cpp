@@ -57,14 +57,14 @@ string text_line( string number, string message, string color)
 	{
         color = "[37;41m";
     }
-	t_line = "\033" + color + "  " + number + "  " + message + " \033[0m" + "\n";
+	t_line = "\033" + color + "  " + number + "  " + message + " \033[0m";
 	return t_line;
 }
 
 
 int print_main_lines(string channels_message[8], string selected_channel, int first_channel, int last_channel)
 {
-    string channels_keys[8] = {"1", "2", "3", "4", "5", "6", "7", "8"};
+    string channels_keys[10] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
     string color = "";
     int lines_with_text = 0;
     for (int i = first_channel; i < last_channel; i++)
@@ -89,6 +89,10 @@ int print_main_lines(string channels_message[8], string selected_channel, int fi
         {
             color = "original";
         }
+        if (ch_key == "10")
+        {
+            ch_key = "0";
+        }
 
         if (ch_message != "")
         {
@@ -100,5 +104,5 @@ int print_main_lines(string channels_message[8], string selected_channel, int fi
     }
 
     // * 2 becuase + \n
-    return lines_with_text * 2;
+    return lines_with_text ;
 }

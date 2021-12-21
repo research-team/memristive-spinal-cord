@@ -22,7 +22,7 @@ int PASSIVE_TEST(string selected_channel = "1", bool error = false)
     }
 
     //main lines
-    cout << header("ACTIVE") << endl;
+    cout << header("PASSIVE") << endl;
     cout << "  Please bend and straighten the ankle, knee and hip\n  to the maximum possible angles 5 times in series" << "\n" << endl;
     cout << "\n" << endl;
 
@@ -30,7 +30,7 @@ int PASSIVE_TEST(string selected_channel = "1", bool error = false)
     cout << "  ankle ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
     cout << "  knee  ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
     cout << "  hip   ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
-    cout << "  After finishing, press F2" << "\n" << endl;
+    cout << "\n  After finishing, press F2" << "\n" << endl;
 
     if (error == true)
     {

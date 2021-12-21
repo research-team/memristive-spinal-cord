@@ -9,23 +9,28 @@ using namespace std;
 int SETUP(string selected_channel = "1")
 {
     //fill with text
-    string channels_message[8] = {};
+    string channels_message[10] = {};
 
     channels_message[0] = "MAXIMUM CURRENT    20 mA";
     channels_message[1] = "STIMULATION TIME    1 min";
     channels_message[2] = "ACCELERATION TIME    5 sec";
-    channels_message[3] = "SHAPE OF SIGNAL";
-    channels_message[4] = "CURRENT LIMITS";
+    channels_message[3] = "4  FES AND SCS DELAY";
+    channels_message[4] = "SHAPE OF SIGNAL";
+    channels_message[5] = "CURRENT LIMITS";
 
     string F1_F4_message = "F1  SAVE & BACK    F2  RESET";
 
     //to switch between screens
-    if (selected_channel == "4")
+    /*if (selected_channel == "4")
+    {
+        SHAPE_OF_SIGNAL(selected_channel);
+    }*/
+    if (selected_channel == "5")
     {
         SHAPE_OF_SIGNAL(selected_channel);
     }
 
-    if (selected_channel == "5")
+    if (selected_channel == "6")
     {
         CURRENT_LIMITS(selected_channel);
     }
@@ -42,7 +47,7 @@ int SETUP(string selected_channel = "1")
     cout << header("SETUP") << endl;
 
     int first_channel = 0;
-    int last_channel = 8;
+    int last_channel = 10;
     int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     // 26 - max hight, 4 - header + ending line
