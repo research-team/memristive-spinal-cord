@@ -16,7 +16,7 @@ int SELF_TEST(string selected_channel = "1")
     channels_message[2] = "FLEXIMETERS ONLY";
     channels_message[3] = "PRESSURE ONLY";
 
-    string F1_F4_message = "F1  BACK";
+    string F1_F4_message = "  F1  BACK";
 
     //to switch between screens
     if (selected_channel == "1")

@@ -17,7 +17,7 @@ int SQUARE_PULSES(string selected_channel = "1")
     channels_message[4] = "INTERBURST INTERVAL    100ms";
     channels_message[5] = "INTERNAL MODULATION PULSES    5000 Hz";
 
-    string F1_F4_message = "F1  SAVE & BACK    F2  SAVE & STIM";
+    string F1_F4_message = "  F1  SAVE & BACK    F2  SAVE & STIM";
 
     //to switch between screens
     if (selected_channel == "F1")

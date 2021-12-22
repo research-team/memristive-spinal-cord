@@ -13,7 +13,7 @@ int STIMULATION(string selected_channel = "1")
     channels_message[0] = "0.0 19 mA  Ankle Extensor (G)";
     channels_message[1] = "0.0 17 mA  Ankle Flexor (G)";
     channels_message[2] = "0.0 12 mA  Hip Extensor (G)";
-    channels_message[3] = "0.0 20 mA  Hip Flexot (G)";
+    channels_message[3] = "0.0 20 mA  Hip Flexor (G)";
     channels_message[4] = "0.0 18 mA  Ankle Extensor (G)";
     channels_message[5] = "0.0 12 mA  Monophasic   250 us, 40 Hz";
     channels_message[6] = "0.0 20 mA  Biphasic    200 us, 40 Hz";
@@ -21,7 +21,7 @@ int STIMULATION(string selected_channel = "1")
     channels_message[8] = "0.0 12 mA  Monophasic   250 us, 40 Hz";
     channels_message[9] = "0.0 20 mA  Biphasic    200 us, 40 Hz";
 
-    string F1_F4_message = "F1  STOP    F1  STOP & BACK    F1  STOP & SETUP    F1  STOP & MAIN";
+    string F1_F4_message = "  F1  STOP    F1  STOP & BACK    F1  STOP & SETUP    F1  STOP & MAIN";
 
     //to switch between screens
     /*if (selected_channel == "F1")

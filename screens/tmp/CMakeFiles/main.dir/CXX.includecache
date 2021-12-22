@@ -14,6 +14,8 @@
 
 /home/b-rain/test/screens/electrodes_cont.h
 
+/home/b-rain/test/screens/end_of_stim.h
+
 /home/b-rain/test/screens/main_scr.h
 
 /home/b-rain/test/screens/mixed.h
@@ -31,18 +33,6 @@
 /home/b-rain/test/screens/shape_of_signal.h
 
 /home/b-rain/test/screens/square_pulses.h
-
-/home/b-rain/test/screens/stimulation.cpp
-iostream
--
-electrodes_cont.h
-/home/b-rain/test/screens/electrodes_cont.h
-setup.h
-/home/b-rain/test/screens/setup.h
-main_scr.h
-/home/b-rain/test/screens/main_scr.h
-printing_functions.h
-/home/b-rain/test/screens/printing_functions.h
 
 /home/b-rain/test/screens/stimulation.h
 
@@ -77,4 +67,6 @@ square_pulses.h
 /home/b-rain/test/screens/square_pulses.h
 stimulation.h
 /home/b-rain/test/screens/stimulation.h
+end_of_stim.h
+/home/b-rain/test/screens/end_of_stim.h
 

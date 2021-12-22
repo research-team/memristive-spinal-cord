@@ -22,6 +22,10 @@ CMakeFiles/main.dir/electrodes_cont.cpp.o: ../main_scr.h
 CMakeFiles/main.dir/electrodes_cont.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/electrodes_cont.cpp.o: ../stimulation.h
 
+CMakeFiles/main.dir/end_of_stim.cpp.o: ../end_of_stim.cpp
+CMakeFiles/main.dir/end_of_stim.cpp.o: ../main_scr.h
+CMakeFiles/main.dir/end_of_stim.cpp.o: ../printing_functions.h
+
 CMakeFiles/main.dir/main_scr.cpp.o: ../main_scr.cpp
 CMakeFiles/main.dir/main_scr.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/main_scr.cpp.o: ../self_test.h
@@ -78,6 +82,7 @@ CMakeFiles/main.dir/test_main.cpp.o: ../active_test.h
 CMakeFiles/main.dir/test_main.cpp.o: ../all_sensors.h
 CMakeFiles/main.dir/test_main.cpp.o: ../current_limits.h
 CMakeFiles/main.dir/test_main.cpp.o: ../electrodes_cont.h
+CMakeFiles/main.dir/test_main.cpp.o: ../end_of_stim.h
 CMakeFiles/main.dir/test_main.cpp.o: ../main_scr.h
 CMakeFiles/main.dir/test_main.cpp.o: ../mixed.h
 CMakeFiles/main.dir/test_main.cpp.o: ../passive_test.h

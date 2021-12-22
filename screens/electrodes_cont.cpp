@@ -21,7 +21,7 @@ int ELECTRODES_CONTACT(string selected_channel = "1")
     channels_message[8] = "connected";
     channels_message[9] = "disconnected";
 
-    string F1_F4_message = "F1  BACK TO MAIN    F2 START    F3 REPEAT    F4 STIMULATION";
+    string F1_F4_message = "  F1  BACK TO MAIN    F2 START    F3 REPEAT    F4 STIMULATION";
 
     //to switch between screens
     if (selected_channel == "F1")

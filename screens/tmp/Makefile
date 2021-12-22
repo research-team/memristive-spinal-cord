@@ -231,6 +231,33 @@ electrodes_cont.cpp.s:
 	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/electrodes_cont.cpp.s
 .PHONY : electrodes_cont.cpp.s
 
+end_of_stim.o: end_of_stim.cpp.o
+
+.PHONY : end_of_stim.o
+
+# target to build an object file
+end_of_stim.cpp.o:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/end_of_stim.cpp.o
+.PHONY : end_of_stim.cpp.o
+
+end_of_stim.i: end_of_stim.cpp.i
+
+.PHONY : end_of_stim.i
+
+# target to preprocess a source file
+end_of_stim.cpp.i:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/end_of_stim.cpp.i
+.PHONY : end_of_stim.cpp.i
+
+end_of_stim.s: end_of_stim.cpp.s
+
+.PHONY : end_of_stim.s
+
+# target to generate assembly for a file
+end_of_stim.cpp.s:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/end_of_stim.cpp.s
+.PHONY : end_of_stim.cpp.s
+
 main_scr.o: main_scr.cpp.o
 
 .PHONY : main_scr.o
@@ -549,6 +576,9 @@ help:
 	@echo "... electrodes_cont.o"
 	@echo "... electrodes_cont.i"
 	@echo "... electrodes_cont.s"
+	@echo "... end_of_stim.o"
+	@echo "... end_of_stim.i"
+	@echo "... end_of_stim.s"
 	@echo "... main_scr.o"
 	@echo "... main_scr.i"
 	@echo "... main_scr.s"

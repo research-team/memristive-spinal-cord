@@ -21,7 +21,7 @@ int CURRENT_LIMITS(string selected_channel = "1")
     channels_message[9] = "xx mA";
 
 
-    string F1_F4_message = "F1  BACK";
+    string F1_F4_message = "  F1  BACK";
 
     //to switch between screens
     if (selected_channel == "F1")
@@ -56,6 +56,7 @@ int CURRENT_LIMITS(string selected_channel = "1")
 
     // 26 - max hight, 4 - header + ending line, 4 - other printed lines
     int lines_without_text = 26 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - third_blok_lines_with_text - 7;
+    //int lines_without_text = 3;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

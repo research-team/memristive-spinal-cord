@@ -22,6 +22,10 @@ CMakeFiles/main.dir/electrodes_cont.cpp.o
  /home/b-rain/test/screens/main_scr.h
  /home/b-rain/test/screens/printing_functions.h
  /home/b-rain/test/screens/stimulation.h
+CMakeFiles/main.dir/end_of_stim.cpp.o
+ /home/b-rain/test/screens/end_of_stim.cpp
+ /home/b-rain/test/screens/main_scr.h
+ /home/b-rain/test/screens/printing_functions.h
 CMakeFiles/main.dir/main_scr.cpp.o
  /home/b-rain/test/screens/main_scr.cpp
  /home/b-rain/test/screens/printing_functions.h
@@ -79,6 +83,7 @@ CMakeFiles/main.dir/test_main.cpp.o
  /home/b-rain/test/screens/all_sensors.h
  /home/b-rain/test/screens/current_limits.h
  /home/b-rain/test/screens/electrodes_cont.h
+ /home/b-rain/test/screens/end_of_stim.h
  /home/b-rain/test/screens/main_scr.h
  /home/b-rain/test/screens/mixed.h
  /home/b-rain/test/screens/passive_test.h

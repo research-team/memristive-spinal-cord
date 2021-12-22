@@ -13,12 +13,12 @@
 #include "shape_of_signal.h"
 #include "square_pulses.h"
 #include "stimulation.h"
+#include "end_of_stim.h"
 
 using namespace std;
 
 int main()
-{
-	STIMULATION("1");
+{	//END_OF_STIM("1");
 	ACTIVE_TEST("1", false);
 	ACTIVE_TEST("1", true);
 	PASSIVE_TEST("1", false);
@@ -35,6 +35,7 @@ int main()
 	SHAPE_OF_SIGNAL("1");
 	SQUARE_PULSES("1");
 	STIMULATION("1");
+	END_OF_STIM("1");
 
     return 0;
 }

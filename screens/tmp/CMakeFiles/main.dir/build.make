@@ -109,9 +109,22 @@ CMakeFiles/main.dir/electrodes_cont.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main.dir/electrodes_cont.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/b-rain/test/screens/electrodes_cont.cpp -o CMakeFiles/main.dir/electrodes_cont.cpp.s
 
+CMakeFiles/main.dir/end_of_stim.cpp.o: CMakeFiles/main.dir/flags.make
+CMakeFiles/main.dir/end_of_stim.cpp.o: ../end_of_stim.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/main.dir/end_of_stim.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/end_of_stim.cpp.o -c /home/b-rain/test/screens/end_of_stim.cpp
+
+CMakeFiles/main.dir/end_of_stim.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/main.dir/end_of_stim.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/b-rain/test/screens/end_of_stim.cpp > CMakeFiles/main.dir/end_of_stim.cpp.i
+
+CMakeFiles/main.dir/end_of_stim.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main.dir/end_of_stim.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/b-rain/test/screens/end_of_stim.cpp -o CMakeFiles/main.dir/end_of_stim.cpp.s
+
 CMakeFiles/main.dir/main_scr.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/main_scr.cpp.o: ../main_scr.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/main.dir/main_scr.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/main.dir/main_scr.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/main_scr.cpp.o -c /home/b-rain/test/screens/main_scr.cpp
 
 CMakeFiles/main.dir/main_scr.cpp.i: cmake_force
@@ -124,7 +137,7 @@ CMakeFiles/main.dir/main_scr.cpp.s: cmake_force
 
 CMakeFiles/main.dir/mixed.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/mixed.cpp.o: ../mixed.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/main.dir/mixed.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/main.dir/mixed.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/mixed.cpp.o -c /home/b-rain/test/screens/mixed.cpp
 
 CMakeFiles/main.dir/mixed.cpp.i: cmake_force
@@ -137,7 +150,7 @@ CMakeFiles/main.dir/mixed.cpp.s: cmake_force
 
 CMakeFiles/main.dir/passive_test.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/passive_test.cpp.o: ../passive_test.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/main.dir/passive_test.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/main.dir/passive_test.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/passive_test.cpp.o -c /home/b-rain/test/screens/passive_test.cpp
 
 CMakeFiles/main.dir/passive_test.cpp.i: cmake_force
@@ -150,7 +163,7 @@ CMakeFiles/main.dir/passive_test.cpp.s: cmake_force
 
 CMakeFiles/main.dir/pattern.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/pattern.cpp.o: ../pattern.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/main.dir/pattern.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/main.dir/pattern.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/pattern.cpp.o -c /home/b-rain/test/screens/pattern.cpp
 
 CMakeFiles/main.dir/pattern.cpp.i: cmake_force
@@ -163,7 +176,7 @@ CMakeFiles/main.dir/pattern.cpp.s: cmake_force
 
 CMakeFiles/main.dir/printing_functions.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/printing_functions.cpp.o: ../printing_functions.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/main.dir/printing_functions.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/main.dir/printing_functions.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/printing_functions.cpp.o -c /home/b-rain/test/screens/printing_functions.cpp
 
 CMakeFiles/main.dir/printing_functions.cpp.i: cmake_force
@@ -176,7 +189,7 @@ CMakeFiles/main.dir/printing_functions.cpp.s: cmake_force
 
 CMakeFiles/main.dir/self_test.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/self_test.cpp.o: ../self_test.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/main.dir/self_test.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/main.dir/self_test.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/self_test.cpp.o -c /home/b-rain/test/screens/self_test.cpp
 
 CMakeFiles/main.dir/self_test.cpp.i: cmake_force
@@ -189,7 +202,7 @@ CMakeFiles/main.dir/self_test.cpp.s: cmake_force
 
 CMakeFiles/main.dir/setup.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/setup.cpp.o: ../setup.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/main.dir/setup.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/main.dir/setup.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/setup.cpp.o -c /home/b-rain/test/screens/setup.cpp
 
 CMakeFiles/main.dir/setup.cpp.i: cmake_force
@@ -202,7 +215,7 @@ CMakeFiles/main.dir/setup.cpp.s: cmake_force
 
 CMakeFiles/main.dir/shape_of_signal.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/shape_of_signal.cpp.o: ../shape_of_signal.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/main.dir/shape_of_signal.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/main.dir/shape_of_signal.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/shape_of_signal.cpp.o -c /home/b-rain/test/screens/shape_of_signal.cpp
 
 CMakeFiles/main.dir/shape_of_signal.cpp.i: cmake_force
@@ -215,7 +228,7 @@ CMakeFiles/main.dir/shape_of_signal.cpp.s: cmake_force
 
 CMakeFiles/main.dir/square_pulses.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/square_pulses.cpp.o: ../square_pulses.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/main.dir/square_pulses.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/main.dir/square_pulses.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/square_pulses.cpp.o -c /home/b-rain/test/screens/square_pulses.cpp
 
 CMakeFiles/main.dir/square_pulses.cpp.i: cmake_force
@@ -228,7 +241,7 @@ CMakeFiles/main.dir/square_pulses.cpp.s: cmake_force
 
 CMakeFiles/main.dir/stimulation.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/stimulation.cpp.o: ../stimulation.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/main.dir/stimulation.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/main.dir/stimulation.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/stimulation.cpp.o -c /home/b-rain/test/screens/stimulation.cpp
 
 CMakeFiles/main.dir/stimulation.cpp.i: cmake_force
@@ -241,7 +254,7 @@ CMakeFiles/main.dir/stimulation.cpp.s: cmake_force
 
 CMakeFiles/main.dir/test_main.cpp.o: CMakeFiles/main.dir/flags.make
 CMakeFiles/main.dir/test_main.cpp.o: ../test_main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/main.dir/test_main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/main.dir/test_main.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.dir/test_main.cpp.o -c /home/b-rain/test/screens/test_main.cpp
 
 CMakeFiles/main.dir/test_main.cpp.i: cmake_force
@@ -258,6 +271,7 @@ main_OBJECTS = \
 "CMakeFiles/main.dir/all_sensors.cpp.o" \
 "CMakeFiles/main.dir/current_limits.cpp.o" \
 "CMakeFiles/main.dir/electrodes_cont.cpp.o" \
+"CMakeFiles/main.dir/end_of_stim.cpp.o" \
 "CMakeFiles/main.dir/main_scr.cpp.o" \
 "CMakeFiles/main.dir/mixed.cpp.o" \
 "CMakeFiles/main.dir/passive_test.cpp.o" \
@@ -277,6 +291,7 @@ main: CMakeFiles/main.dir/active_test.cpp.o
 main: CMakeFiles/main.dir/all_sensors.cpp.o
 main: CMakeFiles/main.dir/current_limits.cpp.o
 main: CMakeFiles/main.dir/electrodes_cont.cpp.o
+main: CMakeFiles/main.dir/end_of_stim.cpp.o
 main: CMakeFiles/main.dir/main_scr.cpp.o
 main: CMakeFiles/main.dir/mixed.cpp.o
 main: CMakeFiles/main.dir/passive_test.cpp.o
@@ -290,7 +305,7 @@ main: CMakeFiles/main.dir/stimulation.cpp.o
 main: CMakeFiles/main.dir/test_main.cpp.o
 main: CMakeFiles/main.dir/build.make
 main: CMakeFiles/main.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Linking CXX executable main"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/b-rain/test/screens/tmp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX executable main"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/main.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

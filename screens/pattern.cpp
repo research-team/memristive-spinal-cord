@@ -14,7 +14,7 @@ int PATTERN(string selected_channel = "1")
     channels_message[1] = "9 CHANNEL    250 us, 40 Hz";
     channels_message[2] = "10 CHANNEL    250 us, 40 Hz";
 
-    string F1_F4_message = "F1  SAVE & BACK    F2  SAVE & STIM";
+    string F1_F4_message = "  F1  SAVE & BACK    F2  SAVE & STIM";
 
     //to switch between screens
     if (selected_channel == "F1")
@@ -31,13 +31,13 @@ int PATTERN(string selected_channel = "1")
     cout << "  PATTERN \n" << endl;
 
     int first_channel = 0;
-    int last_channel = 2;
+    int last_channel = 1;
     int first_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
     cout << "\n" << endl;
 
     cout << "  SCS: " << endl;
-    first_channel = 2;
-    last_channel = 4;
+    first_channel = 1;
+    last_channel = 3;
     int second_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     // 26 - max hight, 4 - header + ending line, 2 - other printed lines

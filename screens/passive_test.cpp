@@ -9,7 +9,7 @@ int PASSIVE_TEST(string selected_channel = "1", bool error = false)
 {
     //fill with text
 
-    string F1_F4_message = "F1  BACK    F2 NEXT";
+    string F1_F4_message = "  F1  BACK    F2 NEXT";
 
         //to switch between screens
     if (selected_channel == "F1")

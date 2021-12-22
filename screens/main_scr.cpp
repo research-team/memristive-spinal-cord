@@ -10,9 +10,7 @@ int MAIN(string selected_channel = "1", bool error = false)
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "PATIENT ID: ----";
-
-    string F1_F4_message = "F1  CURSOR LEFT    F2  CURSOR RIGHT    F3  SETUP    F4  TEST & STIM";
+    string F1_F4_message = "  F1  CURSOR LEFT    F2  CURSOR RIGHT    F3  SETUP    F4  TEST & STIM";
 
     //to switch between screens
     if (selected_channel == "F3")
@@ -30,10 +28,10 @@ int MAIN(string selected_channel = "1", bool error = false)
     cout << "  Enter user ID:" << "\n" << endl;
     cout << "  - Use the encoder to select a digit" << endl;
     cout << "  - Use F1 and F2 to change the position of the cursor" << "\n" << endl;
-
-    int first_channel = 0;
-    int last_channel = 2;
-    int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    cout << "\033[30;47m  PATIENT ID: ---- \033[0m" << "\n" << endl;
+    //int first_channel = 0;
+    //int last_channel = 2;
+    //int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     if (error == true)
     {

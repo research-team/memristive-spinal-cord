@@ -8,6 +8,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/b-rain/test/screens/all_sensors.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/all_sensors.cpp.o"
   "/home/b-rain/test/screens/current_limits.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/current_limits.cpp.o"
   "/home/b-rain/test/screens/electrodes_cont.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/electrodes_cont.cpp.o"
+  "/home/b-rain/test/screens/end_of_stim.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/end_of_stim.cpp.o"
   "/home/b-rain/test/screens/main_scr.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/main_scr.cpp.o"
   "/home/b-rain/test/screens/mixed.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/mixed.cpp.o"
   "/home/b-rain/test/screens/passive_test.cpp" "/home/b-rain/test/screens/tmp/CMakeFiles/main.dir/passive_test.cpp.o"

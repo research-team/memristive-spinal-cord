@@ -14,11 +14,11 @@ int SETUP(string selected_channel = "1")
     channels_message[0] = "MAXIMUM CURRENT    20 mA";
     channels_message[1] = "STIMULATION TIME    1 min";
     channels_message[2] = "ACCELERATION TIME    5 sec";
-    channels_message[3] = "4  FES AND SCS DELAY";
+    channels_message[3] = "FES AND SCS DELAY";
     channels_message[4] = "SHAPE OF SIGNAL";
     channels_message[5] = "CURRENT LIMITS";
 
-    string F1_F4_message = "F1  SAVE & BACK    F2  RESET";
+    string F1_F4_message = "  F1  SAVE & BACK    F2  RESET";
 
     //to switch between screens
     /*if (selected_channel == "4")

@@ -14,7 +14,7 @@ int ALL_SENSORS(string selected_channel = "1")
     channels_message[0] = "ACTIVE";
     channels_message[1] = "PASSIVE";
 
-    string F1_F4_message = "F1  BACK";
+    string F1_F4_message = "  F1  BACK";
 
     //to switch between screens
     if (selected_channel == "1")
@@ -39,8 +39,10 @@ int ALL_SENSORS(string selected_channel = "1")
     int first_channel = 0;
     int last_channel = 1;
     int first_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
+    cout << "\n" << endl;
 
     cout << "  For patients who need nursing help:" << "\n" << endl;
+
 
     first_channel = 1;
     last_channel = 2;
@@ -48,6 +50,7 @@ int ALL_SENSORS(string selected_channel = "1")
 
     // 26 - max hight, 4 - header + ending line, 2 - other
     int lines_without_text = 26 - 4 - first_blok_lines_with_text -second_blok_lines_with_text - 9;
+    //int lines_without_text = 10;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

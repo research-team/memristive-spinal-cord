@@ -21,7 +21,7 @@ int MIXED(string selected_channel = "1")
     channels_message[8] = "MONOPHASIC    250 us, 40 Hz";
     channels_message[9] = "BIPHASIC    250 us, 40 Hz";
 
-    string F1_F4_message = "F1  SAVE & BACK    F2  SELECT   F3  SAVE & STIM";
+    string F1_F4_message = "  F1  SAVE & BACK    F2  SELECT   F3  SAVE & STIM";
 
     //to switch between screens
     if (selected_channel == "F1")
@@ -35,20 +35,22 @@ int MIXED(string selected_channel = "1")
 
     //main lines
     cout << header("SETUP") << endl;
-    cout << "  MIXED "  << "\n" << endl;
-    cout << "  Press the encoder or F2 for detaled channel setup" << "\n" << endl;
+    cout << "  MIXED " << endl;
+    cout << " " << endl;
+    cout << "  Press the encoder or F2 for detaled channel setup" << endl;
+    cout << " " << endl;
     cout << "  LEFT LEG " << endl;
 
     int first_channel = 0;
     int last_channel = 4;
     int first_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
-    cout << "\n" << endl;
+    cout << " " << endl;
 
     cout << "  RIGHT LEG " << endl;
     first_channel = 4;
     last_channel = 8;
     int second_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
-    cout << "\n" << endl;
+    cout << " " << endl;
 
     cout << "  SCS " << endl;
     first_channel = 8;

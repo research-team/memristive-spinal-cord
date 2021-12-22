@@ -3,6 +3,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/main.dir/all_sensors.cpp.o"
   "CMakeFiles/main.dir/current_limits.cpp.o"
   "CMakeFiles/main.dir/electrodes_cont.cpp.o"
+  "CMakeFiles/main.dir/end_of_stim.cpp.o"
   "CMakeFiles/main.dir/main_scr.cpp.o"
   "CMakeFiles/main.dir/mixed.cpp.o"
   "CMakeFiles/main.dir/passive_test.cpp.o"
