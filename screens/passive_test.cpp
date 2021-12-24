@@ -9,7 +9,7 @@ int PASSIVE_TEST(string selected_channel = "1", bool error = false)
 {
     //fill with text
 
-    string F1_F4_message = "  F1  BACK    F2 NEXT";
+    string F1_F4_message = "  F1 BACK  F2 NEXT";
 
         //to switch between screens
     if (selected_channel == "F1")
@@ -24,25 +24,24 @@ int PASSIVE_TEST(string selected_channel = "1", bool error = false)
     //main lines
     cout << header("PASSIVE") << endl;
     cout << "  Please bend and straighten the ankle, knee and hip\n  to the maximum possible angles 5 times in series" << "\n" << endl;
-    cout << "\n" << endl;
 
     cout << "        step 1 step 2 step 3 step 4 step 5" << "\n" << endl;
     cout << "  ankle ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
     cout << "  knee  ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
     cout << "  hip   ██████ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒ ▒▒▒▒▒▒" << "\n" << endl;
-    cout << "\n  After finishing, press F2" << "\n" << endl;
+    cout << "  After finishing, press F2"<< endl;
 
     if (error == true)
     {
         cout << error_line( "Hip sensors (1, 2)  malfunction", "fatal") << endl;
         // 26 - max hight, 4 - header + ending line, 10 - other, 4 - error
-        int lines_without_text = 26 - 4 - 16 - 4;
+        int lines_without_text = 23 - 4 - 12 - 4;
         cout << empty_line(lines_without_text) << endl;
     }
     else
     {
         // 26 - max hight, 4 - header + ending line, 10 - other
-        int lines_without_text = 26 - 4 - 16;
+        int lines_without_text = 23 - 4 - 12;
         cout << empty_line(lines_without_text) << endl;
     }
 

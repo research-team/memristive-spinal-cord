@@ -11,12 +11,12 @@ int SELF_TEST(string selected_channel = "1")
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "WITHOUT SENSORS";
-    channels_message[1] = "ALL SENSORS";
-    channels_message[2] = "FLEXIMETERS ONLY";
-    channels_message[3] = "PRESSURE ONLY";
+    channels_message[0] = "WITHOUT SENSORS >>";
+    channels_message[1] = "ALL SENSORS >>";
+    channels_message[2] = "FLEXIMETERS ONLY >>";
+    channels_message[3] = "PRESSURE ONLY >>";
 
-    string F1_F4_message = "  F1  BACK";
+    string F1_F4_message = "  F1 BACK";
 
     //to switch between screens
     if (selected_channel == "1")
@@ -42,14 +42,16 @@ int SELF_TEST(string selected_channel = "1")
 
     //main lines
     cout << header("SELF TEST") << endl;
-    cout << "  SENSORS CONFIGURATION:" << "\n" << endl;
-
+    cout << "  SENSORS CONFIGURATION:" << endl;
+    cout << " " << endl;
+    cout << "  Before testing, please put on the required sensors" << endl;
+    cout << "  and connect the electrodes" << "\n" << endl;
     int first_channel = 0;
     int last_channel = 10;
     int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
     // 26 - max hight, 4 - header + ending line, 2 - other
-    int lines_without_text = 26 - 4 - lines_with_text - 2;
+    int lines_without_text = 23 - 4 - lines_with_text - 3;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

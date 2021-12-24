@@ -21,7 +21,7 @@ int ELECTRODES_CONTACT(string selected_channel = "1")
     channels_message[8] = "connected";
     channels_message[9] = "disconnected";
 
-    string F1_F4_message = "  F1  BACK TO MAIN    F2 START    F3 REPEAT    F4 STIMULATION";
+    string F1_F4_message = "  F1 BACK TO MAIN  F2 START  F3 REPEAT  F4 STIMULATION";
 
     //to switch between screens
     if (selected_channel == "F1")
@@ -52,8 +52,8 @@ int ELECTRODES_CONTACT(string selected_channel = "1")
 
     cout << "\n  If used channels are disconnected, check the connection\n  and press F3 to re-check" << "\n" << endl;
 
-    // 26 - max hight, 4 - header + ending line, 4 - other
-    int lines_without_text = 26 - 4 - lines_with_text - 6;
+    // 23 - max hight, 4 - header + ending line, 4 - other
+    int lines_without_text = 23 - 4 - lines_with_text - 6;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

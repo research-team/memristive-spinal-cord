@@ -12,10 +12,12 @@ CMakeFiles/main.dir/all_sensors.cpp.o: ../passive_test.h
 CMakeFiles/main.dir/all_sensors.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/all_sensors.cpp.o: ../self_test.h
 
-CMakeFiles/main.dir/current_limits.cpp.o: ../current_limits.cpp
-CMakeFiles/main.dir/current_limits.cpp.o: ../printing_functions.h
-CMakeFiles/main.dir/current_limits.cpp.o: ../self_test.h
-CMakeFiles/main.dir/current_limits.cpp.o: ../shape_of_signal.h
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../channels_signals_setup.cpp
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../pattern.h
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../printing_functions.h
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../self_test.h
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../setup.h
+CMakeFiles/main.dir/channels_signals_setup.cpp.o: ../square_pulses.h
 
 CMakeFiles/main.dir/electrodes_cont.cpp.o: ../electrodes_cont.cpp
 CMakeFiles/main.dir/electrodes_cont.cpp.o: ../main_scr.h
@@ -31,20 +33,15 @@ CMakeFiles/main.dir/main_scr.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/main_scr.cpp.o: ../self_test.h
 CMakeFiles/main.dir/main_scr.cpp.o: ../setup.h
 
-CMakeFiles/main.dir/mixed.cpp.o: ../mixed.cpp
-CMakeFiles/main.dir/mixed.cpp.o: ../printing_functions.h
-CMakeFiles/main.dir/mixed.cpp.o: ../self_test.h
-CMakeFiles/main.dir/mixed.cpp.o: ../shape_of_signal.h
-
 CMakeFiles/main.dir/passive_test.cpp.o: ../all_sensors.h
 CMakeFiles/main.dir/passive_test.cpp.o: ../electrodes_cont.h
 CMakeFiles/main.dir/passive_test.cpp.o: ../passive_test.cpp
 CMakeFiles/main.dir/passive_test.cpp.o: ../printing_functions.h
 
+CMakeFiles/main.dir/pattern.cpp.o: ../channels_signals_setup.h
 CMakeFiles/main.dir/pattern.cpp.o: ../pattern.cpp
 CMakeFiles/main.dir/pattern.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/pattern.cpp.o: ../self_test.h
-CMakeFiles/main.dir/pattern.cpp.o: ../shape_of_signal.h
 
 CMakeFiles/main.dir/printing_functions.cpp.o: ../printing_functions.cpp
 
@@ -54,22 +51,14 @@ CMakeFiles/main.dir/self_test.cpp.o: ../main_scr.h
 CMakeFiles/main.dir/self_test.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/self_test.cpp.o: ../self_test.cpp
 
-CMakeFiles/main.dir/setup.cpp.o: ../current_limits.h
+CMakeFiles/main.dir/setup.cpp.o: ../channels_signals_setup.h
 CMakeFiles/main.dir/setup.cpp.o: ../main_scr.h
 CMakeFiles/main.dir/setup.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/setup.cpp.o: ../setup.cpp
-CMakeFiles/main.dir/setup.cpp.o: ../shape_of_signal.h
 
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../mixed.h
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../pattern.h
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../printing_functions.h
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../setup.h
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../shape_of_signal.cpp
-CMakeFiles/main.dir/shape_of_signal.cpp.o: ../square_pulses.h
-
+CMakeFiles/main.dir/square_pulses.cpp.o: ../channels_signals_setup.h
 CMakeFiles/main.dir/square_pulses.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/square_pulses.cpp.o: ../self_test.h
-CMakeFiles/main.dir/square_pulses.cpp.o: ../shape_of_signal.h
 CMakeFiles/main.dir/square_pulses.cpp.o: ../square_pulses.cpp
 
 CMakeFiles/main.dir/stimulation.cpp.o: ../electrodes_cont.h
@@ -80,17 +69,15 @@ CMakeFiles/main.dir/stimulation.cpp.o: ../stimulation.cpp
 
 CMakeFiles/main.dir/test_main.cpp.o: ../active_test.h
 CMakeFiles/main.dir/test_main.cpp.o: ../all_sensors.h
-CMakeFiles/main.dir/test_main.cpp.o: ../current_limits.h
+CMakeFiles/main.dir/test_main.cpp.o: ../channels_signals_setup.h
 CMakeFiles/main.dir/test_main.cpp.o: ../electrodes_cont.h
 CMakeFiles/main.dir/test_main.cpp.o: ../end_of_stim.h
 CMakeFiles/main.dir/test_main.cpp.o: ../main_scr.h
-CMakeFiles/main.dir/test_main.cpp.o: ../mixed.h
 CMakeFiles/main.dir/test_main.cpp.o: ../passive_test.h
 CMakeFiles/main.dir/test_main.cpp.o: ../pattern.h
 CMakeFiles/main.dir/test_main.cpp.o: ../printing_functions.h
 CMakeFiles/main.dir/test_main.cpp.o: ../self_test.h
 CMakeFiles/main.dir/test_main.cpp.o: ../setup.h
-CMakeFiles/main.dir/test_main.cpp.o: ../shape_of_signal.h
 CMakeFiles/main.dir/test_main.cpp.o: ../square_pulses.h
 CMakeFiles/main.dir/test_main.cpp.o: ../stimulation.h
 CMakeFiles/main.dir/test_main.cpp.o: ../test_main.cpp

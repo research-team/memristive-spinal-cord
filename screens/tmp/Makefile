@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/b-rain/test/screens
+CMAKE_SOURCE_DIR = /home/b-rain/PycharmProjects/memristive-spinal-cord/screens
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/b-rain/test/screens/tmp
+CMAKE_BINARY_DIR = /home/b-rain/PycharmProjects/memristive-spinal-cord/screens/tmp
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/b-rain/test/screens/tmp/CMakeFiles /home/b-rain/test/screens/tmp/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/b-rain/PycharmProjects/memristive-spinal-cord/screens/tmp/CMakeFiles /home/b-rain/PycharmProjects/memristive-spinal-cord/screens/tmp/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/b-rain/test/screens/tmp/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/b-rain/PycharmProjects/memristive-spinal-cord/screens/tmp/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -177,32 +177,32 @@ all_sensors.cpp.s:
 	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/all_sensors.cpp.s
 .PHONY : all_sensors.cpp.s
 
-current_limits.o: current_limits.cpp.o
+channels_signals_setup.o: channels_signals_setup.cpp.o
 
-.PHONY : current_limits.o
+.PHONY : channels_signals_setup.o
 
 # target to build an object file
-current_limits.cpp.o:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/current_limits.cpp.o
-.PHONY : current_limits.cpp.o
+channels_signals_setup.cpp.o:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/channels_signals_setup.cpp.o
+.PHONY : channels_signals_setup.cpp.o
 
-current_limits.i: current_limits.cpp.i
+channels_signals_setup.i: channels_signals_setup.cpp.i
 
-.PHONY : current_limits.i
+.PHONY : channels_signals_setup.i
 
 # target to preprocess a source file
-current_limits.cpp.i:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/current_limits.cpp.i
-.PHONY : current_limits.cpp.i
+channels_signals_setup.cpp.i:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/channels_signals_setup.cpp.i
+.PHONY : channels_signals_setup.cpp.i
 
-current_limits.s: current_limits.cpp.s
+channels_signals_setup.s: channels_signals_setup.cpp.s
 
-.PHONY : current_limits.s
+.PHONY : channels_signals_setup.s
 
 # target to generate assembly for a file
-current_limits.cpp.s:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/current_limits.cpp.s
-.PHONY : current_limits.cpp.s
+channels_signals_setup.cpp.s:
+	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/channels_signals_setup.cpp.s
+.PHONY : channels_signals_setup.cpp.s
 
 electrodes_cont.o: electrodes_cont.cpp.o
 
@@ -284,33 +284,6 @@ main_scr.s: main_scr.cpp.s
 main_scr.cpp.s:
 	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/main_scr.cpp.s
 .PHONY : main_scr.cpp.s
-
-mixed.o: mixed.cpp.o
-
-.PHONY : mixed.o
-
-# target to build an object file
-mixed.cpp.o:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/mixed.cpp.o
-.PHONY : mixed.cpp.o
-
-mixed.i: mixed.cpp.i
-
-.PHONY : mixed.i
-
-# target to preprocess a source file
-mixed.cpp.i:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/mixed.cpp.i
-.PHONY : mixed.cpp.i
-
-mixed.s: mixed.cpp.s
-
-.PHONY : mixed.s
-
-# target to generate assembly for a file
-mixed.cpp.s:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/mixed.cpp.s
-.PHONY : mixed.cpp.s
 
 passive_test.o: passive_test.cpp.o
 
@@ -447,33 +420,6 @@ setup.cpp.s:
 	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/setup.cpp.s
 .PHONY : setup.cpp.s
 
-shape_of_signal.o: shape_of_signal.cpp.o
-
-.PHONY : shape_of_signal.o
-
-# target to build an object file
-shape_of_signal.cpp.o:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/shape_of_signal.cpp.o
-.PHONY : shape_of_signal.cpp.o
-
-shape_of_signal.i: shape_of_signal.cpp.i
-
-.PHONY : shape_of_signal.i
-
-# target to preprocess a source file
-shape_of_signal.cpp.i:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/shape_of_signal.cpp.i
-.PHONY : shape_of_signal.cpp.i
-
-shape_of_signal.s: shape_of_signal.cpp.s
-
-.PHONY : shape_of_signal.s
-
-# target to generate assembly for a file
-shape_of_signal.cpp.s:
-	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/shape_of_signal.cpp.s
-.PHONY : shape_of_signal.cpp.s
-
 square_pulses.o: square_pulses.cpp.o
 
 .PHONY : square_pulses.o
@@ -570,9 +516,9 @@ help:
 	@echo "... all_sensors.o"
 	@echo "... all_sensors.i"
 	@echo "... all_sensors.s"
-	@echo "... current_limits.o"
-	@echo "... current_limits.i"
-	@echo "... current_limits.s"
+	@echo "... channels_signals_setup.o"
+	@echo "... channels_signals_setup.i"
+	@echo "... channels_signals_setup.s"
 	@echo "... electrodes_cont.o"
 	@echo "... electrodes_cont.i"
 	@echo "... electrodes_cont.s"
@@ -582,9 +528,6 @@ help:
 	@echo "... main_scr.o"
 	@echo "... main_scr.i"
 	@echo "... main_scr.s"
-	@echo "... mixed.o"
-	@echo "... mixed.i"
-	@echo "... mixed.s"
 	@echo "... passive_test.o"
 	@echo "... passive_test.i"
 	@echo "... passive_test.s"
@@ -600,9 +543,6 @@ help:
 	@echo "... setup.o"
 	@echo "... setup.i"
 	@echo "... setup.s"
-	@echo "... shape_of_signal.o"
-	@echo "... shape_of_signal.i"
-	@echo "... shape_of_signal.s"
 	@echo "... square_pulses.o"
 	@echo "... square_pulses.i"
 	@echo "... square_pulses.s"

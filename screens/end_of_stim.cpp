@@ -7,7 +7,7 @@ using namespace std;
 int END_OF_STIM(string selected_channel = "1")
 {
     //fill with text
-    string F1_F4_message = "  F1  CONTINUE    F2 NEW";
+    string F1_F4_message = "  F1 CONTINUE  F2 NEW";
 
     //to switch between screens
     if (selected_channel == "F1")
@@ -29,7 +29,7 @@ int END_OF_STIM(string selected_channel = "1")
 
     cout << "\033[30;47m  Please use the web application. \033[0m" << "\n" << endl;
 
-    int lines_without_text = 26 - 4 - 11;
+    int lines_without_text = 23 - 4 - 11;
     cout << empty_line(lines_without_text) << endl;
 
     cout << F1_F4_message << endl;

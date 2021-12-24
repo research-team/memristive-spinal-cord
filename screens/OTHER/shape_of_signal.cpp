@@ -7,7 +7,7 @@
 
 using namespace std;
 
-int SHAPE_OF_SIGNAL(string selected_channel = "1")
+int CHANNELS_SIGNALS_SETUP(string selected_channel = "1")
 {
     //fill with text
     string channels_message[10] = {};

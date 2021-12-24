@@ -1,6 +1,7 @@
 #include <iostream>
-#include "shape_of_signal.h"
 #include "self_test.h"
+#include "setup.h"
+#include "channels_signals_setup.h"
 #include "printing_functions.h"
 
 using namespace std;
@@ -9,24 +10,24 @@ int CURRENT_LIMITS(string selected_channel = "1")
 {
     //fill with text
     string channels_message[10] = {};
-    channels_message[0] = "xx mA";
-    channels_message[1] = "xx mA";
-    channels_message[2] = "xx mA";
-    channels_message[3] = "xx mA";
-    channels_message[4] = "xx mA";
-    channels_message[5] = "xx mA";
-    channels_message[6] = "xx mA";
-    channels_message[7] = "xx mA";
-    channels_message[8] = "xx mA";
-    channels_message[9] = "xx mA";
+    channels_message[0] = "50 mA";
+    channels_message[1] = "50 mA";
+    channels_message[2] = "50 mA";
+    channels_message[3] = "50 mA";
+    channels_message[4] = "50 mA";
+    channels_message[5] = "50 mA";
+    channels_message[6] = "50 mA";
+    channels_message[7] = "50 mA";
+    channels_message[8] = "150 mA";
+    channels_message[9] = "150 mA";
 
 
-    string F1_F4_message = "  F1  BACK";
+    string F1_F4_message = "  F1 BACK";
 
     //to switch between screens
     if (selected_channel == "F1")
     {
-        SHAPE_OF_SIGNAL(selected_channel);
+        SETUP(selected_channel);
     }
     if (selected_channel == "F2")
     {
@@ -54,8 +55,8 @@ int CURRENT_LIMITS(string selected_channel = "1")
     last_channel = 10;
     int third_blok_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
 
-    // 26 - max hight, 4 - header + ending line, 4 - other printed lines
-    int lines_without_text = 26 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - third_blok_lines_with_text - 7;
+    // 23 - max hight, 4 - header + ending line, 4 - other printed lines
+    int lines_without_text = 23 - 4 - first_blok_lines_with_text - second_blok_lines_with_text - third_blok_lines_with_text - 7;
     //int lines_without_text = 3;
     cout << empty_line(lines_without_text) << endl;
 

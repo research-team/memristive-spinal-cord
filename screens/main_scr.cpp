@@ -10,7 +10,7 @@ int MAIN(string selected_channel = "1", bool error = false)
     //fill with text
     string channels_message[10] = {};
 
-    string F1_F4_message = "  F1  CURSOR LEFT    F2  CURSOR RIGHT    F3  SETUP    F4  TEST & STIM";
+    string F1_F4_message = "  F1 CURSOR LEFT  F2 CURSOR RIGHT  F3 SETUP  F4 TEST & STIM";
 
     //to switch between screens
     if (selected_channel == "F3")
@@ -36,18 +36,20 @@ int MAIN(string selected_channel = "1", bool error = false)
     if (error == true)
     {
         cout << error_line("Select patient in the web application or enter patient ID") << endl;
-        // 26 - max hight, 4 - header + ending line, 8 - other, 4 - for error
-        int lines_without_text = 26 - 4 - 8 - 4;
+        // 23 - max hight, 4 - header + ending line, 8 - other, 4 - for error
+        int lines_without_text = 23 - 4 - 8 - 4;
         cout << empty_line(lines_without_text) << endl;
     }
     else
     {
-        // 26 - max hight, 4 - header + ending line, 8 - other
-        int lines_without_text = 26 - 4 - 8;
+        // 23 - max hight, 4 - header + ending line, 8 - other
+        int lines_without_text = 23 - 4 - 8;
         cout << empty_line(lines_without_text) << endl;
     }
 
-    cout << "  F1  CURSOR LEFT    F2  CURSOR RIGHT    F3  SETUP    F4  TEST & STIM" << endl;
+    cout << "  F1  CURSOR LEFT  F2  CURSOR RIGHT  F3  SETUP  F4  TEST & STIM" << endl;
+
+    std::cin.ignore();
 
     return 0;
 }
