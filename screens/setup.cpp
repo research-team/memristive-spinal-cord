@@ -12,11 +12,10 @@ int SETUP(string selected_channel = "1")
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "MAXIMUM OF CURRENT (ON ALL CHANNELS)    20 mA";
+    channels_message[0] = "MAXIMUM OF CURRENT (FOR ALL CHANNELS)    20 mA";
     channels_message[1] = "STIMULATION TIME    1 min";
     channels_message[2] = "ACCELERATION TIME    5 sec";
-    channels_message[3] = "FES AND SCS DELAY    5 ms";
-    channels_message[4] = "CHANNELS SIGNALS SETUP";
+    channels_message[3] = "CHANNELS SIGNALS SETUP";
 
     string F1_F4_message = "  F1 SAVE & BACK  F2 RESET";
 

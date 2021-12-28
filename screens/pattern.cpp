@@ -11,9 +11,11 @@ int PATTERN(string selected_channel = "1")
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "LIMIT OF CURRENT ON CHANNEL    20 mA";
-    channels_message[1] = "MODULATION    ON";
-    channels_message[2] = "INTERNAL MODULATION FREQUENCY    5000 Hz";
+    channels_message[0] = "LIMIT OF CURRENT FOR CHANNEL    20 mA";
+    channels_message[1] = "INTERNAL MODULATION FREQUENCY    5000 Hz";
+    channels_message[2] = "SCS AND FES DELAY (FOR PAIR MUSCLES)    5 ms";
+    channels_message[3] = "AUTO-COMPENSATION MODE    OFF";
+
 
     //channels_message[1] = "9 CHANNEL    250 us, 40 Hz";
     //channels_message[2] = "10 CHANNEL    250 us, 40 Hz";
@@ -35,7 +37,7 @@ int PATTERN(string selected_channel = "1")
     cout << "  PATTERN \n" << endl;
 
     int first_channel = 0;
-    int last_channel = 3;
+    int last_channel = 5;
     int first_lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);
     cout << "\n" << endl;
 

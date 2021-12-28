@@ -11,14 +11,13 @@ int SQUARE_PULSES(string selected_channel = "1")
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "LIMIT OF CURRENT ON CHANNEL    20 mA";
+    channels_message[0] = "LIMIT OF CURRENT FOR CHANNEL    20 mA";
     channels_message[1] = "PHASE    MONOPHASIC";
     channels_message[2] = "PULSE WIDTH    250 us";
     channels_message[3] = "FREQUENCY    40 Hz";
     channels_message[4] = "BURST DURATION    10 ms";
     channels_message[5] = "INTERBURST INTERVAL    100ms";
-    channels_message[6] = "MODULATION    ON";
-    channels_message[7] = "INTERNAL MODULATION FREQUENCY    5000 Hz";
+    channels_message[6] = "INTERNAL MODULATION FREQUENCY    5000 Hz";
 
     string F1_F4_message = "  F1 SAVE & BACK  F2 SAVE & STIM";
 

@@ -6,23 +6,19 @@
 
 #IncludeRegexTransform: 
 
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/all_sensors.h
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/channels_signals_setup.h
 
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/electrodes_cont.h
-
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/main_scr.h
-
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/printing_functions.h
-
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/self_test.cpp
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/pattern.cpp
 iostream
 -
-electrodes_cont.h
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/electrodes_cont.h
-all_sensors.h
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/all_sensors.h
-main_scr.h
-/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/main_scr.h
+channels_signals_setup.h
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/channels_signals_setup.h
+self_test.h
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/self_test.h
 printing_functions.h
 /home/b-rain/PycharmProjects/memristive-spinal-cord/screens/printing_functions.h
+
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/printing_functions.h
+
+/home/b-rain/PycharmProjects/memristive-spinal-cord/screens/self_test.h
 

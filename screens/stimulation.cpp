@@ -10,16 +10,16 @@ int STIMULATION(string selected_channel = "1")
 {
     //fill with text
     string channels_message[10] = {};
-    channels_message[0] = "0.0  Ankle Extensor (G), L 20 mA";
-    channels_message[1] = "0.0  Ankle Flexor (G), L 20 mA";
-    channels_message[2] = "0.0  Hip Extensor (G), L 20 mA";
-    channels_message[3] = "0.0  Hip Flexor (G), L 20 mA";
-    channels_message[4] = "0.0  Ankle Extensor (G), L 20 mA";
-    channels_message[5] = "0.0  Monophasic   250 us, 40 Hz, L 20 mA";
-    channels_message[6] = "0.0  Biphasic    200 us, 40 Hz, L 20 mA";
-    channels_message[7] = "0.0  Hip Flexor (G), L 20 mA";
-    channels_message[8] = "0.0  Monophasic   250 us, 40 Hz, L 20 mA";
-    channels_message[9] = "0.0  Biphasic    200 us, 40 Hz, L 20 mA";
+    channels_message[0] = "0.0 20 mA Ankle Extensor (G)  1000 Hz";
+    channels_message[1] = "0.0 20 mA Ankle Flexor (G)  1000 Hz";
+    channels_message[2] = "0.0 20 mA Hip Extensor (G)  1000 Hz";
+    channels_message[3] = "0.0 20 mA Hip Flexor (G)  1000 Hz";
+    channels_message[4] = "0.0 20 mA Ankle Extensor (G)  1000 Hz";
+    channels_message[5] = "0.0 20 mA Monophasic   40 Hz, 250 us, 1000 Hz";
+    channels_message[6] = "0.0 20 mA Biphasic    40 Hz, 250 us, 1000 Hz";
+    channels_message[7] = "0.0 20 mA Hip Flexor (G)  1000 Hz";
+    channels_message[8] = "0.0 150 mA Monophasic   40 Hz, 250 us, 1000 Hz";
+    channels_message[9] = "0.0 150 mA Biphasic    40 Hz, 250 us, 1000 Hz";
 
     string F1_F4_message = "  F1 STOP  F2 STOP & BACK  F3 STOP & SETUP  F4 STOP & MAIN";
 

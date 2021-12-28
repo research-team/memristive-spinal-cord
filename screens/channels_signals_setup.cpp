@@ -12,16 +12,16 @@ int CHANNELS_SIGNALS_SETUP(string selected_channel = "1")
     //fill with text
     string channels_message[10] = {};
 
-    channels_message[0] = "ANKLE EXTENSOR (G) >>    2000 Hz, L 20 mA ";
-    channels_message[1] = "ANKLE FLEXOR (G) >>    2000 Hz, L 20 mA";
-    channels_message[2] = "HIP EXTENSOR (G) >>    2000 Hz, L 20 mA";
-    channels_message[3] = "HIP FLEXOR (G) >>    2000 Hz, L 20 mA";
-    channels_message[4] = "ANKLE EXTENSOR (G) >>    2000 Hz, L 20 mA";
-    channels_message[5] = "MONOPHASIC >>    250 us, 40 Hz, L 20 mA";
-    channels_message[6] = "BIPHASIC >>    250 us, 40 Hz, L 20 mA";
-    channels_message[7] = "HIP FLEXOR (G) >>    2000 Hz, L 20 mA";
-    channels_message[8] = "MONOPHASIC >>    250 us, 40 Hz, L 150 mA";
-    channels_message[9] = "BIPHASIC >>   250 us, 40 Hz, L 150 mA";
+    channels_message[0] = "20 mA  ANKLE EXTENSOR (G)    2000 Hz  >>";
+    channels_message[1] = "20 mA  ANKLE FLEXOR (G)    2000 Hz  >>";
+    channels_message[2] = "20 mA  HIP EXTENSOR (G)    2000 Hz  >>";
+    channels_message[3] = "20 mA  HIP FLEXOR (G)    2000 Hz  >>";
+    channels_message[4] = "20 mA  ANKLE EXTENSOR (G)    2000 Hz  >>";
+    channels_message[5] = "20 mA  MONOPHASIC    40 Hz, 250 us, 1000 Hz  >>";
+    channels_message[6] = "20 mA  BIPHASIC    40 Hz, 250 us, 1000 Hz  >>";
+    channels_message[7] = "20 mA  HIP FLEXOR (G)    2000 Hz  >>";
+    channels_message[8] = "150 mA  MONOPHASIC    40 Hz, 250 us, 1000 Hz  >>";
+    channels_message[9] = "150 mA  BIPHASIC    40 Hz, 250 us, 1000 Hz  >>";
 
     string F1_F4_message = "  F1 SAVE & BACK  F2 SELECT  F3 SAVE & STIM";
 

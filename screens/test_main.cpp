@@ -18,7 +18,7 @@
 using namespace std;
 
 int main()
-{		SELF_TEST("1");
+{		//SELF_TEST("1");
 	MAIN("1", true);
 	SETUP("1");
 	CHANNELS_SIGNALS_SETUP("1");

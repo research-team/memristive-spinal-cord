@@ -45,7 +45,7 @@ int SELF_TEST(string selected_channel = "1")
     cout << "  SENSORS CONFIGURATION:" << endl;
     cout << " " << endl;
     cout << "  Before testing, please put on the required sensors" << endl;
-    cout << "  and connect the electrodes" << "\n" << endl;
+    cout << "  and attach electrodes" << "\n" << endl;
     int first_channel = 0;
     int last_channel = 10;
     int lines_with_text = print_main_lines(channels_message, selected_channel, first_channel, last_channel);

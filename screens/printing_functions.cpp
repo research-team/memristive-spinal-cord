@@ -81,11 +81,11 @@ int print_main_lines(string channels_message[8], string selected_channel, int fi
             color = "original";
         }
 
-        if (channels_message[i] == "disconnected")
+        if (channels_message[i] == "DISCONNECTED")
         {
             color = "red";
         }
-        if (channels_message[i] == "connected")
+        if (channels_message[i] == "CONNECTED")
         {
             color = "original";
         }
