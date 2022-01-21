@@ -42,48 +42,43 @@ class CPG:
         self.Ia_gen_E = self.addgener(0, 150, 500, False)
         self.Ia_gen_F = self.addgener(650, 150, 500, False)
 
-        self.Ia_aff_E = self.addpool(120, 10)
-        self.Ia_aff_F = self.addpool(120, 10)
+        self.Ia_aff_E = self.addpool(120)
+        self.Ia_aff_F = self.addpool(120)
 
-        self.Ia_E = self.addpool(196, 30)
-        self.Ia_F = self.addpool(196, 30)
-        self.R_E = self.addpool(196, 30)
-        self.R_F = self.addpool(196, 30)
-        self.mns_E = self.addpool(200, 30)
-        self.mns_F = self.addpool(200, 30)
+        self.Ia_E = self.addpool(196)
+        self.Ia_F = self.addpool(196)
+        self.R_E = self.addpool(196)
+        self.R_F = self.addpool(196)
+        self.mns_E = self.addpool(200)
+        self.mns_F = self.addpool(200)
 
-        genconnect(self.Ia_gen_E, self.Ia_aff_E, 0.1, 1)
-        genconnect(self.Ia_gen_F, self.Ia_aff_F, 0.1, 1)
+        genconnect(self.Ia_gen_E, self.Ia_aff_E)
+        genconnect(self.Ia_gen_F, self.Ia_aff_F)
 
-        connectcells(self.Ia_aff_E, self.Ia_E, 0.1, 1)
-        connectcells(self.mns_E, self.R_E, 0.1, 1)
-        connectcells(self.Ia_E, self.mns_F, 0.01, 1, True)
-        connectcells(self.R_E, self.mns_E, 0.01, 1, True)
-        connectcells(self.R_E, self.Ia_E, 0.01, 1, True)
+        connectcells(self.Ia_aff_E, self.Ia_E)
+        connectcells(self.mns_E, self.R_E)
+        connectcells(self.Ia_E, self.mns_F, True)
+        connectcells(self.R_E, self.mns_E, True)
+        connectcells(self.R_E, self.Ia_E, True)
 
-        connectcells(self.Ia_aff_F, self.Ia_F, 0.1, 1)
-        connectcells(self.mns_F, self.R_F, 0.1, 1)
-        connectcells(self.Ia_F, self.mns_E, 0.01, 1, True)
-        connectcells(self.R_F, self.mns_F, 0.01, 1, True)
-        connectcells(self.R_F, self.Ia_F, 0.01, 1, True)
+        connectcells(self.Ia_aff_F, self.Ia_F)
+        connectcells(self.mns_F, self.R_F)
+        connectcells(self.Ia_F, self.mns_E, True)
+        connectcells(self.R_F, self.mns_F, True)
+        connectcells(self.R_F, self.Ia_F, True)
 
-        connectcells(self.R_E, self.R_F, 0.01, 1, True)
-        connectcells(self.R_F, self.R_E, 0.01, 1, True)
-        connectcells(self.Ia_E, self.Ia_F, 0.01, 1, True)
-        connectcells(self.Ia_F, self.Ia_E, 0.01, 1, True)
+        connectcells(self.R_E, self.R_F, True)
+        connectcells(self.R_F, self.R_E, True)
+        connectcells(self.Ia_E, self.Ia_F, True)
+        connectcells(self.Ia_F, self.Ia_E, True)
 
-    def addpool(self, num, nsyn, name="test", neurontype="int"):
+    def addpool(self, num, name="test", neurontype="int"):
         '''
         Creates interneuronal pool and returns gids of pool
         Parameters
         ----------
         num: int
             neurons number in pool
-        neurontype: string
-            int: interneuron
-            delay: interneuron with 5ht
-            moto: motoneuron
-            aff: afferent
         Returns
         -------
         gids: list
@@ -142,7 +137,7 @@ class CPG:
         pc.cell(gid, ncstim)
         return gid
 
-def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
+def connectcells(pre, post, inhtype = False, N = 50):
     ''' Connects with excitatory synapses
       Parameters
       ----------
@@ -150,14 +145,6 @@ def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
           list of presynase neurons gids
       post: list
           list of postsynapse neurons gids
-      weight: float
-          weight of synapse
-          used with Gaussself.Ian distribution
-      delay: int
-          synaptic delay
-          used with Gaussself.Ian distribution
-      nsyn: int
-          numder of synapses
       inhtype: bool
           is this connection inhibitory?
     '''
@@ -169,18 +156,16 @@ def connectcells(pre, post, weight, delay, inhtype = False, N = 50):
                 if inhtype:
                     syn = pc.gid_connect(srcgid,target)
                     # nc = pc.gid_connect(srcgid, syn)
-                    # nc.weight[0] = 0 # str
                     syn.weight[0], syn.delay = inhw,inhd
                 else:
                     syn = pc.gid_connect(srcgid,target)
                     # nc = pc.gid_connect(srcgid, syn)
-                    # nc.weight[0] = random.gauss(weight, weight / 6) # str
                     syn.weight[0], syn.delay = excw,excd
 
                 exnclist.append(syn)
 
 
-def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False, N = 50):
+def genconnect(gen_gid, afferents_gids, inhtype = False, N = 50):
     ''' Connects with generator
       Parameters
       ----------
@@ -194,12 +179,11 @@ def genconnect(gen_gid, afferents_gids, weight, delay, inhtype = False, N = 50):
       delay: int
           synaptic delay
           used with Gaussian distribution
-      nsyn: int
+      N: int
           numder of synapses
       inhtype: bool
           is this connection inhibitory?
     '''
-    nsyn = random.randint(N, N+5)
     for i in afferents_gids:
         if pc.gid_exists(i):
             for j in range(N):
