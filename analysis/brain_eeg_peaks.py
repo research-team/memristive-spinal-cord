@@ -1,10 +1,9 @@
 import logging
 import scipy.io
-import seaborn as sns
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
+import article_plotting
 
 """
 The script to read mat files of the rats brains and mark peaks.
@@ -62,3 +61,12 @@ slice of the channel
 sl = ch.flatten()[60000:70000]
 draw_channel(sl, "teal")
 
+analyser = article_plotting.Analyzer()
+## sliced_datasets, dstep, borders, filter_val, tails=False, debug=False
+#TODO correct ch to array of channels
+dstep = 0.025 #TODO clarify this
+borders = 250 #TODO clarify this
+filter_val = 0.028 #TODO clarify this
+tails = False
+debug = True
+analyser._get_peaks(ch, dstep, borders, filter_val, tails, debug)
