@@ -1,0 +1,47 @@
+Bootstrap: docker
+From: debian:11.3
+
+%environment
+	export PMIX_MCA_gds=^ds12
+
+%files
+	libopenmpi3_4.1.0-10_amd64.deb
+	openmpi-common_4.1.0-10_all.deb
+	openmpi-bin_4.1.0-10_amd64.deb
+
+%post
+	dpkg -i --force-depends \
+		libopenmpi3_4.1.0-10_amd64.deb \
+		openmpi-common_4.1.0-10_all.deb \
+		openmpi-bin_4.1.0-10_amd64.deb
+	apt -y update && apt -f -y install
+	apt -y install \
+		automake \
+		bison \
+		build-essential \
+		cmake \
+		cython3 \
+		flex \
+		git \
+		libncurses-dev \
+		libopenmpi-dev \
+		libtool \
+		libx11-dev \
+		libxext-dev \
+		python3-dev \
+		python3-scipy \
+		wget \
+		xfonts-100dpi \
+		zlib1g-dev \
+		python3-pip 
+	pip3 install h5py
+	git clone https://github.com/neuronsimulator/nrn -b 8.0.0
+	srcdir=nrn
+	mkdir "${srcdir}/build"
+	cmake -B "${srcdir}/build" "${srcdir}" \
+		-DNRN_ENABLE_INTERVIEWS=OFF \
+		-DNRN_ENABLE_CORENEURON=OFF \
+		-DPYTHON_EXECUTABLE=$(which python3) \
+		-DCORENRN_ENABLE_GPU=OFF \
+		-DNRN_ENABLE_RX3D=OFF
+	cmake --build "${srcdir}/build" --parallel 16 --target install
