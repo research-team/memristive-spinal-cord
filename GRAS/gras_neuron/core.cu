@@ -302,6 +302,8 @@ type* init_gpu_arr(type *cpu_var, unsigned int size = NRNS_AND_SEGS) {
 	type *gpu_var;
 	HANDLE_ERROR(cudaMalloc(&gpu_var, size * sizeof(type)));
 	memcpyHtD<type>(cpu_var, gpu_var, size);
+	// HANDLE_ERROR(cudaHostAlloc((void**)&cpu_var, NRNS_AND_SEGS * sizeof(type), cudaHostAllocWriteCombined | cudaHostAllocMapped));
+	// HANDLE_ERROR(cudaHostGetDevicePointer( &gpu_var, cpu_var, 0 ) );
 	return gpu_var;
 }
 
@@ -311,6 +313,9 @@ type *init_gpu_arr(vector<type> &vec) {
 	type *gpu_var;
 	HANDLE_ERROR(cudaMalloc(&gpu_var, sizeof(type) * vec.size()));
 	memcpyHtD<type>(vec.data(), gpu_var, vec.size());
+	// type* cpu_var = vec.data();
+	// HANDLE_ERROR(cudaHostAlloc((void**)&cpu_var, NRNS_AND_SEGS * sizeof(type), cudaHostAllocWriteCombined | cudaHostAllocMapped));
+	// HANDLE_ERROR(cudaHostGetDevicePointer( &gpu_var, cpu_var, 0 ) );
 	return gpu_var;
 }
 
@@ -726,7 +731,7 @@ void nrn_rhs(States* S, const Parameters* P, Neurons* N, int nrn, int i1, int i3
 		// Cannot have any axial terms yet so that i(vm) can be calculated from
 		// i(vm)+is(vi) and is(vi) which are stored in rhs vector.
 		nrn_rhs_ext(S, P, N, i1, i3);
-		// nrn_rhs_ext has also computed the the internal axial current for those
+		// nrn_rhs_ext has also computed the internal axial current for those
 		// nodes containing the extracellular mechanism
 	}
 	double dv;
@@ -1161,7 +1166,7 @@ void initialization_kernel(curandState *state, States* S, const Parameters* P, N
 	}
 }
 
-void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50) {
+void conn_generator(Group &generator, Group &post_neurons, double delay, double weight, int indegree=50, short high_distr=0) {
 	/**
 	 * todo
 	 */
@@ -1181,12 +1186,21 @@ void conn_generator(Group &generator, Group &post_neurons, double delay, double 
 		printf("Generator cannot include more than 1 neuron!\n");
 		exit(0);
 	}
+
+	if (indegree < 25)
+		nsyn = indegree;
+
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
 			vector_syn_pre_nrn.push_back(gen_id);
 			vector_syn_post_nrn.push_back(post);
-			vector_syn_weight.push_back(weight_distr(rand_gen));
-			vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			if (high_distr == -1) {
+				vector_syn_weight.push_back(weight);
+				vector_syn_delay.push_back(ms_to_step(delay));
+			} else {
+				vector_syn_weight.push_back(weight_distr(rand_gen));
+				vector_syn_delay.push_back(ms_to_step(delay_distr(rand_gen)));
+			}
 			vector_syn_delay_timer.push_back(-1);
 		}
 	}
@@ -1263,6 +1277,10 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 	int prerand = 0;
 	double tmp_w = 0;
 	double tmp_d = 0;
+
+	if (indegree < 25)
+		nsyn = indegree;
+
 	for (int post = post_neurons.id_start; post <= post_neurons.id_end; ++post) {
 		for (int i = 0; i < nsyn; ++i) {
 			prerand = pre_nrns_ids(rand_gen);
@@ -1284,6 +1302,10 @@ void connect_fixed_indegree(Group &pre_neurons, Group &post_neurons, double dela
 					if (tmp_d <= 0.01) {
 						tmp_d = delay;
 					}
+				}
+				if (high_distr == -1) {
+					tmp_d = delay;
+					tmp_w = weight;
 				}
 				vector_syn_weight.push_back(tmp_w);
 				vector_syn_delay.push_back(ms_to_step(tmp_d));
@@ -1538,22 +1560,22 @@ void createmotif(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	 * see https://github.com/research-team/memristive-spinal-cord/blob/master/doc/diagram/cpg_generator_FE_paper.png
 	 */
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 3, 0.55, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2.4, 0.0003); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2.4, 0.0005); // 2.5
-	connect_fixed_indegree(OM3, OM2, 2.4, -3);
-	connect_fixed_indegree(OM3, OM1, 2.4, -3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.555, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.555, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.4, 0.000315); // 0.000315
+	connect_fixed_indegree(OM2, OM3, 2.4, 0.000515); // 0.000515
+	connect_fixed_indegree(OM3, OM2, 2.4, -3.08); // -3.08
+	connect_fixed_indegree(OM3, OM1, 2.4, -3.08); // -3.08
 }
 
 void createmotif_flexor(Group &OM0, Group &OM1, Group &OM2, Group &OM3) {
 	connect_fixed_indegree(OM0, OM1, 3, 0.9, 50, 5);
-	connect_fixed_indegree(OM1, OM2, 3, 0.61, 50, 5); // 0.85
-	connect_fixed_indegree(OM2, OM1, 3, 0.55, 50, 5);
-	connect_fixed_indegree(OM1, OM3, 2.4, 0.0002); // 2.5
-	connect_fixed_indegree(OM2, OM3, 2.4, 0.0004); // 4
-	connect_fixed_indegree(OM3, OM2, 2.4, -2); // -1 - noise, -5 - void
-	connect_fixed_indegree(OM3, OM1, 2.4, -3);
+	connect_fixed_indegree(OM1, OM2, 3, 0.615, 50, 5); // 0.85
+	connect_fixed_indegree(OM2, OM1, 3, 0.555, 50, 5);
+	connect_fixed_indegree(OM1, OM3, 2.4, 0.000215); // 0.000215
+	connect_fixed_indegree(OM2, OM3, 2.4, 0.000415); // 0.000415
+	connect_fixed_indegree(OM3, OM2, 2.4, -2.08);  // -2.08// -1 - noise, -5 - void
+	connect_fixed_indegree(OM3, OM1, 2.4, -3.08); // -3.08
 }
 
 __global__

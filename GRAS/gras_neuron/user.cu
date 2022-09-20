@@ -7,22 +7,48 @@ double V0v2F_coef;
 double EES_test_stregth;
 double QUADRU_Ia;
 const char layers = 5;      // number of OM layers (5 is default)
-const int ees_fr = 40;      // frequency of EES
+const char CV_number = 6;
+const char extra_layers = 0 + layers;
+int ees_fr = 40;      // frequency of EES
 
 void init_network() {
 	/**
 	 * todo
 	 */
+	 /* test
+	auto ees = form_group("EES", 1, GENERATOR);
+	auto inter = form_group("inter", 1, INTER);
+	auto afferent = form_group("afferent", 1, AFFERENTS);
+	auto moto = form_group("moto", 1, MOTO);
+
+	add_generator(ees, 0, sim_time, 40);
+
+	conn_generator(ees, inter, 10, 0.05, 1, -1);
+	conn_generator(ees, afferent, 1, 0.5, 1, -1);
+
+	connect_fixed_indegree(inter, moto, 2, 7, 1, -1);
+	connect_fixed_indegree(afferent, moto, 2, 7, 1, -1);
+
+	save({inter, afferent, moto});
+
+	return;
+	  */
 	string name;
 	vector<Group> E, CV, L0, L1, L2E, L2F, L3, IP_E, IP_F, gen_C, C_0, V0v;
 	// generators
 	auto ees = form_group("EES", 1, GENERATOR);
 	auto MOTO_NOISE = form_group("MOTO_NOISE", 1, GENERATOR);
-
-	for(int layer = 0; layer < layers + 1; ++layer) {
+	// 
+	for(int layer = 0; layer < CV_number; ++layer) {
 		name = to_string(layer + 1);
 		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
 	}
+	// EXTRA layers
+	for(int layer = layers; layer < extra_layers; ++layer) {
+		name = to_string(layer + 1);
+		gen_C.push_back(form_group("C" + name, 1, GENERATOR));
+	}
+
 	for(int step = 0; step < step_number; ++step) {
 		name = to_string(step);
 		C_0.push_back(form_group("C_0_step_" + name, 1, GENERATOR));
@@ -40,12 +66,25 @@ void init_network() {
 		L2F.push_back(form_group("OM" + name + "_2F"));
 		L3.push_back(form_group("OM" + name + "_3"));
 	}
+	// EXTRA OM groups by layer
+	for(int layer = layers; layer < extra_layers; ++layer) {
+		name = to_string(layer + 1);
+		L0.push_back(form_group("OM" + name + "_0"));
+		L1.push_back(form_group("OM" + name + "_1"));
+		L2E.push_back(form_group("OM" + name + "_2E"));
+		L2F.push_back(form_group("OM" + name + "_2F"));
+		L3.push_back(form_group("OM" + name + "_3"));
+	}
+
 	//
-	for(int layer = 0; layer < layers + 1; ++layer) {
+	for(int layer = 0; layer < CV_number; ++layer) {
 		name = to_string(layer + 1);
 		E.push_back(form_group("E" + name, 50, AFFERENTS));
 		CV.push_back(form_group("CV_" + name, 50, AFFERENTS));
-		// interneuronal pool
+	}
+
+	for(int layer = 0; layer < extra_layers; ++layer) {
+		name = to_string(layer + 1);
 		IP_E.push_back(form_group("IP_E_" + name));
 		IP_F.push_back(form_group("IP_F_" + name));
 	}
@@ -68,26 +107,39 @@ void init_network() {
 	auto R_F = form_group("R_F");
 
 	// create EES generator
-	add_generator(ees, 0, sim_time, ees_fr);
+	add_generator(ees, 25, sim_time, ees_fr);
 
 	add_generator(MOTO_NOISE, 0, sim_time, 200);
 
-
 	// create CV generators (per step)
-	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
+	for (int layer = 0; layer < CV_number + TEST; ++layer) {
 		for (int step_index = 0; step_index < step_number; ++step_index) {
 			normal_distribution<double> freq_distr(cv_fr, cv_fr / 10);
-			double start = 25 + skin_time * layer + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
+			double start = 25 + skin_time * layer + step_index * (skin_time * CV_number + 25 * slices_flexor);
+
 			double end = start + skin_time - 3; // remove merging CV
 			add_generator(gen_C[layer], start, end, freq_distr(rand_gen));
 		}
 		printf("step\n");
 	}
+
+	// EXTRA create CV generators (per step)
+	for (int layer = layers; layer < extra_layers + TEST; ++layer) {
+		for (int step_index = 0; step_index < step_number; ++step_index) {
+			normal_distribution<double> freq_distr(cv_fr, cv_fr / 10);
+			double start = 25 + skin_time * (layer - 4) + step_index * (skin_time * CV_number + 25 * slices_flexor);
+//			double start = 25 + skin_time * (layer) + step_index * (skin_time * CV_number + 25 * slices_flexor);
+			double end = start + skin_time - 3; // remove merging CV
+			add_generator(gen_C[layer], start, end, freq_distr(rand_gen));
+		}
+		printf("step\n");
+	}
+
 	// create C_0 and V0v generators (per step)
 	for (int step_index = 0; step_index < step_number; ++step_index) {
 		// freq = 200 (interval = 5ms), count = 125 / interval. Duration = count * interval = 125
 		double start = 25 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
-		double end = start + 25 * slices_flexor;
+		double end = start + 25 * slices_flexor - 7;
 		add_generator(C_0[step_index], start, end, cv_fr);
 		// V0v
 		start = 20 + skin_time * slices_extensor + step_index * (skin_time * slices_extensor + 25 * slices_flexor);
@@ -99,15 +151,21 @@ void init_network() {
 	createmotif(OM1_0E, L1[0], L2E[0], L3[0]);
 	for(int layer = 1; layer < layers; ++layer)
 		createmotif(L0[layer], L1[layer], L2E[layer], L3[layer]);
-	// extra flexor connections
+	// EXTRA layers extensor
+	for(int layer = layers; layer < extra_layers; ++layer)
+		createmotif(L0[layer], L1[layer], L2E[layer], L3[layer]);
+	
+	// FLEXOR
 	createmotif_flexor(OM1_0F, L1[0], L2F[0], L3[0]);
 	for(int layer = 1; layer < layers; ++layer)
 		createmotif_flexor(L0[layer], L1[layer], L2F[layer], L3[layer]);
-
 	for(int layer = 1; layer < layers; ++layer)
 		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 3 + 1, 0.2, 50, 2);
+	// EXTRA layers FLEXOR
+	for(int layer = layers; layer < extra_layers; ++layer)
+		connect_fixed_indegree(L2F[layer - 1], L2F[layer], 3 + 1, 0.2, 50, 2);
+	
 	//
-
 	connect_fixed_indegree(E[0], OM1_0F, 3, 0.00025 * E2F_coef, 50, 3);
 	for(int step = 0; step < step_number; ++step) {
 		connect_fixed_indegree(V0v[step], OM1_0F, 3, 0.75 * V0v2F_coef, 50, 5);
@@ -116,49 +174,74 @@ void init_network() {
 	// extensor
 
 	/// !!!!!
-	for(int layer = 1; layer < layers; ++layer) {
+	for(int layer = 1; layer < extra_layers; ++layer) {
 		connect_fixed_indegree(E[layer - 1], E[layer], 2 + 1, 0.75); // 4.75
 	}
 	// connect E (from EES)
-	connect_fixed_indegree(E[0], OM1_0E, 2 + 0.5, 0.005 * 0.8 * E_coef, 50, 3); // 0.00040 - 0.00047
-	for(int layer = 1; layer < layers; ++layer) {
+	connect_fixed_indegree(E[0], OM1_0E, 2 + 0.5, 0.005 * 0.8 * E_coef, 50, 4); // 0.00040 - 0.00047
+	for(int layer = 1; layer < extra_layers; ++layer) {
 		connect_fixed_indegree(E[layer], L0[layer], 2 + 0.5, 0.005 * 0.8 * E_coef, 50, 4); // 0.00048 * 0.4, 1.115
 	}
 
 	// E inhibitory projections (via 3rd core)
+	/*
 	for (int layer = 0; layer < layers - 1; ++layer) {
 		if (layer >= 3) {
 			for (int i = layer + 3; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (layer > 3)\n", i, layer);
-				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 0.1);
+				connect_fixed_indegree(gen_C[i], L3[layer], 1, 1.95);
 			}
 		} else {
 			for (int i = layer + 2; i < layers + 1 + TEST; ++i) {
 				printf("C index %d, OM%d_3 (else)\n", i, layer);
-				connect_fixed_indegree(gen_C[i], L3[layer], 0.1, 0.1);
+				connect_fixed_indegree(gen_C[i], L3[layer], 1, 1.95);
+			}
+		}
+	}*/
+	for (int layer = 2; layer < layers + 1; ++layer) {
+		if (layer > 3) {
+			for (int i = 0; i < layer - 2 + TEST; ++i) {
+				printf("C index %d, OM%d_3 (layer > 3)\n", i, layer);
+				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
+			}
+		} else {
+			for (int i = 0; i < layer - 1 + TEST; ++i) {
+				printf("C index %d, OM%d_3 (else)\n", i, layer);
+				connect_fixed_indegree(gen_C[layer], L3[i], 1, 1.95);
 			}
 		}
 	}
+	// EXTRA layers
+	for (int layer = layers; layer < extra_layers; ++layer) {
+		printf("C index %d, OM%d_3 (else)\n", layer, layer);
+		connect_fixed_indegree(gen_C[layer - 3], L3[layer], 0.1, 0.1);
+	}
+
 	conn_generator(ees, Ia_aff_E, 1, 2.5 * EES_test_stregth);
 	conn_generator(ees, Ia_aff_F, 1, 2.5 * EES_test_stregth);
-	conn_generator(ees, E[0], 3, 1.0 * EES_test_stregth); // NORMAL
+	conn_generator(ees, E[0], 3, 1.0 * EES_test_stregth, 50, -1); // NORMAL
 	///conn_generator(Iagener_E, Ia_aff_E, 1, 0.0001, 5);
 	///conn_generator(Iagener_F, Ia_aff_F, 1, 0.0001, 5);
-
-	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 0.045 * QUADRU_Ia); // was 1.5ms
+	// TODO motifs disable weight inh
+	connect_fixed_indegree(Ia_aff_E, mns_E, 1.0, 0.045 * QUADRU_Ia); // was 1.5ms 0.045
 	connect_fixed_indegree(Ia_aff_F, mns_F, 2.0, 0.006);
 
 	connect_fixed_outdegree_MUSCLE(mns_E, muscle_E, 1.2, 0.11, 45); // 2.0
 	connect_fixed_outdegree_MUSCLE(mns_F, muscle_F, 1.2, 0.38, 45); // 2.0
 
-	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, mns_E, 5, 0.1, 50, 5);
+	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, mns_E, 5, 0.05, 50, 5);
 	connect_fixed_outdegree_MUSCLE(MOTO_NOISE, mns_F, 5, 0.5, 50, 5);
 
-	connect_fixed_indegree(gen_C[0], Ia_aff_E, 2, -0.4, 50, 3);
-	connect_fixed_indegree(gen_C[1], Ia_aff_E, 2, -0.2, 50, 3);
-	// connect_fixed_indegree(CV[3], Ia_aff_E, 1, -0.1, 50, 3);
-	connect_fixed_indegree(gen_C[4], Ia_aff_E, 2, -0.2, 50, 3);
-	connect_fixed_indegree(gen_C[5], Ia_aff_E, 2, -0.4, 50, 3);
+	if (layers >= 1)
+		connect_fixed_indegree(gen_C[0], Ia_aff_E, 2, -0.4, 50, 3);
+	if (layers >= 2)
+		connect_fixed_indegree(gen_C[1], Ia_aff_E, 2, -0.2, 50, 3);
+	// if (layers >= 3)
+		// connect_fixed_indegree(CV[3], Ia_aff_E, 1, -0.1, 50, 3);
+	if (layers >= 4)
+		connect_fixed_indegree(gen_C[4], Ia_aff_E, 2, -0.2, 50, 3);
+	if (layers >= 5)
+		connect_fixed_indegree(gen_C[5], Ia_aff_E, 2, -0.4, 50, 3);
 
 	// connect_fixed_outdegree_MUSCLE(gen_C[0], mns_E, 4, -2.5, 100, 5); // 2.0
 	// connect_fixed_outdegree_MUSCLE(gen_C[1], mns_E, 4, -1, 100, 5); // 2.0
@@ -171,26 +254,31 @@ void init_network() {
 	// IP
 	for (int layer = 0; layer < layers; ++layer) {
 		// Extensor
-//		connectinsidenucleus(IP_F[layer]);
-//		connectinsidenucleus(IP_E[layer]);
-//		connectinsidenucleus(L2E[layer]);
-//		connectinsidenucleus(L2F[layer]);
 		connect_fixed_indegree(L2E[layer], IP_E[layer], 2, 0.005, 500, 5); // 2.5
 		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.0045, 500, 5); // 0.005
 		if (layer > 3)
-			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -layer * 0.0002);
+			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0002 *layer);
 		else
 			connect_fixed_indegree(IP_E[layer], Ia_aff_E, 1, -0.0001);
 		// Flexor
 		connect_fixed_indegree(L2F[layer], IP_F[layer], 2, 0.001, 500, 5); // 2.5
 		connect_fixed_indegree(IP_F[layer], mns_F, 3, 0.004, 100, 5); // 2.75 0.125 0.2
-		// connect_fixed_indegree(IP_F[layer], Ia_aff_F, 1, -0.95);
 	}
+
+	for (int layer = layers; layer < extra_layers; ++layer) {
+		// Extensor
+		connect_fixed_indegree(L2E[layer], IP_E[layer], 2, 0.005, 500, 5); // 2.5
+		connect_fixed_indegree(IP_E[layer], mns_E, 2, 0.0045, 500, 5); // 0.005
+		// Flexor
+		connect_fixed_indegree(L2F[layer], IP_F[layer], 2, 0.001, 500, 5); // 2.5
+		connect_fixed_indegree(IP_F[layer], mns_F, 3, 0.004, 100, 5); // 2.75 0.125 0.2
+	}
+
 	// skin inputs
-	for (int layer = 0; layer < layers + 1 + TEST; ++layer)
+	for (int layer = 0; layer < CV_number + TEST; ++layer)
 		connect_fixed_indegree(gen_C[layer], CV[layer], 2, 0.15 * cv_coef);
 	// CV
-	double TESTCOEF = 35.0;
+	double TESTCOEF = 30.0;
 	double T_coef = 1.0;
 	// OM1
 	connect_fixed_indegree(CV[0], OM1_0E, 2 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
@@ -226,25 +314,47 @@ void init_network() {
 		if (layers >= 5) connect_fixed_indegree(CV[5], L0[4], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
 	}
 
+	// OM6
+	if (extra_layers > 5) {
+		connect_fixed_indegree(CV[1], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[2], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[3], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[4], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[5], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+//		if (extra_layers >= 6) connect_fixed_indegree(CV[6], L0[5], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+	}
+
+	// OM7
+	if (extra_layers > 6) {
+		connect_fixed_indegree(CV[1], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[2], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[3], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[4], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[5], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+		connect_fixed_indegree(CV[6], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+//		if (extra_layers >= 7) connect_fixed_indegree(CV[7], L0[6], 3 + T_coef, 0.00045 * cv_coef * TESTCOEF * 0.3, 50, 3);
+	}
+
 	// C=1 Extensor
 	for (int layer = 0; layer < layers; ++layer)
 		connect_fixed_indegree(IP_E[layer], iIP_E, 1, 0.001);
-//	//
-	for (int layer = 0; layer < layers + 1 + TEST; ++layer) {
-		connect_fixed_indegree(CV[layer], iIP_E, 1, 1.8);
-		connect_fixed_indegree(gen_C[layer], iIP_E, 1, 1.8);
+
+	for (int layer = 0; layer < layers + TEST; ++layer) {
+		connect_fixed_indegree(CV[layer], iIP_E, 4, 1); // for what CV and Gen_C
+		connect_fixed_indegree(gen_C[layer], iIP_E, 1, 1);
 	}
 	connect_fixed_indegree(iIP_E, OM1_0F, 0.1, -0.001);
 
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, L2F[layer], 2, -0.8);
+		connect_fixed_indegree(iIP_E, L2F[layer], 2, -0.4); //0.8 0.6
 		connect_fixed_indegree(iIP_F, L2E[layer], 2, -0.5);
 	}
 	//
 	connect_fixed_indegree(iIP_E, Ia_aff_F, 1, -1.2);
-	connect_fixed_indegree(iIP_E, mns_F, 0.1, -0.08); // 0.08
+	connect_fixed_indegree(iIP_E, mns_F, 4, -0.0315); // 0.08 delay 0.1
+
 	for (int layer = 0; layer < layers; ++layer) {
-		connect_fixed_indegree(iIP_E, IP_F[layer], 1, -0.01); // 0.1
+		connect_fixed_indegree(iIP_E, IP_F[layer], 4.5, -0.005); // 0.1
 		connect_fixed_indegree(IP_F[layer], iIP_F, 1, 0.0001);
 		connect_fixed_indegree(iIP_F, IP_E[layer], 1, -0.08); // -0.1
 	}
@@ -277,11 +387,11 @@ void init_network() {
 	connect_fixed_indegree(R_F, R_E, 1, -0.04);
 	connect_fixed_indegree(Ia_E, Ia_F, 1, -0.08);
 	connect_fixed_indegree(Ia_F, Ia_E, 1, -0.08);
-	connect_fixed_indegree(iIP_E, iIP_F, 1, -0.04);
+	connect_fixed_indegree(iIP_E, iIP_F, 3, -0.04); // delay 1
 	connect_fixed_indegree(iIP_F, iIP_E, 1, -0.04);
 
 	save({muscle_E, muscle_F});
-	// save(all_groups);
+//	 save(all_groups);
 }
 
 
@@ -289,6 +399,10 @@ void simulate(int test_index) {
 	/**
 	 *
 	 */
+	random_device r;
+	default_random_engine rand_gen(r());
+	uniform_real_distribution<double> delay_distr(2, 4);
+
 	// init structs (CPU)
 	States *S = (States *)malloc(sizeof(States));
 	Parameters *P = (Parameters *)malloc(sizeof(Parameters));
@@ -377,7 +491,7 @@ void simulate(int test_index) {
 	auto *ref_time_timer = arr_init<unsigned int>(NRNS_NUMBER); N->ref_time_timer = init_gpu_arr(ref_time_timer, NRNS_NUMBER);
 	auto *ref_time = arr_init<unsigned int>(NRNS_NUMBER);
 	for (int i = 0; i < NRNS_NUMBER; ++i)
-		ref_time[i] = ms_to_step(2);
+		ref_time[i] = ms_to_step(delay_distr(rand_gen));
 	N->ref_time = init_gpu_arr(ref_time, NRNS_NUMBER);
 	N->size = NRNS_NUMBER;
 
@@ -425,6 +539,19 @@ void simulate(int test_index) {
 		// updating neurons kernel
 		neuron_kernel<<<BLOCKS, THREADS>>>(devStates, dev_S, dev_P, dev_N, dev_G, sim_iter);
 		/// SAVE DATA ZONE
+		/*
+		// int streamSize = NRNS_AND_SEGS / 4;
+		// int streamSizeTail = NRNS_AND_SEGS % 4;
+		// for (int streamIndex = 0; streamIndex < nStreams; ++streamIndex) {
+		// 	int offset = streamIndex * streamSize;
+		// 	if (streamIndex == nStreams - 1)
+		// 		offset += streamSizeTail;
+		// 	cudaMemcpyAsync(&Vm[offset], &S->Vm[offset], streamBytes, cudaMemcpyDeviceToHost, cudaMemcpyDeviceToHost, stream[streamIndex]);
+		// 	cudaMemcpyAsync(&g_exc[offset], &N->g_exc[offset], streamBytes, cudaMemcpyDeviceToHost, cudaMemcpyDeviceToHost, stream[streamIndex]);
+		// 	cudaMemcpyAsync(&g_inh_A[offset], &N->g_inh_A[offset], streamBytes, cudaMemcpyDeviceToHost, cudaMemcpyDeviceToHost, stream[streamIndex]);
+		// 	cudaMemcpyAsync(&g_inh_B[offset], &N->g_inh_B[offset], streamBytes, cudaMemcpyDeviceToHost, cudaMemcpyDeviceToHost, stream[streamIndex]);
+		// 	cudaMemcpyAsync(&has_spike[offset], &N->has_spike[offset], streamBytes, cudaMemcpyDeviceToHost, cudaMemcpyDeviceToHost, stream[streamIndex]);
+		// }*/
 		memcpyDtH(S->Vm, Vm, NRNS_AND_SEGS);
 		memcpyDtH(N->g_exc, g_exc, NRNS_NUMBER);
 		memcpyDtH(N->g_inh_A, g_inh_A, NRNS_NUMBER);
@@ -441,7 +568,8 @@ void simulate(int test_index) {
 	HANDLE_ERROR(cudaEventSynchronize(stop));
 	HANDLE_ERROR(cudaEventElapsedTime(&time, start, stop));
 	// todo optimize the code to free all GPU variables
-	HANDLE_ERROR(cudaFree(S->Vm));
+	// HANDLE_ERROR(cudaFree(S->Vm));
+	// HANDLE_ERROR( cudaFreeHost( S->Vm ) );
 
 	// stuff info
 	printf("Elapsed GPU time: %d ms\n", (int) time);
@@ -457,6 +585,7 @@ int main(int argc, char **argv) {
 	//
 	int iter = atoi(argv[1]);
 	int arg_exp = atoi(argv[2]);
+	int arg_hz = atoi(argv[3]);
 
 	modes bws, pharma, speed;
 
@@ -509,6 +638,7 @@ int main(int argc, char **argv) {
 	V0v2F_coef = 1;
 	QUADRU_Ia = 1;
 	EES_test_stregth = 1.0;
+	ees_fr = arg_hz;
 
 	// speed modes
 	switch(speed) {
@@ -547,7 +677,7 @@ int main(int argc, char **argv) {
 			break;
 		case plt: //!
 			QUADRU_Ia = 1.0;
-			cv_coef = 0.07;		// cv_coef = 0.0615;	gut 0.08
+			cv_coef = 0.07;			// cv_coef = 0.0615;	gut 0.08
 			E_coef = 0.05;			// 	E_coef = 0.052;
 			slices_extensor = 6;	// 	slices_extensor = 6;		
 			slices_flexor = 5;		// 	slices_flexor = 5;	
@@ -577,6 +707,7 @@ int main(int argc, char **argv) {
 			V0v2F_coef = 0.001;
 			break;
 		case str:
+			QUADRU_Ia = 0.8;
 			str_flag = true;
 			V0v2F_coef = 0.001;
 			break;
@@ -584,7 +715,17 @@ int main(int argc, char **argv) {
 			exit(-1);
 	}
 
-	one_step_time = slices_extensor * skin_time + 25 * slices_flexor;
+	// remove
+	// E_coef = 0.0025;
+	// cv_coef = 0.069;
+	// testing a weak EES and increased a CV strength
+	// cv_coef = 0.09;
+	// EES_test_stregth = 0.001;
+
+	// one_step_time = slices_extensor * skin_time + 25 * slices_flexor;
+	int fr = 1000 / ees_fr;
+	one_step_time = (slices_extensor * skin_time + 25 * slices_flexor) / fr * fr;
+	printf("STEP LENGTH %d\n", one_step_time);
 	sim_time = 25 + one_step_time * step_number;
 	SIM_TIME_IN_STEPS = (unsigned int)(sim_time / dt);  // [steps] converted time into steps
 
@@ -592,13 +733,13 @@ int main(int argc, char **argv) {
 	int dev = 0;
 	cudaDeviceProp deviceProp;
 	HANDLE_ERROR(cudaGetDeviceProperties(&deviceProp, dev));
-	printf("%s struct of array at ", argv[0]);
-	printf("device %d: %s \n", dev, deviceProp.name);
+	printf("%s struct of array at device %d: %s \n", argv[0], dev, deviceProp.name);
 	HANDLE_ERROR(cudaSetDevice(dev));
 	
 	printf("%d\n", arg_exp * 10 + iter);
 	// the main body of simulation
-	simulate(arg_exp * 10 + iter);
+	//simulate(arg_exp * 10 + iter);
+	simulate(arg_hz);
 	
 	// reset device
 	HANDLE_ERROR(cudaDeviceReset());
