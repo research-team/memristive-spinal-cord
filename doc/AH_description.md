@@ -2,6 +2,8 @@
 
 The content of the interneuronal pool (IP) is inherited from the article (Dylan Deska-Gauthier and Ying Zhang, The functional diversity of spinal interneurons and locomotor control).
 
+In this paper we will use the 5 layers approach for the pattern formation layer indicated as 5 CVs and OMs that works in flexor and extensor modes. The routing is done by the interneuronal pool indicated as the IP via iIP-E and iIP-F inhibitory projections. 
+
 
 ## Walking 
 
