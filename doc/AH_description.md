@@ -19,17 +19,22 @@ The ankle IP inhibitory nuclei: F-E Routing are active inhibiting the inhibitory
 
 ![Jumping](diagram/cpg_AH_FE_combined-Jumping_8_muscles.png)
 
-The main delta between walking and jumping is the activation of inhibitry synchronization nucleus that enables syrchroneous activation of extensors of both legs and left and right enhancers that inhibit the inhibitory nuclei 3 in all OMs.
+The main delta between walking and jumping is the activation of inhibitry synchronization nucleus that enables synchronous activation of extensors of both legs and left and right enhancers that inhibit the inhibitory nuclei 3 in all OMs.
 
 ## Stairs
 
 ![Stairs](diagram/cpg_AH_FE_combined-Stairs_8_muscles.png)
 
+In stairs mode the enhancers are activated but synchronization inhibitory nucleus is not active.
+
 ## Running
 
 ![Running](diagram/cpg_AH_FE_combined-Running_8_muscles.png)
+
+Running is similar to stair with the activation of enhancers to 50%.
 
 ## Turning right
 
 ![Turning right](diagram/cpg_AH_FE_combined-Turning_right_8_muscles.png)
 
+The left leg enhancer is activated to 50% while the right leg enhancer is not active at all.
