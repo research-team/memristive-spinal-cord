@@ -8,8 +8,6 @@ The diagonal inhibitory projections from iIP-F to eIP-F and iIP-E to eIP-E and i
 
 Lower we identify the difference between modes of the CPG work using 5 inhibitory nuclei: pattern blocking, CPG pattern routing, left-right legs synchronization and enhancer nuclei for the stairs and jumping modes.
 
-Below we included the explanation of the 
-
 ## Walking 
 
 ![Walking](diagram/cpg_AH_FE_combined-Walking_8_muscles.png)
