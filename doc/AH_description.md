@@ -1,5 +1,7 @@
 # Ankle-knee CPG modes description
 
+## Walking 
+
 ![Walking](diagram/cpg_AH_FE_combined-Walking_8_muscles.png)
 
 The content of the interneuronal pool (IP) is inherited from the article (Dylan Deska-Gauthier and Ying Zhang, The functional diversity of spinal interneurons and locomotor control)
