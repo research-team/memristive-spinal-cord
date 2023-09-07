@@ -3,7 +3,7 @@ TITLE Muscle length variation
 NEURON {
 	POINT_PROCESS xm
 	RANGE amp, cli
-	USEION cl WRITE cli VALENCE 1
+	USEION cl WRITE cli VALENCE -1
 }
 
 UNITS {
