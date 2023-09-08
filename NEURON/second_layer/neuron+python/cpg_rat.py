@@ -23,17 +23,17 @@ logging.info(mode)
 speed = 50 # duration of layer 25 = 21 cm/s; 50 = 15 cm/s; 125 = 6 cm/s
 ees_fr = 40 # frequency of EES
 versions = 1
-step_number = 10 # number of steps
-layers = 5  # 5 is default
+step_number = 2# 10 # number of steps
+layers =  2 # 5  # 5 is default
 
 CV_number = 6
-extra_layers = 1 + layers
-nMN = 210
-nAff = 120
-nInt = 196
-N = 50
+extra_layers = 0 # 1 + layers
+nMN = 21 # 210
+nAff = 12 # 120
+nInt = 19 # 196
+N = 5 #50
 k = 0.017
-CV_0_len = 125
+CV_0_len = 12 # 125
 
 if mode == 'AIR':
     k = 0.001

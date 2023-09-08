@@ -8,8 +8,12 @@ from bioaffrat import bioaffrat
 from interneuron import interneuron
 from motoneuron import motoneuron
 from muscle import muscle
-
+import logging
 import random
+
+FORMAT = '%(asctime)s %(message)s'
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+log = logging.getLogger("Cur")
 
 def set_recording_vectors(compartment):
     ''' recording voltage
@@ -76,10 +80,12 @@ def show_output(v_vec, v_vec1, v_vec2, t_vec):
     pyplot.ylabel('mV')
 
 if __name__ == '__main__':
+
+    log.info("Started ...")
+
     muscle = muscle()
 
-
-    cell = motoneuron(60)
+    cell = motoneuron(2)
     aff = bioaffrat()
     # branch_vec, t_vec = set_recording_vectors(cell.axonL.node[len(cell.axonL.node)-1])
     stim = h.NetStim()
@@ -106,10 +112,12 @@ if __name__ == '__main__':
     ncstim2.delay = 1
     ncstim2.weight[0] = 0.05
 
+    log.info("Network connection started ...")
     nc1 = h.NetCon(aff.node[len(aff.node)-1](0.5)._ref_v, cell.synlistex[5], sec=aff.node[len(aff.node)-1])
     nc1.delay = 1
     nc1.weight[0] = 0.5
     nclist = []
+
     for i in range(50):
         nc2 = h.NetCon(stim, muscle.synlistex[i])
         nc2.delay = random.gauss(1, 0.05)
@@ -127,10 +135,14 @@ if __name__ == '__main__':
     # stim.dur = 5
     # stim.amp = 0.1
     # print("Number of model - ",cell.numofmodel)
+    log.info("Network connected ...")
+    log.info("Simulation started ...")
     for sec in h.allsec():
         h.psection(sec=sec)
-    simulate(cell)
+    log.info("Simulation in progress ...")
+    simulate(cell, 10)
     # show_output(branch_vec, t_vec)
+    log.info("Simulation complete ...")
     show_output(v_vec, v_vec1, v_vec2, t_vec)
     # show_output(soma_vec2, t_vec)
     pyplot.show()
